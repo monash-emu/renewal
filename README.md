@@ -1,0 +1,2 @@
+## EMU's application of renewal model
+Epidemiological Modelling Unit at Monash University's School of Public Health and Preventive Medicine presents this application of a renewal process model to various epidemic data.
