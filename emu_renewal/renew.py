@@ -181,8 +181,8 @@ class RenewalModel:
         gen_mean: float, 
         gen_sd: float, 
         proc: List[float],
-        cdr,
-        rt_init,
+        cdr: float,
+        rt_init: float,
         report_mean: float,
         report_sd: float,
     ) -> ModelResult:
@@ -239,9 +239,7 @@ class RenewalModel:
             "remaining number of susceptibles. "
         )
 
-    def get_description(
-        self,
-    ) -> str:
+    def get_description(self) -> str:
         """Compile the description of model.
 
         Returns:
