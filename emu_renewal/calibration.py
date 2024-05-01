@@ -70,7 +70,7 @@ class StandardCalib(Calibration):
             params: All renewal model parameters
         
         Returns:
-            Case detection proportion
+            Modelled time series of cases over analysis period
         """
         result = self.epi_model.renewal_func(**params)
         return result.cases[self.common_model_idx]
