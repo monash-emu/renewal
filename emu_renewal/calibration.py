@@ -63,21 +63,16 @@ class StandardCalib(Calibration):
         self.proc_disp_sd = 0.1
         self.fixed_params = fixed_params
 
-    def get_model_notifications(self, gen_mean, gen_sd, proc, cdr, rt_init, report_mean, report_sd):
+    def get_model_notifications(self, params):
         """Get the modelled notifications from a set of epi parameters.
 
         Args:
-            gen_mean: Generation time mean
-            gen_sd: Generation time standard deviation
-            proc: Values of the variable process
-            cdr: Case detection rate/proportion
-            report_mean: Time to reporting mean
-            report_sd: Time to reporting standard deviation
-
+            params: All renewal model parameters
+        
         Returns:
             Case detection proportion
         """
-        result = self.epi_model.renewal_func(gen_mean, gen_sd, proc, cdr, rt_init, report_mean, report_sd)
+        result = self.epi_model.renewal_func(**params)
         return result.cases[self.common_model_idx]
 
     def calibration(
@@ -87,14 +82,14 @@ class StandardCalib(Calibration):
         """See get_description below.
 
         Args:
-            params: Parameters with single value
+            priors: Parameters with single value
         """
         params = {k: numpyro.sample(k, v) for k, v in priors.items()}
         proc_dispersion = numpyro.sample("proc_dispersion", dist.HalfNormal(self.proc_disp_sd))
         proc_dist = dist.Normal(jnp.repeat(0.0, self.n_process_periods), proc_dispersion)
         params["proc"] = numpyro.sample("proc", proc_dist)
         params.update(self.fixed_params)
-        log_model_res = jnp.log(self.get_model_notifications(**params))
+        log_model_res = jnp.log(self.get_model_notifications(params))
         log_target = jnp.log(self.data)
         dispersion = numpyro.sample("dispersion", dist.HalfNormal(self.data_disp_sd))
         like = dist.Normal(log_model_res, dispersion).log_prob(log_target).sum()

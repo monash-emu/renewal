@@ -180,7 +180,7 @@ class RenewalModel:
         self, 
         gen_mean: float, 
         gen_sd: float, 
-        y_proc_req: List[float],
+        proc: List[float],
         cdr,
         rt_init,
         report_mean: float,
@@ -197,7 +197,7 @@ class RenewalModel:
             Results of the model run
         """
         densities = self.dens_obj.get_densities(self.window_len, gen_mean, gen_sd)
-        process_vals = self.fit_process_curve(y_proc_req, rt_init)
+        process_vals = self.fit_process_curve(proc, rt_init)
         init_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(init_inc)
         init_state = RenewalState(init_inc, start_pop)
