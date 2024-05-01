@@ -32,8 +32,9 @@ class Calibration:
         common_abs_idx = np.array(self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int))
         self.common_model_idx = common_abs_idx - self.epi_model.model_times[0]
 
-        # Force transformed distributions to compile first and avoid jax/numpyro memory leaks
-        _ = [p.mean for p in priors.values()]
+        self.priors = priors
+        _ = [p.mean for p in self.priors.values()]  # Compile transformed dists first to avoid memory leaks
+
 
     def calibration(self):
         pass
@@ -76,16 +77,10 @@ class StandardCalib(Calibration):
         result = self.epi_model.renewal_func(**params)
         return result.cases[self.common_model_idx]
 
-    def calibration(
-        self,
-        priors: Dict[str, float],
-    ):
+    def calibration(self):
         """See get_description below.
-
-        Args:
-            priors: Parameters with single value
         """
-        params = {k: numpyro.sample(k, v) for k, v in priors.items()}
+        params = {k: numpyro.sample(k, v) for k, v in self.priors.items()}
         proc_dispersion = numpyro.sample("proc_dispersion", dist.HalfNormal(self.proc_disp_sd))
         proc_dist = dist.Normal(jnp.repeat(0.0, self.n_process_periods), proc_dispersion)
         params["proc"] = numpyro.sample("proc", proc_dist)
