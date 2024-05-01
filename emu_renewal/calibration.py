@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Union
 from jax import numpy as jnp
 import numpy as np
 import pandas as pd
@@ -29,10 +29,8 @@ class Calibration:
         analysis_dates_idx = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
         common_dates_idx = data.index.intersection(analysis_dates_idx)
         self.data = jnp.array(data.loc[common_dates_idx])
-        self.common_model_idx = (
-            np.array(self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int))
-            - self.epi_model.model_times[0]
-        )
+        common_abs_idx = np.array(self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int))
+        self.common_model_idx = common_abs_idx - self.epi_model.model_times[0]
 
         # Force transformed distributions to compile first and avoid jax/numpyro memory leaks
         _ = [p.mean for p in priors.values()]
@@ -63,7 +61,10 @@ class StandardCalib(Calibration):
         self.proc_disp_sd = 0.1
         self.fixed_params = fixed_params
 
-    def get_model_notifications(self, params):
+    def get_model_notifications(
+        self, 
+        params: Dict[str, Union[float, jnp.array]],
+    ):
         """Get the modelled notifications from a set of epi parameters.
 
         Args:
