@@ -1,13 +1,15 @@
 from typing import Dict, Union
+from functools import partial
 from jax import numpy as jnp
 import numpy as np
 import pandas as pd
 import numpyro
-from numpyro import distributions as dist
+from numpyro import infer, distributions as dist
 
 pd.options.plotting.backend = "plotly"
 
 from emu_renewal.renew import RenewalModel
+from emu_renewal.utils import custom_init
 
 
 class Calibration:
@@ -25,6 +27,8 @@ class Calibration:
         """
         self.epi_model = epi_model
         self.n_process_periods = len(self.epi_model.x_proc_data.points)
+
+        self.custom_init = custom_init(n_proc=self.n_process_periods)
 
         analysis_dates_idx = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
         common_dates_idx = data.index.intersection(analysis_dates_idx)
@@ -110,3 +114,4 @@ class StandardCalib(Calibration):
             "also calibrated using a half-normal distribution, "
             f"with standard deviation {self.data_disp_sd}. "
         )
+
