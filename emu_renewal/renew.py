@@ -190,7 +190,18 @@ class RenewalModel:
             densities = self.report_dist.get_densities(len(latent_state), report_mean, report_sd)
             return (latent_state * densities).sum() * cdr
         return delay_report_func
-
+    
+    def alternate_delay_report(self, report_mean, report_sd, cdr):
+        def delay_report_func(latent_state):
+            n_times = 7
+            densities = self.report_dist.get_densities(len(latent_state), report_mean, report_sd)
+            result = 0.0
+            for i in range(n_times):
+                dens = densities[:-i] if i > 0 else densities  # Because indexing with [:-0] gives an empty array
+                result += (latent_state[i:] * dens).sum()
+            return result * cdr / n_times
+        return delay_report_func
+    
     def renewal_func(
         self, 
         gen_mean: float, 
@@ -216,7 +227,7 @@ class RenewalModel:
         init_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(init_inc)
         init_state = RenewalState(init_inc, start_pop)
-        delay_report = self.get_delay_report(report_mean, report_sd, cdr)
+        delay_report = self.alternate_delay_report(report_mean, report_sd, cdr)
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
             proc_val = process_vals[t - self.start]
