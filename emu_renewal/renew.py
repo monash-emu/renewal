@@ -193,6 +193,8 @@ class RenewalModel:
         return delay_report_func
     
     def alternate_delay_report(self, report_mean, report_sd, cdr):
+        """Windowed delayed reporting under the old approach.
+        """
         def delay_report_func(latent_state):
             n_times = 7
             densities = self.report_dist.get_densities(len(latent_state), report_mean, report_sd)
@@ -203,6 +205,30 @@ class RenewalModel:
             return result * cdr / n_times
         return delay_report_func
     
+    def get_cases_from_inc(
+        self, 
+        init_inc: jnp.array, 
+        inc: jnp.array, 
+        report_mean: float,
+        report_sd: float,
+        cdr: float,
+    ) -> jnp.array:
+        """The observation model
+
+        Args:
+            init_inc: The incidence run-in
+            inc: The modelled incidence
+            densities: The reporting distribution densities
+            cdr: The case detection proportion
+
+        Returns:
+            The case notifications series
+        """
+        full_inc = jnp.concatenate([init_inc, jnp.array(inc)])
+        densities = self.dens_obj.get_densities(len(full_inc), report_mean, report_sd)
+        result = [(densities[i:0:-1] * full_inc[:i]).sum() * cdr for i in range(len(full_inc))]
+        return jnp.array(result, float)  # Otherwise the elements come out as 1-element arrays
+
     def renewal_func(
         self, 
         gen_mean: float, 
@@ -223,19 +249,17 @@ class RenewalModel:
         Returns:
             Results of the model run
         """
-        full_len = len(self.model_times) + len(self.init_series)
-        densities = self.dens_obj.get_densities(full_len, gen_mean, gen_sd)
-        window_densities = densities[:self.window_len]
+        densities = self.dens_obj.get_densities(self.window_len, gen_mean, gen_sd)
         process_vals = self.fit_process_curve(proc, rt_init)
         init_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(init_inc)
         init_state = RenewalState(init_inc, start_pop)
-        delay_report = self.get_delay_report(report_mean, report_sd, cdr)
+        delay_report = self.get_delay_report(report_mean, report_sd, cdr)  # Just for checking
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
             proc_val = process_vals[t - self.start]
             r_t = proc_val * state.suscept / self.pop
-            renewal = (window_densities * state.incidence).sum() * r_t
+            renewal = (densities * state.incidence).sum() * r_t
             new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
             suscept = state.suscept - new_inc
             incidence = jnp.zeros_like(state.incidence)
@@ -246,10 +270,7 @@ class RenewalModel:
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-
-        full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
-        outputs["other_cases"] = jnp.array([(densities[i:0:-1] * full_inc[:i]).sum() * cdr for i in range(len(full_inc))], float)
-
+        outputs["other_cases"] = self.get_cases_from_inc(init_inc, outputs["incidence"], report_mean, report_sd, cdr)
         return ModelResult(**outputs)
 
     def describe_renewal(self):
