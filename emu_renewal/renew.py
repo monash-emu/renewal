@@ -248,7 +248,7 @@ class RenewalModel:
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
 
         full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
-        outputs["other_cases"] = [(densities[i:0:-1] * full_inc[:i]).sum() * cdr for i in range(len(full_inc))]
+        outputs["other_cases"] = jnp.array([(densities[i:0:-1] * full_inc[:i]).sum() * cdr for i in range(len(full_inc))], float)
 
         return ModelResult(**outputs)
 
