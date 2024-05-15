@@ -226,7 +226,7 @@ class RenewalModel:
         """
         full_inc = jnp.concatenate([init_inc, jnp.array(inc)])
         densities = self.dens_obj.get_densities(len(full_inc), report_mean, report_sd)
-        result = [(densities[i:0:-1] * full_inc[:i]).sum() * cdr for i in range(len(full_inc))]
+        result = [(densities[i:0:-1] * full_inc[:i]).sum() * cdr for i in range(len(full_inc))][len(init_inc):]
         return jnp.array(result, float)  # Otherwise the elements come out as 1-element arrays
 
     def renewal_func(
