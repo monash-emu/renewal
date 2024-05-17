@@ -25,7 +25,6 @@ class ModelResult(NamedTuple):
     r_t: jnp.array
     process: jnp.array
     cases: jnp.array
-    convolved_cases: jnp.array
     weekly_sum: jnp.array
 
 
@@ -172,40 +171,6 @@ class RenewalModel:
             "undertaken in the log-transformed space. "
         )
 
-    def get_delay_report(
-        self, 
-        report_mean: float, 
-        report_sd: float, 
-        cdr: float,
-    ) -> callable:
-        """Old version - will remove
-
-        Args:
-            report_mean: Mean reporting delay
-            report_sd: Standard deviation of reporting delay
-            cdr: Case detection proportion
-
-        Returns:
-            The function
-        """
-        def delay_report_func(latent_state):
-            densities = self.report_dist.get_densities(len(latent_state), report_mean, report_sd)
-            return (latent_state * densities).sum() * cdr
-        return delay_report_func
-    
-    def alternate_delay_report(self, report_mean, report_sd, cdr):
-        """What I'm working towards, but using the approach that the old code used
-        """
-        def delay_report_func(latent_state):
-            n_times = 7
-            densities = self.report_dist.get_densities(len(latent_state), report_mean, report_sd)
-            result = 0.0
-            for i in range(n_times):
-                dens = densities[:-i] if i > 0 else densities  # Because indexing with [:-0] gives an empty array
-                result += (latent_state[i:] * dens).sum()
-            return result * cdr / n_times
-        return delay_report_func
-    
     def get_cases_from_inc(
         self, 
         inc: jnp.array, 
@@ -253,7 +218,6 @@ class RenewalModel:
         init_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(init_inc)
         init_state = RenewalState(init_inc, start_pop)
-        delay_report = self.get_delay_report(report_mean, report_sd, cdr)  # Just for checking
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
             proc_val = process_vals[t - self.start]
@@ -264,13 +228,12 @@ class RenewalModel:
             incidence = jnp.zeros_like(state.incidence)
             incidence = incidence.at[1:].set(state.incidence[:-1])
             incidence = incidence.at[0].set(new_inc)
-            cases = delay_report(incidence)  # Will delete this
-            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val, "cases": cases}  # Will remove cases from this
+            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
         convolved_cases = self.get_cases_from_inc(outputs["incidence"], report_mean, report_sd, cdr)
-        outputs["convolved_cases"] = convolved_cases
+        outputs["cases"] = convolved_cases
         outputs["weekly_sum"] = jnp.convolve(convolved_cases, jnp.array([1] * 7))[:-6]
         return ModelResult(**outputs)
 
