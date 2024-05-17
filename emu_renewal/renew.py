@@ -177,7 +177,7 @@ class RenewalModel:
         report_sd: float, 
         cdr: float,
     ) -> callable:
-        """Get function to calculate notifications from incidence.
+        """Old version - will remove
 
         Args:
             report_mean: Mean reporting delay
@@ -193,7 +193,7 @@ class RenewalModel:
         return delay_report_func
     
     def alternate_delay_report(self, report_mean, report_sd, cdr):
-        """Windowed delayed reporting under the old approach.
+        """What I'm working towards, but using the approach that the old code used
         """
         def delay_report_func(latent_state):
             n_times = 7
@@ -207,7 +207,6 @@ class RenewalModel:
     
     def get_cases_from_inc(
         self, 
-        init_inc: jnp.array, 
         inc: jnp.array, 
         report_mean: float,
         report_sd: float,
@@ -216,18 +215,17 @@ class RenewalModel:
         """The observation model
 
         Args:
-            init_inc: The incidence run-in
             inc: The modelled incidence
-            densities: The reporting distribution densities
+            report_mean: Mean reporting delay parameter
+            report_sd: Standard deviation of the reporting delay parameter
             cdr: The case detection proportion
 
         Returns:
             The case notifications series
         """
-        full_inc = jnp.concatenate([init_inc, jnp.array(inc)])
+        full_inc = jnp.concatenate([self.init_series, jnp.array(inc)])
         densities = self.dens_obj.get_densities(len(full_inc), report_mean, report_sd)
-        result = [(densities[i:0:-1] * full_inc[:i]).sum() * cdr for i in range(len(full_inc))][len(init_inc):]
-        return jnp.array(result, float)  # Otherwise the elements come out as 1-element arrays
+        return jnp.convolve(full_inc, densities)[len(self.init_series):len(full_inc)] * cdr
 
     def renewal_func(
         self, 
@@ -265,12 +263,12 @@ class RenewalModel:
             incidence = jnp.zeros_like(state.incidence)
             incidence = incidence.at[1:].set(state.incidence[:-1])
             incidence = incidence.at[0].set(new_inc)
-            cases = delay_report(incidence)
-            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val, "cases": cases}
+            cases = delay_report(incidence)  # Will delete this
+            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val, "cases": cases}  # Will remove cases from this
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        outputs["other_cases"] = self.get_cases_from_inc(init_inc, outputs["incidence"], report_mean, report_sd, cdr)
+        outputs["convolved_cases"] = self.get_cases_from_inc(outputs["incidence"], report_mean, report_sd, cdr)
         return ModelResult(**outputs)
 
     def describe_renewal(self):
