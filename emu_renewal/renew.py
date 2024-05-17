@@ -25,7 +25,8 @@ class ModelResult(NamedTuple):
     r_t: jnp.array
     process: jnp.array
     cases: jnp.array
-    other_cases: jnp.array
+    convolved_cases: jnp.array
+    weekly_sum: jnp.array
 
 
 class RenewalModel:
@@ -268,7 +269,9 @@ class RenewalModel:
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        outputs["convolved_cases"] = self.get_cases_from_inc(outputs["incidence"], report_mean, report_sd, cdr)
+        convolved_cases = self.get_cases_from_inc(outputs["incidence"], report_mean, report_sd, cdr)
+        outputs["convolved_cases"] = convolved_cases
+        outputs["weekly_sum"] = jnp.convolve(convolved_cases, jnp.array([1] * 7))[:-6]
         return ModelResult(**outputs)
 
     def describe_renewal(self):
