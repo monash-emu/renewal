@@ -174,7 +174,7 @@ class RenewalModel:
     def get_cases_from_inc(
         self, 
         inc: jnp.array, 
-        init_inc,
+        init_inc: jnp.array,
         report_mean: float,
         report_sd: float,
         cdr: float,
@@ -183,6 +183,7 @@ class RenewalModel:
 
         Args:
             inc: The modelled incidence
+            init_inc: Initialisation incidence series
             report_mean: Mean reporting delay parameter
             report_sd: Standard deviation of the reporting delay parameter
             cdr: The case detection proportion
