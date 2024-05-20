@@ -173,8 +173,8 @@ class RenewalModel:
 
     def get_cases_from_inc(
         self, 
-        inc: jnp.array, 
         init_inc: jnp.array,
+        inc: jnp.array, 
         report_mean: float,
         report_sd: float,
         cdr: float,
@@ -219,7 +219,7 @@ class RenewalModel:
         process_vals = self.fit_process_curve(proc, rt_init)
         init_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(init_inc)
-        init_state = RenewalState(init_inc, start_pop)
+        init_state = RenewalState(init_inc[::-1], start_pop)
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
             proc_val = process_vals[t - self.start]
@@ -234,9 +234,9 @@ class RenewalModel:
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        convolved_cases = self.get_cases_from_inc(outputs["incidence"], init_inc, report_mean, report_sd, cdr)
+        convolved_cases = self.get_cases_from_inc(init_inc, outputs["incidence"], report_mean, report_sd, cdr)
         outputs["cases"] = convolved_cases
-        outputs["weekly_sum"] = jnp.convolve(convolved_cases, jnp.array([1] * 7))[:-6]
+        outputs["weekly_sum"] = jnp.convolve(convolved_cases, jnp.array([1.0] * 7))[:-6]
         return ModelResult(**outputs)
 
     def describe_renewal(self):
