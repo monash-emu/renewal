@@ -174,6 +174,7 @@ class RenewalModel:
     def get_cases_from_inc(
         self, 
         inc: jnp.array, 
+        init_inc,
         report_mean: float,
         report_sd: float,
         cdr: float,
@@ -189,7 +190,7 @@ class RenewalModel:
         Returns:
             The case notifications series
         """
-        full_inc = jnp.concatenate([self.init_series, jnp.array(inc)])
+        full_inc = jnp.concatenate([init_inc, jnp.array(inc)])
         densities = self.dens_obj.get_densities(len(full_inc), report_mean, report_sd)
         return jnp.convolve(full_inc, densities)[len(self.init_series):len(full_inc)] * cdr
 
@@ -232,7 +233,7 @@ class RenewalModel:
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        convolved_cases = self.get_cases_from_inc(outputs["incidence"], report_mean, report_sd, cdr)
+        convolved_cases = self.get_cases_from_inc(outputs["incidence"], init_inc, report_mean, report_sd, cdr)
         outputs["cases"] = convolved_cases
         outputs["weekly_sum"] = jnp.convolve(convolved_cases, jnp.array([1] * 7))[:-6]
         return ModelResult(**outputs)
