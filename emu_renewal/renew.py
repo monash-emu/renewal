@@ -179,7 +179,8 @@ class RenewalModel:
         report_sd: float,
         cdr: float,
     ) -> jnp.array:
-        """The observation model
+        """The observation model. Note that this code is constrained to have
+        the same distribution type for the reporting delay as for the renewal process.
 
         Args:
             inc: The modelled incidence

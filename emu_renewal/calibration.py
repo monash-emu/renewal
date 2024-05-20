@@ -54,6 +54,7 @@ class StandardCalib(Calibration):
         priors: dict[str, dist.Distribution],
         data: pd.Series,
         fixed_params: Dict[str, float]={},
+        indicator: str="cases",
     ):
         """Set up calibration object with epi model and data.
 
@@ -65,6 +66,7 @@ class StandardCalib(Calibration):
         self.data_disp_sd = 0.1
         self.proc_disp_sd = 0.1
         self.fixed_params = fixed_params
+        self.indicator = indicator
 
     def get_model_notifications(
         self, 
@@ -79,7 +81,7 @@ class StandardCalib(Calibration):
             Modelled time series of cases over analysis period
         """
         result = self.epi_model.renewal_func(**params)
-        return result.cases[self.common_model_idx]
+        return getattr(result, self.indicator)[self.common_model_idx]
 
     def calibration(self):
         """See get_description below.
