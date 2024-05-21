@@ -220,17 +220,17 @@ class RenewalModel:
         process_vals = self.fit_process_curve(proc, rt_init)
         init_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(init_inc)
-        init_state = RenewalState(init_inc[::-1], start_pop)
+        init_state = RenewalState(init_inc, start_pop)
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
             proc_val = process_vals[t - self.start]
             r_t = proc_val * state.suscept / self.pop
-            renewal = (densities * state.incidence).sum() * r_t
+            renewal = (densities[::-1] * state.incidence).sum() * r_t
             new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
             suscept = state.suscept - new_inc
             incidence = jnp.zeros_like(state.incidence)
-            incidence = incidence.at[1:].set(state.incidence[:-1])
-            incidence = incidence.at[0].set(new_inc)
+            incidence = incidence.at[:-1].set(state.incidence[1:])
+            incidence = incidence.at[-1].set(new_inc)
             out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
             return RenewalState(incidence, suscept), out
 
