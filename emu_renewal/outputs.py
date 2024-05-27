@@ -20,6 +20,7 @@ def get_spaghetti_from_params(
     model: RenewalModel, 
     params: SampleIterator, 
     model_func: callable,
+    outputs: List[str]=PANEL_SUBTITLES,
 ) -> pd.DataFrame:
     """Run parameters through the model to get outputs.
 
@@ -27,6 +28,7 @@ def get_spaghetti_from_params(
         model: The renewal model
         params: The parameter sets to feed through the model
         model_func: The model function to run the parameters through
+        outputs: The names of the outputs of interest 
 
     Returns:
         Dataframe with index of model times and multiindexed columns,
@@ -34,11 +36,11 @@ def get_spaghetti_from_params(
             by chain and iteration
     """
     index_names = model.epoch.index_to_dti(model.model_times)
-    column_names = pd.MultiIndex.from_product([params.index.map(str), PANEL_SUBTITLES])
+    column_names = pd.MultiIndex.from_product([params.index.map(str), outputs])
     spaghetti = pd.DataFrame(index=index_names, columns=column_names)
     for i, p in params.iterrows():
         res = model_func(**{k: v for k, v in p.items() if "dispersion" not in k})
-        spaghetti.loc[:, str(i)] = np.array([res.cases, res.suscept, res.r_t, res.process]).T
+        spaghetti.loc[:, str(i)] = np.array([getattr(res, outputs[0]), res.suscept, res.r_t, res.process]).T
     spaghetti.columns = spaghetti.columns.swaplevel()
     return spaghetti.sort_index(axis=1, level=0)
 
@@ -47,6 +49,7 @@ def get_quant_df_from_spaghetti(
     model: RenewalModel, 
     spaghetti: pd.DataFrame, 
     quantiles: List[float],
+    outputs: List[str]=PANEL_SUBTITLES,
 ) -> pd.DataFrame:
     """Calculate requested quantiles over spaghetti created
     in previous function.
@@ -55,15 +58,16 @@ def get_quant_df_from_spaghetti(
         model: The renewal model
         spaghetti: The output of get_spaghetti_from_params
         quantiles: The quantiles at which to make the calculations
+        outputs: The names of the outputs of interest 
 
     Returns:
         Dataframe with index of model times and multiindexed columns,
             with first level being the output name and second the quantile
     """
     index_names = model.epoch.index_to_dti(model.model_times)
-    column_names = pd.MultiIndex.from_product([PANEL_SUBTITLES, quantiles])
+    column_names = pd.MultiIndex.from_product([outputs, quantiles])
     quantiles_df = pd.DataFrame(index=index_names, columns=column_names)
-    for col in PANEL_SUBTITLES:
+    for col in outputs:
         quantiles_df[col] = spaghetti[col].quantile(quantiles, axis=1).T
     return quantiles_df
 
@@ -151,6 +155,7 @@ def plot_uncertainty_patches(
     quantiles: List[float], 
     targets: pd.Series, 
     colours: List[str],
+    outputs: List[str]=PANEL_SUBTITLES,
 ) -> go.Figure:
     """Create the main uncertainty output figure for a renewal analysis.
 
@@ -158,6 +163,7 @@ def plot_uncertainty_patches(
         quantiles: Requested quantiles
         targets: The target values of the calibration algorithm
         colour: The colour requests
+        outputs: The names of the outputs of interest 
 
     Returns:
         The figure object        
@@ -165,7 +171,7 @@ def plot_uncertainty_patches(
     fig = get_standard_four_subplots()
     fig.add_trace(go.Scatter(x=targets.index, y=targets, mode="markers"), row=1, col=1)
     for i in range(4):
-        add_ci_patch_to_plot(fig, quantiles[PANEL_SUBTITLES[i]], colours[i], i // 2 + 1, i % 2 + 1)
+        add_ci_patch_to_plot(fig, quantiles[outputs[i]], colours[i], i // 2 + 1, i % 2 + 1)
     return fig.update_layout(margin=MARGINS, height=600, showlegend=False).update_yaxes(rangemode="tozero")
 
 
