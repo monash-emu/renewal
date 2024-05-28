@@ -30,14 +30,14 @@ class ModelResult(NamedTuple):
 
 class RenewalModel:
     def __init__(
-        self, 
-        population: float, 
-        start: Union[datetime, int], 
-        end: Union[datetime, int], 
-        proc_update_freq: int, 
+        self,
+        population: float,
+        start: Union[datetime, int],
+        end: Union[datetime, int],
+        proc_update_freq: int,
         proc_fitter: MultiCurve,
-        dens_obj: Dens, 
-        window_len: int, 
+        dens_obj: Dens,
+        window_len: int,
         init_series: Union[pd.Series, np.array],
         reporting_dist: Dens,
     ):
@@ -57,7 +57,9 @@ class RenewalModel:
         # Initialising series
         if len(init_series) < window_len:
             warn("Padding initialisation series with zeroes because shorter than window")
-            self.init_series = np.concatenate([np.zeros(window_len - len(init_series)), init_series])
+            self.init_series = np.concatenate(
+                [np.zeros(window_len - len(init_series)), init_series]
+            )
         elif len(init_series) > window_len:
             warn("Trimming initialisation series because longer than window")
             self.init_series = jnp.array(init_series[-window_len:])
@@ -79,9 +81,9 @@ class RenewalModel:
 
         # Population
         self.pop = population
-        self.description["Fixed parameters"] += (
-            f"The starting model population is {round_sigfig(population / 1e6, 2)} million persons. "
-        )
+        self.description[
+            "Fixed parameters"
+        ] += f"The starting model population is {round_sigfig(population / 1e6, 2)} million persons. "
 
         # Process
         self.proc_update_freq = proc_update_freq
@@ -122,7 +124,7 @@ class RenewalModel:
         self.report_dist = reporting_dist
 
     def process_time_req(
-        self, 
+        self,
         req: Union[datetime, int],
     ) -> int:
         """Sort out a user requested date.
@@ -145,7 +147,7 @@ class RenewalModel:
             raise ValueError(msg)
 
     def fit_process_curve(
-        self, 
+        self,
         y_proc_req: List[float],
         rt_init,
     ) -> jnp.array:
@@ -161,7 +163,7 @@ class RenewalModel:
         y_proc_data = sinterp.get_scale_data(y_proc_vals)
         cos_func = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
         return jnp.exp(cos_func(self.model_times, self.x_proc_data, y_proc_data))
-    
+
     def describe_process(self):
         self.description["Variable process"] += self.proc_fitter.get_description()
         self.description["Variable process"] += (
@@ -172,9 +174,9 @@ class RenewalModel:
         )
 
     def get_cases_from_inc(
-        self, 
+        self,
         init_inc: jnp.array,
-        inc: jnp.array, 
+        inc: jnp.array,
         report_mean: float,
         report_sd: float,
         cdr: float,
@@ -193,13 +195,13 @@ class RenewalModel:
             The case notifications series
         """
         full_inc = jnp.concatenate([init_inc, jnp.array(inc)])
-        densities = self.dens_obj.get_densities(len(full_inc), report_mean, report_sd)
-        return jnp.convolve(full_inc, densities)[len(self.init_series):len(full_inc)] * cdr
+        densities = self.dens_obj.get_densities(self.window_len, report_mean, report_sd)
+        return jnp.convolve(full_inc, densities)[len(self.init_series) : len(full_inc)] * cdr
 
     def renewal_func(
-        self, 
-        gen_mean: float, 
-        gen_sd: float, 
+        self,
+        gen_mean: float,
+        gen_sd: float,
         proc: List[float],
         cdr: float,
         rt_init: float,
@@ -235,7 +237,9 @@ class RenewalModel:
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        convolved_cases = self.get_cases_from_inc(init_inc, outputs["incidence"], report_mean, report_sd, cdr)
+        convolved_cases = self.get_cases_from_inc(
+            init_inc, outputs["incidence"], report_mean, report_sd, cdr
+        )
         outputs["cases"] = convolved_cases
         outputs["weekly_sum"] = jnp.convolve(convolved_cases, jnp.array([1.0] * 7))[:-6]
         return ModelResult(**outputs)
@@ -271,4 +275,3 @@ class RenewalModel:
             description += f"\n\n### {title}\n"
             description += text
         return description
-    
