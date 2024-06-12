@@ -173,8 +173,7 @@ class RenewalModel:
 
     def get_cases_from_inc(
         self, 
-        init_inc: jnp.array,
-        inc: jnp.array, 
+        full_inc: jnp.array, 
         report_mean: float,
         report_sd: float,
         cdr: float,
@@ -183,8 +182,7 @@ class RenewalModel:
         the same distribution type for the reporting delay as for the renewal process.
 
         Args:
-            inc: The modelled incidence
-            init_inc: Initialisation incidence series
+            full_inc: The full incidence series including initialisation and model outputs
             report_mean: Mean reporting delay parameter
             report_sd: Standard deviation of the reporting delay parameter
             cdr: The case detection proportion
@@ -192,9 +190,8 @@ class RenewalModel:
         Returns:
             The case notifications series
         """
-        full_inc = jnp.concatenate([init_inc, jnp.array(inc)])
         densities = self.dens_obj.get_densities(len(full_inc), report_mean, report_sd)
-        return jnp.convolve(full_inc, densities)[len(self.init_series):len(full_inc)] * cdr
+        return jnp.convolve(full_inc, densities) * cdr
 
     def renewal_func(
         self, 
@@ -235,9 +232,10 @@ class RenewalModel:
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        convolved_cases = self.get_cases_from_inc(init_inc, outputs["incidence"], report_mean, report_sd, cdr)
-        outputs["cases"] = convolved_cases
-        outputs["weekly_sum"] = jnp.convolve(convolved_cases, jnp.array([1.0] * 7))[:-6]
+        full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
+        convolved_cases = self.get_cases_from_inc(full_inc, report_mean, report_sd, cdr)
+        outputs["cases"] = convolved_cases[len(self.init_series): len(full_inc)]
+        outputs["weekly_sum"] = jnp.convolve(convolved_cases, jnp.array([1.0] * 7))[len(self.init_series): len(full_inc)]
         return ModelResult(**outputs)
 
     def describe_renewal(self):
