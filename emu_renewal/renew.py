@@ -174,29 +174,45 @@ class RenewalModel:
         )
 
     def get_cases_from_inc(
-        self,
-        init_inc: jnp.array,
-        inc: jnp.array,
-        report_mean: float,
-        report_sd: float,
-        cdr: float,
+        self, 
+        full_inc: jnp.array, 
+        report_mean: float, 
+        report_sd: float, 
+        cdr: float, 
+        n_dens: int,
     ) -> jnp.array:
-        """The observation model. Note that this code is constrained to have
-        the same distribution type for the reporting delay as for the renewal process.
+        """Apply an observation model as a convolution to calculate case series.
 
         Args:
-            inc: The modelled incidence
-            init_inc: Initialisation incidence series
-            report_mean: Mean reporting delay parameter
-            report_sd: Standard deviation of the reporting delay parameter
-            cdr: The case detection proportion
+            full_inc: The full incidence series including the initialisation
+            report_mean: Mean delay to reporting
+            report_sd: Standard deviation of delay to reporting
+            cdr: Case detection/ascertainment proportion
+            n_dens: How far to go back with the observation model
 
         Returns:
-            The case notifications series
+            Cases from start of initialisation to end of model time
         """
-        full_inc = jnp.concatenate([init_inc, jnp.array(inc)])
-        densities = self.dens_obj.get_densities(self.window_len, report_mean, report_sd)
-        return jnp.convolve(full_inc, densities)[len(self.init_series) : len(full_inc)] * cdr
+        densities = self.dens_obj.get_densities(n_dens, report_mean, report_sd)
+        convolved_cases = jnp.convolve(full_inc, densities) * cdr
+        return convolved_cases[: len(full_inc)]
+
+    def get_period_output_from_daily(
+        self, 
+        raw_series: jnp.array, 
+        n_sum_times: int,
+    ) -> jnp.array:
+        """Sum over a preceding window period to get counts over a period of time.
+
+        Args:
+            raw_series: Observations before windowing applied
+            n_sum_times: Duration of period for summing
+
+        Returns:
+            Summed series
+        """
+        windower = jnp.array([1.0] * n_sum_times)
+        return jnp.convolve(raw_series, windower)[: len(raw_series)]
 
     def renewal_func(
         self,
@@ -237,11 +253,11 @@ class RenewalModel:
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        convolved_cases = self.get_cases_from_inc(
-            init_inc, outputs["incidence"], report_mean, report_sd, cdr
-        )
-        outputs["cases"] = convolved_cases
-        outputs["weekly_sum"] = jnp.convolve(convolved_cases, jnp.array([1.0] * 7))[:-6]
+        full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
+        full_cases = self.get_cases_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
+        full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
+        outputs["cases"] = full_cases[len(init_inc):]
+        outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
         return ModelResult(**outputs)
 
     def describe_renewal(self):
