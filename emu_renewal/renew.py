@@ -171,28 +171,6 @@ class RenewalModel:
             "undertaken in the log-transformed space. "
         )
 
-    def get_cases_from_inc(
-        self, 
-        full_inc: jnp.array, 
-        report_mean: float,
-        report_sd: float,
-        cdr: float,
-    ) -> jnp.array:
-        """The observation model. Note that this code is constrained to have
-        the same distribution type for the reporting delay as for the renewal process.
-
-        Args:
-            full_inc: The full incidence series including initialisation and model outputs
-            report_mean: Mean reporting delay parameter
-            report_sd: Standard deviation of the reporting delay parameter
-            cdr: The case detection proportion
-
-        Returns:
-            The case notifications series
-        """
-        densities = self.dens_obj.get_densities(len(full_inc), report_mean, report_sd)
-        return jnp.convolve(full_inc, densities) * cdr
-
     def renewal_func(
         self, 
         gen_mean: float, 
@@ -233,9 +211,22 @@ class RenewalModel:
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
         full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
-        convolved_cases = self.get_cases_from_inc(full_inc, report_mean, report_sd, cdr)
-        outputs["cases"] = convolved_cases[len(self.init_series): len(full_inc)]
-        outputs["weekly_sum"] = jnp.convolve(convolved_cases, jnp.array([1.0] * 7))[len(self.init_series): len(full_inc)]
+
+        # Case observation model
+        n_dens = len(full_inc)  # This can now be any value we like
+        densities = self.dens_obj.get_densities(n_dens, report_mean, report_sd)
+        convolved_cases = jnp.convolve(full_inc, densities) * cdr
+        full_cases = convolved_cases[: len(full_inc)]
+
+        # Weekly sum
+        n_sum_times = 7  # This can also be any value we like
+        windower = jnp.array([1.0] * n_sum_times)
+        full_weekly_cases = jnp.convolve(full_cases, windower)[: len(full_inc)]
+
+        # Collate outputs to same length as original modelled incidence
+        outputs["cases"] = full_cases[len(init_inc):]
+        outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
+
         return ModelResult(**outputs)
 
     def describe_renewal(self):
