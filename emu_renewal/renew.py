@@ -75,7 +75,7 @@ class RenewalModel:
             "Fixed parameters": (
                 f"The main analysis period runs from {format_date_for_str(start)} "
                 f"to {format_date_for_str(end)}, "
-                "with a preceding run in period of {self.run_in} days. "
+                f"with a preceding initialisation period of {len(self.init_series)} days. "
             )
         }
 
@@ -101,8 +101,8 @@ class RenewalModel:
             self.description["Variable process"] = (
                 "Because the analysis period is not an exact multiple "
                 "of the duration of a process interval, "
-                "the run-in period is extended from {self.run_in} days "
-                f"to {self.process_start} days. "
+                "the variable process only starts from day "
+                f"{self.process_start} of the analysis. "
             )
         self.describe_process()
 
