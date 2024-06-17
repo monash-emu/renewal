@@ -92,7 +92,7 @@ class RenewalModel:
         self.proc_fitter = proc_fitter
         self.process_start = int(self.x_proc_vals[0])
         self.description["Variable process"] = (
-            "Each x-values for the requested points in the variable process "
+            "Each x-value for the requested points in the variable process "
             "are set at evenly spaced intervals through the analysis period "
             f"spaced by {self.proc_update_freq} days and "
             "ending at the analysis end time. "
@@ -112,7 +112,7 @@ class RenewalModel:
         self.window_len = window_len
         self.description["Generation times"] += (
             "The generation interval for all calculations "
-            f"is truncated from {window_len} days, "
+            f"is truncated from {window_len} days onwards "
             "on the assumption that the distribution's density "
             "has reached negligible values once this period has elapsed. "
         )
@@ -167,10 +167,10 @@ class RenewalModel:
     def describe_process(self):
         self.description["Variable process"] += self.proc_fitter.get_description()
         self.description["Variable process"] += (
-            "After curve fitting, the sequence of parameter values pertaining to "
-            "the variable process are exponentiated, "
-            "such that parameter exploration for these quantities is "
-            "undertaken in the log-transformed space. "
+            "The parameters for the variable process are explored as "
+            "the update of each process value relative to the preceding value. "
+            "Each of the parameters for the variable process is exponentiated, "
+            "such that these parameters are explored in the log-transformed space. "
         )
 
     def get_cases_from_inc(
