@@ -230,7 +230,7 @@ class RenewalModel:
 
     def describe_weekly_sum(self):
         self.description["Reporting"] += (
-            "Weekly case counts are then calculated from this "
+            "Last, weekly case counts are then calculated from this "
             "time series of notifications. "
         )
 
