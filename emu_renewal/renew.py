@@ -122,7 +122,10 @@ class RenewalModel:
 
         # Reporting delay
         self.report_dist = reporting_dist
-
+        self.describe_reporting()
+        self.description["Reporting"] += self.report_dist.get_desc()
+        self.describe_weekly_sum()
+        
     def process_time_req(
         self,
         req: Union[datetime, int],
@@ -197,6 +200,17 @@ class RenewalModel:
         convolved_cases = jnp.convolve(full_inc, densities) * cdr
         return convolved_cases[: len(full_inc)]
 
+    def describe_reporting(self):
+        self.description["Reporting"] = (
+            "Notifications are calculated by first convoling "
+            "the probability distribution representing the time from "
+            "onset of an infection episode to reporting with the "
+            "time series of incidence. "
+            "This is then multiplied through by the modelled "
+            "case detection rate to obtain the final time series "
+            "for case notifications. "
+        )
+
     def get_period_output_from_daily(
         self, 
         raw_series: jnp.array, 
@@ -213,6 +227,12 @@ class RenewalModel:
         """
         windower = jnp.array([1.0] * n_sum_times)
         return jnp.convolve(raw_series, windower)[: len(raw_series)]
+
+    def describe_weekly_sum(self):
+        self.description["Reporting"] += (
+            "Weekly case counts are then calculated from this "
+            "time series of notifications. "
+        )
 
     def renewal_func(
         self,

@@ -51,7 +51,7 @@ class GammaDens(Dens):
             The description in markdown format
         """
         return (
-            "Generation times for each day are calculated by "
+            "Distribution times for each day are calculated by "
             "first finding the parameters needed to construct "
             "a gamma distribution with mean and standard deviation "
             "equal to those specified by the submitted parameter values. "
