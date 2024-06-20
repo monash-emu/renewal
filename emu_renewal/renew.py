@@ -243,6 +243,7 @@ class RenewalModel:
         rt_init: float,
         report_mean: float,
         report_sd: float,
+        prop_immune: float=0.0,
     ) -> ModelResult:
         """See describe_renewal
 
@@ -257,7 +258,7 @@ class RenewalModel:
         densities = self.dens_obj.get_densities(self.window_len, gen_mean, gen_sd)
         process_vals = self.fit_process_curve(proc, rt_init)
         init_inc = self.init_series / cdr
-        start_pop = self.pop - jnp.sum(init_inc)
+        start_pop = self.pop * (1.0 - prop_immune) - jnp.sum(init_inc)
         init_state = RenewalState(init_inc[::-1], start_pop)
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
