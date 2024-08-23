@@ -86,16 +86,24 @@ class StandardCalib(Calibration):
     def calibration(self):
         """See get_description below.
         """
+        params = self.set_calib_params()
+        self.add_notif_factor(params)
+
+    def set_calib_params(self):
         params = {k: numpyro.sample(k, v) for k, v in self.priors.items()}
         proc_dispersion = numpyro.sample("proc_dispersion", dist.HalfNormal(self.proc_disp_sd))
         proc_dist = dist.Normal(jnp.repeat(0.0, self.n_process_periods), proc_dispersion)
         params["proc"] = numpyro.sample("proc", proc_dist)
         params.update(self.fixed_params)
-        log_model_res = jnp.log(self.get_model_notifications(params))
-        log_target = jnp.log(self.data)
-        dispersion = numpyro.sample("dispersion", dist.HalfNormal(self.data_disp_sd))
-        like = dist.Normal(log_model_res, dispersion).log_prob(log_target).sum()
-        numpyro.factor("notifications_ll", like)
+        return params
+
+    def add_notif_factor(self, params):
+        notif_log_result = jnp.log(self.get_model_notifications(params))
+        notif_log_target = jnp.log(self.data)
+        notif_disp = numpyro.sample("dispersion", dist.HalfNormal(self.data_disp_sd))
+        notif_like = dist.Normal(notif_log_result, notif_disp).log_prob(notif_log_target).sum()
+        numpyro.factor("notifications_ll", notif_like)
+
 
     def get_description(self) -> str:
         return (
