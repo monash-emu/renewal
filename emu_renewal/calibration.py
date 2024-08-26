@@ -68,17 +68,18 @@ class StandardCalib(Calibration):
         self.fixed_params = fixed_params
         self.indicator = indicator
 
-    def get_model_notifications(
+    def get_model_indicator(
         self, 
         params: Dict[str, Union[float, jnp.array]],
     ):
-        """Get the modelled notifications from a set of epi parameters.
+        """Get the modelled values for a particular epidemiological indicator 
+        for a given set of epi parameters.
 
         Args:
             params: All renewal model parameters
         
         Returns:
-            Modelled time series of cases over analysis period
+            Modelled time series of the indicator over analysis period
         """
         result = self.epi_model.renewal_func(**params)
         return getattr(result, self.indicator)[self.common_model_idx]
@@ -96,16 +97,8 @@ class StandardCalib(Calibration):
         params["proc"] = numpyro.sample("proc", proc_dist)
         params.update(self.fixed_params)
         return params
-
-    def add_notif_factor(self, params):
-        notif_log_result = jnp.log(self.get_model_notifications(params))
-        notif_log_target = jnp.log(self.data)
-        notif_disp = numpyro.sample("dispersion", dist.HalfNormal(self.data_disp_sd))
-        notif_like = dist.Normal(notif_log_result, notif_disp).log_prob(notif_log_target).sum()
-        numpyro.factor("notifications_ll", notif_like)
-
-
-    def get_description(self) -> str:
+    
+    def describe_params(self):
         return (
             f"The calibration process calibrates parameters for {self.n_process_periods} "
             "values for periods of the variable process to the data. "
@@ -114,7 +107,18 @@ class StandardCalib(Calibration):
             "change from the value of the previous stage of the process. "
             "The dispersion of the variable process is calibrated, "
             "using a half-normal distribution "
-            f"with standard deviation {self.proc_disp_sd}"
+            f"with standard deviation {self.proc_disp_sd}. "
+        )
+
+    def add_notif_factor(self, params):
+        notif_log_result = jnp.log(self.get_model_notifications(params))
+        notif_log_target = jnp.log(self.data)
+        notif_disp = numpyro.sample("dispersion", dist.HalfNormal(self.data_disp_sd))
+        notif_like = dist.Normal(notif_log_result, notif_disp).log_prob(notif_log_target).sum()
+        numpyro.factor("notifications_ll", notif_like)
+
+    def describe_notif_contribution(self):
+        return (
             "The log of the modelled notification rate for each parameter set "
             "is compared against the data from the end of the run-in phase "
             "through to the end of the analysis. "
@@ -125,3 +129,7 @@ class StandardCalib(Calibration):
             f"with standard deviation {self.data_disp_sd}. "
         )
 
+    def get_description(self) -> str:
+        description = self.describe_params()
+        description += self.describe_notif_contribution()
+        return description
