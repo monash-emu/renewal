@@ -88,7 +88,7 @@ class StandardCalib(Calibration):
         """See get_description below.
         """
         params = self.set_calib_params()
-        self.add_factor(params)
+        self.add_factor(params, "cases")
 
     def set_calib_params(self):
         params = {k: numpyro.sample(k, v) for k, v in self.priors.items()}
@@ -117,19 +117,17 @@ class StandardCalib(Calibration):
         likelihood_contribution = dist.Normal(log_result, dispersion).log_prob(log_target).sum()
         numpyro.factor(f"{indicator}_ll", likelihood_contribution)
 
-    def describe_notif_contribution(self):
+    def describe_like_contribution(self, indicator):
         return (
-            "The log of the modelled notification rate for each parameter set "
+            f"The log of the modelled {indicator} for each parameter set "
             "is compared against the data from the end of the run-in phase "
             "through to the end of the analysis. "
-            "Modelled notifications are calculated as the product of modelled incidence and the "
-            "(constant through time) case detection proportion. "
             "The dispersion parameter for this comparison of log values is "
-            "also calibrated using a half-normal distribution, "
+            "also calibrated, with the dispersion prior using a half-normal distribution, "
             f"with standard deviation {self.data_disp_sd}. "
         )
 
     def get_description(self) -> str:
         description = self.describe_params()
-        description += self.describe_notif_contribution()
+        description += self.describe_like_contribution("cases")
         return description
