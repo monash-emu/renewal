@@ -88,7 +88,7 @@ class StandardCalib(Calibration):
         """See get_description below.
         """
         params = self.set_calib_params()
-        self.add_notif_factor(params)
+        self.add_factor(params)
 
     def set_calib_params(self):
         params = {k: numpyro.sample(k, v) for k, v in self.priors.items()}
@@ -110,12 +110,12 @@ class StandardCalib(Calibration):
             f"with standard deviation {self.proc_disp_sd}. "
         )
 
-    def add_notif_factor(self, params):
-        notif_log_result = jnp.log(self.get_model_notifications(params))
-        notif_log_target = jnp.log(self.data)
-        notif_disp = numpyro.sample("dispersion", dist.HalfNormal(self.data_disp_sd))
-        notif_like = dist.Normal(notif_log_result, notif_disp).log_prob(notif_log_target).sum()
-        numpyro.factor("notifications_ll", notif_like)
+    def add_factor(self, params, indicator):
+        log_result = jnp.log(self.get_model_indicator(params))
+        log_target = jnp.log(self.data)
+        dispersion = numpyro.sample("dispersion", dist.HalfNormal(self.data_disp_sd))
+        likelihood_contribution = dist.Normal(log_result, dispersion).log_prob(log_target).sum()
+        numpyro.factor(f"{indicator}_ll", likelihood_contribution)
 
     def describe_notif_contribution(self):
         return (
