@@ -17,7 +17,7 @@ class Calibration:
         self,
         epi_model: RenewalModel,
         priors: dict[str, dist.Distribution],
-        data: pd.Series,
+        data: dict[str, pd.Series],
     ):
         """Set up calibration object with epi model and data.
 
@@ -31,8 +31,10 @@ class Calibration:
         self.custom_init = custom_init(n_proc=self.n_process_periods)
 
         analysis_dates_idx = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
-        common_dates_idx = data.index.intersection(analysis_dates_idx)
-        self.data = jnp.array(data.loc[common_dates_idx])
+        self.data = {}
+        for indicator in data.keys():
+            common_dates_idx = data[indicator].index.intersection(analysis_dates_idx)
+            self.data[indicator] = jnp.array(data[indicator].loc[common_dates_idx])
         common_abs_idx = np.array(self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int))
         self.common_model_idx = common_abs_idx - self.epi_model.model_times[0]
 
@@ -112,7 +114,7 @@ class StandardCalib(Calibration):
 
     def add_factor(self, params, indicator):
         log_result = jnp.log(self.get_model_indicator(params))
-        log_target = jnp.log(self.data)
+        log_target = jnp.log(self.data[indicator])
         dispersion = numpyro.sample("dispersion", dist.HalfNormal(self.data_disp_sd))
         likelihood_contribution = dist.Normal(log_result, dispersion).log_prob(log_target).sum()
         numpyro.factor(f"{indicator}_ll", likelihood_contribution)
