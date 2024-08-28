@@ -90,7 +90,8 @@ class StandardCalib(Calibration):
         """See get_description below.
         """
         params = self.set_calib_params()
-        self.add_factor(params, "cases")
+        for ind in self.data.keys():
+            self.add_factor(params, ind)
 
     def set_calib_params(self):
         params = {k: numpyro.sample(k, v) for k, v in self.priors.items()}
@@ -121,15 +122,16 @@ class StandardCalib(Calibration):
 
     def describe_like_contribution(self, indicator):
         return (
-            f"The log of the modelled {indicator} for each parameter set "
-            "is compared against the data from the end of the run-in phase "
-            "through to the end of the analysis. "
-            "The dispersion parameter for this comparison of log values is "
-            "also calibrated, with the dispersion prior using a half-normal distribution, "
-            f"with standard deviation {self.data_disp_sd}. "
+            f"The log of the modelled {indicator} values for each parameter set "
+            "is compared against the corresponding data " 
+            "from the end of the run-in phase through to the end of the analysis. "
+            "The dispersion parameter for this comparison of log values is also calibrated, "
+            "with the dispersion parameter prior using a half-normal distribution, "
+            f"with a standard deviation of {self.data_disp_sd}. "
         )
 
     def get_description(self) -> str:
         description = self.describe_params()
-        description += self.describe_like_contribution("cases")
+        for ind in self.data.keys():
+            description += self.describe_like_contribution(ind)
         return description
