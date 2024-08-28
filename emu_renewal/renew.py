@@ -26,6 +26,7 @@ class ModelResult(NamedTuple):
     process: jnp.array
     cases: jnp.array
     weekly_sum: jnp.array
+    seropos: jnp.array
 
 
 class RenewalModel:
@@ -279,6 +280,7 @@ class RenewalModel:
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
         outputs["cases"] = full_cases[len(init_inc):]
         outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
+        outputs["seropos"] = 1.0 - outputs["suscept"]
         return ModelResult(**outputs)
 
     def describe_renewal(self):
