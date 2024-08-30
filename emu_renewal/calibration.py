@@ -32,11 +32,12 @@ class Calibration:
 
         analysis_dates_idx = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
         self.data = {}
+        self.common_model_idx = {}
         for indicator in data.keys():
             common_dates_idx = data[indicator].index.intersection(analysis_dates_idx)
             self.data[indicator] = jnp.array(data[indicator].loc[common_dates_idx])
-        common_abs_idx = np.array(self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int))
-        self.common_model_idx = common_abs_idx - self.epi_model.model_times[0]
+            common_abs_idx = np.array(self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int))
+            self.common_model_idx[indicator] = common_abs_idx - self.epi_model.model_times[0]
 
         self.priors = priors
         _ = [p.mean for p in self.priors.values()]  # Compile transformed dists first to avoid memory leaks
@@ -56,7 +57,6 @@ class StandardCalib(Calibration):
         priors: dict[str, dist.Distribution],
         data: pd.Series,
         fixed_params: Dict[str, float]={},
-        indicator: str="cases",
     ):
         """Set up calibration object with epi model and data.
 
@@ -68,11 +68,11 @@ class StandardCalib(Calibration):
         self.data_disp_sd = 0.1
         self.proc_disp_sd = 0.1
         self.fixed_params = fixed_params
-        self.indicator = indicator
 
     def get_model_indicator(
         self, 
         params: Dict[str, Union[float, jnp.array]],
+        indicator: str,
     ):
         """Get the modelled values for a particular epidemiological indicator 
         for a given set of epi parameters.
@@ -84,7 +84,7 @@ class StandardCalib(Calibration):
             Modelled time series of the indicator over analysis period
         """
         result = self.epi_model.renewal_func(**params)
-        return getattr(result, self.indicator)[self.common_model_idx]
+        return getattr(result, indicator)[self.common_model_idx[indicator]]
 
     def calibration(self):
         """See get_description below.
@@ -114,7 +114,7 @@ class StandardCalib(Calibration):
         )
 
     def add_factor(self, params, indicator):
-        log_result = jnp.log(self.get_model_indicator(params))
+        log_result = jnp.log(self.get_model_indicator(params, indicator))
         log_target = jnp.log(self.data[indicator])
         dispersion = numpyro.sample("dispersion", dist.HalfNormal(self.data_disp_sd))
         likelihood_contribution = dist.Normal(log_result, dispersion).log_prob(log_target).sum()
