@@ -30,14 +30,15 @@ class Calibration:
 
         self.custom_init = custom_init(n_proc=self.n_process_periods)
 
-        analysis_dates_idx = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
+        analysis_indices = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
         self.data = {}
-        self.common_model_idx = {}
-        for indicator in data.keys():
-            common_dates_idx = data[indicator].index.intersection(analysis_dates_idx)
-            self.data[indicator] = jnp.array(data[indicator].loc[common_dates_idx])
-            common_abs_idx = np.array(self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int))
-            self.common_model_idx[indicator] = common_abs_idx - self.epi_model.model_times[0]
+        self.common_indices = {}
+        for ind in data.keys():
+            ind_data = data[ind]
+            common_dates_idx = ind_data.index.intersection(analysis_indices)
+            self.data[ind] = jnp.array(ind_data.loc[common_dates_idx])
+            common_abs_indices = np.array(self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int))
+            self.common_indices[ind] = common_abs_indices - self.epi_model.model_times[0]
 
         self.priors = priors
         _ = [p.mean for p in self.priors.values()]  # Compile transformed dists first to avoid memory leaks
@@ -84,7 +85,7 @@ class StandardCalib(Calibration):
             Modelled time series of the indicator over analysis period
         """
         result = self.epi_model.renewal_func(**params)
-        return getattr(result, indicator)[self.common_model_idx[indicator]]
+        return getattr(result, indicator)[self.common_indices[indicator]]
 
     def calibration(self):
         """See get_description below.
