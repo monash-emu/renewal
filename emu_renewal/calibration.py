@@ -117,7 +117,7 @@ class StandardCalib(Calibration):
     def add_factor(self, params, indicator):
         log_result = jnp.log(self.get_model_indicator(params, indicator))
         log_target = jnp.log(self.data[indicator])
-        dispersion = numpyro.sample("dispersion_" + str(self.data[indicator]), dist.HalfNormal(self.data_disp_sd))
+        dispersion = numpyro.sample(f"dispersion_{indicator}", dist.HalfNormal(self.data_disp_sd))
         likelihood_contribution = dist.Normal(log_result, dispersion).log_prob(log_target).sum()
         numpyro.factor(f"{indicator}_ll", likelihood_contribution)
 
