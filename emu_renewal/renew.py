@@ -328,5 +328,51 @@ class RenewalModel:
 
 
 class RenewalDeathsModel():
-    pass
     
+    def renewal_func(
+        self,
+        gen_mean: float,
+        gen_sd: float,
+        proc: List[float],
+        cdr: float,
+        rt_init: float,
+        report_mean: float,
+        report_sd: float,
+        prop_immune: float=0.0,
+    ) -> ModelResult:
+        """See describe_renewal
+
+        Args:
+            gen_mean: Generation time mean
+            gen_sd: Generation time standard deviation
+            y_proc_req: Values of the variable process
+
+        Returns:
+            Results of the model run
+        """
+        densities = self.dens_obj.get_densities(self.window_len, gen_mean, gen_sd)
+        process_vals = self.fit_process_curve(proc, rt_init)
+        init_inc = self.init_series / cdr
+        start_pop = self.pop * (1.0 - prop_immune) - jnp.sum(init_inc)
+        init_state = RenewalState(init_inc[::-1], start_pop)
+
+        def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
+            proc_val = process_vals[t - self.start]
+            r_t = proc_val * state.suscept / self.pop
+            renewal = (densities * state.incidence).sum() * r_t
+            new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
+            suscept = state.suscept - new_inc
+            incidence = jnp.zeros_like(state.incidence)
+            incidence = incidence.at[1:].set(state.incidence[:-1])
+            incidence = incidence.at[0].set(new_inc)
+            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
+            return RenewalState(incidence, suscept), out
+
+        end_state, outputs = lax.scan(state_update, init_state, self.model_times)
+        full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
+        full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
+        full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
+        outputs["cases"] = full_cases[len(init_inc):]
+        outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
+        outputs["seropos"] = (start_pop - outputs["suscept"]) / start_pop
+        return ModelResult(**outputs)
