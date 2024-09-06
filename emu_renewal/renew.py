@@ -29,6 +29,17 @@ class ModelResult(NamedTuple):
     seropos: jnp.array
 
 
+class ModelDeathsResult(NamedTuple):
+    incidence: jnp.array
+    suscept: jnp.array
+    r_t: jnp.array
+    process: jnp.array
+    cases: jnp.array
+    weekly_sum: jnp.array
+    seropos: jnp.array
+    deaths: jnp.array
+
+
 class RenewalModel:
     def __init__(
         self,
@@ -177,7 +188,7 @@ class RenewalModel:
             "such that these parameters are explored in the log-transformed space. "
         )
 
-    def get_cases_from_inc(
+    def get_output_from_inc(
         self, 
         full_inc: jnp.array, 
         report_mean: float, 
@@ -185,7 +196,7 @@ class RenewalModel:
         cdr: float, 
         n_dens: int,
     ) -> jnp.array:
-        """Apply an observation model as a convolution to calculate case series.
+        """Apply an observation model as a convolution to calculate an epidemiological output series.
 
         Args:
             full_inc: The full incidence series including the initialisation
@@ -195,7 +206,7 @@ class RenewalModel:
             n_dens: How far to go back with the observation model
 
         Returns:
-            Cases from start of initialisation to end of model time
+            Output from start of initialisation to end of model time
         """
         densities = self.dens_obj.get_densities(n_dens, report_mean, report_sd)
         convolved_cases = jnp.convolve(full_inc, densities) * cdr
@@ -276,7 +287,7 @@ class RenewalModel:
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
         full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
-        full_cases = self.get_cases_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
+        full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
         outputs["cases"] = full_cases[len(init_inc):]
         outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
@@ -314,3 +325,8 @@ class RenewalModel:
             description += f"\n\n### {title}\n"
             description += text
         return description
+
+
+class RenewalDeathsModel():
+    pass
+    
