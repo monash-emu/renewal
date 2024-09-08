@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Union, List, Tuple
 from typing import NamedTuple
 from jax import lax, vmap
 from jax import numpy as jnp
@@ -262,15 +262,53 @@ class RenewalModel:
         Args:
             gen_mean: Generation time mean
             gen_sd: Generation time standard deviation
-            y_proc_req: Values of the variable process
+            proc: Values of the variable process
+            cdr: Case detection proportion
+            rt_init: Initialisation value for variable process
+            report_mean: Mean time from incidence to notification
+            report_sd: Standard deviation of the time from incidence to notification
+            prop_immune: Starting proportion of the population immune
 
         Returns:
-            Results of the model run
+            Epidemiological results of the model run
         """
-        densities = self.dens_obj.get_densities(self.window_len, gen_mean, gen_sd)
-        process_vals = self.fit_process_curve(proc, rt_init)
+        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
+        full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
+        full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
+        outputs["cases"] = full_cases[len(init_inc):]
+        outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
+        outputs["seropos"] = (start_pop - outputs["suscept"]) / start_pop
+        return ModelResult(**outputs)
+
+    def renew(
+        self, 
+        mean: float, 
+        sd: float, 
+        proc: List[float], 
+        cdr: float, 
+        init: float, 
+        imm: float,
+    ) -> Tuple[jnp.array, float, ModelResult]:
+        """Run the renewal process calculations.
+
+        Args:
+            mean: Generation time mean
+            sd: Generation time standard deviation
+            proc: Values of the variable process
+            cdr: Case detection proportion
+            init: Initialisation value for variable process
+            imm: Starting proportion of the population immune
+
+        Returns:
+            Starting population value
+            Initialisation incidence sequence
+            Incidence series
+            Object containing the core epi outputs obtained directly from the renewal process
+        """
+        densities = self.dens_obj.get_densities(self.window_len, mean, sd)
+        process_vals = self.fit_process_curve(proc, init)
         init_inc = self.init_series / cdr
-        start_pop = self.pop * (1.0 - prop_immune) - jnp.sum(init_inc)
+        start_pop = self.pop * (1.0 - imm) - jnp.sum(init_inc)
         init_state = RenewalState(init_inc[::-1], start_pop)
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
@@ -279,20 +317,15 @@ class RenewalModel:
             renewal = (densities * state.incidence).sum() * r_t
             new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
             suscept = state.suscept - new_inc
-            incidence = jnp.zeros_like(state.incidence)
-            incidence = incidence.at[1:].set(state.incidence[:-1])
-            incidence = incidence.at[0].set(new_inc)
+            inc = jnp.zeros_like(state.incidence)
+            inc = inc.at[1:].set(state.incidence[:-1])
+            inc = inc.at[0].set(new_inc)
             out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
-            return RenewalState(incidence, suscept), out
+            return RenewalState(inc, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
         full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
-        full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
-        full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
-        outputs["cases"] = full_cases[len(init_inc):]
-        outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
-        outputs["seropos"] = (start_pop - outputs["suscept"]) / start_pop
-        return ModelResult(**outputs)
+        return start_pop, init_inc, full_inc, outputs
 
     def describe_renewal(self):
         self.description["Renewal process"] = (
@@ -353,26 +386,7 @@ class RenewalDeathsModel(RenewalModel):
         Returns:
             Results of the model run
         """
-        densities = self.dens_obj.get_densities(self.window_len, gen_mean, gen_sd)
-        process_vals = self.fit_process_curve(proc, rt_init)
-        init_inc = self.init_series / cdr
-        start_pop = self.pop * (1.0 - prop_immune) - jnp.sum(init_inc)
-        init_state = RenewalState(init_inc[::-1], start_pop)
-
-        def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
-            proc_val = process_vals[t - self.start]
-            r_t = proc_val * state.suscept / self.pop
-            renewal = (densities * state.incidence).sum() * r_t
-            new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
-            suscept = state.suscept - new_inc
-            incidence = jnp.zeros_like(state.incidence)
-            incidence = incidence.at[1:].set(state.incidence[:-1])
-            incidence = incidence.at[0].set(new_inc)
-            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
-            return RenewalState(incidence, suscept), out
-
-        end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
+        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
         full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
         full_deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, len(full_inc))
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
