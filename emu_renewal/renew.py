@@ -335,9 +335,12 @@ class RenewalDeathsModel(RenewalModel):
         gen_sd: float,
         proc: List[float],
         cdr: float,
+        ifr: float,
         rt_init: float,
         report_mean: float,
         report_sd: float,
+        death_mean: float,
+        death_sd: float,
         prop_immune: float=0.0,
     ) -> ModelDeathsResult:
         """See describe_renewal
@@ -365,14 +368,16 @@ class RenewalDeathsModel(RenewalModel):
             incidence = jnp.zeros_like(state.incidence)
             incidence = incidence.at[1:].set(state.incidence[:-1])
             incidence = incidence.at[0].set(new_inc)
-            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val, "deaths": 0.0}
+            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
         full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
         full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
+        full_deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, len(full_inc))
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
         outputs["cases"] = full_cases[len(init_inc):]
+        outputs["deaths"] = full_deaths[len(init_inc):]
         outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
         outputs["seropos"] = (start_pop - outputs["suscept"]) / start_pop
         return ModelDeathsResult(**outputs)
