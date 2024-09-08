@@ -327,7 +327,7 @@ class RenewalModel:
         return description
 
 
-class RenewalDeathsModel():
+class RenewalDeathsModel(RenewalModel):
     
     def renewal_func(
         self,
