@@ -339,7 +339,7 @@ class RenewalDeathsModel(RenewalModel):
         report_mean: float,
         report_sd: float,
         prop_immune: float=0.0,
-    ) -> ModelResult:
+    ) -> ModelDeathsResult:
         """See describe_renewal
 
         Args:
@@ -365,7 +365,7 @@ class RenewalDeathsModel(RenewalModel):
             incidence = jnp.zeros_like(state.incidence)
             incidence = incidence.at[1:].set(state.incidence[:-1])
             incidence = incidence.at[0].set(new_inc)
-            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
+            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val, "deaths": 0.0}
             return RenewalState(incidence, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
@@ -375,4 +375,4 @@ class RenewalDeathsModel(RenewalModel):
         outputs["cases"] = full_cases[len(init_inc):]
         outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
         outputs["seropos"] = (start_pop - outputs["suscept"]) / start_pop
-        return ModelResult(**outputs)
+        return ModelDeathsResult(**outputs)
