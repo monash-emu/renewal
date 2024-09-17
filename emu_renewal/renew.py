@@ -248,9 +248,9 @@ class RenewalModel:
 
     def renewal_func(
         self,
+        proc: List[float],
         gen_mean: float,
         gen_sd: float,
-        proc: List[float],
         cdr: float,
         rt_init: float,
         report_mean: float,
@@ -364,9 +364,9 @@ class RenewalDeathsModel(RenewalModel):
     
     def renewal_func(
         self,
+        proc: List[float],
         gen_mean: float,
         gen_sd: float,
-        proc: List[float],
         cdr: float,
         ifr: float,
         rt_init: float,
