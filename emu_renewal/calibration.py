@@ -33,6 +33,7 @@ class Calibration:
         analysis_indices = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
         self.data = {}
         self.common_indices = {}
+        self.data_disp_sd = {}
         for ind in data.keys():
             ind_data = data[ind]
             common_dates_idx = ind_data.index.intersection(analysis_indices)
