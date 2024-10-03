@@ -70,6 +70,7 @@ class StandardCalib(Calibration):
         """
         super().__init__(epi_model, priors, data)
         self.proc_disp_sd = 0.1
+        assert data.keys() == data_sds.keys(), "One standard deviation required for each target"
         self.data_sds = data_sds
         self.fixed_params = fixed_params
 
