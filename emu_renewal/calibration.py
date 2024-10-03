@@ -56,7 +56,7 @@ class StandardCalib(Calibration):
         self,
         epi_model: RenewalModel,
         priors: Dict[str, dist.Distribution],
-        data: pd.Series,
+        data: Dict[str, ],
         data_sds: Dict[str, float],
         fixed_params: Dict[str, float]={},
     ):
