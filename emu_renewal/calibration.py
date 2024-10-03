@@ -18,6 +18,7 @@ class Calibration:
         epi_model: RenewalModel,
         priors: dict[str, dist.Distribution],
         data: dict[str, pd.Series],
+        
     ):
         """Set up calibration object with epi model and data.
 
@@ -43,7 +44,6 @@ class Calibration:
         self.priors = priors
         _ = [p.mean for p in self.priors.values()]  # Compile transformed dists first to avoid memory leaks
 
-
     def calibration(self):
         pass
 
@@ -55,8 +55,9 @@ class StandardCalib(Calibration):
     def __init__(
         self,
         epi_model: RenewalModel,
-        priors: dict[str, dist.Distribution],
+        priors: Dict[str, dist.Distribution],
         data: pd.Series,
+        data_sds: Dict[str, float],
         fixed_params: Dict[str, float]={},
     ):
         """Set up calibration object with epi model and data.
@@ -66,8 +67,8 @@ class StandardCalib(Calibration):
             data: The data targets
         """
         super().__init__(epi_model, priors, data)
-        self.data_disp_sd = 0.1
         self.proc_disp_sd = 0.1
+        self.data_sds = data_sds
         self.fixed_params = fixed_params
 
     def get_model_indicator(
@@ -87,12 +88,12 @@ class StandardCalib(Calibration):
         result = self.epi_model.renewal_func(**params)
         return getattr(result, indicator)[self.common_indices[indicator]]
 
-    def calibration(self):
+    def calibration(self, extra_params={}):
         """See get_description below.
         """
         params = self.set_calib_params()
         for ind in self.data.keys():
-            self.add_factor(params, ind)
+            self.add_factor(params | extra_params, ind)
 
     def set_calib_params(self):
         params = {k: numpyro.sample(k, v) for k, v in self.priors.items()}
@@ -117,7 +118,7 @@ class StandardCalib(Calibration):
     def add_factor(self, params, indicator):
         log_result = jnp.log(self.get_model_indicator(params, indicator))
         log_target = jnp.log(self.data[indicator])
-        dispersion = numpyro.sample(f"dispersion_{indicator}", dist.HalfNormal(self.data_disp_sd))
+        dispersion = numpyro.sample(f"dispersion_{indicator}", dist.HalfNormal(self.data_sds[indicator]))
         likelihood_contribution = dist.Normal(log_result, dispersion).log_prob(log_target).sum()
         numpyro.factor(f"{indicator}_ll", likelihood_contribution)
 
@@ -128,7 +129,7 @@ class StandardCalib(Calibration):
             "from the end of the run-in phase through to the end of the analysis. "
             "The dispersion parameter for this comparison of log values is also calibrated, "
             "with the dispersion parameter prior using a half-normal distribution, "
-            f"with a standard deviation of {self.data_disp_sd}. "
+            f"with a standard deviation of {self.data_sds[indicator]}. "
         )
 
     def get_description(self) -> str:
