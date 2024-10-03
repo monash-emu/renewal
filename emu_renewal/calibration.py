@@ -65,6 +65,8 @@ class StandardCalib(Calibration):
         Args:
             epi_model: The renewal model
             data: The data targets
+            data_sds: Standard deviation for the prior to the dispersion parameter for each indicator     
+            fixed_params: Any additional fixed parameters to be delivered to the renewal model
         """
         super().__init__(epi_model, priors, data)
         self.proc_disp_sd = 0.1
