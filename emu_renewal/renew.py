@@ -138,7 +138,7 @@ class RenewalModel:
         self.describe_reporting()
         self.description["Reporting"] += self.report_dist.get_desc()
         self.describe_weekly_sum()
-        
+
     def process_time_req(
         self,
         req: Union[datetime, int],
@@ -190,11 +190,11 @@ class RenewalModel:
         )
 
     def get_output_from_inc(
-        self, 
-        full_inc: jnp.array, 
-        report_mean: float, 
-        report_sd: float, 
-        cdr: float, 
+        self,
+        full_inc: jnp.array,
+        report_mean: float,
+        report_sd: float,
+        cdr: float,
         n_dens: int,
     ) -> jnp.array:
         """Apply an observation model as a convolution to calculate an epidemiological output series.
@@ -225,8 +225,8 @@ class RenewalModel:
         )
 
     def get_period_output_from_daily(
-        self, 
-        raw_series: jnp.array, 
+        self,
+        raw_series: jnp.array,
         n_sum_times: int,
     ) -> jnp.array:
         """Sum over a preceding window period to get counts over a period of time.
@@ -256,7 +256,7 @@ class RenewalModel:
         rt_init: float,
         report_mean: float,
         report_sd: float,
-        prop_immune: float=0.0,
+        prop_immune: float = 0.0,
     ) -> ModelResult:
         """See describe_renewal
 
@@ -273,21 +273,25 @@ class RenewalModel:
         Returns:
             Epidemiological results of the model run
         """
-        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
-        full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
+        start_pop, init_inc, full_inc, outputs = self.renew(
+            gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
+        )
+        full_cases = self.get_output_from_inc(
+            full_inc, report_mean, report_sd, cdr, self.window_len
+        )
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
-        outputs["cases"] = full_cases[len(init_inc):]
-        outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
+        outputs["cases"] = full_cases[len(init_inc) :]
+        outputs["weekly_sum"] = full_weekly_cases[len(init_inc) :]
         outputs["seropos"] = (start_pop - outputs["suscept"]) / start_pop
         return ModelResult(**outputs)
 
     def renew(
-        self, 
-        mean: float, 
-        sd: float, 
-        proc: List[float], 
-        cdr: float, 
-        init: float, 
+        self,
+        mean: float,
+        sd: float,
+        proc: List[float],
+        cdr: float,
+        init: float,
         imm: float,
     ) -> Tuple[jnp.array, float, ModelResult]:
         """Run the renewal process calculations.
@@ -362,7 +366,7 @@ class RenewalModel:
 
 
 class RenewalDeathsModel(RenewalModel):
-    
+
     def renewal_func(
         self,
         proc: List[float],
@@ -375,7 +379,7 @@ class RenewalDeathsModel(RenewalModel):
         report_sd: float,
         death_mean: float,
         death_sd: float,
-        prop_immune: float=0.0,
+        prop_immune: float = 0.0,
     ) -> ModelDeathsResult:
         """See describe_renewal
 
@@ -387,14 +391,18 @@ class RenewalDeathsModel(RenewalModel):
         Returns:
             Results of the model run
         """
-        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
-        full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
-        full_deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, len(full_inc))
+        start_pop, init_inc, full_inc, outputs = self.renew(
+            gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
+        )
+        full_cases = self.get_output_from_inc(
+            full_inc, report_mean, report_sd, cdr, self.window_len
+        )
+        full_deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, self.window_len)
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
         full_weekly_deaths = self.get_period_output_from_daily(full_deaths, 7)
-        outputs["cases"] = full_cases[len(init_inc):]
-        outputs["deaths"] = full_deaths[len(init_inc):]
-        outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
+        outputs["cases"] = full_cases[len(init_inc) :]
+        outputs["deaths"] = full_deaths[len(init_inc) :]
+        outputs["weekly_sum"] = full_weekly_cases[len(init_inc) :]
         outputs["seropos"] = (start_pop - outputs["suscept"]) / start_pop
-        outputs["weekly_deaths"] = full_weekly_deaths[len(init_inc):] 
+        outputs["weekly_deaths"] = full_weekly_deaths[len(init_inc) :]
         return ModelDeathsResult(**outputs)
