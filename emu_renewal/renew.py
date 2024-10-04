@@ -125,7 +125,7 @@ class RenewalModel:
         self.describe_reporting()
         self.description["Reporting"] += self.report_dist.get_desc()
         self.describe_weekly_sum()
-        
+
     def process_time_req(
         self,
         req: Union[datetime, int],
@@ -177,11 +177,11 @@ class RenewalModel:
         )
 
     def get_cases_from_inc(
-        self, 
-        full_inc: jnp.array, 
-        report_mean: float, 
-        report_sd: float, 
-        cdr: float, 
+        self,
+        full_inc: jnp.array,
+        report_mean: float,
+        report_sd: float,
+        cdr: float,
         n_dens: int,
     ) -> jnp.array:
         """Apply an observation model as a convolution to calculate case series.
@@ -212,8 +212,8 @@ class RenewalModel:
         )
 
     def get_period_output_from_daily(
-        self, 
-        raw_series: jnp.array, 
+        self,
+        raw_series: jnp.array,
         n_sum_times: int,
     ) -> jnp.array:
         """Sum over a preceding window period to get counts over a period of time.
@@ -243,7 +243,7 @@ class RenewalModel:
         rt_init: float,
         report_mean: float,
         report_sd: float,
-        prop_immune: float=0.0,
+        prop_immune: float = 0.0,
     ) -> ModelResult:
         """See describe_renewal
 
@@ -275,10 +275,10 @@ class RenewalModel:
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
         full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
-        full_cases = self.get_cases_from_inc(full_inc, report_mean, report_sd, cdr, len(full_inc))
+        full_cases = self.get_cases_from_inc(full_inc, report_mean, report_sd, cdr, self.window_len)
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
-        outputs["cases"] = full_cases[len(init_inc):]
-        outputs["weekly_sum"] = full_weekly_cases[len(init_inc):]
+        outputs["cases"] = full_cases[len(init_inc) :]
+        outputs["weekly_sum"] = full_weekly_cases[len(init_inc) :]
         return ModelResult(**outputs)
 
     def describe_renewal(self):
