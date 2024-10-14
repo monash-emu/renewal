@@ -1,21 +1,22 @@
-from typing import Dict
 from jax import numpy as jnp
 import numpy as np
 import pandas as pd
 import numpyro
 from numpyro import distributions as dist
 
-pd.options.plotting.backend = "plotly"
-
 from emu_renewal.renew import RenewalModel, ModelResult
 from emu_renewal.utils import custom_init
+
+pd.options.plotting.backend = "plotly"
+
+PriorDict = dict[str, dist.Distribution | float]
 
 
 class Calibration:
     def __init__(
         self,
         epi_model: RenewalModel,
-        priors: dict[str, dist.Distribution],
+        priors: PriorDict,
         data: dict[str, pd.Series],
     ):
         """Set up calibration object with epi model and data.
@@ -42,9 +43,17 @@ class Calibration:
             self.common_indices[ind] = common_abs_indices - self.epi_model.model_times[0]
 
         self.priors = priors
-        _ = [
-            p.mean for p in self.priors.values()
-        ]  # Compile transformed dists first to avoid memory leaks
+        # Compile transformed dists first to avoid memory leaks from
+        # numpyro/jax buggy interaction
+        _ = [p.mean for p in self.priors.values() if isinstance(p, dist.Distribution)]
+
+        # Separate priors to sample vs fixed values
+        self.sampled_priors = {
+            k: v for k, v in self.priors.items() if isinstance(v, dist.Distribution)
+        }
+        self.fixed_priors = {
+            k: v for k, v in self.priors.items() if not isinstance(v, dist.Distribution)
+        }
 
     def get_model_indicator(self, result: ModelResult, indicator: str):
         """Get the modelled values for a particular epidemiological indicator
@@ -78,9 +87,9 @@ class StandardCalib(Calibration):
     def __init__(
         self,
         epi_model: RenewalModel,
-        priors: Dict[str, dist.Distribution],
-        targets: Dict[str, pd.Series],
-        target_sds: Dict[str, float],
+        priors: PriorDict,
+        targets: dict[str, pd.Series],
+        target_sds: dict[str, float],
     ):
         """Set up calibration object with epi model and data.
 
@@ -91,27 +100,29 @@ class StandardCalib(Calibration):
         """
         super().__init__(epi_model, priors, targets)
         self.proc_disp_sd = 0.1
-        assert targets.keys() == target_sds.keys(), "One standard deviation required for each target"
+        assert (
+            targets.keys() == target_sds.keys()
+        ), "One standard deviation required for each target"
         self.target_sds = target_sds
 
-    def calibration(self, fixed_params={}):
+    def calibration(self):
         """Main calibration function.
 
         Args:
             extra_params: Any parameters to be passed directly to model
         """
-        params = self.set_calib_params() | fixed_params
+        params = self.sample_calib_params() | self.fixed_priors
         result = self.epi_model.renewal_func(**params)
         for ind in self.targets.keys():
             self.add_factor(result, ind)
 
-    def set_calib_params(self):
+    def sample_calib_params(self):
         """See describe_params below.
 
         Returns:
             Calibration parameters
         """
-        params = {k: numpyro.sample(k, v) for k, v in self.priors.items()}
+        params = {k: numpyro.sample(k, v) for k, v in self.sampled_priors.items()}
         proc_disp = numpyro.sample("dispersion_proc", dist.HalfNormal(self.proc_disp_sd))
         proc_dist = dist.Normal(jnp.repeat(0.0, self.n_proc_periods), proc_disp)
         return params | {"proc": numpyro.sample("proc", proc_dist)}
@@ -129,8 +140,8 @@ class StandardCalib(Calibration):
         )
 
     def add_factor(
-        self, 
-        result, 
+        self,
+        result,
         ind: str,
     ):
         """Add output target to calibration algorithm.
