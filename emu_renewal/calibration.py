@@ -12,18 +12,21 @@ pd.options.plotting.backend = "plotly"
 ParamDict = dict[str, dist.Distribution | float]
 
 
-class Calibration:
+class StandardCalib:
     def __init__(
         self,
         epi_model: RenewalModel,
         params: ParamDict,
-        data: dict[str, pd.Series],
+        targets: dict[str, pd.Series],
+        target_sds: dict[str, float],
     ):
         """Set up calibration object with epi model and data.
 
         Args:
             epi_model: The renewal model
-            data: The data targets
+            params: Parameter inputs, including both priors and fixed parameters
+            targets: The data targets
+            target_sds: Standard deviation for the prior to the dispersion parameter for each indicator
         """
         self.epi_model = epi_model
         self.n_proc_periods = len(self.epi_model.x_proc_data.points)
@@ -33,8 +36,8 @@ class Calibration:
         analysis_indices = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
         self.targets = {}
         self.common_indices = {}
-        for ind in data.keys():
-            ind_data = data[ind]
+        for ind in targets.keys():
+            ind_data = targets[ind]
             common_dates_idx = ind_data.index.intersection(analysis_indices)
             self.targets[ind] = jnp.array(ind_data.loc[common_dates_idx])
             common_abs_indices = np.array(
@@ -55,6 +58,12 @@ class Calibration:
             k: v for k, v in self.params.items() if not isinstance(v, dist.Distribution)
         }
 
+        self.proc_disp_sd = 0.1
+        assert (
+            targets.keys() == target_sds.keys()
+        ), "One standard deviation required for each target"
+        self.target_sds = target_sds
+
     def get_model_indicator(self, result: ModelResult, indicator: str):
         """Get the modelled values for a particular epidemiological indicator
         for a given set of epi parameters.
@@ -66,44 +75,12 @@ class Calibration:
             Modelled time series of the indicator over analysis period
         """
         return getattr(result, indicator)[self.common_indices[indicator]]
-
-    def calibration(self):
-        pass
-
-    def describe_params(self):
-        pass
-
-    def describe_like_contribution(self, ind: str):
-        pass
-
+    
     def get_description(self) -> str:
         description = self.describe_params()
         for ind in self.targets.keys():
             description += self.describe_like_contribution(ind)
         return description
-
-
-class StandardCalib(Calibration):
-    def __init__(
-        self,
-        epi_model: RenewalModel,
-        params: ParamDict,
-        targets: dict[str, pd.Series],
-        target_sds: dict[str, float],
-    ):
-        """Set up calibration object with epi model and data.
-
-        Args:
-            epi_model: The renewal model
-            targets: The data targets
-            target_sds: Standard deviation for the prior to the dispersion parameter for each indicator
-        """
-        super().__init__(epi_model, params, targets)
-        self.proc_disp_sd = 0.1
-        assert (
-            targets.keys() == target_sds.keys()
-        ), "One standard deviation required for each target"
-        self.target_sds = target_sds
 
     def calibration(self):
         """Main calibration function.
