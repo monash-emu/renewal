@@ -18,9 +18,9 @@ MARGINS = {m: 20 for m in ["t", "b", "l", "r"]}
 
 
 def get_spaghetti_from_params(
-    calib: StandardCalib, 
-    params: SampleIterator, 
-    outputs: list[str]=PANEL_SUBTITLES,
+    calib: StandardCalib,
+    params: SampleIterator,
+    outputs: list[str] = PANEL_SUBTITLES,
 ) -> pd.DataFrame:
     """Run parameters through the model to get outputs.
 
@@ -28,7 +28,7 @@ def get_spaghetti_from_params(
         model: The renewal model
         params: The parameter sets to feed through the model
         model_func: The model function to run the parameters through
-        outputs: The names of the outputs of interest 
+        outputs: The names of the outputs of interest
 
     Returns:
         Dataframe with index of model times and multiindexed columns,
@@ -42,21 +42,22 @@ def get_spaghetti_from_params(
     def get_full_result(**params):
         return model.renewal_func(**params | calib.fixed_params)
 
-
     column_names = pd.MultiIndex.from_product([params.index.map(str), outputs])
     spaghetti = pd.DataFrame(index=index_names, columns=column_names)
     for i, p in params.iterrows():
         res = get_full_result(**{k: v for k, v in p.items() if "dispersion" not in k})
-        spaghetti.loc[:, str(i)] = np.array([getattr(res, outputs[0]), res.suscept, res.r_t, res.process]).T
+        spaghetti.loc[:, str(i)] = np.array(
+            [getattr(res, outputs[0]), res.suscept, res.r_t, res.process]
+        ).T
     spaghetti.columns = spaghetti.columns.swaplevel()
     return spaghetti.sort_index(axis=1, level=0)
 
 
 def get_quant_df_from_spaghetti(
-    model: RenewalModel, 
-    spaghetti: pd.DataFrame, 
+    model: RenewalModel,
+    spaghetti: pd.DataFrame,
     quantiles: list[float],
-    outputs: list[str]=PANEL_SUBTITLES,
+    outputs: list[str] = PANEL_SUBTITLES,
 ) -> pd.DataFrame:
     """Calculate requested quantiles over spaghetti created
     in previous function.
@@ -65,7 +66,7 @@ def get_quant_df_from_spaghetti(
         model: The renewal model
         spaghetti: The output of get_spaghetti_from_params
         quantiles: The quantiles at which to make the calculations
-        outputs: The names of the outputs of interest 
+        outputs: The names of the outputs of interest
 
     Returns:
         Dataframe with index of model times and multiindexed columns,
@@ -86,20 +87,20 @@ def get_standard_four_subplots() -> go.Figure:
         The figure object
     """
     return make_subplots(
-        rows=2, 
-        cols=2, 
-        shared_xaxes=True, 
-        vertical_spacing=0.05, 
-        horizontal_spacing=0.05, 
+        rows=2,
+        cols=2,
+        shared_xaxes=True,
+        vertical_spacing=0.05,
+        horizontal_spacing=0.05,
         subplot_titles=PANEL_SUBTITLES,
     )
 
 
 def plot_spaghetti(
-    spaghetti: pd.DataFrame, 
+    spaghetti: pd.DataFrame,
     targets: pd.Series,
 ) -> go.Figure:
-    """Plot the outputs of the function that gets 
+    """Plot the outputs of the function that gets
     spaghetti outputs from parameters above.
 
     Args:
@@ -118,7 +119,7 @@ def plot_spaghetti(
 
 def get_area_from_df(
     df: pd.DataFrame,
-    columns: list[float], 
+    columns: list[float],
     colour: str,
 ) -> go.Scatter:
     """Get a patch object to add to a plotly graph from a dataframe
@@ -138,10 +139,10 @@ def get_area_from_df(
 
 
 def add_ci_patch_to_plot(
-    fig: go.Figure, 
-    df: pd.DataFrame, 
-    colour: str, 
-    row: int, 
+    fig: go.Figure,
+    df: pd.DataFrame,
+    colour: str,
+    row: int,
     col: int,
 ):
     """Add a median line and confidence interval patch to a plotly figure object.
@@ -159,10 +160,10 @@ def add_ci_patch_to_plot(
 
 
 def plot_uncertainty_patches(
-    quantiles: list[float], 
-    targets: pd.Series, 
+    quantiles: list[float],
+    targets: pd.Series,
     colours: list[str],
-    outputs: list[str]=PANEL_SUBTITLES,
+    outputs: list[str] = PANEL_SUBTITLES,
 ) -> go.Figure:
     """Create the main uncertainty output figure for a renewal analysis.
 
@@ -170,20 +171,22 @@ def plot_uncertainty_patches(
         quantiles: Requested quantiles
         targets: The target values of the calibration algorithm
         colour: The colour requests
-        outputs: The names of the outputs of interest 
+        outputs: The names of the outputs of interest
 
     Returns:
-        The figure object        
+        The figure object
     """
     fig = get_standard_four_subplots()
     fig.add_trace(go.Scatter(x=targets.index, y=targets, mode="markers"), row=1, col=1)
     for i in range(4):
         add_ci_patch_to_plot(fig, quantiles[outputs[i]], colours[i], i // 2 + 1, i % 2 + 1)
-    return fig.update_layout(margin=MARGINS, height=600, showlegend=False).update_yaxes(rangemode="tozero")
+    return fig.update_layout(margin=MARGINS, height=600, showlegend=False).update_yaxes(
+        rangemode="tozero"
+    )
 
 
 def plot_3d_spaghetti(
-    spaghetti: pd.DataFrame, 
+    spaghetti: pd.DataFrame,
     column_req: list[str],
 ) -> go.Figure:
     """Plot to variables on y and z axes against index
@@ -209,8 +212,8 @@ def plot_3d_spaghetti(
 
 
 def plot_post_prior_comparison(
-    idata: az.InferenceData, 
-    req_vars: list[str], 
+    idata: az.InferenceData,
+    req_vars: list[str],
     priors: list[dist.Distribution],
 ) -> plt.figure:
     """Plot comparison of model posterior outputs against priors.
@@ -250,5 +253,7 @@ def plot_priors(
         limit = 0.01 if isinstance(prior, [dist.Uniform | dist.Gamma]) else 0.0
         x_vals = np.linspace(prior.icdf(limit), prior.icdf(1.0 - limit), 50)
         y_vals = np.exp(prior.log_prob(x_vals))
-        fig.add_trace(go.Scatter(x=x_vals, y=y_vals, name=map_dict[p], fill="tozeroy"), row=1, col=i + 1)
+        fig.add_trace(
+            go.Scatter(x=x_vals, y=y_vals, name=map_dict[p], fill="tozeroy"), row=1, col=i + 1
+        )
     return fig.update_layout(showlegend=False)
