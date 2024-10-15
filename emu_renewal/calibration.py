@@ -1,4 +1,4 @@
-from jax import numpy as jnp
+from jax import numpy as jnp, Array
 import numpy as np
 import pandas as pd
 import numpyro
@@ -6,19 +6,18 @@ from numpyro import distributions as dist
 
 from emu_renewal.renew import RenewalModel, ModelResult
 from emu_renewal.utils import custom_init
+from emu_renewal.targets import Target
 
 pd.options.plotting.backend = "plotly"
 
 ParamDict = dict[str, dist.Distribution | float]
-
 
 class StandardCalib:
     def __init__(
         self,
         epi_model: RenewalModel,
         params: ParamDict,
-        targets: dict[str, pd.Series],
-        target_sds: dict[str, float],
+        targets: dict[str, Target]
     ):
         """Set up calibration object with epi model and data.
 
@@ -34,12 +33,13 @@ class StandardCalib:
         self.custom_init = custom_init(n_proc=self.n_proc_periods)
 
         analysis_indices = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
-        self.targets = {}
+        self.targets = targets
         self.common_indices = {}
         for ind in targets.keys():
-            ind_data = targets[ind]
+            self.targets[ind].set_key(ind)
+            ind_data = targets[ind].data
             common_dates_idx = ind_data.index.intersection(analysis_indices)
-            self.targets[ind] = jnp.array(ind_data.loc[common_dates_idx])
+            self.targets[ind].set_calibration_data(jnp.array(ind_data.loc[common_dates_idx]))
             common_abs_indices = np.array(
                 self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int)
             )
@@ -59,10 +59,6 @@ class StandardCalib:
         }
 
         self.proc_disp_sd = 0.1
-        assert (
-            targets.keys() == target_sds.keys()
-        ), "One standard deviation required for each target"
-        self.target_sds = target_sds
 
     def get_model_indicator(self, result: ModelResult, indicator: str):
         """Get the modelled values for a particular epidemiological indicator
@@ -127,10 +123,8 @@ class StandardCalib:
             result: Output from model
             ind: Name of indicator
         """
-        log_result = jnp.log(self.get_model_indicator(result, ind))
-        log_target = jnp.log(self.targets[ind])
-        dispersion = numpyro.sample(f"dispersion_{ind}", dist.HalfNormal(self.target_sds[ind]))
-        like_component = dist.Normal(log_result, dispersion).log_prob(log_target).sum()
+        modelled = self.get_model_indicator(result, ind)
+        like_component = self.targets[ind].loglikelihood(modelled)
         numpyro.factor(f"{ind}_ll", like_component)
 
     def describe_like_contribution(self, indicator):
@@ -140,5 +134,5 @@ class StandardCalib:
             "from the end of the run-in phase through to the end of the analysis. "
             "The dispersion parameter for this comparison of log values is also calibrated, "
             "with the dispersion parameter prior using a half-normal distribution, "
-            f"with a standard deviation of {self.target_sds[indicator]}. "
+            f"with a standard deviation of {self.targets[indicator].sd}. "
         )
