@@ -12,12 +12,14 @@ pd.options.plotting.backend = "plotly"
 
 ParamDict = dict[str, dist.Distribution | float]
 
+
 class StandardCalib:
     def __init__(
         self,
         epi_model: RenewalModel,
         params: ParamDict,
-        targets: dict[str, Target]
+        targets: dict[str, Target],
+        proc_dispersion: dist.Distribution = dist.HalfNormal(0.1),
     ):
         """Set up calibration object with epi model and data.
 
@@ -58,7 +60,7 @@ class StandardCalib:
             k: v for k, v in self.params.items() if not isinstance(v, dist.Distribution)
         }
 
-        self.proc_disp_sd = 0.1
+        self.proc_dispersion = proc_dispersion
 
     def get_model_indicator(self, result: ModelResult, indicator: str):
         """Get the modelled values for a particular epidemiological indicator
@@ -71,7 +73,7 @@ class StandardCalib:
             Modelled time series of the indicator over analysis period
         """
         return getattr(result, indicator)[self.common_indices[indicator]]
-    
+
     def get_description(self) -> str:
         description = self.describe_params()
         for ind in self.targets.keys():
@@ -96,7 +98,7 @@ class StandardCalib:
             Calibration parameters
         """
         params = {k: numpyro.sample(k, v) for k, v in self.sampled_params.items()}
-        proc_disp = numpyro.sample("dispersion_proc", dist.HalfNormal(self.proc_disp_sd))
+        proc_disp = numpyro.sample("dispersion_proc", self.proc_dispersion)
         proc_dist = dist.Normal(jnp.repeat(0.0, self.n_proc_periods), proc_disp)
         return params | {"proc": numpyro.sample("proc", proc_dist)}
 
@@ -109,7 +111,7 @@ class StandardCalib:
             "change from the value of the previous stage of the process. "
             "The dispersion of the variable process is calibrated, "
             "using a half-normal distribution "
-            f"with standard deviation {self.proc_disp_sd}. "
+            f"with standard deviation {self.proc_dispersion.scale}. "
         )
 
     def add_factor(
