@@ -53,6 +53,32 @@ def get_spaghetti_from_params(
     return spaghetti.sort_index(axis=1, level=0)
 
 
+def new_get_spaghetti(
+    calib: StandardCalib,
+    params: SampleIterator,
+    outputs: list[str],    
+) -> pd.DataFrame:
+    model = calib.epi_model
+
+    @jit
+    def get_full_result(**params):
+        return model.renewal_func(**params | calib.fixed_params)
+
+    column_names = pd.MultiIndex.from_product([params.index.map(str), outputs])
+    spaghetti = pd.DataFrame(columns=column_names)
+    for i, p in params.iterrows():
+        res = get_full_result(**{k: v for k, v in p.items() if "dispersion" not in k})
+        result = pd.DataFrame()
+        for out in outputs:
+            result[out] = getattr(res, out)
+        spaghetti[str(i)] = result
+
+    spaghetti.columns = spaghetti.columns.swaplevel()
+    spaghetti = spaghetti.sort_index(axis=1, level=0)
+    spaghetti.index = model.epoch.index_to_dti(model.model_times)
+    return spaghetti
+
+
 def get_quant_df_from_spaghetti(
     model: RenewalModel,
     spaghetti: pd.DataFrame,
@@ -257,3 +283,23 @@ def plot_priors(
             go.Scatter(x=x_vals, y=y_vals, name=map_dict[p], fill="tozeroy"), row=1, col=i + 1
         )
     return fig.update_layout(showlegend=False)
+
+
+def plot_spaghetti_calib_comparison(spaghetti, calib_data):
+
+    fig = make_subplots(
+        rows=3,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.05,
+        horizontal_spacing=0.05,
+    ).update_layout(height=800, width=800, showlegend=False)
+    fig.add_traces(spaghetti["weekly_sum"].plot().data, rows=1, cols=1)
+    fig.add_traces(go.Scatter(x=calib_data["weekly_sum"].data.index, y=calib_data["weekly_sum"].data / 7.0, mode="markers"), rows=1, cols=1)
+    for col in spaghetti["weekly_deaths"].columns:
+        fig.add_trace(go.Scatter(x=spaghetti.index, y=spaghetti["weekly_deaths"][col], line={"color": "black", "width": 0.5}), row=2, col=1)
+
+    fig.add_traces(go.Scatter(x=calib_data["weekly_deaths"].data.index, y=calib_data["weekly_deaths"].data, mode="markers"), rows=2, cols=1)
+    fig.add_traces(spaghetti["seropos"].plot().data, rows=3, cols=1)
+    fig.add_traces(go.Scatter(x=calib_data["seropos"].data.index, y=calib_data["seropos"].data, mode="markers"), rows=3, cols=1)
+    return fig
