@@ -27,7 +27,7 @@ class StandardCalib:
             epi_model: The renewal model
             params: Parameter inputs, including both priors and fixed parameters
             targets: The data targets
-            target_sds: Standard deviation for the prior to the dispersion parameter for each indicator
+            proc_dispersion: Distribution used for the dispersion of the random process
         """
         self.epi_model = epi_model
         self.n_proc_periods = len(self.epi_model.x_proc_data.points)

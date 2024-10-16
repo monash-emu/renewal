@@ -1,6 +1,7 @@
 import pandas as pd
 from jax import Array, numpy as jnp
 from numpyro import distributions as dist
+from numpyro.distributions.distribution import DistributionMeta
 import numpyro
 
 
@@ -26,15 +27,23 @@ class UnivariateDispersionTarget(Target):
     def __init__(
         self,
         data: pd.Series,
-        dist: dist.Distribution,
+        dist: DistributionMeta,
         dispersion_dist: dist.Distribution,
-        dispersion_args: dict,
         log: bool,
     ):
+        """Create a Target for any distribution which is parameterized by the
+        modelled data and a single additional parameter
+        e.g Normal(modelled, sd)
+
+        Args:
+            data: The target data series
+            dist: The likelihood distribution
+            dispersion_dist: A dispersion distribution
+            log: Whether to apply log transform to both modelled and observed data
+        """
         self.data = data
         self.dist = dist
         self.dispersion_dist = dispersion_dist
-        self.dispersion_args = dispersion_args
 
         self.log = log
 
@@ -54,13 +63,11 @@ class UnivariateDispersionTarget(Target):
             result = modelled
             target = self.calibration_data
 
-        dispersion = numpyro.sample(
-            f"dispersion_{self.key}", self.dispersion_dist(**self.dispersion_args)
-        )
+        dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion_dist)
         like_component = self.dist(result, dispersion).log_prob(target).sum()
         return like_component
 
 
 class StandardTarget(UnivariateDispersionTarget):
     def __init__(self, data, dispersion_sd=0.1):
-        super().__init__(data, dist.Normal, dist.HalfNormal, {"scale": dispersion_sd}, log=True)
+        super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), log=True)
