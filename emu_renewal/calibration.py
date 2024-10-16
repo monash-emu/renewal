@@ -136,5 +136,5 @@ class StandardCalib:
             "from the end of the run-in phase through to the end of the analysis. "
             "The dispersion parameter for this comparison of log values is also calibrated, "
             "with the dispersion parameter prior using a half-normal distribution, "
-            f"with a standard deviation of {self.targets[indicator].dispersion_args['scale']}. "
+            f"with a standard deviation of {self.targets[indicator].dispersion_dist.scale}. "
         )
