@@ -53,33 +53,6 @@ def get_spaghetti_from_params(
     return spaghetti.sort_index(axis=1, level=0)
 
 
-def new_get_spaghetti(
-    calib: StandardCalib,
-    params: SampleIterator,
-    result_class,    
-) -> pd.DataFrame:
-    model = calib.epi_model
-    outputs = [i for i in dir(result_class) if i[0] != "_" and i not in ["index", "count"]]
-
-    @jit
-    def get_full_result(**params):
-        return model.renewal_func(**params | calib.fixed_params)
-
-    column_names = pd.MultiIndex.from_product([params.index.map(str), outputs])
-    spaghetti = pd.DataFrame(columns=column_names)
-    for i, p in params.iterrows():
-        res = get_full_result(**{k: v for k, v in p.items() if "dispersion" not in k})
-        result = pd.DataFrame()
-        for out in outputs:
-            result[out] = getattr(res, out)
-        spaghetti[str(i)] = result
-
-    spaghetti.columns = spaghetti.columns.swaplevel()
-    spaghetti = spaghetti.sort_index(axis=1, level=0)
-    spaghetti.index = model.epoch.index_to_dti(model.model_times)
-    return spaghetti
-
-
 def new_new_get_spaghetti(
     calib: StandardCalib,
     params: SampleIterator,
@@ -94,7 +67,7 @@ def new_new_get_spaghetti(
     spagh_dict = {}
     for i, p in params.iterrows():
         res = get_full_result(**{k: v for k, v in p.items() if "dispersion" not in k})
-        spagh = pd.DataFrame(res).T
+        spagh = pd.DataFrame(np.array(res)).T
         spagh.index = times
         spagh.columns = res._fields
         spagh_dict[str(i)] = spagh
