@@ -72,6 +72,41 @@ def add_ci_patch_to_plot(
     fig.add_trace(go.Scatter(x=x_vals, y=df[0.5], line={"color": colour}), row=row, col=col)
 
 
+def plot_spaghetti_calib_comparison(
+    spaghetti: pd.DataFrame, 
+    calib_data: StandardCalib,
+    out_req: list[str],
+) -> go.Figure:
+    """Plot model outputs and compare against targets where available.
+
+    Args:
+        spaghetti: Output of get_spaghetti
+        calib_data: _description_
+        out_req: _description_
+
+    Returns:
+        The figure
+    """
+    fig = make_subplots(
+        rows=len(out_req),
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.05,
+        horizontal_spacing=0.05,
+    ).update_layout(height=300*len(out_req), width=800, showlegend=False)
+    out_style = {"color": "black", "width": 0.5}
+    targ_style = {"color": "red"}
+    for o, out in enumerate(out_req):
+        for col in spaghetti[out].columns:
+            line = go.Scatter(x=spaghetti.index, y=spaghetti[out][col], line=out_style)
+            fig.add_trace(line, row=o+1, col=1)
+        if out in calib_data:
+            target = calib_data[out].data
+            target_scatter = go.Scatter(x=target.index, y=target, mode="markers", line=targ_style)
+            fig.add_trace(target_scatter, row=o+1, col=1)
+    return fig
+
+
 def plot_uncertainty_patches(
     calib: StandardCalib,
     quantile_df: list[float],
@@ -105,25 +140,25 @@ def plot_uncertainty_patches(
 
 def plot_3d_spaghetti(
     spaghetti: pd.DataFrame,
-    column_req: list[str],
+    output_reqs: list[str],
 ) -> go.Figure:
-    """Plot to variables on y and z axes against index
-    of a standard spaghetti dataframe.
+    """Plot two output variables on y and z axes against time index
+    from a standard spaghetti dataframe.
 
     Args:
         spaghetti: Output of get_spaghetti
-        column_req: The columns to plot against one-another
+        output_reqs: The columns to plot against one-another
 
     Returns:
         The figure object
     """
     fig = go.Figure()
-    col_1, col_2 = column_req
+    col_1, col_2 = output_reqs
+    x_data = spaghetti.index
     for i in spaghetti.columns.get_level_values(1):
-        x_data = spaghetti.index
         y_data = spaghetti[(col_1, i)]
         z_data = spaghetti[(col_2, i)]
-        trace = go.Scatter3d(x=x_data, y=y_data, z=z_data, mode="lines", line={"width": 5.0})
+        trace = go.Scatter3d(x=x_data, y=y_data, z=z_data, mode="lines", line={"color": "black", "width": 0.5})
         fig.add_trace(trace)
     axis_titles = {"xaxis": {"title": "time"}, "yaxis": {"title": col_1}, "zaxis": {"title": col_2}}
     return fig.update_layout(showlegend=False, scene=axis_titles, height=800)
@@ -175,38 +210,3 @@ def plot_priors(
             go.Scatter(x=x_vals, y=y_vals, name=map_dict[p], fill="tozeroy"), row=1, col=i + 1
         )
     return fig.update_layout(showlegend=False)
-
-
-def plot_spaghetti_calib_comparison(
-    spaghetti: pd.DataFrame, 
-    calib_data: StandardCalib,
-    out_req: list[str],
-) -> go.Figure:
-    """Plot model outputs and compare against targets where available.
-
-    Args:
-        spaghetti: Output of get_spaghetti
-        calib_data: _description_
-        out_req: _description_
-
-    Returns:
-        The figure
-    """
-    fig = make_subplots(
-        rows=len(out_req),
-        cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.05,
-        horizontal_spacing=0.05,
-    ).update_layout(height=300*len(out_req), width=800, showlegend=False)
-    out_style = {"color": "black", "width": 0.5}
-    targ_style = {"color": "red"}
-    for o, out in enumerate(out_req):
-        for col in spaghetti[out].columns:
-            line = go.Scatter(x=spaghetti.index, y=spaghetti[out][col], line=out_style)
-            fig.add_trace(line, row=o+1, col=1)
-        if out in calib_data:
-            target = calib_data[out].data
-            target_scatter = go.Scatter(x=target.index, y=target, mode="markers", line=targ_style)
-            fig.add_trace(target_scatter, row=o+1, col=1)
-    return fig
