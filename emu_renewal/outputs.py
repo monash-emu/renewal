@@ -88,7 +88,7 @@ def get_quant_df_from_spaghetti(
     in previous function.
 
     Args:
-        spaghetti: The output of get_spaghetti_from_params
+        spaghetti: The output of get_spaghetti
         quantiles: The quantiles at which to make the calculations
 
     Returns:
@@ -127,7 +127,7 @@ def plot_spaghetti(
     spaghetti outputs from parameters above.
 
     Args:
-        spaghetti: The output of get_spaghetti_from_params
+        spaghetti: The output of get_spaghetti
         targets: The target values of the calibration algorithm
 
     Returns:
@@ -216,7 +216,7 @@ def plot_3d_spaghetti(
     of a standard spaghetti dataframe.
 
     Args:
-        spaghetti: Output of get_spaghetti_from_params
+        spaghetti: Output of get_spaghetti
         column_req: The columns to plot against one-another
 
     Returns:
