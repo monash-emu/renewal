@@ -6,6 +6,7 @@ import arviz as az
 from numpyro import distributions as dist
 from matplotlib import pyplot as plt
 from jax import jit
+from plotly.express.colors import qualitative as qual_colours
 
 from estival.sampling.tools import SampleIterator
 
@@ -163,7 +164,6 @@ def add_ci_patch_to_plot(
 def plot_uncertainty_patches(
     calib: StandardCalib,
     quantile_df: list[float],
-    colours: list[str],
     req_outputs: list[str],
 ) -> go.Figure:
     """Create the main uncertainty output figure for a renewal analysis.
@@ -177,6 +177,7 @@ def plot_uncertainty_patches(
     Returns:
         The figure object
     """
+    colours = qual_colours.Plotly
     fig = get_standard_four_subplots()
     for i, out in enumerate(req_outputs):
         row = i // 2 + 1
