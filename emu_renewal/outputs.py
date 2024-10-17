@@ -266,21 +266,18 @@ def plot_priors(
     return fig.update_layout(showlegend=False)
 
 
-def plot_spaghetti_calib_comparison(spaghetti, calib_data):
-
+def plot_spaghetti_calib_comparison(spaghetti, calib_data, out_req):
     fig = make_subplots(
-        rows=3,
+        rows=len(out_req),
         cols=1,
         shared_xaxes=True,
         vertical_spacing=0.05,
         horizontal_spacing=0.05,
     ).update_layout(height=800, width=800, showlegend=False)
-    fig.add_traces(spaghetti["weekly_sum"].plot().data, rows=1, cols=1)
-    fig.add_traces(go.Scatter(x=calib_data["weekly_sum"].data.index, y=calib_data["weekly_sum"].data / 7.0, mode="markers"), rows=1, cols=1)
-    for col in spaghetti["weekly_deaths"].columns:
-        fig.add_trace(go.Scatter(x=spaghetti.index, y=spaghetti["weekly_deaths"][col], line={"color": "black", "width": 0.5}), row=2, col=1)
-
-    fig.add_traces(go.Scatter(x=calib_data["weekly_deaths"].data.index, y=calib_data["weekly_deaths"].data, mode="markers"), rows=2, cols=1)
-    fig.add_traces(spaghetti["seropos"].plot().data, rows=3, cols=1)
-    fig.add_traces(go.Scatter(x=calib_data["seropos"].data.index, y=calib_data["seropos"].data, mode="markers"), rows=3, cols=1)
+    for o, out in enumerate(out_req):
+        for col in spaghetti["weekly_deaths"].columns:
+            fig.add_trace(go.Scatter(x=spaghetti.index, y=spaghetti[out][col], line={"color": "black", "width": 0.5}), row=o+1, col=1)
+        if out in calib_data:
+            t = calib_data[out].data
+            fig.add_trace(go.Scatter(x=t.index, y=t, mode="markers", line={"color": "red"}), row=o+1, col=1)
     return fig
