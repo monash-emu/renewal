@@ -56,9 +56,10 @@ def get_spaghetti_from_params(
 def new_get_spaghetti(
     calib: StandardCalib,
     params: SampleIterator,
-    outputs: list[str],    
+    result_class,    
 ) -> pd.DataFrame:
     model = calib.epi_model
+    outputs = [i for i in dir(result_class) if i[0] != "_" and i not in ["index", "count"]]
 
     @jit
     def get_full_result(**params):
