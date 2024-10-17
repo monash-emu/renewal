@@ -10,7 +10,6 @@ from plotly.express.colors import qualitative as qual_colours
 
 from estival.sampling.tools import SampleIterator
 
-from emu_renewal.renew import RenewalModel
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import map_dict
 
@@ -29,7 +28,7 @@ def get_spaghetti(
         params: The parameter sets to feed through the model
 
     Returns:
-        Dataframe with index of model times and multiindexed columns,
+        Dataframe with model times as index and multiindexed columns,
             with first level being the output name and second the parameter set
             by chain and iteration
     """
@@ -43,7 +42,8 @@ def get_spaghetti(
     # Get spaghetti for each output in a dictionary
     spagh_dict = {}
     for i, p in params.iterrows():
-        res = get_full_result(**{k: v for k, v in p.items() if "dispersion" not in k})
+        epi_params = {k: v for k, v in p.items() if "dispersion" not in k}
+        res = get_full_result(**epi_params)
         spagh = pd.DataFrame(np.array(res)).T
         spagh.index = times
         spagh.columns = res._fields
@@ -60,13 +60,13 @@ def get_spaghetti(
 
 def get_quant_df_from_spaghetti(
     spaghetti: pd.DataFrame,
-    quantiles: list[float],
+    quantile_req: list[float],
 ) -> pd.DataFrame:
     """Calculate requested quantiles over spaghetti created
     in previous function.
 
     Args:
-        spaghetti: The output of get_spaghetti
+        spaghetti: Output of get_spaghetti
         quantiles: The quantiles at which to make the calculations
 
     Returns:
@@ -74,11 +74,11 @@ def get_quant_df_from_spaghetti(
             with first level being the output name and second the quantile
     """
     outputs = set(spaghetti.columns.get_level_values(0))
-    column_names = pd.MultiIndex.from_product([outputs, quantiles])
-    quantiles_df = pd.DataFrame(index=spaghetti.index, columns=column_names)
-    for col in outputs:
-        quantiles_df[col] = spaghetti[col].quantile(quantiles, axis=1).T
-    return quantiles_df
+    column_names = pd.MultiIndex.from_product([outputs, quantile_req])
+    quantile_df = pd.DataFrame(index=spaghetti.index, columns=column_names)
+    for out in outputs:
+        quantile_df[out] = spaghetti[out].quantile(quantile_req, axis=1).T
+    return quantile_df
 
 
 def get_standard_four_subplots() -> go.Figure:
@@ -95,27 +95,6 @@ def get_standard_four_subplots() -> go.Figure:
         horizontal_spacing=0.05,
         subplot_titles=PANEL_SUBTITLES,
     )
-
-
-def plot_spaghetti(
-    spaghetti: pd.DataFrame,
-    targets: pd.Series,
-) -> go.Figure:
-    """Plot the outputs of the function that gets
-    spaghetti outputs from parameters above.
-
-    Args:
-        spaghetti: The output of get_spaghetti
-        targets: The target values of the calibration algorithm
-
-    Returns:
-        The figure object
-    """
-    fig = get_standard_four_subplots()
-    fig.add_trace(go.Scatter(x=targets.index, y=targets, mode="markers"), row=1, col=1)
-    for i in range(4):
-        fig.add_traces(spaghetti[PANEL_SUBTITLES[i]].plot().data, rows=i // 2 + 1, cols=i % 2 + 1)
-    return fig.update_layout(margin=MARGINS, height=600).update_yaxes(rangemode="tozero")
 
 
 def get_area_from_df(
@@ -266,18 +245,36 @@ def plot_priors(
     return fig.update_layout(showlegend=False)
 
 
-def plot_spaghetti_calib_comparison(spaghetti, calib_data, out_req):
+def plot_spaghetti_calib_comparison(
+    spaghetti: pd.DataFrame, 
+    calib_data: StandardCalib,
+    out_req: list[str],
+) -> go.Figure:
+    """Plot model outputs and compare against targets where available.
+
+    Args:
+        spaghetti: Output of get_spaghetti
+        calib_data: _description_
+        out_req: _description_
+
+    Returns:
+        The figure
+    """
     fig = make_subplots(
         rows=len(out_req),
         cols=1,
         shared_xaxes=True,
         vertical_spacing=0.05,
         horizontal_spacing=0.05,
-    ).update_layout(height=800, width=800, showlegend=False)
+    ).update_layout(height=300*len(out_req), width=800, showlegend=False)
+    out_style = {"color": "black", "width": 0.5}
+    targ_style = {"color": "red"}
     for o, out in enumerate(out_req):
-        for col in spaghetti["weekly_deaths"].columns:
-            fig.add_trace(go.Scatter(x=spaghetti.index, y=spaghetti[out][col], line={"color": "black", "width": 0.5}), row=o+1, col=1)
+        for col in spaghetti[out].columns:
+            line = go.Scatter(x=spaghetti.index, y=spaghetti[out][col], line=out_style)
+            fig.add_trace(line, row=o+1, col=1)
         if out in calib_data:
-            t = calib_data[out].data
-            fig.add_trace(go.Scatter(x=t.index, y=t, mode="markers", line={"color": "red"}), row=o+1, col=1)
+            target = calib_data[out].data
+            target_scatter = go.Scatter(x=target.index, y=target, mode="markers", line=targ_style)
+            fig.add_trace(target_scatter, row=o+1, col=1)
     return fig
