@@ -53,7 +53,7 @@ def get_spaghetti_from_params(
     return spaghetti.sort_index(axis=1, level=0)
 
 
-def new_new_get_spaghetti(
+def get_spaghetti(
     calib: StandardCalib,
     params: SampleIterator,
 ) -> pd.DataFrame:
