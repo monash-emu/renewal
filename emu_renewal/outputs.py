@@ -179,10 +179,12 @@ def plot_uncertainty_patches(
     """
     colours = qual_colours.Plotly
     fig = get_standard_four_subplots()
+    avail_quants = list(set(quantile_df.columns.get_level_values(1)))
+    patch_lims = [avail_quants[0], avail_quants[-1]]
     for i, out in enumerate(req_outputs):
         row = i // 2 + 1
         col = i % 2 + 1
-        add_ci_patch_to_plot(fig, quantile_df[req_outputs[i]], colours[i], row, col, [0.025, 0.975])
+        add_ci_patch_to_plot(fig, quantile_df[req_outputs[i]], colours[i], row, col, patch_lims)
         if out in calib.targets:
             t = calib.targets[out].data
             fig.add_trace(go.Scatter(x=t.index, y=t, mode="markers"), row=row, col=col)
