@@ -80,28 +80,51 @@ def new_get_spaghetti(
     return spaghetti
 
 
+def new_new_get_spaghetti(
+    calib: StandardCalib,
+    params: SampleIterator,
+) -> pd.DataFrame:
+    model = calib.epi_model
+    times = model.epoch.index_to_dti(model.model_times)
+
+    @jit
+    def get_full_result(**params):
+        return model.renewal_func(**params | calib.fixed_params)
+
+    spagh_dict = {}
+    for i, p in params.iterrows():
+        res = get_full_result(**{k: v for k, v in p.items() if "dispersion" not in k})
+        spagh = pd.DataFrame(res).T
+        spagh.index = times
+        spagh.columns = res._fields
+        spagh_dict[str(i)] = spagh
+
+    column_names = pd.MultiIndex.from_product([params.index.map(str), res._fields])
+    spaghetti = pd.DataFrame(columns=column_names)
+    for i in spagh_dict:
+        spaghetti[i] = spagh_dict[i]
+    spaghetti.columns = spaghetti.columns.swaplevel()
+    return spaghetti.sort_index(axis=1, level=0)
+
+
 def get_quant_df_from_spaghetti(
-    model: RenewalModel,
     spaghetti: pd.DataFrame,
     quantiles: list[float],
-    outputs: list[str] = PANEL_SUBTITLES,
 ) -> pd.DataFrame:
     """Calculate requested quantiles over spaghetti created
     in previous function.
 
     Args:
-        model: The renewal model
         spaghetti: The output of get_spaghetti_from_params
         quantiles: The quantiles at which to make the calculations
-        outputs: The names of the outputs of interest
 
     Returns:
         Dataframe with index of model times and multiindexed columns,
             with first level being the output name and second the quantile
     """
-    index_names = model.epoch.index_to_dti(model.model_times)
+    outputs = set(spaghetti.columns.get_level_values(0))
     column_names = pd.MultiIndex.from_product([outputs, quantiles])
-    quantiles_df = pd.DataFrame(index=index_names, columns=column_names)
+    quantiles_df = pd.DataFrame(index=spaghetti.index, columns=column_names)
     for col in outputs:
         quantiles_df[col] = spaghetti[col].quantile(quantiles, axis=1).T
     return quantiles_df
