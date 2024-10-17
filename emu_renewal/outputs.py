@@ -18,9 +18,8 @@ def get_spaghetti(
         params: The parameter sets to feed through the model
 
     Returns:
-        Dataframe with model times as index and multiindexed columns,
-            with first level being the output name and second the parameter set
-            by chain and iteration
+        Dictionary with keys strings containing the chain and draw numbers
+            and values dataframes with columns for each output.
     """
     model = calib.epi_model
     times = model.epoch.index_to_dti(model.model_times)
@@ -29,7 +28,6 @@ def get_spaghetti(
     def get_full_result(**params):
         return model.renewal_func(**params | calib.fixed_params)
 
-    # Get spaghetti for each output in a dictionary
     spagh_dict = {}
     for i, p in params.iterrows():
         epi_params = {k: v for k, v in p.items() if "dispersion" not in k}
@@ -39,8 +37,24 @@ def get_spaghetti(
         spagh.columns = res._fields
         spagh_dict[str(i)] = spagh
 
-    # Wrangle into a dataframe with the desired format
-    column_names = pd.MultiIndex.from_product([params.index.map(str), res._fields])
+    return spagh_dict
+
+
+def get_spagh_df_from_dict(
+    spagh_dict: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    """Process the dictionaries produced by get_spaghetti into dataframe format.
+
+    Args:
+        spagh_dict: The output of get_spaghetti
+
+    Returns:
+        Dataframe with model times as index and multiindexed columns,
+            with first level being the output name and second the parameter set
+            by chain and iteration
+    """
+    outputs = list(spagh_dict.values())[0].columns  # Arbitrary output dataframe
+    column_names = pd.MultiIndex.from_product([spagh_dict.keys(), outputs])
     spaghetti = pd.DataFrame(columns=column_names)
     for i in spagh_dict:
         spaghetti[i] = spagh_dict[i]
