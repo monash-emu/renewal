@@ -209,7 +209,7 @@ class RenewalModel:
         Returns:
             Output from start of initialisation to end of model time
         """
-        densities = self.dens_obj.get_densities(n_dens, report_mean, report_sd)
+        densities = self.report_dist.get_densities(n_dens, report_mean, report_sd)
         convolved_cases = jnp.convolve(full_inc, densities) * cdr
         return convolved_cases[: len(full_inc)]
 
