@@ -71,3 +71,20 @@ class UnivariateDispersionTarget(Target):
 class StandardTarget(UnivariateDispersionTarget):
     def __init__(self, data, dispersion_sd=0.1):
         super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), log=True)
+
+
+class FixedDispTarget(UnivariateDispersionTarget):
+    def __init__(self, data, dispersion=0.1):
+        self.dispersion = dispersion
+        super().__init__(data, dist.Normal, None, log=True)
+
+    def loglikelihood(self, modelled):
+        if self.log:
+            result = jnp.log(modelled)
+            target = self._log_data
+        else:
+            result = modelled
+            target = self.calibration_data
+
+        like_component = self.dist(result, self.dispersion).log_prob(target).sum()
+        return like_component
