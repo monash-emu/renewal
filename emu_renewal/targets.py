@@ -9,7 +9,7 @@ class Target:
     data: pd.Series
     key: str
     calibration_data: Array
-    transform: callable
+    transform: Callable
 
     def set_key(self, key):
         """
@@ -18,7 +18,7 @@ class Target:
         self.key = key
 
     def set_calibration_data(self, data):
-        self.calibration_data = self.transform(data)
+        self.calibration_data = self.transform(data) if self.transform else data
 
     def loglikelihood(self, modelled):
         pass
@@ -30,7 +30,7 @@ class UnivariateDispersionTarget(Target):
         data: pd.Series,
         dist: DistributionMeta,
         dispersion_dist: dist.Distribution,
-        transform: callable,
+        transform: callable=None,
     ):
         """Create a Target with any distribution, which is parameterised by 
         the modelled data and parameters to the dispersion distribution.
@@ -52,11 +52,6 @@ class UnivariateDispersionTarget(Target):
         result = self.transform(modelled)
         dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion_dist)
         return self.dist(result, dispersion).log_prob(data).sum()
-
-
-class FlatTarget(UnivariateDispersionTarget):
-    def __init__(self, data, dispersion_sd: float):
-        super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), lambda x: x)
 
 
 class StandardTarget(UnivariateDispersionTarget):
