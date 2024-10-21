@@ -18,10 +18,13 @@ class Target:
         self.key = key
 
     def set_calibration_data(self, data):
-        raise NotImplementedError
+        self.calibration_data = self.transform(data)
 
     def loglikelihood(self, modelled):
-        raise NotImplementedError
+        data = self.transform(self.calibration_data)
+        result = self.transform(modelled)
+        dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion_dist)
+        return self.dist(result, dispersion).log_prob(data).sum()
 
 
 class UnivariateDispersionTarget(Target):
@@ -44,15 +47,13 @@ class UnivariateDispersionTarget(Target):
         self.dispersion_dist = dispersion_dist
         self.key: str = None
         self.calibration_data: Array = None
+        self.transform = None
 
-    def set_calibration_data(self, data):
-        self.calibration_data = self.transform(data)
 
-    def loglikelihood(self, modelled):
-        data = self.transform(self.calibration_data)
-        result = self.transform(modelled)
-        dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion_dist)
-        return self.dist(result, dispersion).log_prob(data).sum()
+class FlatTarget(UnivariateDispersionTarget):
+    def __init__(self, data, dispersion_sd: float):
+        super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), log=True)
+        self.transform = lambda x: x
 
 
 class StandardTarget(UnivariateDispersionTarget):
