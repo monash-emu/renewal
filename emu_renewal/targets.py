@@ -9,6 +9,7 @@ class Target:
     data: pd.Series
     key: str
     calibration_data: Array
+    transform: callable
 
     def set_key(self, key):
         """
@@ -29,62 +30,38 @@ class UnivariateDispersionTarget(Target):
         data: pd.Series,
         dist: DistributionMeta,
         dispersion_dist: dist.Distribution,
-        log: bool,
     ):
-        """Create a Target for any distribution which is parameterized by the
-        modelled data and a single additional parameter
-        e.g Normal(modelled, sd)
+        """Create a Target with any distribution, which is parameterised by 
+        the modelled data and parameters to the dispersion distribution.
 
         Args:
             data: The target data series
             dist: The likelihood distribution
             dispersion_dist: A dispersion distribution
-            log: Whether to apply log transform to both modelled and observed data
         """
         self.data = data
         self.dist = dist
         self.dispersion_dist = dispersion_dist
-
-        self.log = log
-
         self.key: str = None
         self.calibration_data: Array = None
 
     def set_calibration_data(self, data):
-        self.calibration_data = data
-        if self.log:
-            self._log_data = jnp.log(data)
+        self.calibration_data = self.transform(data)
 
     def loglikelihood(self, modelled):
-        if self.log:
-            result = jnp.log(modelled)
-            target = self._log_data
-        else:
-            result = modelled
-            target = self.calibration_data
-
+        data = self.transform(self.calibration_data)
+        result = self.transform(modelled)
         dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion_dist)
-        like_component = self.dist(result, dispersion).log_prob(target).sum()
-        return like_component
+        return self.dist(result, dispersion).log_prob(data).sum()
 
 
 class StandardTarget(UnivariateDispersionTarget):
-    def __init__(self, data, dispersion_sd=0.1):
+    def __init__(self, data, dispersion_sd: float):
         super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), log=True)
+        self.transform = jnp.log
 
 
-class FixedDispTarget(UnivariateDispersionTarget):
-    def __init__(self, data, dispersion=0.1):
-        self.dispersion = dispersion
-        super().__init__(data, dist.Normal, None, log=True)
-
-    def loglikelihood(self, modelled):
-        if self.log:
-            result = jnp.log(modelled)
-            target = self._log_data
-        else:
-            result = modelled
-            target = self.calibration_data
-
-        like_component = self.dist(result, self.dispersion).log_prob(target).sum()
-        return like_component
+class UniformDispTarget(UnivariateDispersionTarget):
+    def __init__(self, data, dispersion_range: list[float]):
+        super().__init__(data, dist.Normal, dist.Uniform(dispersion_range), log=True)
+        self.transform = jnp.log
