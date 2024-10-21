@@ -1,3 +1,4 @@
+from typing import Callable
 import pandas as pd
 from jax import Array, numpy as jnp
 from numpyro import distributions as dist
@@ -48,10 +49,9 @@ class UnivariateDispersionTarget(Target):
         self.calibration_data: Array = None
 
     def loglikelihood(self, modelled):
-        data = self.transform(self.calibration_data)
         result = self.transform(modelled)
         dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion_dist)
-        return self.dist(result, dispersion).log_prob(data).sum()
+        return self.dist(result, dispersion).log_prob(self.calibration_data).sum()
 
 
 class StandardTarget(UnivariateDispersionTarget):
@@ -60,5 +60,5 @@ class StandardTarget(UnivariateDispersionTarget):
 
 
 class UniformDispTarget(UnivariateDispersionTarget):
-    def __init__(self, data, dispersion_range: list[float]):
-        super().__init__(data, dist.Normal, dist.Uniform(dispersion_range), jnp.log)
+    def __init__(self, data, disp_low, disp_high):
+        super().__init__(data, dist.Normal, dist.Uniform(disp_low, disp_high), jnp.log)
