@@ -21,10 +21,7 @@ class Target:
         self.calibration_data = self.transform(data)
 
     def loglikelihood(self, modelled):
-        data = self.transform(self.calibration_data)
-        result = self.transform(modelled)
-        dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion_dist)
-        return self.dist(result, dispersion).log_prob(data).sum()
+        pass
 
 
 class UnivariateDispersionTarget(Target):
@@ -49,6 +46,12 @@ class UnivariateDispersionTarget(Target):
         self.transform = transform
         self.key: str = None
         self.calibration_data: Array = None
+
+    def loglikelihood(self, modelled):
+        data = self.transform(self.calibration_data)
+        result = self.transform(modelled)
+        dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion_dist)
+        return self.dist(result, dispersion).log_prob(data).sum()
 
 
 class FlatTarget(UnivariateDispersionTarget):
