@@ -33,6 +33,7 @@ class UnivariateDispersionTarget(Target):
         data: pd.Series,
         dist: DistributionMeta,
         dispersion_dist: dist.Distribution,
+        transform: callable,
     ):
         """Create a Target with any distribution, which is parameterised by 
         the modelled data and parameters to the dispersion distribution.
@@ -45,24 +46,21 @@ class UnivariateDispersionTarget(Target):
         self.data = data
         self.dist = dist
         self.dispersion_dist = dispersion_dist
+        self.transform = transform
         self.key: str = None
         self.calibration_data: Array = None
-        self.transform = None
 
 
 class FlatTarget(UnivariateDispersionTarget):
     def __init__(self, data, dispersion_sd: float):
-        super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), log=True)
-        self.transform = lambda x: x
+        super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), lambda x: x)
 
 
 class StandardTarget(UnivariateDispersionTarget):
     def __init__(self, data, dispersion_sd: float):
-        super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), log=True)
-        self.transform = jnp.log
+        super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), jnp.log)
 
 
 class UniformDispTarget(UnivariateDispersionTarget):
     def __init__(self, data, dispersion_range: list[float]):
-        super().__init__(data, dist.Normal, dist.Uniform(dispersion_range), log=True)
-        self.transform = jnp.log
+        super().__init__(data, dist.Normal, dist.Uniform(dispersion_range), jnp.log)
