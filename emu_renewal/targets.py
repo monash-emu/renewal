@@ -21,7 +21,7 @@ class Target:
         self.calibration_data = self.transform(data) if self.transform else data
 
     def loglikelihood(self, modelled):
-        pass
+        raise NotImplementedError
 
 
 class UnivariateDispersionTarget(Target):
