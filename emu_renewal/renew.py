@@ -407,7 +407,8 @@ class RenewalDeathsModel(RenewalModel):
         outputs["weekly_deaths"] = full_weekly_deaths[len(init_inc) :]
         return ModelDeathsResult(**outputs)
 
-class RenewalDeathsModel(RenewalModel):
+
+class RenewalHospModel(RenewalModel):
 
     def renewal_func(
         self,
@@ -444,7 +445,7 @@ class RenewalDeathsModel(RenewalModel):
         full_weekly_deaths = self.get_period_output_from_daily(full_deaths, 7)
         outputs["cases"] = full_cases[len(init_inc) :]
         outputs["deaths"] = full_deaths[len(init_inc) :]
-        # outputs["admissions"] = 
+        outputs["admissions"] = full_admissions[len(init_inc), :]
         outputs["weekly_sum"] = full_weekly_cases[len(init_inc) :]
         outputs["seropos"] = (start_pop - outputs["suscept"]) / start_pop
         outputs["weekly_deaths"] = full_weekly_deaths[len(init_inc) :]
