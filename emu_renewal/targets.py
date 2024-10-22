@@ -7,7 +7,7 @@ import numpyro
 
 
 Transform = Union[Callable | None]
-DispersionSpec = Union[dist.Distribution, float]
+DispersionSpec = Union[dist.Distribution, float, str]
 
 
 class Target:
@@ -24,7 +24,7 @@ class Target:
     def set_calibration_data(self, data):
         self.calibration_data = data
 
-    def loglikelihood(self, modelled):
+    def loglikelihood(self, modelled, parameters):
         raise NotImplementedError
 
 
@@ -71,11 +71,13 @@ class UnivariateDispersionTarget(TransformTarget):
         self.key: str = None
         self.calibration_data: Array = None
 
-    def loglikelihood(self, modelled):
+    def loglikelihood(self, modelled, parameters):
         result = self.transform(modelled)
 
         if isinstance(self.dispersion, dist.Distribution):
             dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion)
+        elif isinstance(self.dispersion, str):
+            dispersion = parameters[self.dispersion]
         else:
             dispersion = self.dispersion
 
