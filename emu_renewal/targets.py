@@ -1,8 +1,13 @@
+from typing import Callable, Union
 import pandas as pd
 from jax import Array, numpy as jnp
 from numpyro import distributions as dist
 from numpyro.distributions.distribution import DistributionMeta
 import numpyro
+
+
+Transform = Union[Callable | None]
+DispersionSpec = Union[dist.Distribution, float, str]
 
 
 class Target:
@@ -17,57 +22,78 @@ class Target:
         self.key = key
 
     def set_calibration_data(self, data):
+        self.calibration_data = data
+
+    def loglikelihood(self, modelled, parameters):
         raise NotImplementedError
 
-    def loglikelihood(self, modelled):
-        raise NotImplementedError
+
+class TransformTarget(Target):
+    _transform: Transform
+
+    def __init__(self, data: pd.Series, transform: Transform = None):
+        self.data = data
+        self._transform = transform
+
+    def set_calibration_data(self, data):
+        self.calibration_data = self.transform(data)
+
+    def transform(self, x):
+        if self._transform is None:
+            return x
+        else:
+            return self._transform(x)
 
 
-class UnivariateDispersionTarget(Target):
+class UnivariateDispersionTarget(TransformTarget):
     def __init__(
         self,
         data: pd.Series,
         dist: DistributionMeta,
-        dispersion_dist: dist.Distribution,
-        log: bool,
+        dispersion: DispersionSpec,
+        transform: Transform = None,
     ):
-        """Create a Target for any distribution which is parameterized by the
-        modelled data and a single additional parameter
-        e.g Normal(modelled, sd)
+        """Create a Target with any distribution, which is parameterised by
+        the modelled data and parameters to the dispersion distribution.
 
         Args:
             data: The target data series
             dist: The likelihood distribution
             dispersion_dist: A dispersion distribution
-            log: Whether to apply log transform to both modelled and observed data
         """
+
+        super().__init__(data, transform)
+
         self.data = data
         self.dist = dist
-        self.dispersion_dist = dispersion_dist
-
-        self.log = log
-
+        self.dispersion = dispersion
+        self.transform = transform
         self.key: str = None
         self.calibration_data: Array = None
 
-    def set_calibration_data(self, data):
-        self.calibration_data = data
-        if self.log:
-            self._log_data = jnp.log(data)
+    def loglikelihood(self, modelled, parameters):
+        result = self.transform(modelled)
 
-    def loglikelihood(self, modelled):
-        if self.log:
-            result = jnp.log(modelled)
-            target = self._log_data
+        if isinstance(self.dispersion, dist.Distribution):
+            dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion)
+        elif isinstance(self.dispersion, str):
+            dispersion = parameters[self.dispersion]
         else:
-            result = modelled
-            target = self.calibration_data
+            dispersion = self.dispersion
 
-        dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion_dist)
-        like_component = self.dist(result, dispersion).log_prob(target).sum()
-        return like_component
+        return self.dist(result, dispersion).log_prob(self.calibration_data).sum()
 
 
-class StandardTarget(UnivariateDispersionTarget):
-    def __init__(self, data, dispersion_sd=0.1):
-        super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), log=True)
+class HalfNormalDispTarget(UnivariateDispersionTarget):
+    def __init__(self, data: pd.Series, dispersion_sd: float):
+        super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), jnp.log)
+
+
+class UniformDispTarget(UnivariateDispersionTarget):
+    def __init__(self, data: pd.Series, disp_low: float, disp_high: float):
+        super().__init__(data, dist.Normal, dist.Uniform(disp_low, disp_high), jnp.log)
+
+
+class FixedDispTarget(UnivariateDispersionTarget):
+    def __init__(self, data, dispersion: float):
+        super().__init__(data, dist.Normal, dispersion, jnp.log)

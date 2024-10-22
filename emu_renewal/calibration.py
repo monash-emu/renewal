@@ -89,7 +89,7 @@ class StandardCalib:
         params = self.sample_calib_params() | self.fixed_params
         result = self.epi_model.renewal_func(**params)
         for ind in self.targets.keys():
-            self.add_factor(result, ind)
+            self.add_factor(result, ind, params)
 
     def sample_calib_params(self):
         """See describe_params below.
@@ -114,11 +114,7 @@ class StandardCalib:
             f"with standard deviation {self.proc_dispersion.scale}. "
         )
 
-    def add_factor(
-        self,
-        result,
-        ind: str,
-    ):
+    def add_factor(self, result, ind: str, parameters):
         """Add output target to calibration algorithm.
 
         Args:
@@ -126,7 +122,7 @@ class StandardCalib:
             ind: Name of indicator
         """
         modelled = self.get_model_indicator(result, ind)
-        like_component = self.targets[ind].loglikelihood(modelled)
+        like_component = self.targets[ind].loglikelihood(modelled, parameters)
         numpyro.factor(f"{ind}_ll", like_component)
 
     def describe_like_contribution(self, indicator):

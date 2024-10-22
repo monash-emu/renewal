@@ -257,6 +257,7 @@ class RenewalModel:
         report_mean: float,
         report_sd: float,
         prop_immune: float = 0.0,
+        **kwargs,
     ) -> ModelResult:
         """See describe_renewal
 
@@ -380,6 +381,7 @@ class RenewalDeathsModel(RenewalModel):
         death_mean: float,
         death_sd: float,
         prop_immune: float = 0.0,
+        **kwargs,
     ) -> ModelDeathsResult:
         """See describe_renewal
 
