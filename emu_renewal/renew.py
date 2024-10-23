@@ -12,7 +12,6 @@ from summer2.utils import Epoch
 from emu_renewal.process import sinterp, MultiCurve
 from emu_renewal.distributions import Dens, GammaDens
 from emu_renewal.utils import format_date_for_str, round_sigfig
-from jax.scipy.stats import gamma as jaxgamma
 
 
 class RenewalState(NamedTuple):
