@@ -44,6 +44,9 @@ class GammaDens(Dens):
     def get_densities(self, window_len, mean, sd):
         return jnp.diff(jaxgamma.cdf(jnp.arange(window_len + 1), **self.get_params(mean, sd)))
 
+    def get_cum_dens(self, window_len, mean, sd):
+        return jaxgamma.cdf(jnp.arange(window_len + 1), **self.get_params(mean, sd))
+
     def get_desc(self):
         """Get the description of this code.
 
