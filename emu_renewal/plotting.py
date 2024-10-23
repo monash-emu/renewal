@@ -91,8 +91,9 @@ def plot_spaghetti_calib_comparison(
         rows=len(out_req),
         cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.05,
+        vertical_spacing=0.02,
         horizontal_spacing=0.05,
+        subplot_titles=out_req,
     ).update_layout(height=300*len(out_req), width=800, showlegend=False)
     out_style = {"color": "black", "width": 0.5}
     targ_style = {"color": "red"}

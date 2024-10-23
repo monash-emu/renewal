@@ -41,6 +41,20 @@ class ModelDeathsResult(NamedTuple):
     weekly_deaths: jnp.array
 
 
+class ModelHospResult(NamedTuple):
+    incidence: jnp.array
+    suscept: jnp.array
+    r_t: jnp.array
+    process: jnp.array
+    cases: jnp.array
+    weekly_sum: jnp.array
+    seropos: jnp.array
+    deaths: jnp.array
+    weekly_deaths: jnp.array
+    admissions: jnp.array
+    occupancy: jnp.array
+
+
 class RenewalModel:
     def __init__(
         self,
@@ -412,6 +426,11 @@ class RenewalDeathsModel(RenewalModel):
 
 class RenewalHospModel(RenewalModel):
 
+    def get_hosp_occupancy_from_admits(self, full_admits, stay_mean, stay_sd):
+        dist = GammaDens()
+        discharge = 1.0 - dist.get_cum_dens(self.window_len, stay_mean, stay_sd)
+        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
+
     def renewal_func(
         self,
         proc: List[float],
@@ -426,8 +445,11 @@ class RenewalHospModel(RenewalModel):
         death_sd: float,
         admit_mean: float,
         admit_sd: float,
+        stay_mean: float,
+        stay_sd: float,
         har: float,
         prop_immune: float = 0.0,
+        **kwargs,
     ) -> ModelDeathsResult:
         """See describe_renewal
 
@@ -439,16 +461,24 @@ class RenewalHospModel(RenewalModel):
         Returns:
             Results of the model run
         """
-        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
-        full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, self.window_len)
+        start_pop, init_inc, full_inc, outputs = self.renew(
+            gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
+        )
+        full_cases = self.get_output_from_inc(
+            full_inc, report_mean, report_sd, cdr, self.window_len
+        )
         full_deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, self.window_len)
-        full_admissions = self.get_description(full_inc, admit_mean, admit_sd, har, self.window_len)
+        full_admissions = self.get_output_from_inc(
+            full_inc, admit_mean, admit_sd, har, self.window_len
+        )
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
         full_weekly_deaths = self.get_period_output_from_daily(full_deaths, 7)
+        hosp_occupancy = self.get_hosp_occupancy_from_admits(full_admissions, stay_mean, stay_sd)
         outputs["cases"] = full_cases[len(init_inc) :]
         outputs["deaths"] = full_deaths[len(init_inc) :]
-        outputs["admissions"] = full_admissions[len(init_inc), :]
+        outputs["admissions"] = full_admissions[len(init_inc) :]
+        outputs["occupancy"] = hosp_occupancy[len(init_inc) :]
         outputs["weekly_sum"] = full_weekly_cases[len(init_inc) :]
         outputs["seropos"] = (start_pop - outputs["suscept"]) / start_pop
         outputs["weekly_deaths"] = full_weekly_deaths[len(init_inc) :]
-        return ModelDeathsResult(**outputs)
+        return ModelHospResult(**outputs)
