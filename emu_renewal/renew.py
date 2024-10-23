@@ -427,10 +427,10 @@ class RenewalDeathsModel(RenewalModel):
 
 class RenewalHospModel(RenewalModel):
 
-    def get_hosp_occupancy_from_admits(self, full_inc, stay_mean, stay_sd):
+    def get_hosp_occupancy_from_admits(self, full_admits, stay_mean, stay_sd):
         dist = GammaDens()
         discharge = dist.get_cum_dens(self.window_len, stay_mean, stay_sd)
-        return jnp.convolve(full_inc, discharge)[: len(full_inc)]
+        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
 
     def renewal_func(
         self,
@@ -468,7 +468,7 @@ class RenewalHospModel(RenewalModel):
         full_admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, self.window_len)
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
         full_weekly_deaths = self.get_period_output_from_daily(full_deaths, 7)
-        hosp_occupancy = self.get_hosp_occupancy_from_admits(full_inc, stay_mean, stay_sd)
+        hosp_occupancy = self.get_hosp_occupancy_from_admits(full_admissions, stay_mean, stay_sd)
         outputs["cases"] = full_cases[len(init_inc) :]
         outputs["deaths"] = full_deaths[len(init_inc) :]
         outputs["admissions"] = full_admissions[len(init_inc) :]
