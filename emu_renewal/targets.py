@@ -81,7 +81,7 @@ class UnivariateDispersionTarget(TransformTarget):
         else:
             dispersion = self.dispersion
 
-        return self.dist(result, dispersion).log_prob(self.calibration_data).mean()
+        return self.dist(result, dispersion).log_prob(self.calibration_data).sum()
 
 
 class HalfNormalDispTarget(UnivariateDispersionTarget):
