@@ -20,6 +20,7 @@ class StandardCalib:
         params: ParamDict,
         targets: dict[str, Target],
         proc_dispersion: dist.Distribution = dist.HalfNormal(0.1),
+        extra_params: list = None,
     ):
         """Set up calibration object with epi model and data.
 
@@ -59,6 +60,7 @@ class StandardCalib:
         self.fixed_params = {
             k: v for k, v in self.params.items() if not isinstance(v, dist.Distribution)
         }
+        self.extra_params = extra_params
 
         self.proc_dispersion = proc_dispersion
 
@@ -86,7 +88,11 @@ class StandardCalib:
         Args:
             extra_params: Any parameters to be passed directly to model
         """
-        params = self.sample_calib_params() | self.fixed_params
+        params = {}
+        for ep in self.extra_params:
+            params = params | ep()
+
+        params = params | self.sample_calib_params() | self.fixed_params
         result = self.epi_model.renewal_func(**params)
         for ind in self.targets.keys():
             self.add_factor(result, ind, params)
