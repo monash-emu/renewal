@@ -18,13 +18,23 @@ class Target:
     def set_key(self, key):
         """
         Called by StandardCalib, used to set the parameter name of this target
+
+        Args:
+            key: Parameter name referenced by the rest of the calibration
+                 infrastructure
         """
         self.key = key
 
-    def set_calibration_data(self, data):
+    def set_calibration_data(self, data: Array):
+        """Called by StandardCalib
+
+        Args:
+            data: Filtered and pre-indexed data that shares coordinates with
+                  the modelled data input to loglikelihood
+        """
         self.calibration_data = data
 
-    def loglikelihood(self, modelled, parameters):
+    def loglikelihood(self, modelled: Array, parameters: dict[str, float]) -> float:
         raise NotImplementedError
 
 
@@ -50,7 +60,7 @@ class UnivariateDispersionTarget(TransformTarget):
         self,
         data: pd.Series,
         dist: DistributionMeta,
-        dispersion: DispersionSpec,
+        dispersion: str,
         transform: Transform = None,
     ):
         """Create a Target with any distribution, which is parameterised by
@@ -59,7 +69,8 @@ class UnivariateDispersionTarget(TransformTarget):
         Args:
             data: The target data series
             dist: The likelihood distribution
-            dispersion_dist: A dispersion distribution
+            dispersion: Key of sampled parameter to use as dispersion
+            transform: Optional function to apply to both data and input
         """
 
         super().__init__(data, transform)
@@ -73,27 +84,16 @@ class UnivariateDispersionTarget(TransformTarget):
 
     def loglikelihood(self, modelled, parameters):
         result = self.transform(modelled)
-
-        if isinstance(self.dispersion, dist.Distribution):
-            dispersion = numpyro.sample(f"dispersion_{self.key}", self.dispersion)
-        elif isinstance(self.dispersion, str):
-            dispersion = parameters[self.dispersion]
-        else:
-            dispersion = self.dispersion
+        dispersion = parameters[self.dispersion]
 
         return self.dist(result, dispersion).log_prob(self.calibration_data).sum()
 
 
-class HalfNormalDispTarget(UnivariateDispersionTarget):
-    def __init__(self, data: pd.Series, dispersion_sd: float):
-        super().__init__(data, dist.Normal, dist.HalfNormal(dispersion_sd), jnp.log)
+class StandardDispTarget(UnivariateDispersionTarget):
+    """
+    Normal likelihood target over the log transformed indicator, with a
+    default of shared dispersion
+    """
 
-
-class UniformDispTarget(UnivariateDispersionTarget):
-    def __init__(self, data: pd.Series, disp_low: float, disp_high: float):
-        super().__init__(data, dist.Normal, dist.Uniform(disp_low, disp_high), jnp.log)
-
-
-class FixedDispTarget(UnivariateDispersionTarget):
-    def __init__(self, data, dispersion: float):
+    def __init__(self, data, dispersion: str = "shared_dispersion"):
         super().__init__(data, dist.Normal, dispersion, jnp.log)
