@@ -67,9 +67,7 @@ class StrainsResult(NamedTuple):
 
 
 def move_vals_up_one(old_vals, new_val):
-    result = jnp.zeros_like(old_vals)
-    result = result.at[1:].set(old_vals[:-1])
-    return result.at[0].set(new_val)
+    return jnp.concat([jnp.array((new_val,)), old_vals[:-1]])
 
 
 class RenewalModel:
@@ -346,10 +344,10 @@ class RenewalModel:
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
             proc_val = process_vals[t - self.start]
             r_t = proc_val * state.suscept / self.pop
-            renewal = (densities * state.incidence).sum() * r_t
-            new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
-            suscept = state.suscept - new_inc
+            req_inc = (densities * state.incidence).sum() * r_t
+            new_inc = jnp.minimum(req_inc, state.suscept)
             inc = move_vals_up_one(state.incidence, new_inc)
+            suscept = state.suscept - new_inc
             out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
             return RenewalState(inc, suscept), out
 
@@ -466,22 +464,22 @@ class MultiStrainModel(RenewalHospModel):
         init_inc = {s: jnp.zeros_like(start_strain_inc) for s in strains}
         init_inc[self.start_strain] = start_strain_inc[::-1]
         init_state = MultistrainState(init_inc, start_pop)
-        new_inc, full_inc = {}, {}
+        req_inc, inc = {}, {}
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]
             r_t = proc_val * state.suscept / self.pop
             for strain in strains:
-                new_inc[strain] = (densities * state.incidence[strain]).sum() * r_t
-                full_inc[strain] = move_vals_up_one(state.incidence[strain], new_inc[strain])
-            total_inc = sum(new_inc.values())
-            suscept = state.suscept - jnp.where(total_inc > state.suscept, state.suscept, total_inc)
-            out = new_inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
-            return MultistrainState(full_inc, suscept), out
+                req_inc[strain] = (densities * state.incidence[strain]).sum() * r_t
+                inc[strain] = move_vals_up_one(state.incidence[strain], req_inc[strain])
+            total_inc = sum(req_inc.values())
+            suscept = jnp.maximum(state.suscept - total_inc, 0.0)
+            out = req_inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
+            return MultistrainState(inc, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        full_inc = jnp.concatenate([start_strain_inc, jnp.array(outputs[self.start_strain])])
-        return start_pop, start_strain_inc, full_inc, outputs
+        inc = jnp.concatenate([start_strain_inc, jnp.array(outputs[self.start_strain])])
+        return start_pop, start_strain_inc, inc, outputs
 
     def renewal_func(
         self,
