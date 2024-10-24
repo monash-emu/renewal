@@ -19,6 +19,15 @@ class RenewalState(NamedTuple):
     suscept: float
 
 
+strains = ["ba1", "ba2", "ba5"]
+
+class MultstrainState(NamedTuple):
+    ba1: jnp.array
+    ba2: jnp.array
+    ba5: jnp.array
+    suscept: float
+
+
 class ModelResult(NamedTuple):
     incidence: jnp.array
     suscept: jnp.array
@@ -30,6 +39,20 @@ class ModelResult(NamedTuple):
 
 
 class ModelHospResult(NamedTuple):
+    incidence: jnp.array
+    suscept: jnp.array
+    r_t: jnp.array
+    process: jnp.array
+    cases: jnp.array
+    weekly_cases: jnp.array
+    seropos: jnp.array
+    deaths: jnp.array
+    weekly_deaths: jnp.array
+    admissions: jnp.array
+    occupancy: jnp.array
+
+
+class StrainsResult(NamedTuple):
     incidence: jnp.array
     suscept: jnp.array
     r_t: jnp.array
@@ -424,19 +447,23 @@ class MultiStrainModel(RenewalHospModel):
         process_vals = self.fit_process_curve(proc, init)
         init_inc = self.init_series / cdr
         start_pop = self.pop * (1.0 - imm) - jnp.sum(init_inc)
-        init_state = RenewalState(init_inc[::-1], start_pop)
+        init_state = RenewalState(init_inc[::-1], 0.0, 0.0, start_pop)
+        new_inc = {}
+        inc = {}
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
             proc_val = process_vals[t - self.start]
             r_t = proc_val * state.suscept / self.pop
-            renewal = (densities * state.incidence).sum() * r_t
-            new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
-            suscept = state.suscept - new_inc
-            inc = jnp.zeros_like(state.incidence)
-            inc = inc.at[1:].set(state.incidence[:-1])
-            inc = inc.at[0].set(new_inc)
-            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
-            return RenewalState(inc, suscept), out
+            for strain in strains:
+                renewal = (densities * getattr(state, strain)).sum() * r_t
+                new_inc[strain] = renewal
+                inc[strain] = jnp.zeros_like(state.incidence)
+                inc[strain] = inc[strain].at[1:].set(state.incidence[:-1])
+                inc[strain] = inc[strain].at[0].set(new_inc)
+            total_inc = jnp.where(sum(new_inc.values()) > state.suscept, state.suscept, renewal)
+            suscept = state.suscept - total_inc
+            out = inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
+            return StrainsResult(inc["ba1"], inc["ba2"], inc["ba5"], suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
         full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
