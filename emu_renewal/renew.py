@@ -453,17 +453,22 @@ class MultiStrainModel(RenewalHospModel):
         process_vals = self.fit_process_curve(proc, init)
         init_inc = self.init_series / cdr
         start_pop = self.pop * (1.0 - imm) - jnp.sum(init_inc)
-        init_state = MultistrainState(init_inc[::-1], 0.0, 0.0, start_pop)
+        init_state = MultistrainState(init_inc[::-1], jnp.zeros_like(init_inc), jnp.zeros_like(init_inc), start_pop)
+        inc = {}
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]
             r_t = proc_val * state.suscept / self.pop
             renewal = (densities * state.ba1).sum() * r_t
-            new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
-            suscept = state.suscept - new_inc
-            inc = move_vals_up_one(state.ba1, new_inc)
-            out = {"ba1": new_inc, "ba2": 0.0, "ba5": 0.0, "suscept": suscept, "r_t": r_t, "process": proc_val}
-            return MultistrainState(inc, 0.0, 0.0, suscept), out
+            inc["ba1"] = jnp.where(renewal > state.suscept, state.suscept, renewal)
+            inc["ba2"] = 0.0
+            inc["ba5"] = 0.0
+            suscept = state.suscept - inc["ba1"]
+            ba1 = move_vals_up_one(state.ba1, inc["ba1"])
+            ba2 = move_vals_up_one(state.ba2, inc["ba2"])
+            ba5 = move_vals_up_one(state.ba5, inc["ba5"])
+            out = {"ba1": inc["ba1"], "ba2": inc["ba2"], "ba5": inc["ba5"], "suscept": suscept, "r_t": r_t, "process": proc_val}
+            return MultistrainState(ba1, ba2, ba5, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
         full_inc = jnp.concatenate([init_inc, jnp.array(outputs["ba1"])])
