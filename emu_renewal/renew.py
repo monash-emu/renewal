@@ -460,12 +460,10 @@ class MultiStrainModel(RenewalHospModel):
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]
             r_t = proc_val * state.suscept / self.pop
-            new_inc["ba1"] = (densities * state.ba1).sum() * r_t
-            new_inc["ba2"] = (densities * state.ba2).sum() * r_t
-            new_inc["ba5"] = (densities * state.ba5).sum() * r_t
-            full_inc["ba1"] = move_vals_up_one(state.ba1, new_inc["ba1"])
-            full_inc["ba2"] = move_vals_up_one(state.ba2, new_inc["ba2"])
-            full_inc["ba5"] = move_vals_up_one(state.ba5, new_inc["ba5"])
+            for strain in strains:
+                state_inc = getattr(state, strain)
+                new_inc[strain] = (densities * state_inc).sum() * r_t
+                full_inc[strain] = move_vals_up_one(state.ba1, new_inc[strain])
             total_inc = sum(new_inc.values())
             suscept = state.suscept - jnp.where(total_inc > state.suscept, state.suscept, total_inc)
             out = new_inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
