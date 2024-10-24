@@ -448,7 +448,6 @@ class MultiStrainModel(RenewalHospModel):
         init_inc = self.init_series / cdr
         start_pop = self.pop * (1.0 - imm) - jnp.sum(init_inc)
         init_state = RenewalState(init_inc[::-1], 0.0, 0.0, start_pop)
-        new_inc = {}
         inc = {}
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
@@ -456,11 +455,11 @@ class MultiStrainModel(RenewalHospModel):
             r_t = proc_val * state.suscept / self.pop
             for strain in strains:
                 renewal = (densities * getattr(state, strain)).sum() * r_t
-                new_inc[strain] = renewal
+                new_inc = renewal
                 inc[strain] = jnp.zeros_like(state.incidence)
                 inc[strain] = inc[strain].at[1:].set(state.incidence[:-1])
                 inc[strain] = inc[strain].at[0].set(new_inc)
-            total_inc = jnp.where(sum(new_inc.values()) > state.suscept, state.suscept, renewal)
+            total_inc = jnp.where(sum(inc.values()) > state.suscept, state.suscept, renewal)
             suscept = state.suscept - total_inc
             out = inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
             return StrainsResult(inc["ba1"], inc["ba2"], inc["ba5"], suscept), out
