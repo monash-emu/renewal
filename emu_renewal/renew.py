@@ -29,18 +29,6 @@ class ModelResult(NamedTuple):
     seropos: jnp.array
 
 
-class ModelDeathsResult(NamedTuple):
-    incidence: jnp.array
-    suscept: jnp.array
-    r_t: jnp.array
-    process: jnp.array
-    cases: jnp.array
-    weekly_cases: jnp.array
-    seropos: jnp.array
-    deaths: jnp.array
-    weekly_deaths: jnp.array
-
-
 class ModelHospResult(NamedTuple):
     incidence: jnp.array
     suscept: jnp.array
@@ -375,47 +363,6 @@ class RenewalModel:
         return description
 
 
-class RenewalDeathsModel(RenewalModel):
-
-    def renewal_func(
-        self,
-        proc: List[float],
-        gen_mean: float,
-        gen_sd: float,
-        cdr: float,
-        ifr: float,
-        rt_init: float,
-        report_mean: float,
-        report_sd: float,
-        death_mean: float,
-        death_sd: float,
-        prop_immune: float = 0.0,
-        **kwargs,
-    ) -> ModelDeathsResult:
-        """See describe_renewal
-
-        Args:
-            gen_mean: Generation time mean
-            gen_sd: Generation time standard deviation
-            y_proc_req: Values of the variable process
-
-        Returns:
-            Results of the model run
-        """
-        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
-        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
-        outputs["cases"] = cases[len(init_inc) :]
-        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
-        outputs["deaths"] = deaths[len(init_inc) :]
-        weekly_cases = self.get_period_output_from_daily(cases, 7)
-        outputs["weekly_cases"] = weekly_cases[len(init_inc) :]
-        weekly_deaths = self.get_period_output_from_daily(deaths, 7)
-        outputs["weekly_deaths"] = weekly_deaths[len(init_inc) :]
-        seropos = (start_pop - outputs["suscept"]) / start_pop
-        outputs["seropos"] = seropos
-        return ModelDeathsResult(**outputs)
-
-
 class RenewalHospModel(RenewalModel):
 
     def __init__(
@@ -451,7 +398,7 @@ class RenewalHospModel(RenewalModel):
         har: float,
         prop_immune: float = 0.0,
         **kwargs,
-    ) -> ModelDeathsResult:
+    ) -> ModelHospResult:
         start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[len(init_inc) :]
