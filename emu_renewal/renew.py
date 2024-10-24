@@ -459,15 +459,15 @@ class MultiStrainModel(RenewalHospModel):
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]
             r_t = proc_val * state.suscept / self.pop
-            renewal = (densities * state.ba1).sum() * r_t
-            inc["ba1"] = jnp.where(renewal > state.suscept, state.suscept, renewal)
-            inc["ba2"] = 0.0
-            inc["ba5"] = 0.0
-            suscept = state.suscept - inc["ba1"]
+            inc["ba1"] = (densities * state.ba1).sum() * r_t
+            inc["ba2"] = (densities * state.ba2).sum() * r_t
+            inc["ba5"] = (densities * state.ba5).sum() * r_t
             ba1 = move_vals_up_one(state.ba1, inc["ba1"])
             ba2 = move_vals_up_one(state.ba2, inc["ba2"])
             ba5 = move_vals_up_one(state.ba5, inc["ba5"])
-            out = {"ba1": inc["ba1"], "ba2": inc["ba2"], "ba5": inc["ba5"], "suscept": suscept, "r_t": r_t, "process": proc_val}
+            total_inc = sum(inc.values())
+            suscept = state.suscept - jnp.where(total_inc > state.suscept, state.suscept, total_inc)
+            out = inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
             return MultistrainState(ba1, ba2, ba5, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
