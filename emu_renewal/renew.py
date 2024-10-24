@@ -407,12 +407,8 @@ class RenewalDeathsModel(RenewalModel):
         Returns:
             Results of the model run
         """
-        start_pop, init_inc, full_inc, outputs = self.renew(
-            gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
-        )
-        full_cases = self.get_output_from_inc(
-            full_inc, report_mean, report_sd, cdr, self.window_len
-        )
+        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
+        full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, self.window_len)
         full_deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, self.window_len)
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
         full_weekly_deaths = self.get_period_output_from_daily(full_deaths, 7)
@@ -426,9 +422,16 @@ class RenewalDeathsModel(RenewalModel):
 
 class RenewalHospModel(RenewalModel):
 
+    def __init__(
+        self,
+        *args,
+        discharge_dens,
+    ):
+        super().__init__(*args)
+        self.discharge_dens = discharge_dens
+
     def get_hosp_occupancy_from_admits(self, full_admits, stay_mean, stay_sd):
-        dist = GammaDens()
-        discharge = 1.0 - dist.get_cum_dens(self.window_len, stay_mean, stay_sd)
+        discharge = 1.0 - self.discharge_dens.get_cum_dens(self.window_len, stay_mean, stay_sd)
         return jnp.convolve(full_admits, discharge)[: len(full_admits)]
 
     def renewal_func(
@@ -451,26 +454,10 @@ class RenewalHospModel(RenewalModel):
         prop_immune: float = 0.0,
         **kwargs,
     ) -> ModelDeathsResult:
-        """See describe_renewal
-
-        Args:
-            gen_mean: Generation time mean
-            gen_sd: Generation time standard deviation
-            y_proc_req: Values of the variable process
-
-        Returns:
-            Results of the model run
-        """
-        start_pop, init_inc, full_inc, outputs = self.renew(
-            gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
-        )
-        full_cases = self.get_output_from_inc(
-            full_inc, report_mean, report_sd, cdr, self.window_len
-        )
+        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
+        full_cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, self.window_len)
         full_deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, self.window_len)
-        full_admissions = self.get_output_from_inc(
-            full_inc, admit_mean, admit_sd, har, self.window_len
-        )
+        full_admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, self.window_len)
         full_weekly_cases = self.get_period_output_from_daily(full_cases, 7)
         full_weekly_deaths = self.get_period_output_from_daily(full_deaths, 7)
         hosp_occupancy = self.get_hosp_occupancy_from_admits(full_admissions, stay_mean, stay_sd)
