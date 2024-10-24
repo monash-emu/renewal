@@ -463,7 +463,7 @@ class MultiStrainModel(RenewalHospModel):
             for strain in strains:
                 state_inc = getattr(state, strain)
                 new_inc[strain] = (densities * state_inc).sum() * r_t
-                full_inc[strain] = move_vals_up_one(state.ba1, new_inc[strain])
+                full_inc[strain] = move_vals_up_one(state_inc, new_inc[strain])
             total_inc = sum(new_inc.values())
             suscept = state.suscept - jnp.where(total_inc > state.suscept, state.suscept, total_inc)
             out = new_inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
