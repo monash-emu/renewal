@@ -415,3 +415,29 @@ class RenewalHospModel(RenewalModel):
         seropos = (start_pop - outputs["suscept"]) / start_pop
         outputs["seropos"] = seropos
         return ModelHospResult(**outputs)
+
+
+class MultiStrainModel(RenewalHospModel):
+
+    def renew(self, mean, sd, proc, cdr, init, imm):
+        densities = self.dens_obj.get_densities(self.window_len, mean, sd)
+        process_vals = self.fit_process_curve(proc, init)
+        init_inc = self.init_series / cdr
+        start_pop = self.pop * (1.0 - imm) - jnp.sum(init_inc)
+        init_state = RenewalState(init_inc[::-1], start_pop)
+
+        def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
+            proc_val = process_vals[t - self.start]
+            r_t = proc_val * state.suscept / self.pop
+            renewal = (densities * state.incidence).sum() * r_t
+            new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
+            suscept = state.suscept - new_inc
+            inc = jnp.zeros_like(state.incidence)
+            inc = inc.at[1:].set(state.incidence[:-1])
+            inc = inc.at[0].set(new_inc)
+            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
+            return RenewalState(inc, suscept), out
+
+        end_state, outputs = lax.scan(state_update, init_state, self.model_times)
+        full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
+        return start_pop, init_inc, full_inc, outputs
