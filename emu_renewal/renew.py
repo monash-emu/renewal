@@ -21,7 +21,7 @@ class RenewalState(NamedTuple):
 
 strains = ["ba1", "ba2", "ba5"]
 
-class MultstrainState(NamedTuple):
+class MultistrainState(NamedTuple):
     ba1: jnp.array
     ba2: jnp.array
     ba5: jnp.array
@@ -53,7 +53,9 @@ class ModelHospResult(NamedTuple):
 
 
 class StrainsResult(NamedTuple):
-    incidence: jnp.array
+    ba1: jnp.array
+    ba2: jnp.array
+    ba5: jnp.array
     suscept: jnp.array
     r_t: jnp.array
     process: jnp.array
@@ -447,23 +449,58 @@ class MultiStrainModel(RenewalHospModel):
         process_vals = self.fit_process_curve(proc, init)
         init_inc = self.init_series / cdr
         start_pop = self.pop * (1.0 - imm) - jnp.sum(init_inc)
-        init_state = RenewalState(init_inc[::-1], 0.0, 0.0, start_pop)
-        inc = {}
+        init_state = MultistrainState(init_inc[::-1], 0.0, 0.0, start_pop)
 
-        def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
+        def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]
             r_t = proc_val * state.suscept / self.pop
-            for strain in strains:
-                renewal = (densities * getattr(state, strain)).sum() * r_t
-                new_inc = renewal
-                inc[strain] = jnp.zeros_like(state.incidence)
-                inc[strain] = inc[strain].at[1:].set(state.incidence[:-1])
-                inc[strain] = inc[strain].at[0].set(new_inc)
-            total_inc = jnp.where(sum(inc.values()) > state.suscept, state.suscept, renewal)
-            suscept = state.suscept - total_inc
-            out = inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
-            return StrainsResult(inc["ba1"], inc["ba2"], inc["ba5"], suscept), out
+            renewal = (densities * state.ba1).sum() * r_t
+            new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
+            suscept = state.suscept - new_inc
+            inc = jnp.zeros_like(state.ba1)
+            inc = inc.at[1:].set(state.ba1[:-1])
+            inc = inc.at[0].set(new_inc)
+            out = {"ba1": new_inc, "ba2": 0.0, "ba5": 0.0, "suscept": suscept, "r_t": r_t, "process": proc_val}
+            return MultistrainState(inc, 0.0, 0.0, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
+        full_inc = jnp.concatenate([init_inc, jnp.array(outputs["ba1"])])
         return start_pop, init_inc, full_inc, outputs
+
+    def renewal_func(
+        self,
+        proc: List[float],
+        gen_mean: float,
+        gen_sd: float,
+        cdr: float,
+        ifr: float,
+        rt_init: float,
+        report_mean: float,
+        report_sd: float,
+        death_mean: float,
+        death_sd: float,
+        admit_mean: float,
+        admit_sd: float,
+        stay_mean: float,
+        stay_sd: float,
+        har: float,
+        prop_immune: float = 0.0,
+        **kwargs,
+    ) -> ModelHospResult:
+        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
+        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
+        outputs["cases"] = cases[len(init_inc) :]
+        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
+        outputs["deaths"] = deaths[len(init_inc) :]
+        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
+        outputs["admissions"] = admissions[len(init_inc) :]
+        occupancy = self.get_hosp_occupancy_from_admits(admissions, stay_mean, stay_sd)
+        outputs["occupancy"] = occupancy[len(init_inc) :]
+        weekly_cases = self.get_period_output_from_daily(cases, 7)
+        outputs["weekly_cases"] = weekly_cases[len(init_inc) :]
+        weekly_deaths = self.get_period_output_from_daily(deaths, 7)
+        outputs["weekly_deaths"] = weekly_deaths[len(init_inc) :]
+        seropos = (start_pop - outputs["suscept"]) / start_pop
+        outputs["seropos"] = seropos
+        return StrainsResult(**outputs)
+    
