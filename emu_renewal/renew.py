@@ -68,6 +68,12 @@ class StrainsResult(NamedTuple):
     occupancy: jnp.array
 
 
+def move_vals_up_one(old_vals, new_val):
+    result = jnp.zeros_like(old_vals)
+    result = result.at[1:].set(old_vals[:-1])
+    return result.at[0].set(new_val)
+
+
 class RenewalModel:
     def __init__(
         self,
@@ -345,9 +351,7 @@ class RenewalModel:
             renewal = (densities * state.incidence).sum() * r_t
             new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
             suscept = state.suscept - new_inc
-            inc = jnp.zeros_like(state.incidence)
-            inc = inc.at[1:].set(state.incidence[:-1])
-            inc = inc.at[0].set(new_inc)
+            inc = move_vals_up_one(state.incidence, new_inc)
             out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
             return RenewalState(inc, suscept), out
 
@@ -457,9 +461,7 @@ class MultiStrainModel(RenewalHospModel):
             renewal = (densities * state.ba1).sum() * r_t
             new_inc = jnp.where(renewal > state.suscept, state.suscept, renewal)
             suscept = state.suscept - new_inc
-            inc = jnp.zeros_like(state.ba1)
-            inc = inc.at[1:].set(state.ba1[:-1])
-            inc = inc.at[0].set(new_inc)
+            inc = move_vals_up_one(state.ba1, new_inc)
             out = {"ba1": new_inc, "ba2": 0.0, "ba5": 0.0, "suscept": suscept, "r_t": r_t, "process": proc_val}
             return MultistrainState(inc, 0.0, 0.0, suscept), out
 
