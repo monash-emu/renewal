@@ -456,7 +456,7 @@ class MultiStrainModel(RenewalHospModel):
         self.strains = strains
         self.start_strain = start_strain
 
-    def renew(self, mean, sd, proc, cdr, init, imm):
+    def renew(self, mean, sd, proc, cdr, init, imm, seed_times):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
         process_vals = self.fit_process_curve(proc, init)
         start_strain_inc = self.init_series / cdr
@@ -471,6 +471,7 @@ class MultiStrainModel(RenewalHospModel):
             r_t = proc_val * state.suscept / self.pop
             for strain in strains:
                 req_inc[strain] = (densities * state.incidence[strain]).sum() * r_t
+                req_inc[strain] += (t == seed_times[strain]).astype(int)
             total_req_inc = sum(req_inc.values())
             total_new_inc = jnp.minimum(total_req_inc, state.suscept)
             suscept_adj = total_req_inc / total_new_inc
@@ -501,10 +502,14 @@ class MultiStrainModel(RenewalHospModel):
         stay_mean: float,
         stay_sd: float,
         har: float,
+        ba1_seed: float,
+        ba2_seed: float,
+        ba5_seed: float,
         prop_immune: float = 0.0,
         **kwargs,
     ) -> ModelHospResult:
-        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
+        seed_times = {"ba1": ba1_seed, "ba2": ba2_seed, "ba5": ba5_seed}
+        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune, seed_times)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[len(init_inc) :]
         deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
