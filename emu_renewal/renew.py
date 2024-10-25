@@ -471,9 +471,12 @@ class MultiStrainModel(RenewalHospModel):
             r_t = proc_val * state.suscept / self.pop
             for strain in strains:
                 req_inc[strain] = (densities * state.incidence[strain]).sum() * r_t
-                inc[strain] = move_vals_up_one(state.incidence[strain], req_inc[strain])
-            total_inc = sum(req_inc.values())
-            suscept = jnp.maximum(state.suscept - total_inc, 0.0)
+            total_req_inc = sum(req_inc.values())
+            total_new_inc = jnp.minimum(total_req_inc, state.suscept)
+            suscept_adj = total_req_inc / total_new_inc
+            for strain in strains:
+                inc[strain] = move_vals_up_one(state.incidence[strain], req_inc[strain] * suscept_adj)
+            suscept = state.suscept - total_new_inc
             out = req_inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
             return MultistrainState(inc, suscept), out
 
