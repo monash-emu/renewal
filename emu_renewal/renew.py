@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 from warnings import warn
+import itertools
 
 from summer2.utils import Epoch
 
@@ -20,6 +21,8 @@ class RenewalState(NamedTuple):
 
 
 strains = ["ba1", "ba2", "ba5"]
+strain_combs = [f"{i}X{j}" for i, j in itertools.product(strains, strains)]
+
 
 class MultistrainState(NamedTuple):
     incidence: dict[str, jnp.array]
@@ -468,10 +471,11 @@ class MultiStrainModel(RenewalHospModel):
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]
-            r_t = proc_val * state.suscept / self.pop
             for strain in strains:
-                req_inc[strain] = (densities * state.incidence[strain]).sum() * r_t
-                req_inc[strain] += (t == seed_times[strain]).astype(int)
+                r_t = proc_val * state.suscept / self.pop
+                strain_inc = (densities * state.incidence[strain]).sum() * r_t
+                strain_inc += (t == seed_times[strain]).astype(int)
+                req_inc[strain] = strain_inc
             total_req_inc = sum(req_inc.values())
             total_new_inc = jnp.minimum(total_req_inc, state.suscept)
             suscept_adj = total_req_inc / total_new_inc
