@@ -20,10 +20,6 @@ class RenewalState(NamedTuple):
     suscept: float
 
 
-strains = ["ba1", "ba2", "ba5"]
-strain_combs = [f"{i}X{j}" for i, j in itertools.product(strains, strains)]
-
-
 class MultistrainState(NamedTuple):
     incidence: dict[str, jnp.array]
     suscept: float
@@ -458,20 +454,21 @@ class MultiStrainModel(RenewalHospModel):
         assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
         self.start_strain = start_strain
+        self.strain_combs = [f"{i}X{j}" for i, j in itertools.product(strains, strains)]
 
     def renew(self, mean, sd, proc, cdr, init, imm, seed_times):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
         process_vals = self.fit_process_curve(proc, init)
         start_strain_inc = self.init_series / cdr
         start_pop = self.pop * (1.0 - imm) - jnp.sum(start_strain_inc)
-        init_inc = {s: jnp.zeros_like(start_strain_inc) for s in strains}
+        init_inc = {s: jnp.zeros_like(start_strain_inc) for s in self.strains}
         init_inc[self.start_strain] = start_strain_inc[::-1]
         init_state = MultistrainState(init_inc, start_pop)
         req_inc, inc = {}, {}
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]
-            for strain in strains:
+            for strain in self.strains:
                 r_t = proc_val * state.suscept / self.pop
                 strain_inc = (densities * state.incidence[strain]).sum() * r_t
                 strain_inc += (t == seed_times[strain]).astype(int)
@@ -479,7 +476,7 @@ class MultiStrainModel(RenewalHospModel):
             total_req_inc = sum(req_inc.values())
             total_new_inc = jnp.minimum(total_req_inc, state.suscept)
             suscept_adj = total_req_inc / total_new_inc
-            for strain in strains:
+            for strain in self.strains:
                 inc[strain] = move_vals_up_one(state.incidence[strain], req_inc[strain] * suscept_adj)
             suscept = state.suscept - total_new_inc
             out = req_inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
