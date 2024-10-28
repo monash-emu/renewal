@@ -15,6 +15,14 @@ from emu_renewal.distributions import Dens
 from emu_renewal.utils import format_date_for_str, round_sigfig
 
 
+def get_binary_boolean_strains(categories):
+    combs = itertools.product(*[[[c, False], [c, True]] for c in categories])
+    comb_list = []
+    for k in list(combs):
+        comb_list.append([{i: j} for i, j in k])
+    return comb_list
+
+
 class RenewalState(NamedTuple):
     incidence: jnp.array
     suscept: float
@@ -454,7 +462,10 @@ class MultiStrainModel(RenewalHospModel):
         assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
         self.start_strain = start_strain
-        self.strain_combs = [f"{i}X{j}" for i, j in itertools.product(strains, strains)]
+        self.strain_combs = get_binary_boolean_strains(strains)
+        rec_pop = [0.0] * len(self.strain_combs)
+        rec_pop[0] = self.pop
+        self.rec_pop = jnp.array(rec_pop)
 
     def renew(self, mean, sd, proc, cdr, init, imm, seed_times):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
@@ -469,7 +480,8 @@ class MultiStrainModel(RenewalHospModel):
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]
             for strain in self.strains:
-                r_t = proc_val * state.suscept / self.pop
+                suscepts = state.suscept
+                r_t = suscepts * proc_val / self.pop
                 strain_inc = (densities * state.incidence[strain]).sum() * r_t
                 strain_inc += (t == seed_times[strain]).astype(int)
                 req_inc[strain] = strain_inc
