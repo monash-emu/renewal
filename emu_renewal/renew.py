@@ -15,12 +15,12 @@ from emu_renewal.distributions import Dens
 from emu_renewal.utils import format_date_for_str, round_sigfig
 
 
-def get_binary_boolean_strains(categories):
-    combs = itertools.product(*[[[c, False], [c, True]] for c in categories])
-    comb_list = []
-    for k in list(combs):
-        comb_list.append([{i: j} for i, j in k])
-    return comb_list
+def get_combs(categories):
+    return list(itertools.product([False, True], repeat=len(categories)))
+
+
+def get_comb_map(categories):
+    return {j: i for i, j in enumerate(get_combs(categories))}
 
 
 class RenewalState(NamedTuple):
@@ -462,9 +462,9 @@ class MultiStrainModel(RenewalHospModel):
         assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
         self.start_strain = start_strain
-        self.strain_combs = get_binary_boolean_strains(strains)
-        rec_pop = [0.0] * len(self.strain_combs)
-        rec_pop[0] = self.pop
+        rec_pop = [0.0] * (2 ** len(strains))
+        self.strain_map = get_comb_map(self.strains)
+        rec_pop[self.strain_map[(False, False, False)]] = self.pop
         self.rec_pop = jnp.array(rec_pop)
 
     def renew(self, mean, sd, proc, cdr, init, imm, seed_times):
