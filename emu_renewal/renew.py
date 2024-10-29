@@ -29,7 +29,7 @@ class RenewalState(NamedTuple):
 
 
 class MultistrainState(NamedTuple):
-    incidence: dict[str, jnp.array]
+    incidence: jnp.array
     suscept: float
 
 
@@ -478,22 +478,23 @@ class MultiStrainModel(RenewalHospModel):
         init_inc_new.at[0, :].set(start_strain_inc[::-1])
 
         init_inc[self.start_strain] = start_strain_inc[::-1]
-        init_state = MultistrainState(init_inc, start_pop)
-        req_inc, inc = {}, {}
+        init_state = MultistrainState(init_inc_new, start_pop)
+        req_inc = {}
+        inc = jnp.zeros([len(self.strains), len(start_strain_inc)])
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]
-            for strain in self.strains:
+            for s, strain in enumerate(self.strains):
                 suscepts = state.suscept
                 r_t = suscepts * proc_val / self.pop
-                strain_inc = (densities * state.incidence[strain]).sum() * r_t
+                strain_inc = (densities * state.incidence[s, :]).sum() * r_t
                 strain_inc += (t == seed_times[strain]).astype(int)
                 req_inc[strain] = strain_inc
             total_req_inc = sum(req_inc.values())
             total_new_inc = jnp.minimum(total_req_inc, state.suscept)
             suscept_adj = total_req_inc / total_new_inc
-            for strain in self.strains:
-                inc[strain] = move_vals_up_one(state.incidence[strain], req_inc[strain] * suscept_adj)
+            for s, strain in enumerate(self.strains):
+                inc.at[s, :].set(move_vals_up_one(state.incidence[s, :], req_inc[strain] * suscept_adj))
             suscept = state.suscept - total_new_inc
             out = req_inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
             return MultistrainState(inc, suscept), out
