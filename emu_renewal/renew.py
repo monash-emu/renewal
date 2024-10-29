@@ -30,7 +30,7 @@ class RenewalState(NamedTuple):
 
 class MultistrainState(NamedTuple):
     incidence: jnp.array
-    suscept: float
+    suscept: jnp.array
 
 
 class ModelResult(NamedTuple):
@@ -472,27 +472,29 @@ class MultiStrainModel(RenewalHospModel):
         start_pop = self.pop - jnp.sum(start_strain_inc)
         init_inc = jnp.zeros([len(self.strains), len(start_strain_inc)])
         init_inc = init_inc.at[0, :].set(start_strain_inc[::-1])
+        start_pops = jnp.zeros(len(self.strain_map))
+        start_pops = start_pops.at[0].set(start_pop)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             inc = jnp.zeros([len(self.strains), len(start_strain_inc)])
             req_inc = jnp.zeros(len(self.strains))
+            suscepts = jnp.zeros(len(self.strain_map))
             proc_val = process_vals[t - self.start]
             for s, strain in enumerate(self.strains):
-                suscepts = state.suscept
-                r_t = suscepts * proc_val / self.pop
+                r_t = state.suscept[0] * proc_val / self.pop
                 strain_inc = (densities * state.incidence[s, :]).sum() * r_t
                 strain_inc += (t == seed_times[strain]).astype(int)
                 req_inc = req_inc.at[s].set(strain_inc)
             target_inc = jnp.sum(req_inc)
-            actual_inc = jnp.minimum(target_inc, state.suscept)
-            suscept_adj = target_inc / actual_inc
+            actual_inc = jnp.minimum(target_inc, state.suscept[0])
+            ceiling_adj = target_inc / actual_inc
             for s, strain in enumerate(self.strains):
-                inc = inc.at[s, :].set(move_vals_up_one(state.incidence[s, :], req_inc[s] * suscept_adj))
-            suscept = state.suscept - actual_inc
-            out = {"inc": actual_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
-            return MultistrainState(inc, suscept), out
+                inc = inc.at[s, :].set(move_vals_up_one(state.incidence[s, :], req_inc[s] * ceiling_adj))
+            suscepts = suscepts.at[0].set(state.suscept[0] - actual_inc)
+            out = {"inc": actual_inc, "suscept": suscepts[0], "r_t": r_t, "process": proc_val}
+            return MultistrainState(inc, suscepts), out
 
-        end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pop), self.model_times)
+        end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
         inc = jnp.concatenate([start_strain_inc, jnp.array(outputs["inc"])])
         return start_pop, start_strain_inc, inc, outputs
 
