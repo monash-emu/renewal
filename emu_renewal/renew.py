@@ -458,30 +458,32 @@ class MultiStrainModel(RenewalHospModel):
         )
         assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
+        self.n_strains = len(strains)
         self.start_strain = start_strain
         rec_pop = [0.0] * (2 ** len(strains))
         self.strain_map = get_comb_map(self.strains)
         rec_pop[self.strain_map[(False, False, False)]] = self.pop
         self.rec_pop = jnp.array(rec_pop)
+        self.n_rec_groups = len(self.strain_map)
 
     def renew(self, mean, sd, proc, cdr, init):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
         process_vals = self.fit_process_curve(proc, init)
         start_strain_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(start_strain_inc)
-        init_inc = jnp.zeros([len(self.strains), len(start_strain_inc)])
+        init_inc = jnp.zeros([self.n_strains, len(start_strain_inc)])
         init_inc = init_inc.at[0, :].set(start_strain_inc[::-1])
-        start_pops = jnp.zeros(len(self.strain_map))
+        start_pops = jnp.zeros(self.n_rec_groups)
         start_pops = start_pops.at[0].set(start_pop)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]
-            strain_incs = jnp.empty(len(self.strains))
+            strain_incs = jnp.empty(self.n_strains)
             suscepts = state.suscept
-            for strain in range(len(self.strains)):
+            for strain in range(self.n_strains):
                 strain_inc = 0.0
                 force_inf = (densities * state.incidence[strain, :]).sum() * proc_val
-                for imm_group in range(len(self.strain_map)):
+                for imm_group in range(self.n_rec_groups):
                     this_suscept = state.suscept[imm_group]
                     this_req_inc = force_inf * this_suscept / self.pop
                     this_actual_inc = jnp.minimum(this_req_inc, this_suscept)
