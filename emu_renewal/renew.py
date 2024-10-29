@@ -476,7 +476,7 @@ class MultiStrainModel(RenewalHospModel):
         start_pops = start_pops.at[0].set(start_pop)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
-            inc = jnp.zeros_like(state.incidence)
+            inc = jnp.empty_like(state.incidence)
             req_inc = jnp.empty(len(self.strains))
             suscepts = jnp.empty(len(self.strain_map))
             proc_val = process_vals[t - self.start]
