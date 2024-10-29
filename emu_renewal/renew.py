@@ -481,13 +481,15 @@ class MultiStrainModel(RenewalHospModel):
             suscepts = jnp.empty(len(self.strain_map))
             proc_val = process_vals[t - self.start]
             for s in range(len(self.strains)):
-                r_t = state.suscept[0] * proc_val / self.pop
+                effect_suscepts = jnp.sum(state.suscept)  # Need to weight this by immunity
+                r_t = effect_suscepts * proc_val / self.pop
                 strain_inc = (densities * state.incidence[s, :]).sum() * r_t
                 req_inc = req_inc.at[s].set(strain_inc)
             target_inc = jnp.sum(req_inc)
-            actual_inc = jnp.minimum(target_inc, state.suscept[0])
+            actual_inc = jnp.minimum(target_inc, jnp.sum(state.suscept))
             ceiling_adj = target_inc / actual_inc
-            inc = jnp.concat([req_inc.reshape(-1, 1) * ceiling_adj, state.incidence[:, :-1]], axis=1)
+            new_inc = req_inc * ceiling_adj
+            inc = jnp.concat([new_inc.reshape(-1, 1), state.incidence[:, :-1]], axis=1)
             suscepts = suscepts.at[0].set(state.suscept[0] - actual_inc)
             out = {"inc": actual_inc, "suscept": suscepts[0], "r_t": r_t, "process": proc_val}
             return MultistrainState(inc, suscepts), out
