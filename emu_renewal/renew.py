@@ -484,10 +484,10 @@ class MultiStrainModel(RenewalHospModel):
             for strain in range(self.n_strains):
                 strain_inc = 0.0
                 force_inf = (densities * state.incidence[strain, :]).sum() * proc_val
+                these_suscept = state.suscept * self.imm_levels[strain, :]
+                these_req_inc = force_inf * these_suscept / self.pop
                 for imm_group in range(self.n_rec_groups):
-                    this_suscept = state.suscept[imm_group] * self.imm_levels[strain, imm_group]
-                    this_req_inc = force_inf * this_suscept / self.pop
-                    this_actual_inc = jnp.minimum(this_req_inc, this_suscept)
+                    this_actual_inc = jnp.minimum(these_req_inc[imm_group], these_suscept[imm_group])
                     strain_inc += this_actual_inc
                     suscepts = suscepts.at[imm_group].set(suscepts[imm_group] - this_actual_inc)
                 strain_incs = strain_incs.at[strain].set(strain_inc)
