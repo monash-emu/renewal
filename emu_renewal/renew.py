@@ -465,6 +465,7 @@ class MultiStrainModel(RenewalHospModel):
         rec_pop[self.strain_map[(False, False, False)]] = self.pop
         self.rec_pop = jnp.array(rec_pop)
         self.n_rec_groups = len(self.strain_map)
+        self.imm_levels = jnp.ones([self.n_strains, self.n_rec_groups])
 
     def renew(self, mean, sd, proc, cdr, init):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
@@ -484,7 +485,7 @@ class MultiStrainModel(RenewalHospModel):
                 strain_inc = 0.0
                 force_inf = (densities * state.incidence[strain, :]).sum() * proc_val
                 for imm_group in range(self.n_rec_groups):
-                    this_suscept = state.suscept[imm_group]
+                    this_suscept = state.suscept[imm_group] * self.imm_levels[strain, imm_group]
                     this_req_inc = force_inf * this_suscept / self.pop
                     this_actual_inc = jnp.minimum(this_req_inc, this_suscept)
                     strain_inc += this_actual_inc
