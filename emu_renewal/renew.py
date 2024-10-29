@@ -470,6 +470,7 @@ class MultiStrainModel(RenewalHospModel):
     def renew(self, mean, sd, proc, cdr, init):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
         process_vals = self.fit_process_curve(proc, init)
+        seeding_vals = jnp.zeros([self.n_strains, len(self.model_times)])
         start_strain_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(start_strain_inc)
         init_inc = jnp.zeros([self.n_strains, len(start_strain_inc)])
@@ -483,8 +484,9 @@ class MultiStrainModel(RenewalHospModel):
             suscepts = state.suscept
             for strain in range(self.n_strains):
                 force_inf = (densities * state.incidence[strain, :]).sum() * proc_val
+                inf_rate = force_inf + seeding_vals[strain, t]
                 these_suscept = state.suscept * self.imm_levels[strain, :]
-                these_req_inc = force_inf * these_suscept / self.pop
+                these_req_inc = inf_rate * these_suscept / self.pop
                 these_actual_inc = jnp.minimum(these_req_inc, these_suscept)
                 strain_inc = these_actual_inc.sum()
                 suscepts = suscepts - these_actual_inc
