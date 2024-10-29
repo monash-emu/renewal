@@ -482,12 +482,13 @@ class MultiStrainModel(RenewalHospModel):
             proc_val = process_vals[t - self.start]
             strain_incs = jnp.empty(self.n_strains)
             suscepts = state.suscept
+            inf_contributions = (jnp.vstack([densities] * self.n_strains) * state.incidence).sum(axis=1)
+            force_inf = inf_contributions * proc_val
+            inf_rate = force_inf + seeding_vals[:, t]
+            these_suscept = jnp.vstack([state.suscept] * self.n_strains) * self.imm_levels
             for strain in range(self.n_strains):
-                force_inf = (densities * state.incidence[strain, :]).sum() * proc_val
-                inf_rate = force_inf + seeding_vals[strain, t]
-                these_suscept = state.suscept * self.imm_levels[strain, :]
-                these_req_inc = inf_rate * these_suscept / self.pop
-                these_actual_inc = jnp.minimum(these_req_inc, these_suscept)
+                these_req_inc = inf_rate[strain] * these_suscept[strain, :] / self.pop
+                these_actual_inc = jnp.minimum(these_req_inc, these_suscept[strain, :])
                 strain_inc = these_actual_inc.sum()
                 suscepts = suscepts - these_actual_inc
                 strain_incs = strain_incs.at[strain].set(strain_inc)
