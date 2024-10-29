@@ -472,13 +472,8 @@ class MultiStrainModel(RenewalHospModel):
         process_vals = self.fit_process_curve(proc, init)
         start_strain_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(start_strain_inc)
-        init_inc = {s: jnp.zeros_like(start_strain_inc) for s in self.strains}
-
-        init_inc_new = jnp.zeros([len(self.strains), len(start_strain_inc)])
-        init_inc_new = init_inc_new.at[0, :].set(start_strain_inc[::-1])
-
-        init_inc[self.start_strain] = start_strain_inc[::-1]
-        init_state = MultistrainState(init_inc_new, start_pop)
+        init_inc = jnp.zeros([len(self.strains), len(start_strain_inc)])
+        init_inc = init_inc.at[0, :].set(start_strain_inc[::-1])
         req_inc = {}
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
@@ -499,7 +494,7 @@ class MultiStrainModel(RenewalHospModel):
             out = req_inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
             return MultistrainState(inc, suscept), out
 
-        end_state, outputs = lax.scan(state_update, init_state, self.model_times)
+        end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pop), self.model_times)
         inc = jnp.concatenate([start_strain_inc, jnp.array(outputs[self.start_strain])])
         return start_pop, start_strain_inc, inc, outputs
 
