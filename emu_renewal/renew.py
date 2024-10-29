@@ -29,7 +29,7 @@ class RenewalState(NamedTuple):
 
 
 class MultistrainState(NamedTuple):
-    incidence: jnp.array
+    incidence: dict[str, jnp.array]
     suscept: float
 
 
