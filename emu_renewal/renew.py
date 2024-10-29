@@ -476,14 +476,13 @@ class MultiStrainModel(RenewalHospModel):
         start_pops = start_pops.at[0].set(start_pop)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
-            inc = jnp.zeros([len(self.strains), len(start_strain_inc)])
-            req_inc = jnp.zeros(len(self.strains))
-            suscepts = jnp.zeros(len(self.strain_map))
+            inc = jnp.zeros_like(state.incidence)
+            req_inc = jnp.empty(len(self.strains))
+            suscepts = jnp.empty(len(self.strain_map))
             proc_val = process_vals[t - self.start]
-            for s, strain in enumerate(self.strains):
+            for s in range(len(self.strains)):
                 r_t = state.suscept[0] * proc_val / self.pop
                 strain_inc = (densities * state.incidence[s, :]).sum() * r_t
-                strain_inc += (t == seed_times[strain]).astype(int)
                 req_inc = req_inc.at[s].set(strain_inc)
             target_inc = jnp.sum(req_inc)
             actual_inc = jnp.minimum(target_inc, state.suscept[0])
