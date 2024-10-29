@@ -477,7 +477,7 @@ class MultiStrainModel(RenewalHospModel):
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             inc = jnp.zeros([len(self.strains), len(start_strain_inc)])
-            req_inc = jnp.zeros([len(self.strains), 1])
+            req_inc = jnp.zeros(len(self.strains))
             suscepts = jnp.zeros(len(self.strain_map))
             proc_val = process_vals[t - self.start]
             for s, strain in enumerate(self.strains):
@@ -488,7 +488,7 @@ class MultiStrainModel(RenewalHospModel):
             target_inc = jnp.sum(req_inc)
             actual_inc = jnp.minimum(target_inc, state.suscept[0])
             ceiling_adj = target_inc / actual_inc
-            inc = jnp.concat([req_inc * ceiling_adj, state.incidence[:, :-1]], axis=1)
+            inc = jnp.concat([req_inc.reshape(-1, 1) * ceiling_adj, state.incidence[:, :-1]], axis=1)
             suscepts = suscepts.at[0].set(state.suscept[0] - actual_inc)
             out = {"inc": actual_inc, "suscept": suscepts[0], "r_t": r_t, "process": proc_val}
             return MultistrainState(inc, suscepts), out
