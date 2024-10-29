@@ -479,22 +479,18 @@ class MultiStrainModel(RenewalHospModel):
         start_pops = start_pops.at[0].set(start_pop)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
-            proc_val = process_vals[t - self.start]
-            strain_incs = jnp.empty(self.n_strains)
-            suscepts = state.suscept
-            inf_contributions = (densities * state.incidence).sum(axis=1)
-            force_inf = inf_contributions * proc_val
-            inf_rate = force_inf + seeding_vals[:, t]
-            these_suscept = state.suscept * self.imm_levels
-            for strain in range(self.n_strains):
-                these_req_inc = inf_rate[strain] * these_suscept[strain, :] / self.pop
-                these_actual_inc = jnp.minimum(these_req_inc, these_suscept[strain, :])
-                strain_inc = these_actual_inc.sum()
-                suscepts = suscepts - these_actual_inc
-                strain_incs = strain_incs.at[strain].set(strain_inc)
-            inc = jnp.concat([strain_incs.reshape(-1, 1), state.incidence[:, :-1]], axis=1)
-            out = {"inc": jnp.sum(strain_incs), "suscept": suscepts[0], "process": proc_val}
-            return MultistrainState(inc, suscepts), out
+            proc_val = process_vals[t - self.start]  # Scalar
+            contributions = (densities * state.incidence).sum(axis=1)  # Vector of length n_strains
+            force_inf = contributions * proc_val  # Vector of length n_strains
+            inf_rate = force_inf + seeding_vals[:, t]  # Vector of length n_strains
+            these_suscept = state.suscept * self.imm_levels  # Matrix with shape n_strains, n_rec_groups
+            these_req_inc = jnp.hstack([inf_rate.reshape(-1, 1)] * self.n_rec_groups) * these_suscept / self.pop  # Matrix with shape n_strains, n_rec_groups (can probably do this better)
+            these_actual_inc = jnp.minimum(these_req_inc, these_suscept)  # Matrix with shape n_strains, n_rec_groups
+            strain_inc = these_actual_inc.sum(axis=1)  # Vector of length n_strains
+            suscept = state.suscept - these_actual_inc.sum(axis=0)  # Vector of length n_rec_groups
+            inc = jnp.concat([strain_inc.reshape(-1, 1), state.incidence[:, :-1]], axis=1)  # Matrix with shape n_strains
+            out = {"inc": strain_inc.sum(axis=0), "suscept": suscept[0], "process": proc_val}
+            return MultistrainState(inc, suscept), out
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
         inc = jnp.concatenate([start_strain_inc, jnp.array(outputs["inc"])])
