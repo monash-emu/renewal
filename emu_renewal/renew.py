@@ -29,7 +29,7 @@ class RenewalState(NamedTuple):
 
 
 class MultistrainState(NamedTuple):
-    incidence: dict[str, jnp.array]
+    incidence: jnp.array
     suscept: float
 
 
@@ -473,6 +473,10 @@ class MultiStrainModel(RenewalHospModel):
         start_strain_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(start_strain_inc)
         init_inc = {s: jnp.zeros_like(start_strain_inc) for s in self.strains}
+
+        init_inc_new = jnp.zeros([len(self.strains), len(start_strain_inc)])
+        init_inc_new.at[0, :].set(start_strain_inc[::-1])
+
         init_inc[self.start_strain] = start_strain_inc[::-1]
         init_state = MultistrainState(init_inc, start_pop)
         req_inc, inc = {}, {}
