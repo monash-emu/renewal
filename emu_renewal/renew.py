@@ -58,9 +58,7 @@ class ModelHospResult(NamedTuple):
 
 
 class StrainsResult(NamedTuple):
-    ba1: jnp.array
-    ba2: jnp.array
-    ba5: jnp.array
+    inc: jnp.array
     suscept: jnp.array
     r_t: jnp.array
     process: jnp.array
@@ -491,11 +489,11 @@ class MultiStrainModel(RenewalHospModel):
             for s, strain in enumerate(self.strains):
                 inc = inc.at[s, :].set(move_vals_up_one(state.incidence[s, :], req_inc[strain] * suscept_adj))
             suscept = state.suscept - total_new_inc
-            out = req_inc | {"suscept": suscept, "r_t": r_t, "process": proc_val}
+            out = {"inc": total_new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
             return MultistrainState(inc, suscept), out
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pop), self.model_times)
-        inc = jnp.concatenate([start_strain_inc, jnp.array(outputs[self.start_strain])])
+        inc = jnp.concatenate([start_strain_inc, jnp.array(outputs["inc"])])
         return start_pop, start_strain_inc, inc, outputs
 
     def renewal_func(
