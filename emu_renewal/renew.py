@@ -466,7 +466,8 @@ class MultiStrainModel(RenewalHospModel):
         init_inc = init_inc.at[0, :].set(start_strain_inc[::-1])
         start_pops = jnp.zeros(self.n_rec_groups)
         start_pops = start_pops.at[0].set(start_pop)
-        imm_levels = jnp.ones([self.n_strains, self.n_rec_groups])
+        imm_levels = jnp.zeros([self.n_strains, self.n_rec_groups])
+        imm_levels = imm_levels.at[0].set(1.0)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
@@ -481,8 +482,8 @@ class MultiStrainModel(RenewalHospModel):
             for strain in range(self.n_strains):
                 for i, imm in enumerate(self.strain_map):
                     dest = copy.copy(imm)
-                    dest_cat = self.strain_map.index(dest)
                     dest[strain] = True
+                    dest_cat = self.strain_map.index(dest)
                     suscept = suscept.at[dest_cat].set(suscept[dest_cat] + actual_inc[strain, i])
 
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
