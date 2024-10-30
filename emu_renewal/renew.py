@@ -16,7 +16,7 @@ from emu_renewal.utils import format_date_for_str, round_sigfig
 
 
 def get_combs(categories):
-    return list(itertools.product([False, True], repeat=len(categories)))
+    return [list(i) for i in itertools.product([False, True], repeat=len(categories))]
 
 
 def get_comb_map(categories):
@@ -456,7 +456,7 @@ class MultiStrainModel(RenewalHospModel):
         assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
         self.n_strains = len(strains)
-        self.strain_map = get_comb_map(self.strains)
+        self.strain_map = get_comb_map(strains)
         self.n_rec_groups = len(self.strain_map)
 
     def renew(self, mean, sd, proc, cdr, init):
@@ -479,6 +479,11 @@ class MultiStrainModel(RenewalHospModel):
             effect_suscepts = state.suscept * imm_levels  # Effective susceptibles
             target_inc = effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop  # Calculated incidence
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
+
+            for strain in range(self.n_strains):
+                for imm in range(self.n_rec_groups):
+                    this_inc = actual_inc[strain, imm]
+
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             suscept = state.suscept - actual_inc.sum(axis=0)  # Susceptible depletion
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
