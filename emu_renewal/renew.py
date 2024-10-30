@@ -478,10 +478,9 @@ class MultiStrainModel(RenewalHospModel):
             target_inc = effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop  # Calculated incidence
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
             
-            suscept = state.suscept
+            suscept = state.suscept - actual_inc.sum(axis=0)
             for s in range(self.n_strains):
                 for i, imm in enumerate(self.strain_map):
-                    suscept = suscept.at[i].set(suscept[i] - actual_inc[s, i])
                     dest = copy.copy(imm)
                     dest[s] = True
                     dest_cat = self.strain_map.index(dest)
