@@ -478,7 +478,6 @@ class MultiStrainModel(RenewalHospModel):
                 dest_cat = self.strain_map.index(dest)
                 dests[s].append(dest_cat)
 
-
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
             contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
@@ -490,7 +489,7 @@ class MultiStrainModel(RenewalHospModel):
             
             suscept = state.suscept - actual_inc.sum(axis=0)
             for s in range(self.n_strains):
-                for i in range(self.n_rec_groups):
+                for i in range(len(self.strain_map)):
                     suscept = suscept.at[dests[s][i]].set(suscept[dests[s][i]] + actual_inc[s, i])
 
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
