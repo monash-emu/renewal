@@ -483,11 +483,11 @@ class MultiStrainModel(RenewalHospModel):
             contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
             seed = seed_vals[:, t]  # Seeding
             inf_rate = contributions * proc_val + seed  # Infection rate
-            effect_suscepts = state.suscept * self.imm_levels / self.pop  # Effective susceptibles
-            target_inc = effect_suscepts * inf_rate[:, jnp.newaxis]  # Calculated incidence
+            effect_suscepts = state.suscept * self.imm_levels  # Effective susceptibles
+            target_inc = effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop  # Calculated incidence
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
-            suscept = state.suscept - actual_inc.sum(axis=0)  # Susceptible depletion
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
+            suscept = state.suscept - actual_inc.sum(axis=0)  # Susceptible depletion
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
             out = {"inc": strain_inc.sum(axis=0), "suscept": suscept.sum(), "process": proc_val}
             return MultistrainState(inc, suscept), out
