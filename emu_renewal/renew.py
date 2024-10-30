@@ -476,17 +476,14 @@ class MultiStrainModel(RenewalHospModel):
             effect_suscepts = state.suscept * imm_levels  # Effective susceptibles
             target_inc = effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop  # Calculated incidence
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
-
             suscept = state.suscept - actual_inc.sum(axis=0)  # Susceptible depletion
 
             for strain in range(self.n_strains):
-                for i, j in enumerate(self.strain_map):
-                    this_inc = actual_inc[strain, i]
-                    dest = copy.copy(j)
-                    dest[strain] = True
+                for i, imm in enumerate(self.strain_map):
+                    dest = copy.copy(imm)
                     dest_cat = self.strain_map.index(dest)
-                    new_suscept = suscept[dest_cat] + this_inc
-                    suscept = suscept.at[dest_cat].set(new_suscept)
+                    dest[strain] = True
+                    suscept = suscept.at[dest_cat].set(suscept[dest_cat] + actual_inc[strain, i])
 
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
