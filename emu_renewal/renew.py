@@ -483,8 +483,8 @@ class MultiStrainModel(RenewalHospModel):
                 for i, imm in enumerate(self.strain_map):
                     suscept = suscept.at[i].set(suscept[i] - actual_inc[s, i])
                     dest = copy.copy(imm)
-                    dest_cat = self.strain_map.index(dest)
                     dest[s] = True
+                    dest_cat = self.strain_map.index(dest)
                     suscept = suscept.at[dest_cat].set(suscept[dest_cat] + actual_inc[s, i])
 
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
