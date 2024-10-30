@@ -70,10 +70,6 @@ class StrainsResult(NamedTuple):
     occupancy: jnp.array
 
 
-def move_vals_up_one(old_vals, new_val):
-    return jnp.concat([jnp.array((new_val,)), old_vals[:-1]])
-
-
 class RenewalModel:
     def __init__(
         self,
@@ -111,6 +107,7 @@ class RenewalModel:
             self.init_series = jnp.array(init_series[-window_len:])
         else:
             self.init_series = jnp.array(init_series)
+        self.init_length = len(self.init_series)
 
         # Times
         self.epoch = Epoch(start) if isinstance(start, datetime) else None
@@ -121,7 +118,7 @@ class RenewalModel:
             "Fixed parameters": (
                 f"The main analysis period runs from {format_date_for_str(start)} "
                 f"to {format_date_for_str(end)}, "
-                f"with a preceding initialisation period of {len(self.init_series)} days. "
+                f"with a preceding initialisation period of {self.init_length} days. "
             )
         }
 
@@ -307,9 +304,9 @@ class RenewalModel:
         """
         start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
-        outputs["cases"] = cases[len(init_inc) :]
+        outputs["cases"] = cases[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, 7)
-        outputs["weekly_cases"] = weekly_cases[len(init_inc) :]
+        outputs["weekly_cases"] = weekly_cases[self.init_length :]
         seropos = (start_pop - outputs["suscept"]) / start_pop
         outputs["seropos"] = seropos
         return ModelResult(**outputs)
@@ -346,13 +343,13 @@ class RenewalModel:
         init_state = RenewalState(init_inc[::-1], start_pop)
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
-            proc_val = process_vals[t - self.start]
-            r_t = proc_val * state.suscept / self.pop
-            req_inc = (densities * state.incidence).sum() * r_t
-            new_inc = jnp.minimum(req_inc, state.suscept)
-            inc = move_vals_up_one(state.incidence, new_inc)
-            suscept = state.suscept - new_inc
-            out = {"incidence": new_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
+            proc_val = process_vals[t - self.start]  # Variable process
+            r_t = proc_val * state.suscept / self.pop  # Reproduction number
+            target_inc = (densities * state.incidence).sum() * r_t  # Calculated incidence
+            actual_inc = jnp.minimum(target_inc, state.suscept)  # Incidence after ceiling applied
+            suscept = state.suscept - actual_inc  # Susceptible depletion
+            inc = jnp.concat([jnp.array([actual_inc]), state.incidence[:-1]])  # Move up in matrix
+            out = {"incidence": actual_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
             return RenewalState(inc, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
@@ -430,17 +427,17 @@ class RenewalHospModel(RenewalModel):
     ) -> ModelHospResult:
         start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
-        outputs["cases"] = cases[len(init_inc) :]
+        outputs["cases"] = cases[self.init_length :]
         deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
-        outputs["deaths"] = deaths[len(init_inc) :]
+        outputs["deaths"] = deaths[self.init_length :]
         admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
-        outputs["admissions"] = admissions[len(init_inc) :]
+        outputs["admissions"] = admissions[self.init_length :]
         occupancy = self.get_hosp_occupancy_from_admits(admissions, stay_mean, stay_sd)
-        outputs["occupancy"] = occupancy[len(init_inc) :]
+        outputs["occupancy"] = occupancy[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, 7)
-        outputs["weekly_cases"] = weekly_cases[len(init_inc) :]
+        outputs["weekly_cases"] = weekly_cases[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
-        outputs["weekly_deaths"] = weekly_deaths[len(init_inc) :]
+        outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
         seropos = (start_pop - outputs["suscept"]) / start_pop
         outputs["seropos"] = seropos
         return ModelHospResult(**outputs)
@@ -513,18 +510,17 @@ class MultiStrainModel(RenewalHospModel):
     ) -> ModelHospResult:
         start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
-        outputs["cases"] = cases[len(init_inc) :]
+        outputs["cases"] = cases[self.init_length :]
         deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
-        outputs["deaths"] = deaths[len(init_inc) :]
+        outputs["deaths"] = deaths[self.init_length :]
         admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
-        outputs["admissions"] = admissions[len(init_inc) :]
+        outputs["admissions"] = admissions[self.init_length :]
         occupancy = self.get_hosp_occupancy_from_admits(admissions, stay_mean, stay_sd)
-        outputs["occupancy"] = occupancy[len(init_inc) :]
+        outputs["occupancy"] = occupancy[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, 7)
-        outputs["weekly_cases"] = weekly_cases[len(init_inc) :]
+        outputs["weekly_cases"] = weekly_cases[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
-        outputs["weekly_deaths"] = weekly_deaths[len(init_inc) :]
+        outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
         seropos = (start_pop - outputs["suscept"]) / start_pop
         outputs["seropos"] = seropos
         return StrainsResult(**outputs)
-    
