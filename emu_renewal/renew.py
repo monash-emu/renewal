@@ -487,9 +487,9 @@ class MultiStrainModel(RenewalHospModel):
             these_req_inc = these_suscept * inf_rate[:, jnp.newaxis] / self.pop
             these_actual_inc = jnp.minimum(these_req_inc, these_suscept)
             strain_inc = these_actual_inc.sum(axis=1)
-            suscept = state.suscept - these_actual_inc.sum()
-            inc = jnp.concat([strain_inc.reshape(-1, 1), state.incidence[:, :-1]], axis=1)
-            out = {"inc": strain_inc.sum(), "suscept": suscept.sum(), "process": proc_val}
+            suscept = state.suscept - these_actual_inc.sum(axis=0)
+            inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)
+            out = {"inc": strain_inc.sum(axis=0), "suscept": suscept.sum(), "process": proc_val}
             return MultistrainState(inc, suscept), out
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
