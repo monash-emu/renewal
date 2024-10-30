@@ -470,7 +470,7 @@ class MultiStrainModel(RenewalHospModel):
     def renew(self, mean, sd, proc, cdr, init):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
         process_vals = self.fit_process_curve(proc, init)
-        seeding_vals = jnp.zeros([self.n_strains, len(self.model_times)])
+        seed_vals = jnp.zeros([self.n_strains, len(self.model_times)])
         start_strain_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(start_strain_inc)
         init_inc = jnp.zeros([self.n_strains, len(start_strain_inc)])
@@ -479,16 +479,16 @@ class MultiStrainModel(RenewalHospModel):
         start_pops = start_pops.at[0].set(start_pop)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
-            proc_val = process_vals[t - self.start]
-            contributions = (densities * state.incidence).sum(axis=1)
-            force_inf = contributions * proc_val
-            inf_rate = force_inf + seeding_vals[:, t]
-            these_suscept = state.suscept * self.imm_levels
-            these_req_inc = these_suscept * inf_rate[:, jnp.newaxis] / self.pop
-            these_actual_inc = jnp.minimum(these_req_inc, these_suscept)
-            strain_inc = these_actual_inc.sum(axis=1)
-            suscept = state.suscept - these_actual_inc.sum(axis=0)
-            inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)
+            proc_val = process_vals[t - self.start]  # Variable process
+            contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
+            seed = seed_vals[:, t]  # Seeding
+            inf_rate = contributions * proc_val + seed  # Infection rate
+            effect_suscepts = state.suscept * self.imm_levels / self.pop  # Effective susceptibles
+            target_inc = effect_suscepts * inf_rate[:, jnp.newaxis]  # Calculated incidence
+            actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
+            suscept = state.suscept - actual_inc.sum(axis=0)  # Susceptible depletion
+            strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
+            inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
             out = {"inc": strain_inc.sum(axis=0), "suscept": suscept.sum(), "process": proc_val}
             return MultistrainState(inc, suscept), out
 
