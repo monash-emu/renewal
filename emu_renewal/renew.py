@@ -19,10 +19,6 @@ def get_combs(categories):
     return [list(i) for i in itertools.product([False, True], repeat=len(categories))]
 
 
-def get_comb_map(categories):
-    return {j: i for i, j in enumerate(get_combs(categories))}
-
-
 class RenewalState(NamedTuple):
     incidence: jnp.array
     suscept: float
@@ -456,7 +452,7 @@ class MultiStrainModel(RenewalHospModel):
         assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
         self.n_strains = len(strains)
-        self.strain_map = get_comb_map(strains)
+        self.strain_map = get_combs(strains)
         self.n_rec_groups = len(self.strain_map)
 
     def renew(self, mean, sd, proc, cdr, init):
