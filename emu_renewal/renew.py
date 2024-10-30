@@ -478,13 +478,13 @@ class MultiStrainModel(RenewalHospModel):
             target_inc = effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop  # Calculated incidence
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
             
-            suscept = state.suscept - actual_inc.sum(axis=0)
-            for s in range(self.n_strains):
-                for i, imm in enumerate(self.strain_map):
-                    dest = copy.copy(imm)
-                    dest[s] = True
-                    dest_cat = self.strain_map.index(dest)
-                    suscept = suscept.at[dest_cat].set(suscept[dest_cat] + actual_inc[s, i])
+            suscept = state.suscept - actual_inc.sum(axis=0)  # Decrement immunity for all strains in one go for single immunity category
+            for s in range(self.n_strains):  # Loop over strains
+                for i, imm in enumerate(self.strain_map):  # Loop over immunity categories
+                    dest = copy.copy(imm)  # Setting the strain value within this loop seems to persist otherwise
+                    dest[s] = True  # Destination has been infected with this strain as well as the previous ones
+                    dest_cat = self.strain_map.index(dest)  # Find the index value for this new category
+                    suscept = suscept.at[dest_cat].set(suscept[dest_cat] + actual_inc[s, i])  # Increment immunity for the category
 
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
