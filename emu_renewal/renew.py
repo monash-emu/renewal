@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from warnings import warn
 import itertools
+import copy
 
 from summer2.utils import Epoch
 
@@ -476,12 +477,18 @@ class MultiStrainModel(RenewalHospModel):
             target_inc = effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop  # Calculated incidence
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
 
+            suscept = state.suscept - actual_inc.sum(axis=0)  # Susceptible depletion
+
             for strain in range(self.n_strains):
-                for imm in range(self.n_rec_groups):
-                    this_inc = actual_inc[strain, imm]
+                for i, j in enumerate(self.strain_map):
+                    this_inc = actual_inc[strain, i]
+                    dest = copy.copy(j)
+                    dest[strain] = True
+                    dest_cat = self.strain_map.index(dest)
+                    new_suscept = suscept[dest_cat] + this_inc
+                    suscept = suscept.at[dest_cat].set(new_suscept)
 
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
-            suscept = state.suscept - actual_inc.sum(axis=0)  # Susceptible depletion
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
             out = {"inc": strain_inc.sum(axis=0), "suscept": suscept.sum(), "process": proc_val}
             return MultistrainState(inc, suscept), out
