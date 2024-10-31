@@ -455,7 +455,6 @@ class MultiStrainModel(RenewalHospModel):
         self.n_strains = len(strains)
         self.strain_map = get_combs(strains)
         self.n_rec_groups = len(self.strain_map)
-
         self.dests = np.empty([self.n_strains, self.n_rec_groups], dtype=int)
         for s in range(self.n_strains):
             for i, imm in enumerate(self.strain_map):
@@ -485,12 +484,10 @@ class MultiStrainModel(RenewalHospModel):
             effect_suscepts = state.suscept * imm_levels  # Effective susceptibles
             target_inc = effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop  # Calculated incidence
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
-            
-            suscept = state.suscept - actual_inc.sum(axis=0)
-            for s in range(self.n_strains):
+            suscept = state.suscept - actual_inc.sum(axis=0)  # Deplete susceptibles collapsed over strains
+            for s in range(self.n_strains):  # Add susceptibles to recovered immune categories
                 indices = self.dests[s]
-                suscept = suscept.at[indices].set(suscept[indices] + actual_inc[s, :][indices])
-
+                suscept = suscept.at[indices].set(suscept[indices] + actual_inc[s, indices])
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
             out = {"inc": strain_inc.sum(axis=0), "suscept": suscept.sum(), "process": proc_val}
