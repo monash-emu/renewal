@@ -456,6 +456,14 @@ class MultiStrainModel(RenewalHospModel):
         self.strain_map = get_combs(strains)
         self.n_rec_groups = len(self.strain_map)
 
+        self.dests = np.empty([self.n_strains, self.n_rec_groups], dtype=int)
+        for s in range(self.n_strains):
+            for i, imm in enumerate(self.strain_map):
+                dest = copy.copy(imm)
+                dest[s] = True
+                dest_cat = self.strain_map.index(dest)
+                self.dests[s, i] = dest_cat
+
     def renew(self, mean, sd, proc, cdr, init):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
         process_vals = self.fit_process_curve(proc, init)
@@ -469,15 +477,6 @@ class MultiStrainModel(RenewalHospModel):
         imm_levels = jnp.zeros([self.n_strains, self.n_rec_groups])
         imm_levels = imm_levels.at[0].set(1.0)
 
-        dests = []
-        for s in range(self.n_strains):
-            dests.append([])
-            for imm in self.strain_map:
-                dest = copy.copy(imm)
-                dest[s] = True
-                dest_cat = self.strain_map.index(dest)
-                dests[s].append(dest_cat)
-
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
             contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
@@ -489,9 +488,8 @@ class MultiStrainModel(RenewalHospModel):
             
             suscept = state.suscept - actual_inc.sum(axis=0)
             for s in range(self.n_strains):
-                inc = actual_inc[s, :]
-                indices = jnp.array(dests[s])
-                suscept = suscept.at[indices].set(suscept[indices] + inc[indices])
+                indices = self.dests[s]
+                suscept = suscept.at[indices].set(suscept[indices] + actual_inc[s, :][indices])
 
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
