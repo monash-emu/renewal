@@ -489,8 +489,9 @@ class MultiStrainModel(RenewalHospModel):
             
             suscept = state.suscept - actual_inc.sum(axis=0)
             for s in range(self.n_strains):
-                for i in range(len(self.strain_map)):
-                    suscept = suscept.at[dests[s][i]].set(suscept[dests[s][i]] + actual_inc[s, i])
+                inc = actual_inc[s, :]
+                indices = jnp.array(dests[s])
+                suscept = suscept.at[indices].set(suscept[indices] + inc[indices])
 
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
