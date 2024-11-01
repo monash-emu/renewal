@@ -57,6 +57,9 @@ class ModelHospResult(NamedTuple):
 class StrainsResult(NamedTuple):
     inc: jnp.array
     suscept: jnp.array
+    s0: jnp.array
+    s1: jnp.array
+    s2: jnp.array
     process: jnp.array
     cases: jnp.array
     weekly_cases: jnp.array
@@ -468,14 +471,27 @@ class MultiStrainModel(RenewalHospModel):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
         process_vals = self.fit_process_curve(proc, init)
         seed_vals = jnp.zeros([self.n_strains, len(self.model_times)])
+        #seed_vals = seed_vals.at[0, 0:40].set(10000.0)
+        seed_vals = seed_vals.at[1, 60:90].set(1000.0)
+        seed_vals = seed_vals.at[2, 160:190].set(1000.0)
         start_strain_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(start_strain_inc)
         init_inc = jnp.zeros([self.n_strains, len(start_strain_inc)])
         init_inc = init_inc.at[0, :].set(start_strain_inc[::-1])
         start_pops = jnp.zeros(self.n_rec_groups)
         start_pops = start_pops.at[0].set(start_pop)
-        imm_levels = jnp.zeros([self.n_strains, self.n_rec_groups])
-        imm_levels = imm_levels.at[0].set(1.0)
+        #imm_levels = jnp.zeros([self.n_strains, self.n_rec_groups])
+        #imm_levels = jnp.array([[1. , 0.5, 0.5, 0.1, 0.5, 0.1, 0.1, 0. ],
+        #                [1. , 0.5, 0.5, 0.1, 0.5, 0.1, 0.1, 0. ],
+        #                [1. , 0.5, 0.5, 0.1, 0.5, 0.1, 0.1, 0. ]])
+        
+        #imm_levels = jnp.array([[1. , 0.8, 0.8, 0.6, 0. , 0. , 0. , 0. ],
+        #[1. , 0.8, 0. , 0. , 0.8, 0.6, 0. , 0. ],
+        #[1. , 0. , 0.8, 0. , 1.0, 0. , 0.6, 0. ]])
+
+        imm_levels = jnp.array([[1., 1., 1., 1., 0., 0., 0., 0.],
+       [1.4, 1.4, 0., 0., 1.4, 1.4, 0., 0.],
+       [2., 0., 2., 0., 2., 0., 2., 0.]])
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
@@ -493,7 +509,7 @@ class MultiStrainModel(RenewalHospModel):
 
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
-            out = {"inc": strain_inc.sum(axis=0), "suscept": suscept.sum(), "process": proc_val}
+            out = {"inc": strain_inc.sum(axis=0), "s0": strain_inc[0], "s1": strain_inc[1], "s2": strain_inc[2], "suscept": suscept.sum(), "process": proc_val}
             return MultistrainState(inc, suscept), out
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
