@@ -466,22 +466,19 @@ class MultiStrainModel(RenewalHospModel):
     def renew(self, mean, sd, proc, cdr, init):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
         process_vals = self.fit_process_curve(proc, init)
-        seed_vals = jnp.zeros([self.n_strains, len(self.model_times)])
         start_strain_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(start_strain_inc)
         init_inc = jnp.zeros([self.n_strains, len(start_strain_inc)])
         init_inc = init_inc.at[0, :].set(start_strain_inc[::-1])
         start_pops = jnp.zeros(self.n_rec_groups)
         start_pops = start_pops.at[0].set(start_pop)
-        imm_levels = jnp.zeros([self.n_strains, self.n_rec_groups])
-        imm_levels = imm_levels.at[0].set(1.0)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
             contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
-            seed = seed_vals[:, t]  # Seeding
+            seed = self.seed_vals[:, t]  # Seeding
             inf_rate = contributions * proc_val + seed  # Infection rate
-            effect_suscepts = state.suscept * imm_levels  # Effective susceptibles
+            effect_suscepts = state.suscept * self.imm_levels  # Effective susceptibles
             target_inc = effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop  # Calculated incidence
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
             suscept = state.suscept - actual_inc.sum(axis=0)  # Deplete susceptibles collapsed over strains
