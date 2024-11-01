@@ -65,6 +65,9 @@ class StrainsResult(NamedTuple):
     weekly_deaths: jnp.array
     admissions: jnp.array
     occupancy: jnp.array
+    s0: jnp.array
+    s1: jnp.array
+    s2: jnp.array
 
 
 class RenewalModel:
@@ -487,7 +490,14 @@ class MultiStrainModel(RenewalHospModel):
                 suscept = suscept.at[indices].set(suscept[indices] + actual_inc[s, indices])
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
-            out = {"inc": strain_inc.sum(axis=0), "suscept": suscept.sum(), "process": proc_val}
+            out = {
+                "inc": strain_inc.sum(axis=0), 
+                "s0": strain_inc[0], 
+                "s1": strain_inc[1], 
+                "s2": strain_inc[2], 
+                "suscept": suscept.sum(), 
+                "process": proc_val,
+            }
             return MultistrainState(inc, suscept), out
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
@@ -512,7 +522,7 @@ class MultiStrainModel(RenewalHospModel):
         stay_sd: float,
         har: float,
         **kwargs,
-    ) -> ModelHospResult:
+    ) -> StrainsResult:
         start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length :]
