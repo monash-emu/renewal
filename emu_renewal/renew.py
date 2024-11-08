@@ -2,6 +2,7 @@ from typing import Union, List, Tuple
 from typing import NamedTuple
 from jax import lax, vmap
 from jax import numpy as jnp
+from jax.experimental import sparse
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -302,7 +303,9 @@ class RenewalModel:
         Returns:
             Epidemiological results of the model run
         """
-        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
+        start_pop, init_inc, full_inc, outputs = self.renew(
+            gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
+        )
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, 7)
@@ -392,12 +395,28 @@ class RenewalModel:
 class RenewalHospModel(RenewalModel):
 
     def __init__(
-        self, population, start, end, proc_update_freq, proc_fitter, dens_obj, 
-        window_len, init_series, reporting_dist, discharge_dens,
+        self,
+        population,
+        start,
+        end,
+        proc_update_freq,
+        proc_fitter,
+        dens_obj,
+        window_len,
+        init_series,
+        reporting_dist,
+        discharge_dens,
     ):
         super().__init__(
-            population, start, end, proc_update_freq, proc_fitter, dens_obj, 
-            window_len, init_series, reporting_dist
+            population,
+            start,
+            end,
+            proc_update_freq,
+            proc_fitter,
+            dens_obj,
+            window_len,
+            init_series,
+            reporting_dist,
         )
         self.discharge_dens = discharge_dens
 
@@ -425,7 +444,9 @@ class RenewalHospModel(RenewalModel):
         prop_immune: float = 0.0,
         **kwargs,
     ) -> ModelHospResult:
-        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
+        start_pop, init_inc, full_inc, outputs = self.renew(
+            gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
+        )
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length :]
         deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
@@ -446,12 +467,31 @@ class RenewalHospModel(RenewalModel):
 class MultiStrainModel(RenewalHospModel):
 
     def __init__(
-        self, population, start, end, proc_update_freq, proc_fitter, dens_obj, 
-        window_len, init_series, reporting_dist, discharge_dens, strains, start_strain,
+        self,
+        population,
+        start,
+        end,
+        proc_update_freq,
+        proc_fitter,
+        dens_obj,
+        window_len,
+        init_series,
+        reporting_dist,
+        discharge_dens,
+        strains,
+        start_strain,
     ):
         super().__init__(
-            population, start, end, proc_update_freq, proc_fitter, dens_obj, 
-            window_len, init_series, reporting_dist, discharge_dens,
+            population,
+            start,
+            end,
+            proc_update_freq,
+            proc_fitter,
+            dens_obj,
+            window_len,
+            init_series,
+            reporting_dist,
+            discharge_dens,
         )
         assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
@@ -466,6 +506,15 @@ class MultiStrainModel(RenewalHospModel):
                 dest_cat = self.strain_map.index(dest)
                 self.dests[s, i] = dest_cat
 
+        self.trans_mats = []
+        for s in range(self.n_strains):
+            dest_s = self.dests[s]
+            dmat_s = np.zeros((self.n_rec_groups, self.n_rec_groups))
+            for si, di in zip(range(self.n_rec_groups), dest_s):
+                dmat_s[si, di] += 1.0
+                dmat_s[si, si] -= 1.0
+            self.trans_mats.append(sparse.BCOO.fromdense(dmat_s))
+
     def renew(self, mean, sd, proc, cdr, init):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
         process_vals = self.fit_process_curve(proc, init)
@@ -478,29 +527,41 @@ class MultiStrainModel(RenewalHospModel):
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
-            contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
+            contributions = (densities * state.incidence).sum(
+                axis=1
+            )  # Incidence convolved with generation
             seed = self.seed_vals[:, t]  # Seeding
             inf_rate = contributions * proc_val + seed  # Infection rate
             effect_suscepts = state.suscept * self.imm_levels  # Effective susceptibles
-            target_inc = effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop  # Calculated incidence
+            target_inc = (
+                effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop
+            )  # Calculated incidence
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
-            suscept = state.suscept - actual_inc.sum(axis=0)  # Deplete susceptibles collapsed over strains
+            # suscept = state.suscept - actual_inc.sum(
+            #    axis=0
+            # )  # Deplete susceptibles collapsed over strains
+            suscept = state.suscept
             for s in range(self.n_strains):  # Add susceptibles to recovered immune categories
-                indices = self.dests[s]
-                suscept = suscept.at[indices].set(suscept[indices] + actual_inc[s, indices])
+                # indices = self.dests[s]
+                # suscept = suscept.at[indices].set(suscept[indices] + actual_inc[s, indices])
+                suscept = suscept + actual_inc[s] @ self.trans_mats[s]
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
-            inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up in matrix
+            inc = jnp.concat(
+                [strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1
+            )  # Move up in matrix
             out = {
-                "inc": strain_inc.sum(axis=0), 
-                "s0": strain_inc[0], 
-                "s1": strain_inc[1], 
-                "s2": strain_inc[2], 
-                "suscept": suscept.sum(), 
+                "inc": strain_inc.sum(axis=0),
+                "s0": strain_inc[0],
+                "s1": strain_inc[1],
+                "s2": strain_inc[2],
+                "suscept": suscept.sum(),
                 "process": proc_val,
             }
             return MultistrainState(inc, suscept), out
 
-        end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
+        end_state, outputs = lax.scan(
+            state_update, MultistrainState(init_inc, start_pops), self.model_times
+        )
         inc = jnp.concatenate([start_strain_inc, jnp.array(outputs["inc"])])
         return start_pop, start_strain_inc, inc, outputs
 
