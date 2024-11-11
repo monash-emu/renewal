@@ -537,13 +537,8 @@ class MultiStrainModel(RenewalHospModel):
                 effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop
             )  # Calculated incidence
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
-            # suscept = state.suscept - actual_inc.sum(
-            #    axis=0
-            # )  # Deplete susceptibles collapsed over strains
             suscept = state.suscept
             for s in range(self.n_strains):  # Add susceptibles to recovered immune categories
-                # indices = self.dests[s]
-                # suscept = suscept.at[indices].set(suscept[indices] + actual_inc[s, indices])
                 suscept = suscept + actual_inc[s] @ self.trans_mats[s]
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat(
@@ -554,7 +549,14 @@ class MultiStrainModel(RenewalHospModel):
                 "s0": strain_inc[0],
                 "s1": strain_inc[1],
                 "s2": strain_inc[2],
-                "suscept": suscept.sum(),
+                "sus0": suscept[0],
+                "sus1": suscept[1],
+                "sus2": suscept[2],
+                "sus3": suscept[3],
+                "sus4": suscept[4],
+                "sus5": suscept[5],
+                "sus6": suscept[6],
+                "sus7": suscept[7],
                 "process": proc_val,
             }
             return MultistrainState(inc, suscept), out
@@ -597,6 +599,4 @@ class MultiStrainModel(RenewalHospModel):
         outputs["weekly_cases"] = weekly_cases[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
         outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
-        seropos = (start_pop - outputs["suscept"]) / start_pop
-        outputs["seropos"] = seropos
         return StrainsResult(**outputs)
