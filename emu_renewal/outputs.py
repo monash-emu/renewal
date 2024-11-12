@@ -83,3 +83,27 @@ def get_quant_df_from_spaghetti(
     for out in outputs:
         quantile_df[out] = spaghetti[out].quantile(quantile_req, axis=1).T
     return quantile_df
+
+
+def get_model_recovered_locs(strain_map):
+    susc_bools = np.array(strain_map).T
+    ever_infect_cols = []
+    for strain in range(susc_bools.shape[0]):
+        ever_infect_cols.append([f"sus{s}" for s in range(susc_bools.shape[1]) if susc_bools[strain, s]])
+    return ever_infect_cols
+
+
+def get_recovered_df(spagh, model, locs):
+    rec_cats = [f"rec{c}" for c in range(len(locs))]
+    runs = spagh.columns.get_level_values(1).unique()
+    new_cols = pd.MultiIndex.from_product([rec_cats, runs])
+    rec_df = pd.DataFrame(index=spagh.index, columns=new_cols)
+    for s in range(len(model.strains)):
+        rec_df[f"rec{s}"] = spagh[locs[s]].T.groupby(level=[1]).sum().T
+    return rec_df
+
+
+def add_recovered_to_spaghetti(spagh, model):
+    rec_locs = get_model_recovered_locs(model.strain_map)
+    rec_df = get_recovered_df(spagh, model, rec_locs)
+    return spagh.join(rec_df)
