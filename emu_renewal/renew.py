@@ -551,22 +551,9 @@ class MultiStrainModel(RenewalHospModel):
             inc = jnp.concat(
                 [strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1
             )  # Move up in matrix
-            out = {
-                "inc": strain_inc.sum(axis=0),
-                "s0": strain_inc[0],
-                "s1": strain_inc[1],
-                "s2": strain_inc[2],
-                "sus0": suscept[0],
-                "sus1": suscept[1],
-                "sus2": suscept[2],
-                "sus3": suscept[3],
-                "sus4": suscept[4],
-                "sus5": suscept[5],
-                "sus6": suscept[6],
-                "sus7": suscept[7],
-                "process": proc_val,
-            }
-            return MultistrainState(inc, suscept), out
+            strain_out = {f"s{i}": strain_inc[i] for i in range(len(self.strains))}
+            suscept_out = {f"sus{i}": suscept[i] for i in range(len(self.strain_map))}
+            return MultistrainState(inc, suscept), {"inc": strain_inc.sum(axis=0), "process": proc_val} | strain_out | suscept_out
 
         end_state, outputs = lax.scan(
             state_update, MultistrainState(init_inc, start_pops), self.model_times
