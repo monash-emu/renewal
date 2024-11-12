@@ -21,6 +21,19 @@ def get_combs(categories):
     return [list(i) for i in itertools.product([False, True], repeat=len(categories))]
 
 
+def get_trans_mats(dests):
+    n_strains = dests.shape[0]
+    n_rec_groups = dests.shape[1]
+    trans_mats = []
+    for s in range(n_strains):
+        trans_mat = np.zeros((n_rec_groups, n_rec_groups))
+        for source, dest in enumerate(dests[s]):
+            trans_mat[source, dest] += 1.0
+            trans_mat[source, source] -= 1.0
+        trans_mats.append(sparse.BCOO.fromdense(trans_mat))
+    return trans_mats
+
+
 class RenewalState(NamedTuple):
     incidence: jnp.array
     suscept: float
@@ -512,15 +525,7 @@ class MultiStrainModel(RenewalHospModel):
                 dest[s] = True
                 dest_cat = self.strain_map.index(dest)
                 self.dests[s, i] = dest_cat
-
-        self.trans_mats = []
-        for s in range(self.n_strains):
-            dest_s = self.dests[s]
-            dmat_s = np.zeros((self.n_rec_groups, self.n_rec_groups))
-            for si, di in zip(range(self.n_rec_groups), dest_s):
-                dmat_s[si, di] += 1.0
-                dmat_s[si, si] -= 1.0
-            self.trans_mats.append(sparse.BCOO.fromdense(dmat_s))
+        self.trans_mats = get_trans_mats(self.dests)
 
     def renew(self, mean, sd, proc, cdr, init):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
