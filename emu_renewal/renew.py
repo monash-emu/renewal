@@ -3,6 +3,7 @@ from typing import NamedTuple
 from jax import lax, vmap
 from jax import numpy as jnp
 from jax.experimental import sparse
+from jax.typing import ArrayLike
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -53,30 +54,6 @@ class ModelHospResult(NamedTuple):
     weekly_deaths: jnp.array
     admissions: jnp.array
     occupancy: jnp.array
-
-
-class StrainsResult(NamedTuple):
-    inc: jnp.array
-    process: jnp.array
-    cases: jnp.array
-    weekly_cases: jnp.array
-    deaths: jnp.array
-    weekly_deaths: jnp.array
-    admissions: jnp.array
-    occupancy: jnp.array
-    s0: jnp.array
-    s1: jnp.array
-    s2: jnp.array
-    sus0: jnp.array
-    sus1: jnp.array
-    sus2: jnp.array
-    sus3: jnp.array
-    sus4: jnp.array
-    sus5: jnp.array
-    sus6: jnp.array
-    sus7: jnp.array
-    seropos: jnp.array
-
 
 class RenewalModel:
     def __init__(
@@ -579,7 +556,7 @@ class MultiStrainModel(RenewalHospModel):
         stay_sd: float,
         har: float,
         **kwargs,
-    ) -> StrainsResult:
+    ) -> dict[str, ArrayLike]:
         start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length:]
@@ -594,4 +571,4 @@ class MultiStrainModel(RenewalHospModel):
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
         outputs["weekly_deaths"] = weekly_deaths[self.init_length:]
         outputs["seropos"] = (self.pop - outputs["sus0"]) / self.pop
-        return StrainsResult(**outputs)
+        return outputs
