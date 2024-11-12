@@ -57,11 +57,9 @@ class ModelHospResult(NamedTuple):
 
 class StrainsResult(NamedTuple):
     inc: jnp.array
-    suscept: jnp.array
     process: jnp.array
     cases: jnp.array
     weekly_cases: jnp.array
-    seropos: jnp.array
     deaths: jnp.array
     weekly_deaths: jnp.array
     admissions: jnp.array
@@ -69,6 +67,14 @@ class StrainsResult(NamedTuple):
     s0: jnp.array
     s1: jnp.array
     s2: jnp.array
+    sus0: jnp.array
+    sus1: jnp.array
+    sus2: jnp.array
+    sus3: jnp.array
+    sus4: jnp.array
+    sus5: jnp.array
+    sus6: jnp.array
+    sus7: jnp.array
 
 
 class RenewalModel:
