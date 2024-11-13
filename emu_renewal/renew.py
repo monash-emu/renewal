@@ -24,6 +24,19 @@ def get_combs(categories):
     return [list(i) for i in itertools.product([False, True], repeat=len(categories))]
 
 
+def get_dests(strain_map):
+    map_array = np.array(strain_map).T
+    n_strains = map_array.shape[0]
+    dests = np.zeros_like(map_array, dtype=int)
+    for s in range(n_strains):
+        for i, imm in enumerate(strain_map):
+            dest = copy.copy(imm)
+            dest[s] = True
+            dest_cat = strain_map.index(dest)
+            dests[s, i] = dest_cat
+    return dests
+
+
 def get_trans_mats(dests):
     n_strains = dests.shape[0]
     n_rec_groups = dests.shape[1]
@@ -470,13 +483,7 @@ class MultiStrainModel(RenewalHospModel):
         self.n_strains = len(strains)
         self.strain_map = get_combs(strains)
         self.n_rec_groups = len(self.strain_map)
-        self.dests = np.empty([self.n_strains, self.n_rec_groups], dtype=int)
-        for s in range(self.n_strains):
-            for i, imm in enumerate(self.strain_map):
-                dest = copy.copy(imm)
-                dest[s] = True
-                dest_cat = self.strain_map.index(dest)
-                self.dests[s, i] = dest_cat
+        self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
 
     def renew(self, mean, sd, proc, start_strain_inc, init):
