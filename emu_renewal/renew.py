@@ -479,10 +479,9 @@ class MultiStrainModel(RenewalHospModel):
                 self.dests[s, i] = dest_cat
         self.trans_mats = get_trans_mats(self.dests)
 
-    def renew(self, mean, sd, proc, cdr, init):
+    def renew(self, mean, sd, proc, start_strain_inc, init):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
         process_vals = self.fit_process_curve(proc, init)
-        start_strain_inc = self.init_series / cdr
         start_pop = self.pop - jnp.sum(start_strain_inc)
         init_inc = jnp.zeros([self.n_strains, len(start_strain_inc)])
         init_inc = init_inc.at[0, :].set(start_strain_inc[::-1])
@@ -491,30 +490,23 @@ class MultiStrainModel(RenewalHospModel):
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
-            contributions = (densities * state.incidence).sum(
-                axis=1
-            )  # Incidence convolved with generation
+            contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
             seed = self.seed_vals[:, t]  # Seeding
             inf_rate = contributions * proc_val + seed  # Infection rate
             effect_suscepts = state.suscept * self.imm_levels  # Effective susceptibles
-            target_inc = (
-                effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop
-            )  # Calculated incidence
-            actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Incidence after ceiling applied
+            target_inc = (effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop)
+            actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Apply ceiling to incidence
             suscept = state.suscept
-            for s in range(self.n_strains):  # Add susceptibles to recovered immune categories
+            for s in range(self.n_strains):  # Move susceptibles to recovered categories
                 suscept = suscept + actual_inc[s] @ self.trans_mats[s]
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
-            inc = jnp.concat(
-                [strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1
-            )  # Move up in matrix
+            inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up
             strain_out = {f"s{i}": strain_inc[i] for i in range(len(self.strains))}
             suscept_out = {f"sus{i}": suscept[i] for i in range(len(self.strain_map))}
-            return MultistrainState(inc, suscept), {"inc": strain_inc.sum(axis=0), "process": proc_val} | strain_out | suscept_out
+            return MultistrainState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
-        inc = jnp.concatenate([start_strain_inc, jnp.array(outputs["inc"])])
-        return inc, outputs
+        return outputs
 
     def renewal_func(
         self,
@@ -535,7 +527,11 @@ class MultiStrainModel(RenewalHospModel):
         har: float,
         **kwargs,
     ) -> ModelResult:
-        full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init)
+        start_strain_inc = self.init_series / cdr
+        outputs = self.renew(gen_mean, gen_sd, proc, start_strain_inc, rt_init)
+        strain_inc = jnp.array([outputs[f"s{i}"] for i in range(len(self.strains))])
+        full_inc = jnp.concatenate([start_strain_inc, jnp.array(strain_inc.sum(axis=0))])
+        outputs["inc"] = full_inc[self.init_length:]
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length:]
         deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
