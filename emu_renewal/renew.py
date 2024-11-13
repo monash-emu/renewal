@@ -21,19 +21,25 @@ ModelResult = dict[str, Array]
 
 
 def get_combs(categories):
-    return [list(i) for i in itertools.product([False, True], repeat=len(categories))]
+    return np.array([list(i) for i in itertools.product([False, True], repeat=len(categories))]).T
 
 
 def get_dests(strain_map):
-    map_array = np.array(strain_map).T
-    n_strains = map_array.shape[0]
-    dests = np.zeros_like(map_array, dtype=int)
-    for s in range(n_strains):
-        for i, imm in enumerate(strain_map):
+    dests = np.zeros_like(strain_map, dtype=int)
+
+    # Iterate through strains
+    for s in range(strain_map.shape[0]):
+
+        # Iterate through columns of matrix
+        for i, imm in enumerate(strain_map.T):  
+            
+            # New combination of strain histories
             dest = copy.copy(imm)
             dest[s] = True
-            dest_cat = strain_map.index(dest)
-            dests[s, i] = dest_cat
+
+            # Find its location within the mapping matrix
+            dests[s, i] = np.where((strain_map == dest[:, None]).all(axis=0))[0][0]
+
     return dests
 
 
@@ -482,7 +488,6 @@ class MultiStrainModel(RenewalHospModel):
         self.strains = strains
         self.n_strains = len(strains)
         self.strain_map = get_combs(strains)
-        self.n_rec_groups = len(self.strain_map)
         self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
 
@@ -492,7 +497,7 @@ class MultiStrainModel(RenewalHospModel):
         start_pop = self.pop - jnp.sum(start_strain_inc)
         init_inc = jnp.zeros([self.n_strains, len(start_strain_inc)])
         init_inc = init_inc.at[0, :].set(start_strain_inc[::-1])
-        start_pops = jnp.zeros(self.n_rec_groups)
+        start_pops = jnp.zeros(self.strain_map.shape[1])
         start_pops = start_pops.at[0].set(start_pop)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
@@ -500,7 +505,7 @@ class MultiStrainModel(RenewalHospModel):
             contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
             seed = self.seed_vals[:, t]  # Seeding
             inf_rate = contributions * proc_val + seed  # Infection rate
-            effect_suscepts = state.suscept * self.imm_levels  # Effective susceptibles
+            effect_suscepts = self.imm_levels * state.suscept  # Effective susceptibles
             target_inc = (effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop)
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Apply ceiling to incidence
             suscept = state.suscept
@@ -509,7 +514,7 @@ class MultiStrainModel(RenewalHospModel):
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up
             strain_out = {f"s{i}": strain_inc[i] for i in range(len(self.strains))}
-            suscept_out = {f"sus{i}": suscept[i] for i in range(len(self.strain_map))}
+            suscept_out = {f"sus{i}": suscept[i] for i in range(self.strain_map.shape[1])}
             return MultistrainState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)

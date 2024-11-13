@@ -86,10 +86,10 @@ def get_quant_df_from_spaghetti(
 
 
 def get_model_recovered_locs(strain_map):
-    susc_bools = np.array(strain_map).T
     ever_infect_cols = []
-    for strain in range(susc_bools.shape[0]):
-        ever_infect_cols.append([f"sus{s}" for s in range(susc_bools.shape[1]) if susc_bools[strain, s]])
+    for strain in range(strain_map.shape[0]):
+        locs = [f"sus{s}" for s in range(strain_map.shape[1]) if strain_map[strain, s]]
+        ever_infect_cols.append(locs)
     return ever_infect_cols
 
 
