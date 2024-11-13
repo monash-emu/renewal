@@ -1,7 +1,6 @@
 from typing import Union, List, Tuple
 from typing import NamedTuple
-from jax import lax, vmap
-from jax import numpy as jnp
+from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
 from jax.typing import ArrayLike
 from datetime import datetime
@@ -17,6 +16,8 @@ from emu_renewal.process import sinterp, MultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import format_date_for_str, round_sigfig
 
+ModelResult = dict[str, Array]
+
 
 def get_combs(categories):
     return [list(i) for i in itertools.product([False, True], repeat=len(categories))]
@@ -30,30 +31,6 @@ class RenewalState(NamedTuple):
 class MultistrainState(NamedTuple):
     incidence: jnp.array
     suscept: jnp.array
-
-
-class ModelResult(NamedTuple):
-    incidence: jnp.array
-    suscept: jnp.array
-    r_t: jnp.array
-    process: jnp.array
-    cases: jnp.array
-    weekly_cases: jnp.array
-    seropos: jnp.array
-
-
-class ModelHospResult(NamedTuple):
-    incidence: jnp.array
-    suscept: jnp.array
-    r_t: jnp.array
-    process: jnp.array
-    cases: jnp.array
-    weekly_cases: jnp.array
-    seropos: jnp.array
-    deaths: jnp.array
-    weekly_deaths: jnp.array
-    admissions: jnp.array
-    occupancy: jnp.array
 
 class RenewalModel:
     def __init__(
@@ -296,7 +273,7 @@ class RenewalModel:
         outputs["weekly_cases"] = weekly_cases[self.init_length :]
         seropos = (start_pop - outputs["suscept"]) / start_pop
         outputs["seropos"] = seropos
-        return ModelResult(**outputs)
+        return outputs
 
     def renew(
         self,
@@ -306,7 +283,7 @@ class RenewalModel:
         cdr: float,
         init: float,
         imm: float,
-    ) -> Tuple[jnp.array, float, ModelResult]:
+    ) -> Tuple[float, Array, Array, ModelResult]:
         """Run the renewal process calculations.
 
         Args:
@@ -427,7 +404,7 @@ class RenewalHospModel(RenewalModel):
         har: float,
         prop_immune: float = 0.0,
         **kwargs,
-    ) -> ModelHospResult:
+    ) -> ModelResult:
         start_pop, init_inc, full_inc, outputs = self.renew(
             gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
         )
@@ -445,7 +422,7 @@ class RenewalHospModel(RenewalModel):
         outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
         seropos = (start_pop - outputs["suscept"]) / start_pop
         outputs["seropos"] = seropos
-        return ModelHospResult(**outputs)
+        return outputs
 
 
 class MultiStrainModel(RenewalHospModel):
@@ -556,7 +533,7 @@ class MultiStrainModel(RenewalHospModel):
         stay_sd: float,
         har: float,
         **kwargs,
-    ) -> dict[str, ArrayLike]:
+    ) -> ModelResult:
         start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length:]
