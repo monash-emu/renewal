@@ -16,6 +16,7 @@ from emu_renewal.process import sinterp, MultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import format_date_for_str, round_sigfig
 
+
 ModelResult = dict[str, Array]
 
 
@@ -44,6 +45,7 @@ class RenewalState(NamedTuple):
 class MultistrainState(NamedTuple):
     incidence: jnp.array
     suscept: jnp.array
+
 
 class RenewalModel:
     def __init__(
@@ -277,14 +279,12 @@ class RenewalModel:
         Returns:
             Epidemiological results of the model run
         """
-        start_pop, init_inc, full_inc, outputs = self.renew(
-            gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
-        )
+        full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
-        outputs["cases"] = cases[self.init_length :]
+        outputs["cases"] = cases[self.init_length:]
         weekly_cases = self.get_period_output_from_daily(cases, 7)
-        outputs["weekly_cases"] = weekly_cases[self.init_length :]
-        seropos = (start_pop - outputs["suscept"]) / start_pop
+        outputs["weekly_cases"] = weekly_cases[self.init_length:]
+        seropos = (self.pop - outputs["suscept"]) / self.pop
         outputs["seropos"] = seropos
         return outputs
 
@@ -331,7 +331,7 @@ class RenewalModel:
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
         full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
-        return start_pop, init_inc, full_inc, outputs
+        return full_inc, outputs
 
     def describe_renewal(self):
         self.description["Renewal process"] = (
@@ -418,22 +418,20 @@ class RenewalHospModel(RenewalModel):
         prop_immune: float = 0.0,
         **kwargs,
     ) -> ModelResult:
-        start_pop, init_inc, full_inc, outputs = self.renew(
-            gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
-        )
+        full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
-        outputs["cases"] = cases[self.init_length :]
+        outputs["cases"] = cases[self.init_length:]
         deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
-        outputs["deaths"] = deaths[self.init_length :]
+        outputs["deaths"] = deaths[self.init_length:]
         admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
-        outputs["admissions"] = admissions[self.init_length :]
+        outputs["admissions"] = admissions[self.init_length:]
         occupancy = self.get_hosp_occupancy_from_admits(admissions, stay_mean, stay_sd)
-        outputs["occupancy"] = occupancy[self.init_length :]
+        outputs["occupancy"] = occupancy[self.init_length:]
         weekly_cases = self.get_period_output_from_daily(cases, 7)
-        outputs["weekly_cases"] = weekly_cases[self.init_length :]
+        outputs["weekly_cases"] = weekly_cases[self.init_length:]
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
-        outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
-        seropos = (start_pop - outputs["suscept"]) / start_pop
+        outputs["weekly_deaths"] = weekly_deaths[self.init_length:]
+        seropos = (self.pop - outputs["suscept"]) / self.pop
         outputs["seropos"] = seropos
         return outputs
 
@@ -514,11 +512,9 @@ class MultiStrainModel(RenewalHospModel):
             suscept_out = {f"sus{i}": suscept[i] for i in range(len(self.strain_map))}
             return MultistrainState(inc, suscept), {"inc": strain_inc.sum(axis=0), "process": proc_val} | strain_out | suscept_out
 
-        end_state, outputs = lax.scan(
-            state_update, MultistrainState(init_inc, start_pops), self.model_times
-        )
+        end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
         inc = jnp.concatenate([start_strain_inc, jnp.array(outputs["inc"])])
-        return start_pop, start_strain_inc, inc, outputs
+        return inc, outputs
 
     def renewal_func(
         self,
@@ -539,7 +535,7 @@ class MultiStrainModel(RenewalHospModel):
         har: float,
         **kwargs,
     ) -> ModelResult:
-        start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init)
+        full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length:]
         deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
