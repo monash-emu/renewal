@@ -32,9 +32,9 @@ def get_spaghetti(
     for i, p in params.iterrows():
         epi_params = {k: v for k, v in p.items() if "dispersion" not in k}
         res = get_full_result(**epi_params)
-        spagh = pd.DataFrame(np.array(res)).T
+        spagh = pd.DataFrame(res)
         spagh.index = times
-        spagh.columns = res._fields
+        #spagh.columns = res.keys
         spagh_dict[str(i)] = spagh
 
     return spagh_dict

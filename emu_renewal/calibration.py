@@ -62,7 +62,7 @@ class StandardCalib:
 
         self.proc_dispersion = proc_dispersion
 
-    def get_model_indicator(self, result: ModelResult, indicator: str):
+    def get_model_indicator(self, result: dict, indicator: str):
         """Get the modelled values for a particular epidemiological indicator
         for a given set of epi parameters.
 
@@ -72,7 +72,7 @@ class StandardCalib:
         Returns:
             Modelled time series of the indicator over analysis period
         """
-        return getattr(result, indicator)[self.common_indices[indicator]]
+        return result[indicator][self.common_indices[indicator]]
 
     def get_description(self) -> str:
         description = self.describe_params()

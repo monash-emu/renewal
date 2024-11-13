@@ -1,8 +1,8 @@
 from typing import Union, List, Tuple
 from typing import NamedTuple
-from jax import lax, vmap
-from jax import numpy as jnp
+from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
+from jax.typing import ArrayLike
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -15,6 +15,8 @@ from summer2.utils import Epoch
 from emu_renewal.process import sinterp, MultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import format_date_for_str, round_sigfig
+
+ModelResult = dict[str, Array]
 
 
 def get_combs(categories):
@@ -42,54 +44,6 @@ class RenewalState(NamedTuple):
 class MultistrainState(NamedTuple):
     incidence: jnp.array
     suscept: jnp.array
-
-
-class ModelResult(NamedTuple):
-    incidence: jnp.array
-    suscept: jnp.array
-    r_t: jnp.array
-    process: jnp.array
-    cases: jnp.array
-    weekly_cases: jnp.array
-    seropos: jnp.array
-
-
-class ModelHospResult(NamedTuple):
-    incidence: jnp.array
-    suscept: jnp.array
-    r_t: jnp.array
-    process: jnp.array
-    cases: jnp.array
-    weekly_cases: jnp.array
-    seropos: jnp.array
-    deaths: jnp.array
-    weekly_deaths: jnp.array
-    admissions: jnp.array
-    occupancy: jnp.array
-
-
-class StrainsResult(NamedTuple):
-    inc: jnp.array
-    process: jnp.array
-    cases: jnp.array
-    weekly_cases: jnp.array
-    deaths: jnp.array
-    weekly_deaths: jnp.array
-    admissions: jnp.array
-    occupancy: jnp.array
-    s0: jnp.array
-    s1: jnp.array
-    s2: jnp.array
-    sus0: jnp.array
-    sus1: jnp.array
-    sus2: jnp.array
-    sus3: jnp.array
-    sus4: jnp.array
-    sus5: jnp.array
-    sus6: jnp.array
-    sus7: jnp.array
-    seropos: jnp.array
-
 
 class RenewalModel:
     def __init__(
@@ -332,7 +286,7 @@ class RenewalModel:
         outputs["weekly_cases"] = weekly_cases[self.init_length :]
         seropos = (start_pop - outputs["suscept"]) / start_pop
         outputs["seropos"] = seropos
-        return ModelResult(**outputs)
+        return outputs
 
     def renew(
         self,
@@ -342,7 +296,7 @@ class RenewalModel:
         cdr: float,
         init: float,
         imm: float,
-    ) -> Tuple[jnp.array, float, ModelResult]:
+    ) -> Tuple[float, Array, Array, ModelResult]:
         """Run the renewal process calculations.
 
         Args:
@@ -463,7 +417,7 @@ class RenewalHospModel(RenewalModel):
         har: float,
         prop_immune: float = 0.0,
         **kwargs,
-    ) -> ModelHospResult:
+    ) -> ModelResult:
         start_pop, init_inc, full_inc, outputs = self.renew(
             gen_mean, gen_sd, proc, cdr, rt_init, prop_immune
         )
@@ -481,7 +435,7 @@ class RenewalHospModel(RenewalModel):
         outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
         seropos = (start_pop - outputs["suscept"]) / start_pop
         outputs["seropos"] = seropos
-        return ModelHospResult(**outputs)
+        return outputs
 
 
 class MultiStrainModel(RenewalHospModel):
@@ -584,7 +538,7 @@ class MultiStrainModel(RenewalHospModel):
         stay_sd: float,
         har: float,
         **kwargs,
-    ) -> StrainsResult:
+    ) -> ModelResult:
         start_pop, init_inc, full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init)
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length:]
@@ -599,4 +553,4 @@ class MultiStrainModel(RenewalHospModel):
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
         outputs["weekly_deaths"] = weekly_deaths[self.init_length:]
         outputs["seropos"] = (self.pop - outputs["sus0"]) / self.pop
-        return StrainsResult(**outputs)
+        return outputs
