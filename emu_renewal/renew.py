@@ -495,11 +495,26 @@ class MultiStrainModel(RenewalHospModel):
         self.rel_infectiousness = [1.0] * self.n_strains
         self.seed_vals = self.get_seeds(seed_times, seed_rate)
 
-    def date_to_index(self, d):
-        return int(self.epoch.datetime_to_number(d))
+    def date_to_index(self, date):
+        return int(self.epoch.datetime_to_number(date))
 
-    def get_seeds(self, seed_times, seed_rate):
-        # Seed times contains seeding times for each strain except for the first one
+    def get_seeds(
+        self, 
+        seed_times: List[datetime.date],
+        seed_rate: float,
+    ) -> jnp.Array:
+        """Convert seed requests to seeding values array.
+
+        Args:
+            seed_times: List of length one less than number of strains
+                with each element representing the strains other than the start strain,
+                and each element containing two elements representing the start
+                and end time for the seeding process.
+            seed_rate: The rate at which new people are introduced.
+
+        Returns:
+            Jaxified seeding rate array
+        """
         seed_vals = np.zeros([self.n_strains, len(self.model_times)])
         for s in range(self.n_strains - 1):
             strain_seed_times = seed_times[s]
