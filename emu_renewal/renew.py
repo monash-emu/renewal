@@ -471,6 +471,8 @@ class MultiStrainModel(RenewalHospModel):
         discharge_dens,
         strains,
         start_strain,
+        seed_times,
+        seed_rate,
     ):
         super().__init__(
             population,
@@ -491,6 +493,20 @@ class MultiStrainModel(RenewalHospModel):
         self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
         self.rel_infectiousness = [1.0] * self.n_strains
+        self.seed_vals = self.get_seeds(seed_times, seed_rate)
+
+    def date_to_index(self, d):
+        return int(self.epoch.datetime_to_number(d))
+
+    def get_seeds(self, seed_times, seed_rate):
+        # Seed times contains seeding times for each strain except for the first one
+        seed_vals = np.zeros([self.n_strains, len(self.model_times)])
+        for s in range(self.n_strains - 1):
+            strain_seed_times = seed_times[s]
+            seed_start = self.date_to_index(strain_seed_times[0])
+            seed_end = self.date_to_index(strain_seed_times[1])
+            seed_vals[s + 1, seed_start: seed_end] = seed_rate
+        return jnp.array(seed_vals)
 
     def renew(self, mean, sd, proc, start_strain_inc, init, cross_immunity):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)
