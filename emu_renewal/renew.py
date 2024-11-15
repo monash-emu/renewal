@@ -557,4 +557,5 @@ class MultiStrainModel(RenewalHospModel):
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
         outputs["weekly_deaths"] = weekly_deaths[self.init_length:]
         outputs["seropos"] = (self.pop - outputs["sus0"]) / self.pop
-        return outputs
+        strain_props = {f"prop_s{i}": outputs[f"s{i}"] / outputs["inc"] for i in range(self.n_strains)}
+        return outputs | strain_props
