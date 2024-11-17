@@ -1,6 +1,6 @@
 from datetime import datetime
 from functools import partial
-
+import itertools
 import numpy as np
 from numpyro import infer
 from jax import numpy as jnp
@@ -135,3 +135,20 @@ def custom_init(site=None, radius=2.0, n_proc=0):
                 return jnp.zeros(n_proc)
             else:
                 return infer.init_to_uniform(site, radius)
+
+
+def get_combs(n_cats: int) -> np.ndarray:
+    """For a given set of categories, work out all the possible
+    combinations of one of the categories being True or False.
+
+    Example:
+        Argument 2 would yield:
+        [[False, False], [False, True], [True, False], [True, True]]
+
+    Args:
+        n_cats: Number of categories 
+
+    Returns:
+        The combinations, with each list element having n_cats entries.
+    """
+    return np.array([list(i) for i in itertools.product([False, True], repeat=n_cats)]).T

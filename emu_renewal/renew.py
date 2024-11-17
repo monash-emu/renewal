@@ -2,26 +2,20 @@ from typing import Union, List, Tuple
 from typing import NamedTuple
 from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
-from jax.typing import ArrayLike
 from datetime import datetime
 import pandas as pd
 import numpy as np
 from warnings import warn
-import itertools
 import copy
 
 from summer2.utils import Epoch
 
 from emu_renewal.process import sinterp, MultiCurve
 from emu_renewal.distributions import Dens
-from emu_renewal.utils import format_date_for_str, round_sigfig
+from emu_renewal.utils import format_date_for_str, round_sigfig, get_combs
 
 
 ModelResult = dict[str, Array]
-
-
-def get_combs(categories):
-    return np.array([list(i) for i in itertools.product([False, True], repeat=len(categories))]).T
 
 
 def get_dests(strain_map):
@@ -489,7 +483,7 @@ class MultiStrainModel(RenewalHospModel):
         assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
         self.n_strains = len(strains)
-        self.strain_map = get_combs(strains)
+        self.strain_map = get_combs(len(strains))
         self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
         self.rel_infectiousness = [1.0] * self.n_strains
@@ -502,7 +496,7 @@ class MultiStrainModel(RenewalHospModel):
         self, 
         seed_times: List[datetime.date],
         seed_rate: float,
-    ) -> jnp.Array:
+    ) -> Array:
         """Convert seed requests to seeding values array.
 
         Args:
