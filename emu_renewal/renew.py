@@ -547,7 +547,7 @@ class MultiStrainModel(RenewalHospModel):
             seed_vals[s + 1, seed_start: seed_end] = seed_rate
         return jnp.array(seed_vals)
 
-    def renew(self, mean, sd, proc, start_strain_inc, init, cross_immunity):
+    def renew(self, mean, sd, proc, start_strain_inc, init, cross_immunity, rel_infectiousness):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
         start_pop = self.pop - jnp.sum(start_strain_inc)  # Starting population
@@ -557,7 +557,7 @@ class MultiStrainModel(RenewalHospModel):
         start_pops = start_pops.at[0].set(start_pop)
         imm_levels = jnp.ones_like(self.strain_map).astype(float) * (1.0 - cross_immunity)
         imm_levels += (~jnp.array(self.strain_map,)).astype(float) * cross_immunity
-        imm_levels *= jnp.array(self.rel_infectiousness)[:, np.newaxis]
+        imm_levels *= jnp.array(rel_infectiousness)[:, np.newaxis]
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
@@ -597,18 +597,45 @@ class MultiStrainModel(RenewalHospModel):
         stay_sd: float,
         har: float,
         cross_immunity: float,
+        rel_inf1: float,
+        rel_inf2: float,
+        rel_out1: float,
+        rel_out2: float,
         **kwargs,
     ) -> ModelResult:
         start_strain_inc = self.init_series / cdr
-        outputs = self.renew(gen_mean, gen_sd, proc, start_strain_inc, rt_init, cross_immunity)
+        outputs = self.renew(gen_mean, gen_sd, proc, start_strain_inc, rt_init, cross_immunity, jnp.array((1.0,rel_inf1,rel_inf2)))
         strain_inc = jnp.array([outputs[f"s{i}"] for i in range(len(self.strains))])
+
+        strain_inc_full = [
+            jnp.concatenate([start_strain_inc, strain_inc[0]]),
+            jnp.concatenate([jnp.zeros_like(start_strain_inc), strain_inc[1]]),
+            jnp.concatenate([jnp.zeros_like(start_strain_inc), strain_inc[2]])
+        ]
+
+        strain_ifr = [ifr, ifr * rel_out1, ifr * rel_out2]
+        strain_har = [har, har * rel_out1, har * rel_out2]
+
+        deaths = []
+        admissions = []
+
+        death_dens = self.dens_obj.get_densities(self.window_len, death_mean, death_sd)
+        admit_dens = self.dens_obj.get_densities(self.window_len, admit_mean, admit_sd)
+
+        for s in range(len(self.strains)):
+            deaths.append(jnp.convolve(strain_inc_full[s], death_dens)[: len(strain_inc_full[s])] * strain_ifr[s])
+            admissions.append(jnp.convolve(strain_inc_full[s], admit_dens)[: len(strain_inc_full[s])] * strain_har[s])
+
         full_inc = jnp.concatenate([start_strain_inc, jnp.array(strain_inc.sum(axis=0))])
         outputs["inc"] = full_inc[self.init_length:]
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length:]
-        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
+        
+        #deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
+        deaths = jnp.array(deaths).sum(axis=0)
         outputs["deaths"] = deaths[self.init_length:]
-        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
+        #admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
+        admissions = jnp.array(admissions).sum(axis=0)
         outputs["admissions"] = admissions[self.init_length:]
         occupancy = self.get_hosp_occupancy_from_admits(admissions, stay_mean, stay_sd)
         outputs["occupancy"] = occupancy[self.init_length:]
