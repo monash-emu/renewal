@@ -497,6 +497,7 @@ class MultiStrainModel(RenewalHospModel):
         start_strain,
         seed_times,
         seed_rate,
+        mobility,
     ):
         super().__init__(
             population,
@@ -518,6 +519,8 @@ class MultiStrainModel(RenewalHospModel):
         self.trans_mats = get_trans_mats(self.dests)
         self.rel_infectiousness = [1.0] * self.n_strains  # Relative infectiousness
         self.seed_vals = self.get_seeds(seed_times, seed_rate)
+        mobility.index = self.epoch.dti_to_index(mobility.index)
+        self.mobility = jnp.array(mobility.loc[self.start:])
 
     def date_to_index(self, date):
         return int(self.epoch.datetime_to_number(date))
@@ -561,10 +564,10 @@ class MultiStrainModel(RenewalHospModel):
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
-            mob_val = 
+            mob_val = self.mobility[t]  # Mobility data
             contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
             seed = self.seed_vals[:, t]  # Seeding
-            inf_rate = contributions * proc_val + seed  # Infection rate
+            inf_rate = contributions * proc_val * mob_val + seed  # Infection rate
             effect_suscepts = imm_levels * state.suscept  # Effective susceptibles
             target_inc = (effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop)
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Apply ceiling to incidence
