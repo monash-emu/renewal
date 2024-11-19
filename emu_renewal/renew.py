@@ -561,6 +561,7 @@ class MultiStrainModel(RenewalHospModel):
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
+            mob_val = 
             contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
             seed = self.seed_vals[:, t]  # Seeding
             inf_rate = contributions * proc_val + seed  # Infection rate
