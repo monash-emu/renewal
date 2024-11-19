@@ -114,6 +114,7 @@ def adjust_summary_cols(summary):
     summary.columns = summary.columns.str.capitalize()
     return summary
 
+
 def custom_init(site=None, radius=2.0, n_proc=0):
     """
     Initialize a numpyro MCMC run, returning 0.0 for "proc" (random process values),
