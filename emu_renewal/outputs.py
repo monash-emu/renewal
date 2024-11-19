@@ -85,25 +85,27 @@ def get_quant_df_from_spaghetti(
     return quantile_df
 
 
-def get_model_recovered_locs(strain_map):
-    ever_infect_cols = []
-    for strain in range(strain_map.shape[0]):
-        locs = [f"sus{s}" for s in range(strain_map.shape[1]) if strain_map[strain, s]]
-        ever_infect_cols.append(locs)
+def get_model_recovered_locs(model):
+    strain_map = model.strain_map
+    strains = model.strains
+    ever_infect_cols = {}
+    for st, strain in enumerate(strains):
+        locs = [f"sus_{su}" for su in range(strain_map.shape[1]) if strain_map[st, su]]
+        ever_infect_cols[strain] = locs
     return ever_infect_cols
 
 
 def get_recovered_df(spagh, model, locs):
-    rec_cats = [f"rec{c}" for c in range(len(locs))]
+    rec_cats = [f"rec_{s}" for s in model.strains]
     runs = spagh.columns.get_level_values(1).unique()
     new_cols = pd.MultiIndex.from_product([rec_cats, runs])
     rec_df = pd.DataFrame(index=spagh.index, columns=new_cols)
-    for s in range(len(model.strains)):
-        rec_df[f"rec{s}"] = spagh[locs[s]].T.groupby(level=[1]).sum().T
+    for s in model.strains:
+        rec_df[f"rec_{s}"] = spagh[locs[s]].T.groupby(level=[1]).sum().T
     return rec_df
 
 
 def add_recovered_to_spaghetti(spagh, model):
-    rec_locs = get_model_recovered_locs(model.strain_map)
+    rec_locs = get_model_recovered_locs(model)
     rec_df = get_recovered_df(spagh, model, rec_locs)
     return spagh.join(rec_df)

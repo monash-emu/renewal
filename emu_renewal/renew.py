@@ -573,7 +573,7 @@ class MultiStrainModel(RenewalHospModel):
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up
             strain_out = {strain: strain_inc[i_strain] for i_strain, strain in enumerate(self.strains)}
-            suscept_out = {f"sus{i}": suscept[i] for i in range(self.strain_map.shape[1])}
+            suscept_out = {f"sus_{i}": suscept[i] for i in range(self.strain_map.shape[1])}
             return MultistrainState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
@@ -616,6 +616,6 @@ class MultiStrainModel(RenewalHospModel):
         outputs["weekly_cases"] = weekly_cases[self.init_length:]
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
         outputs["weekly_deaths"] = weekly_deaths[self.init_length:]
-        outputs["seropos"] = (self.pop - outputs["sus0"]) / self.pop
+        outputs["seropos"] = (self.pop - outputs["sus_0"]) / self.pop
         strain_props = {f"prop_{strain}": outputs[strain] / outputs["inc"] for strain in self.strains}
         return outputs | strain_props
