@@ -53,7 +53,8 @@ class TransformTarget(Target):
             return x
         else:
             return self._transform(x)
-        
+
+
 class WeightedTransformTarget(TransformTarget):
     def __init__(self, data: pd.Series, transform: Transform = None, weight: float = None):
         super().__init__(data, transform)
@@ -63,6 +64,7 @@ class WeightedTransformTarget(TransformTarget):
         super().set_calibration_data(data)
         if self.weight is None:
             self.weight = float(len(self.calibration_data)) 
+
 
 class UnivariateDispersionTarget(WeightedTransformTarget):
     def __init__(
@@ -95,7 +97,6 @@ class UnivariateDispersionTarget(WeightedTransformTarget):
     def loglikelihood(self, modelled, parameters):
         result = self.transform(modelled)
         dispersion = parameters[self.dispersion]
-
         return self.dist(result, dispersion).log_prob(self.calibration_data).mean() * self.weight
 
 

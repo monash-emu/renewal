@@ -572,7 +572,7 @@ class MultiStrainModel(RenewalHospModel):
                 suscept = suscept + actual_inc[s] @ self.trans_mats[s]
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up
-            strain_out = {f"s{i}": strain_inc[i] for i in range(len(self.strains))}
+            strain_out = {strain: strain_inc[i_strain] for i_strain, strain in enumerate(self.strains)}
             suscept_out = {f"sus{i}": suscept[i] for i in range(self.strain_map.shape[1])}
             return MultistrainState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
 
@@ -601,7 +601,7 @@ class MultiStrainModel(RenewalHospModel):
     ) -> ModelResult:
         start_strain_inc = self.init_series / cdr
         outputs = self.renew(gen_mean, gen_sd, proc, start_strain_inc, rt_init, cross_immunity)
-        strain_inc = jnp.array([outputs[f"s{i}"] for i in range(len(self.strains))])
+        strain_inc = jnp.array([outputs[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_strain_inc, jnp.array(strain_inc.sum(axis=0))])
         outputs["inc"] = full_inc[self.init_length:]
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
@@ -617,5 +617,5 @@ class MultiStrainModel(RenewalHospModel):
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
         outputs["weekly_deaths"] = weekly_deaths[self.init_length:]
         outputs["seropos"] = (self.pop - outputs["sus0"]) / self.pop
-        strain_props = {f"prop_s{i}": outputs[f"s{i}"] / outputs["inc"] for i in range(self.n_strains)}
+        strain_props = {f"prop_{strain}": outputs[strain] / outputs["inc"] for strain in self.strains}
         return outputs | strain_props
