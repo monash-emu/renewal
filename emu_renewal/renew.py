@@ -519,8 +519,11 @@ class MultiStrainModel(RenewalHospModel):
         self.trans_mats = get_trans_mats(self.dests)
         self.rel_infectiousness = [1.0] * self.n_strains  # Relative infectiousness
         self.seed_vals = self.get_seeds(seed_times, seed_rate)
-        mobility.index = self.epoch.dti_to_index(mobility.index)
-        self.mobility = jnp.array(mobility.loc[self.start:])
+        if mobility is None:
+            self.mobility = jnp.ones_like(self.model_times)
+        else:
+            mobility.index = self.epoch.dti_to_index(mobility.index)
+            self.mobility = jnp.array(mobility.loc[self.start:])
 
     def date_to_index(self, date):
         return int(self.epoch.datetime_to_number(date))
