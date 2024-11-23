@@ -1,6 +1,9 @@
-import numpy as np
 import pandas as pd
+import numpy as np
 from jax import jit
+from matplotlib.pyplot import cm
+from matplotlib import pyplot as plt
+import arviz as az
 
 from estival.sampling.tools import SampleIterator
 
@@ -109,3 +112,34 @@ def add_recovered_to_spaghetti(spagh, model):
     rec_locs = get_model_recovered_locs(model)
     rec_df = get_recovered_df(spagh, model, rec_locs)
     return spagh.join(rec_df)
+
+
+def plot_proc_comparison(no_mob_idata, mob_idata):
+    n_proc = mob_idata.posterior["proc"]["proc_dim_0"].shape[0]
+    colours = cm.rainbow(np.linspace(0.0, 1.0, n_proc))
+    no_mob_post_plot = az.plot_posterior(no_mob_idata, var_names=["proc"])
+    mob_post_plot = az.plot_posterior(mob_idata, var_names=["proc"])
+    
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    
+    axes[0].set_title("mobility not included")
+    for a, ax in enumerate(no_mob_post_plot.flatten()[:n_proc]):
+        axes[0].plot(
+            ax.lines[0].get_xdata(), 
+            ax.lines[0].get_ydata(), 
+            color=colours[a], 
+            linewidth=0.4,
+            label=a,
+        )
+    axes[0].legend(ncol=2)
+    
+    axes[1].set_title("mobility included")
+    for a, ax in enumerate(mob_post_plot.flatten()[:n_proc]):
+        axes[1].plot(
+            ax.lines[0].get_xdata(), 
+            ax.lines[0].get_ydata(), 
+            color=colours[a], 
+            linewidth=0.4,
+        )
+        
+    return fig
