@@ -4,6 +4,7 @@ from jax import jit
 from matplotlib.pyplot import cm
 from matplotlib import pyplot as plt
 import arviz as az
+from typing import List
 
 from estival.sampling.tools import SampleIterator
 
@@ -114,32 +115,46 @@ def add_recovered_to_spaghetti(spagh, model):
     return spagh.join(rec_df)
 
 
-def plot_proc_comparison(no_mob_idata, mob_idata):
-    n_proc = mob_idata.posterior["proc"]["proc_dim_0"].shape[0]
-    colours = cm.rainbow(np.linspace(0.0, 1.0, n_proc))
-    no_mob_post_plot = az.plot_posterior(no_mob_idata, var_names=["proc"])
-    mob_post_plot = az.plot_posterior(mob_idata, var_names=["proc"])
+def plot_proc_comparison(
+    idata_1: az.data.inference_data.InferenceData,
+    idata_2: az.data.inference_data.InferenceData,
+    panel_titles: List[str],
+) -> plt.Figure:
+    """Plot comparison of variable process updates
+    from two inference data objects.
+
+    Args:
+        idata_1: First inference data
+        idata_2: Second inference data
+        panel_titles: Titles for subplots
+
+    Returns:
+        The figure
+    """
+    n_proc = idata_2.posterior["proc"]["proc_dim_0"].shape[0]
+    no_mob_post_plot = az.plot_posterior(idata_1, var_names=["proc"])
+    mob_post_plot = az.plot_posterior(idata_2, var_names=["proc"])
     
     fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    colours = cm.rainbow(np.linspace(0.0, 1.0, n_proc))
     
-    axes[0].set_title("mobility not included")
+    # Top panel without mobility
+    no_mob_ax = axes[0]
+    no_mob_ax.set_title(panel_titles[0])
     for a, ax in enumerate(no_mob_post_plot.flatten()[:n_proc]):
-        axes[0].plot(
-            ax.lines[0].get_xdata(), 
-            ax.lines[0].get_ydata(), 
-            color=colours[a], 
-            linewidth=0.4,
-            label=a,
-        )
+        line = ax.lines[0]
+        xdata = line.get_xdata()
+        ydata = line.get_ydata()
+        no_mob_ax.plot(xdata, ydata, color=colours[a], linewidth=0.4, label=a)
     axes[0].legend(ncol=2)
-    
-    axes[1].set_title("mobility included")
+
+    # Bottom panel with mobility  
+    mob_ax = axes[1]
+    mob_ax.set_title(panel_titles[1])
     for a, ax in enumerate(mob_post_plot.flatten()[:n_proc]):
-        axes[1].plot(
-            ax.lines[0].get_xdata(), 
-            ax.lines[0].get_ydata(), 
-            color=colours[a], 
-            linewidth=0.4,
-        )
+        line = ax.lines[0]
+        xdata = line.get_xdata()
+        ydata = line.get_ydata()
+        mob_ax.plot(xdata, ydata, color=colours[a], linewidth=0.4)
         
     return fig
