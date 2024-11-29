@@ -1,6 +1,9 @@
 import numpy as np
+from scipy.stats import norm
 import pandas as pd
 from jax import jit
+import arviz as az
+from typing import List
 
 from estival.sampling.tools import SampleIterator
 
@@ -109,3 +112,72 @@ def add_recovered_to_spaghetti(spagh, model):
     rec_locs = get_model_recovered_locs(model)
     rec_df = get_recovered_df(spagh, model, rec_locs)
     return spagh.join(rec_df)
+
+
+def get_proc_dens(
+    proc_vals: np.ndarray, 
+    disp_vals: np.ndarray, 
+    i_proc: np.ndarray,
+) -> np.ndarray:
+    """For a given variable process update,
+    find its density in the normal distribution
+    given the dispersion value at that iteration.
+
+    Args:
+        proc_vals: Variable process value estimates with dimensions for
+            number of chains, samples and variable process values
+        disp_vals: Dispersion parameter estimates with dimensions for
+            number of chains and samples
+        i_proc: The variable process value of interest
+
+    Returns:
+        The densities (by chain and sample) for a particular variable process update
+    """
+    return norm.pdf(proc_vals[:, :, i_proc], loc=0.0, scale=disp_vals)
+
+
+def get_prior_vals(
+    idata: az.InferenceData
+) -> np.ndarray:
+    """For a given analysis, find the densities
+    for all the variable process steps.
+
+    Args:
+        idata: The inference data for a particular analysis
+
+    Returns:
+        Array with dimensions for number of chains, samples and variable process values
+    """
+    proc_vals = idata.posterior["proc"].to_numpy()
+    disp_vals = idata.posterior["dispersion_proc"].to_numpy()
+    prior_array = np.empty_like(proc_vals)
+    for i_proc in range(proc_vals.shape[2]):
+        prior_array[:, :, i_proc] = get_proc_dens(proc_vals, disp_vals, i_proc)
+    return prior_array
+
+
+def get_prior_result_df(
+    analysis_names: List[str], 
+    analyses: List[az.InferenceData],
+) -> pd.DataFrame:
+    """Collate density estimates for the variable process updates
+    from multiple analyses into a single dataframe.
+
+    Args:
+        analysis_names: The names given by the user to the analyses
+        analyses: The inference data objects for each analysis,
+            should have same length as analysis_names
+
+    Returns:
+        The data with index for sample and multi-index columns
+            with levels for analysis, variable process update and chain
+    """
+    first_analysis = analyses[0]
+    n_chains, n_samples, n_proc = first_analysis.shape
+    cols = pd.MultiIndex.from_product([analysis_names, range(n_proc), range(n_chains)])
+    result_df = pd.DataFrame(index=range(n_samples), columns=cols)
+    for analysis_name, analysis in zip(analysis_names, analyses):
+        for i_proc in range(n_proc):
+            for i_chain in range(n_chains):
+                result_df.loc[:, (analysis_name, i_proc, i_chain)] = pd.DataFrame(analysis[:, :, i_proc].T).loc[:, i_chain]
+    return result_df
