@@ -7,6 +7,7 @@ from matplotlib.pyplot import cm
 from matplotlib import pyplot as plt
 import arviz as az
 from typing import List
+from plotly import graph_objects as go
 
 from estival.sampling.tools import SampleIterator
 
@@ -229,3 +230,33 @@ def plot_proc_comparison(
         mob_ax.plot(xdata, ydata, color=colours[a], linewidth=0.4)
         
     return fig
+
+
+def get_col_abs_dist_from_mean(
+    results_df: pd.DataFrame,
+) -> pd.Series:
+    """For a given dataframe, find the divergence 
+    of each value from the mean of that column,
+    then find the average absolute value of this
+    divergence across each row.
+
+    Args:
+        results_df: Spaghetti for the variable process
+
+    Returns:
+        The series over time described above
+    """
+    diff_from_mean = results_df - results_df.mean()
+    return diff_from_mean.abs().mean(axis=1)
+
+
+def plot_mean_proc_diff(no_mob_spagh, mob_spagh):
+    diffs = {
+        "no_mob": get_col_abs_dist_from_mean(no_mob_spagh.loc[:, "process"]),
+        "mob": get_col_abs_dist_from_mean(mob_spagh.loc[:, "process"]),
+    }
+    fig = go.Figure()
+    for analysis, results in diffs.items():
+        fig.add_trace(go.Scatter(x=results.index, y=results, name=analysis))
+    fig.update_yaxes({"range": (0.0, None)})
+    return fig.update_layout(height=500, width=800, title="mean absolute divergence from mean process value")
