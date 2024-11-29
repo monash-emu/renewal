@@ -139,7 +139,7 @@ def get_proc_dens(
     return norm.pdf(proc_vals[:, :, i_proc], loc=0.0, scale=disp_vals)
 
 
-def get_prior_vals(
+def get_proc_prior_vals(
     idata: az.InferenceData
 ) -> np.ndarray:
     """For a given analysis, find the densities
@@ -159,7 +159,7 @@ def get_prior_vals(
     return prior_array
 
 
-def get_prior_result_df(
+def get_proc_prior_result_df(
     analysis_names: List[str], 
     analyses: List[az.InferenceData],
 ) -> pd.DataFrame:
@@ -184,6 +184,8 @@ def get_prior_result_df(
             for i_chain in range(n_chains):
                 result_df.loc[:, (analysis_name, i_proc, i_chain)] = pd.DataFrame(analysis[:, :, i_proc].T).loc[:, i_chain]
     return result_df
+
+
 def plot_proc_comparison(
     idata_1: az.data.inference_data.InferenceData,
     idata_2: az.data.inference_data.InferenceData,
