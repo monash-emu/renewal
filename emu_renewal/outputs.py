@@ -250,7 +250,10 @@ def get_col_abs_dist_from_mean(
     return diff_from_mean.abs().mean(axis=1)
 
 
-def plot_mean_proc_diff(no_mob_spagh, mob_spagh):
+def plot_mean_proc_diff(
+    no_mob_spagh: pd.DataFrame, 
+    mob_spagh: pd.DataFrame,
+):
     diffs = {
         "no_mob": get_col_abs_dist_from_mean(no_mob_spagh.loc[:, "process"]),
         "mob": get_col_abs_dist_from_mean(mob_spagh.loc[:, "process"]),
