@@ -1,7 +1,10 @@
 import numpy as np
 from scipy.stats import norm
 import pandas as pd
+import numpy as np
 from jax import jit
+from matplotlib.pyplot import cm
+from matplotlib import pyplot as plt
 import arviz as az
 from typing import List
 
@@ -181,3 +184,46 @@ def get_prior_result_df(
             for i_chain in range(n_chains):
                 result_df.loc[:, (analysis_name, i_proc, i_chain)] = pd.DataFrame(analysis[:, :, i_proc].T).loc[:, i_chain]
     return result_df
+def plot_proc_comparison(
+    idata_1: az.data.inference_data.InferenceData,
+    idata_2: az.data.inference_data.InferenceData,
+    panel_titles: List[str],
+) -> plt.Figure:
+    """Plot comparison of variable process updates
+    from two inference data objects.
+
+    Args:
+        idata_1: First inference data
+        idata_2: Second inference data
+        panel_titles: Titles for subplots
+
+    Returns:
+        The figure
+    """
+    n_proc = idata_2.posterior["proc"]["proc_dim_0"].shape[0]
+    no_mob_post_plot = az.plot_posterior(idata_1, var_names=["proc"])
+    mob_post_plot = az.plot_posterior(idata_2, var_names=["proc"])
+    
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    colours = cm.rainbow(np.linspace(0.0, 1.0, n_proc))
+    
+    # Top panel without mobility
+    no_mob_ax = axes[0]
+    no_mob_ax.set_title(panel_titles[0])
+    for a, ax in enumerate(no_mob_post_plot.flatten()[:n_proc]):
+        line = ax.lines[0]
+        xdata = line.get_xdata()
+        ydata = line.get_ydata()
+        no_mob_ax.plot(xdata, ydata, color=colours[a], linewidth=0.4, label=a)
+    axes[0].legend(ncol=2)
+
+    # Bottom panel with mobility  
+    mob_ax = axes[1]
+    mob_ax.set_title(panel_titles[1])
+    for a, ax in enumerate(mob_post_plot.flatten()[:n_proc]):
+        line = ax.lines[0]
+        xdata = line.get_xdata()
+        ydata = line.get_ydata()
+        mob_ax.plot(xdata, ydata, color=colours[a], linewidth=0.4)
+        
+    return fig
