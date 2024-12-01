@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import pandas as pd
 from plotly import graph_objects as go
@@ -6,6 +7,7 @@ import arviz as az
 from numpyro import distributions as dist
 from matplotlib import pyplot as plt
 from plotly.express.colors import qualitative as qual_colours
+from matplotlib.pyplot import cm
 
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import map_dict
@@ -211,3 +213,63 @@ def plot_priors(
             go.Scatter(x=x_vals, y=y_vals, name=map_dict[p], fill="tozeroy"), row=1, col=i + 1
         )
     return fig.update_layout(showlegend=False)
+
+
+def plot_proc_comparison(
+    idata_1: az.data.inference_data.InferenceData,
+    idata_2: az.data.inference_data.InferenceData,
+    panel_titles: List[str],
+) -> plt.Figure:
+    """Plot comparison of variable process updates
+    from two inference data objects.
+
+    Args:
+        idata_1: First inference data
+        idata_2: Second inference data
+        panel_titles: Titles for subplots
+
+    Returns:
+        The figure
+    """
+    n_proc = idata_2.posterior["proc"]["proc_dim_0"].shape[0]
+    no_mob_post_plot = az.plot_posterior(idata_1, var_names=["proc"])
+    mob_post_plot = az.plot_posterior(idata_2, var_names=["proc"])
+    
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    colours = cm.rainbow(np.linspace(0.0, 1.0, n_proc))
+    
+    # Top panel without mobility
+    no_mob_ax = axes[0]
+    no_mob_ax.set_title(panel_titles[0])
+    for a, ax in enumerate(no_mob_post_plot.flatten()[:n_proc]):
+        line = ax.lines[0]
+        xdata = line.get_xdata()
+        ydata = line.get_ydata()
+        no_mob_ax.plot(xdata, ydata, color=colours[a], linewidth=0.4, label=a)
+    axes[0].legend(ncol=2)
+
+    # Bottom panel with mobility  
+    mob_ax = axes[1]
+    mob_ax.set_title(panel_titles[1])
+    for a, ax in enumerate(mob_post_plot.flatten()[:n_proc]):
+        line = ax.lines[0]
+        xdata = line.get_xdata()
+        ydata = line.get_ydata()
+        mob_ax.plot(xdata, ydata, color=colours[a], linewidth=0.4)
+        
+    return fig
+
+
+def plot_mean_proc_diff(
+    no_mob_spagh: pd.DataFrame, 
+    mob_spagh: pd.DataFrame,
+):
+    diffs = {
+        "no_mob": get_col_abs_dist_from_mean(no_mob_spagh.loc[:, "process"]),
+        "mob": get_col_abs_dist_from_mean(mob_spagh.loc[:, "process"]),
+    }
+    fig = go.Figure()
+    for analysis, results in diffs.items():
+        fig.add_trace(go.Scatter(x=results.index, y=results, name=analysis))
+    fig.update_yaxes({"range": (0.0, None)})
+    return fig.update_layout(height=500, width=800, title="mean absolute divergence from mean process value")
