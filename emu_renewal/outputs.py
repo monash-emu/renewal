@@ -152,8 +152,8 @@ def get_proc_prior_vals(
     Returns:
         Array with dimensions for number of chains, samples and variable process values
     """
-    proc_vals = idata.posterior["proc"].to_numpy()
-    disp_vals = idata.posterior["dispersion_proc"].to_numpy()
+    proc_vals = np.swapaxes(idata.posterior["proc"].to_numpy(), 0, 1)
+    disp_vals = np.swapaxes(idata.posterior["dispersion_proc"].to_numpy(), 0, 1)
     prior_array = np.empty_like(proc_vals)
     for i_proc in range(proc_vals.shape[2]):
         prior_array[:, :, i_proc] = get_proc_dens(proc_vals, disp_vals, i_proc)
@@ -183,7 +183,7 @@ def get_proc_prior_result_df(
     for analysis_name, analysis in zip(analysis_names, analyses):
         for i_proc in range(n_proc):
             for i_chain in range(n_chains):
-                result_df.loc[:, (analysis_name, i_proc, i_chain)] = pd.DataFrame(analysis[:, :, i_proc].T).loc[:, i_chain]
+                result_df.loc[:, pd.IndexSlice[analysis_name, i_proc, i_chain]] = pd.DataFrame(analysis[i_chain, :, i_proc].T, index=range(analysis.shape[1]))
     return result_df
 
 
@@ -263,3 +263,10 @@ def plot_mean_proc_diff(
         fig.add_trace(go.Scatter(x=results.index, y=results, name=analysis))
     fig.update_yaxes({"range": (0.0, None)})
     return fig.update_layout(height=500, width=800, title="mean absolute divergence from mean process value")
+
+
+def get_df_from_3darray(array):
+    dim_0, dim_1, dim_2 = array.shape
+    vals = array.reshape(dim_0, -1)
+    cols = pd.MultiIndex.from_product([range(dim_2), range(dim_1)])
+    return pd.DataFrame(vals, columns=cols)
