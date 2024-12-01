@@ -118,75 +118,6 @@ def add_recovered_to_spaghetti(spagh, model):
     return spagh.join(rec_df)
 
 
-def get_proc_dens(
-    proc_vals: np.ndarray, 
-    disp_vals: np.ndarray, 
-    i_proc: np.ndarray,
-) -> np.ndarray:
-    """For a given variable process update,
-    find its density in the normal distribution
-    given the dispersion value at that iteration.
-
-    Args:
-        proc_vals: Variable process value estimates with dimensions for
-            number of chains, samples and variable process values
-        disp_vals: Dispersion parameter estimates with dimensions for
-            number of chains and samples
-        i_proc: The variable process value of interest
-
-    Returns:
-        The densities (by chain and sample) for a particular variable process update
-    """
-    return norm.pdf(proc_vals[:, :, i_proc], loc=0.0, scale=disp_vals)
-
-
-def get_proc_prior_vals(
-    idata: az.InferenceData
-) -> np.ndarray:
-    """For a given analysis, find the densities
-    for all the variable process steps.
-
-    Args:
-        idata: The inference data for a particular analysis
-
-    Returns:
-        Array with dimensions for number of chains, samples and variable process values
-    """
-    proc_vals = np.swapaxes(idata.posterior["proc"].to_numpy(), 0, 1)
-    disp_vals = np.swapaxes(idata.posterior["dispersion_proc"].to_numpy(), 0, 1)
-    prior_array = np.empty_like(proc_vals)
-    for i_proc in range(proc_vals.shape[2]):
-        prior_array[:, :, i_proc] = get_proc_dens(proc_vals, disp_vals, i_proc)
-    return prior_array
-
-
-def get_proc_prior_result_df(
-    analysis_names: List[str], 
-    analyses: List[az.InferenceData],
-) -> pd.DataFrame:
-    """Collate density estimates for the variable process updates
-    from multiple analyses into a single dataframe.
-
-    Args:
-        analysis_names: The names given by the user to the analyses
-        analyses: The inference data objects for each analysis,
-            should have same length as analysis_names
-
-    Returns:
-        The data with index for sample and multi-index columns
-            with levels for analysis, variable process update and chain
-    """
-    first_analysis = analyses[0]
-    n_chains, n_samples, n_proc = first_analysis.shape
-    cols = pd.MultiIndex.from_product([analysis_names, range(n_proc), range(n_chains)])
-    result_df = pd.DataFrame(index=range(n_samples), columns=cols)
-    for analysis_name, analysis in zip(analysis_names, analyses):
-        for i_proc in range(n_proc):
-            for i_chain in range(n_chains):
-                result_df.loc[:, pd.IndexSlice[analysis_name, i_proc, i_chain]] = pd.DataFrame(analysis[i_chain, :, i_proc].T, index=range(analysis.shape[1]))
-    return result_df
-
-
 def plot_proc_comparison(
     idata_1: az.data.inference_data.InferenceData,
     idata_2: az.data.inference_data.InferenceData,
@@ -265,8 +196,50 @@ def plot_mean_proc_diff(
     return fig.update_layout(height=500, width=800, title="mean absolute divergence from mean process value")
 
 
-def get_df_from_3darray(array):
+def get_df_from_3darray(
+    array: np.ndarray,
+) -> pd.DataFrame:
+    """Convert numpy array to pandas dataframe
+    with count index and count multi-indexing over columns.
+
+    Args:
+        array: 3-dimensional numpy array
+
+    Returns:
+        Dataframe with:
+            Index:
+                Count over first dimension of numpy array
+            First level of column multiindexing: 
+                Count over last dimension of input array
+            Second level of column multiindexing:
+                Count over second dimension of input array
+    """
     dim_0, dim_1, dim_2 = array.shape
     vals = array.reshape(dim_0, -1)
     cols = pd.MultiIndex.from_product([range(dim_2), range(dim_1)])
     return pd.DataFrame(vals, columns=cols)
+
+
+def get_combined_df(
+    df0: pd.DataFrame, 
+    df1: pd.DataFrame, 
+    name0: str, 
+    name1: str,
+) -> pd.DataFrame:
+    """Join two pandas dataframes left-to-right
+    retaining original index but extending on columns.
+
+    Args:
+        df0: First dataframe to join
+        df1: Second dataframe to join
+        name0: Name for first dataset
+        name1: Name for second dataset
+
+    Returns:
+        New dataframe with data joined by columns
+            with a new level of the column index at the top
+            to indicate where the data came from
+    """
+    col_names0 = pd.MultiIndex.from_product([[name0]] + df0.columns.levels)
+    col_names1 = pd.MultiIndex.from_product([[name1]] + df1.columns.levels)
+    return pd.concat([df0.set_axis(col_names0, axis=1), df1.set_axis(col_names1, axis=1)], axis=1)
