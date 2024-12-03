@@ -258,6 +258,7 @@ def plot_proc_comparison(
         xdata = line.get_xdata()
         ydata = line.get_ydata()
         mob_ax.plot(xdata, ydata, color=colours[a], linewidth=0.4)
+    plt.close()
         
     return fig
 
