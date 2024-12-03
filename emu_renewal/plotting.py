@@ -233,7 +233,9 @@ def plot_proc_comparison(
     """
     n_proc = idata_2.posterior["proc"]["proc_dim_0"].shape[0]
     no_mob_post_plot = az.plot_posterior(idata_1, var_names=["proc"])
+    plt.close()
     mob_post_plot = az.plot_posterior(idata_2, var_names=["proc"])
+    plt.close()
     
     fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
     colours = cm.rainbow(np.linspace(0.0, 1.0, n_proc))
