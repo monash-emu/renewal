@@ -11,6 +11,7 @@ from matplotlib.pyplot import cm
 
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import map_dict
+from emu_renewal.outputs import get_col_abs_dist_from_mean
 
 MARGINS = {m: 20 for m in ["t", "b", "l", "r"]}
 
