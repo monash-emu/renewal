@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-jupyter trust textbook/*.ipynb  # or wherever they are
+jupyter trust notebooks/*.ipynb  # or wherever they are
+jupyter trust input_notebooks/*.ipynb  # or wherever they are
