@@ -364,12 +364,12 @@ class RenewalModel:
 
         def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process
-            r_t = proc_val * state.suscept / self.pop  # Reproduction number
-            target_inc = (densities * state.incidence).sum() * r_t  # Calculated incidence
-            actual_inc = jnp.minimum(target_inc, state.suscept)  # Incidence after ceiling applied
+            target_inf_rate = (densities * state.incidence).sum() * proc_val / self.pop  # Calculated incidence
+            inf_rate = 1.0 - jnp.exp(-target_inf_rate)
+            actual_inc = inf_rate * state.suscept
             suscept = state.suscept - actual_inc  # Susceptible depletion
             inc = jnp.concat([jnp.array([actual_inc]), state.incidence[:-1]])  # Move up in matrix
-            out = {"incidence": actual_inc, "suscept": suscept, "r_t": r_t, "process": proc_val}
+            out = {"incidence": actual_inc, "suscept": suscept, "r_t": proc_val * state.suscept / self.pop, "process": proc_val}
             return RenewalState(inc, suscept), out
 
         end_state, outputs = lax.scan(state_update, init_state, self.model_times)
