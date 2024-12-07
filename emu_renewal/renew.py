@@ -571,9 +571,9 @@ class MultiStrainModel(RenewalHospModel):
             mob_val = self.mobility[t]  # Mobility data
             contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation
             seed = self.seed_vals[:, t]  # Seeding
-            inf_rate = contributions * proc_val * mob_val + seed  # Infection rate
+            inf_rate = (contributions * proc_val * mob_val + seed) / self.pop  # Infection rate
             effect_suscepts = suscept_levels * state.suscept  # Effective susceptibles
-            target_inc = (effect_suscepts * inf_rate[:, jnp.newaxis] / self.pop)
+            target_inc = effect_suscepts * inf_rate[:, jnp.newaxis]
             actual_inc = jnp.minimum(target_inc, effect_suscepts)  # Apply ceiling to incidence
             suscept = state.suscept
             for s in range(self.n_strains):  # Move susceptibles to recovered categories
