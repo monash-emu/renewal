@@ -525,6 +525,9 @@ class MultiStrainModel(RenewalHospModel):
             mobility.index = self.epoch.dti_to_index(mobility.index)
             self.mobility = jnp.array(mobility.loc[self.start:])
 
+        new_seeding = jnp.zeros([self.n_strains, len(self.model_times)])  # Zeros array for the actual model times
+        self.new_seeding = jnp.hstack([new_seeding, self.seed_vals])
+
     def date_to_index(self, date):
         return int(self.epoch.datetime_to_number(date))
 
