@@ -527,7 +527,7 @@ class MultiStrainModel(RenewalHospModel):
         no_seed = jnp.zeros([self.n_strains - 1, self.init_length])  # Zeros for the other strains
         init_seed = jnp.vstack([self.init_series, no_seed])  # Combine with seeding for first strain
         seed_vals = self.get_seeds(seed_times, seed_rate)  # Seeding during main period
-        self.new_seeding = jnp.hstack([init_seed, seed_vals])  # Join together
+        self.seeding = jnp.hstack([init_seed, seed_vals])  # Join together
 
     def date_to_index(self, date):
         return int(self.epoch.datetime_to_number(date))
@@ -560,7 +560,7 @@ class MultiStrainModel(RenewalHospModel):
     def renew(self, mean, sd, proc, init, cross_immunity, inc_seeding):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
-        init_inc = jnp.fliplr(self.new_seeding[:, :self.init_length])  # Reverse initialisation
+        init_inc = jnp.fliplr(self.seeding[:, :self.init_length])  # Reverse initialisation
         start_pop = self.pop - jnp.sum(init_inc)  # Starting susceptible population
         start_pops = jnp.zeros(self.strain_map.shape[1])  # Starting susceptible distribution
         start_pops = start_pops.at[0].set(start_pop)
@@ -610,8 +610,8 @@ class MultiStrainModel(RenewalHospModel):
         cross_immunity: float,
         **kwargs,
     ) -> ModelResult:
-        inc_seeding = self.new_seeding / cdr
-        start_inc = jnp.sum(self.new_seeding[:, :self.init_length], axis=0)
+        inc_seeding = self.seeding / cdr
+        start_inc = jnp.sum(self.seeding[:, :self.init_length], axis=0)
         outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, inc_seeding)
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
