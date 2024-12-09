@@ -517,7 +517,7 @@ class MultiStrainModel(RenewalHospModel):
         self.strain_map = get_combs(len(strains))
         self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
-        self.rel_infectiousness = [1.0] * self.n_strains  # Relative infectiousness
+        self.rel_infectiousness = jnp.array([1.0] * self.n_strains)  # Relative infectiousness
         if mobility is None:
             self.mobility = jnp.ones_like(self.model_times)
         else:
@@ -566,15 +566,14 @@ class MultiStrainModel(RenewalHospModel):
         start_pops = start_pops.at[0].set(start_pop)
         full_suscept = jnp.ones_like(self.strain_map).astype(float)  # Start fully susceptible (array of shape n_strains X 2**n_strains)
         cross_imm = jnp.array(self.strain_map).astype(float) * cross_immunity  # Subtract immunity if you have been infected with that strain before (array of shape n_strains X 2**n_strains)
-        rel_infect = jnp.array(self.rel_infectiousness)[:, np.newaxis]  # Relative infectiousness (vector of length n_strains, flipped to column)
-        suscept_levels = (full_suscept - cross_imm) * rel_infect  # Final susceptibility levels
+        suscept_levels = full_suscept - cross_imm  # Final susceptibility levels
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = self.mobility[t]  # Mobility data (scalar)
-            contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation (array of shape n_strains X window_len array)
+            contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
             seed = inc_seeding[:, t + self.init_length]  # Seeding (vector of length n_strains)
-            target_inf_rate = (contributions * proc_val * mob_val + seed) / self.pop  # Infection rate (array of shape n_strains X window_len)
+            target_inf_rate = (contributions * proc_val * mob_val * self.rel_infectiousness + seed) / self.pop  # Infection rate (vector of length n_strains)
             inf_rate = 1.0 - jnp.exp(-target_inf_rate)  # Decrease rate as approaches one (array of shape n_strains X window_len)
             effect_suscepts = suscept_levels * state.suscept  # Effective susceptibles (array of shape n_strains X 2**n_strains)
             actual_inc = effect_suscepts * inf_rate[:, jnp.newaxis]  # Apply infection rates across susceptible categories (array of shape n_strains X 2**n_strains)
