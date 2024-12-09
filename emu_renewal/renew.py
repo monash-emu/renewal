@@ -560,7 +560,7 @@ class MultiStrainModel(RenewalHospModel):
     def renew(self, mean, sd, proc, init, cross_immunity, inc_seeding):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
-        init_inc = jnp.fliplr(self.seeding[:, :self.init_length])  # Reverse initialisation
+        init_inc = jnp.fliplr(inc_seeding[:, :self.init_length])  # Reverse initialisation
         start_pop = self.pop - jnp.sum(init_inc)  # Starting susceptible population
         start_pops = jnp.zeros(self.strain_map.shape[1])  # Starting susceptible distribution
         start_pops = start_pops.at[0].set(start_pop)
