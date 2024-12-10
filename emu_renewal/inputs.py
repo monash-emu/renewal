@@ -12,6 +12,13 @@ def get_indicator_series_from_who_data(indicator, country):
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
 
+def get_hosp_series_from_owid_data(indicator, country):
+    hosp = pd.read_csv(DATA_PATH / "owid/owid_hosp.csv", index_col="date")
+    hosp.index = pd.to_datetime(hosp.index)
+    data = hosp[hosp["entity"] == country]
+    return data.loc[data["indicator"] == indicator, "value"]
+
+
 def get_multicountry_df_from_who_data(indicator, countries):
     data_dict = {i: get_indicator_series_from_who_data(indicator, i) for i in countries}
     return pd.DataFrame(data_dict)
