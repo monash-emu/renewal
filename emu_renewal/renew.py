@@ -574,9 +574,9 @@ class MultiStrainModel(RenewalHospModel):
             contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
             seed = inc_seeding[:, t + self.init_length]  # Seeding by total effective infectious persons (vector of length n_strains)
             target_inf_rate = (contributions + seed) * proc_val * mob_val * self.rel_infectiousness / self.pop  # Infection rate (vector of length n_strains)
-            total_inf_rates = target_inf_rate.sum()
-            modifier = (1.0 - jnp.exp(-total_inf_rates)) / total_inf_rates
-            inf_rate = target_inf_rate * modifier  # Decrease rate as approaches one (array of shape n_strains X window_len)
+            total_inf_rates = target_inf_rate.sum()  # Total infection rates across all strains
+            modifier = (1.0 - jnp.exp(-total_inf_rates)) / total_inf_rates  # Modification needed to ensure the total rate of infection in one day is no more than one
+            inf_rate = target_inf_rate * modifier  # The actual infection rate for each strain (array of shape n_strains X window_len)
             effect_suscepts = suscept_levels * state.suscept  # Effective susceptibles (array of shape n_strains X 2**n_strains)
             actual_inc = effect_suscepts * inf_rate[:, jnp.newaxis]  # Apply infection rates across susceptible categories (array of shape n_strains X 2**n_strains)
             suscept = state.suscept  # Population distribution (vector of length 2**n_strains)
