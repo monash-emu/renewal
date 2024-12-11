@@ -8,6 +8,9 @@ VAR_MAP = {
     "ba1": "21K.Omicron",
     "ba2": "21L.Omicron",
     "ba5": "22B.Omicron",
+    "eu1": "20A.EU1",
+    "eu2": "20A.EU2",
+    "alpha": "20I.Alpha.V1"
 }
 
 
