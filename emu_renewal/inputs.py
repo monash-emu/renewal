@@ -47,10 +47,10 @@ def get_row_proportions(df):
 def get_country_mobility(country):
     years = range(2020, 2023)
     data_files = [pd.read_csv(RAW_MOB_PATH / f"{y}_{country}_Region_Mobility_Report.csv", index_col="date") for y in years]
-    data = pd.concat(data_files)
-    data.index = pd.to_datetime(data.index)
-    national_data = data.loc[pd.isna(data["sub_region_1"])]  # Extract only the national-level data
-    national_data = data[[c for c in data.columns if "change_from_baseline" in c]]  # Extract the mobility columns
+    all_data = pd.concat(data_files)
+    all_data.index = pd.to_datetime(all_data.index)
+    national_data = all_data.loc[pd.isna(all_data["sub_region_1"])]
+    national_data = national_data[[c for c in national_data.columns if "change_from_baseline" in c]]  # Extract the mobility columns
     national_data = national_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)  # Simplify column naming
     national_data = 1.0 + national_data / 100.0  # Convert to relative change
-    return national_data.sort_index()  # Index doesn't always come out ordered
+    return national_data.sort_index()
