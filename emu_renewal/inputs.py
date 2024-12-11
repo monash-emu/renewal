@@ -30,7 +30,7 @@ def get_hosp_series_from_owid_data(indicator, country):
 
 
 def get_var_country_data(var, country):
-    data = pd.read_json(DATA_PATH / "nextclade" / f"{var}.json")[country]
+    data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[country]
     dates = pd.to_datetime(data["week"])
     return pd.Series(data["cluster_sequences"], index=dates)
 
