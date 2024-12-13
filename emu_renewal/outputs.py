@@ -188,5 +188,11 @@ def get_combined_df(
 
 def save_idata(idata, country, analysis, time):
     path = Path(OUTPUTS_PATH / country.lower() / analysis / time)
-    path.mkdir(parents=True)
+    path.mkdir(parents=True, exist_ok=True)
     idata.to_netcdf(path / "idata.nc")
+
+
+def save_spaghetti(spaghetti, country, analysis, time):
+    path = Path(OUTPUTS_PATH / country.lower() / analysis / time)
+    path.mkdir(parents=True, exist_ok=True)
+    spaghetti.to_hdf(path / "spaghetti.h5", key="s")
