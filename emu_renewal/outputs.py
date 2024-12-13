@@ -1,14 +1,13 @@
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import numpy as np
 from jax import jit
-from matplotlib import pyplot as plt
-import arviz as az
 from typing import List
-from plotly import graph_objects as go
 
 from estival.sampling.tools import SampleIterator
 
+from emu_renewal.inputs import OUTPUTS_PATH
 from emu_renewal.calibration import StandardCalib
 
 
@@ -185,3 +184,9 @@ def get_combined_df(
     col_names0 = pd.MultiIndex.from_product([[name0]] + df0.columns.levels)
     col_names1 = pd.MultiIndex.from_product([[name1]] + df1.columns.levels)
     return pd.concat([df0.set_axis(col_names0, axis=1), df1.set_axis(col_names1, axis=1)], axis=1)
+
+
+def save_idata(idata, country, analysis, time):
+    path = Path(OUTPUTS_PATH / country.lower() / analysis / time)
+    path.mkdir(parents=True)
+    idata.to_netcdf(path / "idata.nc")

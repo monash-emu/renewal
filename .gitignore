@@ -7,3 +7,5 @@
 *.svg
 */*_files/
 */.ipynb_checkpoints/*
+/data/mobility_raw/*
+/outputs/*

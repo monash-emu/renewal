@@ -2,8 +2,10 @@ import pandas as pd
 from pathlib import Path
 
 PROJECT_PATH = Path.cwd().resolve()
-DATA_PATH = PROJECT_PATH.parent / "data"
-RAW_MOB_PATH = DATA_PATH / "mobility_raw"
+BASE_PATH = PROJECT_PATH.parent
+OUTPUTS_PATH =  BASE_PATH / "outputs"
+DATA_PATH = BASE_PATH / "data"
+RAW_MOB_PATH = DATA_PATH / "mobility_raw"  # Will not push these larger original files
 VAR_MAP = {
     "ba1": "21K.Omicron",
     "ba2": "21L.Omicron",
