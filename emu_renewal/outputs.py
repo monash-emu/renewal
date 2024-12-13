@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from jax import jit
 from typing import List
+import arviz as az
 
 from estival.sampling.tools import SampleIterator
 
@@ -186,13 +187,54 @@ def get_combined_df(
     return pd.concat([df0.set_axis(col_names0, axis=1), df1.set_axis(col_names1, axis=1)], axis=1)
 
 
-def save_idata(idata, country, analysis, time):
+def get_output_dir(
+    country: str, 
+    analysis: str, 
+    time: str,
+) -> Path:
+    """Get path for outputs from a run
+    and ensure directory exists
+
+    Args:
+        country: Country name
+        analysis: Analysis type (mob or non_mob)
+        time: Time that analysis was run
+
+    Returns:
+        The path
+    """
     path = Path(OUTPUTS_PATH / country.lower() / analysis / time)
     path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def save_idata(
+    idata: az.InferenceData, 
+    country: str, 
+    analysis: str, 
+    time: str,
+):
+    """Save arviz inference data from calibration run.
+
+    Args:
+        idata: The arviz results
+        country, analysis, time: The arguments to get_output_dir
+    """
+    path = get_output_dir(country, analysis, time)
     idata.to_netcdf(path / "idata.nc")
 
 
-def save_spaghetti(spaghetti, country, analysis, time):
-    path = Path(OUTPUTS_PATH / country.lower() / analysis / time)
-    path.mkdir(parents=True, exist_ok=True)
+def save_spaghetti(
+    spaghetti: pd.DataFrame, 
+    country: str, 
+    analysis: str, 
+    time: str,
+):
+    """Save spaghetti outputs from calibration run.
+
+    Args:
+        spaghetti: The dataframe containing the model outputs
+        country, analysis, time: The arguments to get_output_dir
+    """
+    path = get_output_dir(country, analysis, time)
     spaghetti.to_hdf(path / "spaghetti.h5", key="s")
