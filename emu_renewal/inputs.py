@@ -59,3 +59,20 @@ def get_country_mobility(country):
     national_data = national_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)  # Simplify column naming
     national_data = 1.0 + national_data / 100.0  # Convert to relative change
     return national_data.sort_index()
+
+
+def get_seroprev():
+    data = pd.read_csv(DATA_PATH / "seroprevalence" / "serotracker.csv")
+    data["start"] = pd.to_datetime(data["sampling_start_date"])
+    data["end"] = pd.to_datetime(data["sampling_end_date"])
+    data.index = (data["end"] - data["start"]) / 2 + pd.to_datetime(data["sampling_start_date"])
+    return data.sort_index()
+
+
+def filter_seroprev(data, country, start_date, end_date):
+    country_filt = data["country"] == country
+    time_filt = (start_date < data.index) & (data.index < end_date)
+    nat_filt = data["estimate_grade"] == "National"
+    type_filt = (data["subgroup_var"] == "Primary Estimate") & (data["is_unity_aligned"] == "Unity-Aligned")
+    data = data.loc[time_filt & country_filt & nat_filt & type_filt]
+    return data["serum_pos_prevalence"]
