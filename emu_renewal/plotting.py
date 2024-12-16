@@ -105,7 +105,7 @@ def plot_spaghetti_calib_comparison(
             line = go.Scatter(x=spaghetti.index, y=spaghetti[out][col], line=out_style)
             fig.add_trace(line, row=o+1, col=1)
         if out in calib_data:
-            target = calib_data[out].data
+            target = calib_data[out]
             target_scatter = go.Scatter(x=target.index, y=target, mode="markers", line=targ_style)
             fig.add_trace(target_scatter, row=o+1, col=1)
     return fig

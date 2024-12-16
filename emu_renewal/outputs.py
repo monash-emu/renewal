@@ -8,7 +8,7 @@ import arviz as az
 
 from estival.sampling.tools import SampleIterator
 
-from emu_renewal.inputs import OUTPUTS_PATH
+from emu_renewal.inputs import OUTPUTS_PATH, BASE_PATH
 from emu_renewal.calibration import StandardCalib
 
 
@@ -272,4 +272,16 @@ def save_updates(
     """
     path = get_output_dir(country, analysis, time)
     updates.to_hdf(path / "updates.h5", key="u")
-    
+
+
+def load_targets(country, analysis, time):
+    targets = {}
+    targ_key = "target_"
+    outputs_path = BASE_PATH / "outputs" / country / analysis / time
+    for file in outputs_path.iterdir():
+        filename = file.name
+        if filename.startswith(targ_key):
+            targ_name = file.stem[len(targ_key):]
+            data = pd.read_hdf(outputs_path / filename)
+            targets[targ_name] = data
+    return targets
