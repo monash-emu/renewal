@@ -14,6 +14,9 @@ VAR_MAP = {
     "eu2": "20A.EU2",
     "alpha": "20I.Alpha.V1"
 }
+MOB_MAP = {
+    "France": "FR",
+}
 
 
 def get_indicator_series_from_who_data(indicator, country):
