@@ -238,3 +238,38 @@ def save_spaghetti(
     """
     path = get_output_dir(country, analysis, time)
     spaghetti.to_hdf(path / "spaghetti.h5", key="s")
+
+
+def save_targets(
+    targets: dict,
+    country: str,
+    analysis: str,
+    time: str,
+):
+    """Save data components of calibration targets.
+
+    Args:
+        targets: The targets
+        country, analysis, time: The arguments to get_output_dir
+    """
+    for t in targets:
+        path = get_output_dir(country, analysis, time)
+        target = targets[t].data
+        target.to_hdf(path / f"target_{t}.h5", key=t)
+
+
+def save_updates(
+    updates: pd.DataFrame, 
+    country: str, 
+    analysis: str, 
+    time: str,
+):    
+    """Save variable process updates from calibration run.
+
+    Args:
+        spaghetti: The dataframe containing the model outputs
+        country, analysis, time: The arguments to get_output_dir
+    """
+    path = get_output_dir(country, analysis, time)
+    updates.to_hdf(path / "updates.h5", key="u")
+    
