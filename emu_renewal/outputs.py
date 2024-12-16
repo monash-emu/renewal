@@ -208,76 +208,10 @@ def get_output_dir(
     return path
 
 
-def save_idata(
-    idata: az.InferenceData, 
-    country: str, 
-    analysis: str, 
-    time: str,
-):
-    """Save arviz inference data from calibration run.
-
-    Args:
-        idata: The arviz results
-        country, analysis, time: The arguments to get_output_dir
-    """
-    path = get_output_dir(country, analysis, time)
-    idata.to_netcdf(path / "idata.nc")
-
-
-def save_spaghetti(
-    spaghetti: pd.DataFrame, 
-    country: str, 
-    analysis: str, 
-    time: str,
-):
-    """Save spaghetti outputs from calibration run.
-
-    Args:
-        spaghetti: The dataframe containing the model outputs
-        country, analysis, time: The arguments to get_output_dir
-    """
-    path = get_output_dir(country, analysis, time)
-    spaghetti.to_hdf(path / "spaghetti.h5", key="s")
-
-
-def save_targets(
-    targets: dict,
-    country: str,
-    analysis: str,
-    time: str,
-):
-    """Save data components of calibration targets.
-
-    Args:
-        targets: The targets
-        country, analysis, time: The arguments to get_output_dir
-    """
-    for t in targets:
-        path = get_output_dir(country, analysis, time)
-        target = targets[t].data
-        target.to_hdf(path / f"target_{t}.h5", key=t)
-
-
-def save_updates(
-    updates: pd.DataFrame, 
-    country: str, 
-    analysis: str, 
-    time: str,
-):    
-    """Save variable process updates from calibration run.
-
-    Args:
-        spaghetti: The dataframe containing the model outputs
-        country, analysis, time: The arguments to get_output_dir
-    """
-    path = get_output_dir(country, analysis, time)
-    updates.to_hdf(path / "updates.h5", key="u")
-
-
 def load_targets(country, analysis, time):
     targets = {}
     targ_key = "target_"
-    outputs_path = BASE_PATH / "outputs" / country / analysis / time
+    outputs_path = get_output_dir(country, analysis, time)
     for file in outputs_path.iterdir():
         filename = file.name
         if filename.startswith(targ_key):
