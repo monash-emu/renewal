@@ -68,7 +68,8 @@ def get_seroprev():
     data = pd.read_csv(DATA_PATH / "seroprevalence" / "serotracker.csv")
     data["start"] = pd.to_datetime(data["sampling_start_date"])
     data["end"] = pd.to_datetime(data["sampling_end_date"])
-    data.index = (data["end"] - data["start"]) / 2 + pd.to_datetime(data["sampling_start_date"])
+    data.index = (data["end"] - data["start"]) / 2 + data["start"]
+    data.index = data.index.normalize()
     return data.sort_index()
 
 
