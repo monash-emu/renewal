@@ -568,15 +568,18 @@ class MultiStrainModel(RenewalHospModel):
         cross_imm = jnp.array(self.strain_map).astype(float) * cross_immunity  # Subtract immunity if you have been infected with that strain before (array of shape n_strains X 2**n_strains)
         suscept_levels = full_suscept - cross_imm  # Final susceptibility levels
 
+
+        init_zeroes = jnp.zeros([self.n_strains, self.window_len])
+        seeding_array = jnp.concat([init_zeroes, self.seeding[:, self.init_length:]], axis=1)
+
+
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = self.mobility[t]  # Mobility data (scalar)
 
-            seed_start = t - self.window_len
-            seed_vals = self.seeding.at[:, jnp.maximum(seed_start, 0) + self.init_length: t + self.init_length]
-            new_seeding = jnp.zeros([self.n_strains, self.window_len])
-            new_seeding = new_seeding.at[:, jnp.maximum(-seed_start, 0):].set(seed_vals)
-            new_seeding_inc = jnp.fliplr(new_seeding)
+            new_seed_vals = seeding_array.at[:, t: t - self.window_len]
+
+            new_inc = state.incidence + new_seed_vals
 
             contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
             seed = inc_seeding[:, t + self.init_length]  # Seeding by total effective infectious persons (vector of length n_strains)
