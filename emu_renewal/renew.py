@@ -581,7 +581,7 @@ class MultiStrainModel(RenewalHospModel):
 
             new_inc = state.incidence + new_seed_vals
 
-            contributions = (densities * state.incidence).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
+            contributions = (densities * new_inc).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
             seed = inc_seeding[:, t + self.init_length]  # Seeding by total effective infectious persons (vector of length n_strains)
             target_inf_rate = (contributions + seed) * proc_val * mob_val * self.rel_infectiousness / self.pop  # Infection rate (vector of length n_strains)
             total_inf_rates = target_inf_rate.sum()  # Total infection rates across all strains
