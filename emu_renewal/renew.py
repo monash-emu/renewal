@@ -520,7 +520,6 @@ class MultiStrainModel(RenewalHospModel):
         self.strain_map = get_combs(len(strains))
         self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
-        self.rel_infectiousness = jnp.array([1.0] * self.n_strains)  # Relative infectiousness
         if mobility is None:
             self.mobility = jnp.ones_like(self.model_times)
         else:
@@ -560,7 +559,7 @@ class MultiStrainModel(RenewalHospModel):
             seed_vals[s + 1, seed_start:seed_end] = seed_rate
         return jnp.array(seed_vals)
 
-    def renew(self, mean, sd, proc, init, cross_immunity, inc_seeding):
+    def renew(self, mean, sd, proc, init, cross_immunity, inc_seeding, alpha_relinfect):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
         init_inc = jnp.fliplr(inc_seeding[:, :self.init_length])  # Reverse initialisation
@@ -568,10 +567,12 @@ class MultiStrainModel(RenewalHospModel):
         start_pops = jnp.zeros(self.strain_map.shape[1])  # Starting susceptible distribution
         start_pops = start_pops.at[0].set(start_pop)
         full_suscept = jnp.ones_like(self.strain_map).astype(float)  # Start fully susceptible (array of shape n_strains X 2**n_strains)
-        cross_imm = (jnp.array(self.strain_map).astype(float) * cross_immunity)  # Subtract immunity if you have been infected with that strain before (array of shape n_strains X 2**n_strains)
+        cross_imm = jnp.array(self.strain_map).astype(float) * cross_immunity  # Immunity if you have been infected with that strain before (array of shape n_strains X 2**n_strains)
         suscept_levels = full_suscept - cross_imm  # Final susceptibility levels
         init_zeroes = jnp.zeros([self.n_strains, self.window_len])
         seeding_array = jnp.concat([init_zeroes, self.seeding[:, self.init_length:]], axis=1)  # Array for seeding during analysis period
+        rel_infect = jnp.ones(self.n_strains)
+        rel_infect.at[1].set(alpha_relinfect)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
@@ -579,15 +580,15 @@ class MultiStrainModel(RenewalHospModel):
             seeding_vals = lax.dynamic_slice_in_dim(seeding_array, t, self.window_len, axis=1)  # Seeding values over window period
             past_inc = state.incidence + jnp.fliplr(seeding_vals)  # Past incidence with seeding
             contributions = (densities * past_inc).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
-            target_inf_rate = contributions * proc_val * mob_val * self.rel_infectiousness / self.pop  # Infection rate (vector of length n_strains)
+            target_inf_rate = contributions * proc_val * mob_val * rel_infect / self.pop  # Infection rate (vector of length n_strains)
             total_inf_rates = target_inf_rate.sum()  # Total infection rates across all strains
             modifier = (1.0 - jnp.exp(-total_inf_rates)) / total_inf_rates  # Modification needed to ensure the total rate of infection in one day is no more than one
-            inf_rate = (target_inf_rate * modifier)  # The actual infection rate for each strain (array of shape n_strains X window_len)
-            effect_suscepts = (suscept_levels * state.suscept)  # Effective susceptibles (array of shape n_strains X 2**n_strains)
-            actual_inc = (effect_suscepts * inf_rate[:, jnp.newaxis])  # Apply infection rates across susceptible categories (array of shape n_strains X 2**n_strains)
+            inf_rate = target_inf_rate * modifier  # The actual infection rate for each strain (array of shape n_strains X window_len)
+            effect_suscepts = suscept_levels * state.suscept  # Effective susceptibles (array of shape n_strains X 2**n_strains)
+            actual_inc = effect_suscepts * inf_rate[:, jnp.newaxis]  # Apply infection rates across susceptible categories (array of shape n_strains X 2**n_strains)
             suscept = state.suscept  # Population distribution (vector of length 2**n_strains)
             for s in range(self.n_strains):  # Move susceptibles to recovered categories
-                suscept = suscept + actual_inc[s] @ self.trans_mats[s]
+                suscept += actual_inc[s] @ self.trans_mats[s]
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain (vector of length n_strains)
             inc = jnp.concat([strain_inc[:, jnp.newaxis], state.incidence[:, :-1]], axis=1)  # Move up (array of shape n_strains X window_len)
             strain_out = {strain: strain_inc[i_strain] for i_strain, strain in enumerate(self.strains)}
@@ -615,11 +616,12 @@ class MultiStrainModel(RenewalHospModel):
         stay_sd: float,
         har: float,
         cross_immunity: float,
+        alpha_relinfect: float,
         **kwargs,
     ) -> ModelResult:
         inc_seeding = self.seeding / cdr
         start_inc = jnp.sum(self.seeding[:, : self.init_length], axis=0)
-        outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, inc_seeding)
+        outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, inc_seeding, alpha_relinfect)
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
         outputs["inc"] = full_inc[self.init_length :]
