@@ -569,7 +569,7 @@ class MultiStrainModel(RenewalHospModel):
         init_zeroes = jnp.zeros([self.n_strains, 1])  # Seeding is added to the day before
         seeding_array = jnp.concat([init_zeroes, self.seeding[:, self.init_length:]], axis=1)  # Array for seeding during analysis period
         rel_infect = jnp.ones(self.n_strains)
-        rel_infect.at[1].set(alpha_relinfect)
+        rel_infect = rel_infect.at[1].set(alpha_relinfect)
         
         # Cross immunity if previously infected with a different strain, otherwise zero (complete immunity) if infected with that strain
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity) 
