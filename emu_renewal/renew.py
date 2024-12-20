@@ -580,12 +580,10 @@ class MultiStrainModel(RenewalHospModel):
             seeding_vals = lax.dynamic_slice_in_dim(seeding_array, t, self.window_len, axis=1)  # Seeding values over window period
             past_inc = state.incidence + jnp.fliplr(seeding_vals)  # Past incidence with seeding
             contributions = (densities * past_inc).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
-            target_inf_rate = contributions * proc_val * mob_val * rel_infect / self.pop  # Infection rate (vector of length n_strains)
-            total_inf_rates = target_inf_rate.sum()  # Total infection rates across all strains
-            modifier = (1.0 - jnp.exp(-total_inf_rates)) / total_inf_rates  # Modification needed to ensure the total rate of infection in one day is no more than one
-            inf_rate = target_inf_rate * modifier  # The actual infection rate for each strain (array of shape n_strains X window_len)
+            target_inf_rates = contributions * proc_val * mob_val * rel_infect / self.pop  # Infection rate (vector of length n_strains)
             effect_suscepts = suscept_levels * state.suscept  # Effective susceptibles (array of shape n_strains X 2**n_strains)
-            actual_inc = effect_suscepts * inf_rate[:, jnp.newaxis]  # Apply infection rates across susceptible categories (array of shape n_strains X 2**n_strains)
+            actual_inf_rate = 1.0 - jnp.exp(-target_inf_rates)
+            actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]  # Apply infection rates across susceptible categories (array of shape n_strains X 2**n_strains)
             suscept = state.suscept  # Population distribution (vector of length 2**n_strains)
             for s in range(self.n_strains):  # Move susceptibles to recovered categories
                 suscept += actual_inc[s] @ self.trans_mats[s]
