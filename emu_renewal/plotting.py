@@ -1,5 +1,6 @@
 from typing import List
 import numpy as np
+from random import choice
 import pandas as pd
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
@@ -277,3 +278,22 @@ def plot_mean_proc_diff(
         fig.add_trace(go.Scatter(x=results.index, y=results, name=analysis))
     fig.update_yaxes({"range": (0.0, None)})
     return fig.update_layout(height=500, width=800, title="mean absolute divergence from mean process value")
+
+
+def plot_imm_props(
+    spaghetti: pd.DataFrame, 
+    n_strains: int,
+) -> go.Figure:
+    """Plot susceptible population proportions from randomly selected run.
+
+    Args:
+        spaghetti: Spaghetti
+        n_strains: Number of modelled strains
+
+    Returns:
+        Figure
+    """
+    spagh = spaghetti[[f"sus_{i}" for i in range(2 ** n_strains)]]
+    spagh.columns = spagh.columns.swaplevel()
+    runs = list(set(spagh.columns.get_level_values(0)))
+    return spagh[choice(runs)].plot.area()
