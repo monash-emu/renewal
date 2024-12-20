@@ -566,13 +566,14 @@ class MultiStrainModel(RenewalHospModel):
         start_pop = self.pop - jnp.sum(init_inc)  # Starting susceptible population
         start_pops = jnp.zeros(self.strain_map.shape[1])  # Starting susceptible distribution
         start_pops = start_pops.at[0].set(start_pop)
-        full_suscept = jnp.ones_like(self.strain_map).astype(float)  # Start fully susceptible (array of shape n_strains X 2**n_strains)
-        cross_imm = jnp.array(self.strain_map).astype(float) * cross_immunity  # Immunity if you have been infected with that strain before (array of shape n_strains X 2**n_strains)
-        suscept_levels = full_suscept - cross_imm  # Final susceptibility levels
         init_zeroes = jnp.zeros([self.n_strains, 1])  # Seeding is added to the day before
         seeding_array = jnp.concat([init_zeroes, self.seeding[:, self.init_length:]], axis=1)  # Array for seeding during analysis period
         rel_infect = jnp.ones(self.n_strains)
         rel_infect.at[1].set(alpha_relinfect)
+        
+        # Cross immunity if previously infected with a different strain, otherwise zero (complete immunity) if infected with that strain
+        suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity) 
+        suscept_levels = suscept_levels.at[:, 0].set(1.0)  # Complete susceptibility if never infected before
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
