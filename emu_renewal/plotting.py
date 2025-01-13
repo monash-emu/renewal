@@ -173,6 +173,7 @@ def plot_post_prior_comparison(
     idata: az.InferenceData,
     req_vars: list[str],
     priors: list[dist.Distribution],
+    req_grid=None,
 ) -> plt.figure:
     """Plot comparison of model posterior outputs against priors.
 
@@ -180,11 +181,13 @@ def plot_post_prior_comparison(
         idata: Arviz inference data from calibration
         req_vars: User-requested variables to plot
         priors: Numpyro prior objects
+        req_grid: Requested subplot dimensions
 
     Returns:
         The figure object
     """
-    plot = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=[1, len(req_vars)])
+    grid = req_grid if req_grid else [1, len(req_vars)]
+    plot = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid)
     for i_ax, ax in enumerate(plot.ravel()):
         ax_limits = ax.get_xlim()
         x_vals = np.linspace(*ax_limits, 50)
