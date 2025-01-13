@@ -16,6 +16,7 @@ VAR_MAP = {
 }
 MOB_MAP = {
     "France": "FR",
+    "Italy": "IT",
 }
 
 
