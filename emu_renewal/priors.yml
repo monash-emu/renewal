@@ -2,33 +2,43 @@ durations:
   gen_mean:
     mean: 5.0
     sd: 0.5
+    param_name: Generation time mean (days)
   gen_sd:
     mean: 2.5
     sd: 0.5
+    param_name: Generation time standard deviation (days)
   report_mean:
     mean: 8.0
     sd: 0.5
+    param_name: Infection to reporting mean (days)
   report_sd: 
     mean: 3.0
     sd: 0.5
+    param_name: Infection to reporting standard deviation (days)
   death_mean: 
     mean: 21.0
     sd: 5.0
+    param_name: Infection to death mean (days)
   death_sd:
     mean: 10.0
     sd: 2.5
+    param_name: Infection to death standard deviation (days)
   admit_mean:
     mean: 13.0
     sd: 3.0
+    param_name: Infection to hospitalisation mean (days)
   admit_sd: 
     mean: 6.0
     sd: 1.0
+    param_name: Infection to hospitalisation standard deviation (days)
   stay_mean:
     mean: 14.5
     sd: 1.5
+    param_name: Hospitalisation to discharge mean (days)
   stay_sd:
     mean: 7.0
     sd: 1.0
+    param_name: Hospitalisation to discharge standard deviation (days)
 beta:
   cdr:
     alpha: 50.0

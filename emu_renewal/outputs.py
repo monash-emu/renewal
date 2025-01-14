@@ -219,3 +219,10 @@ def load_targets(country, analysis, time):
             data = pd.read_hdf(outputs_path / filename)
             targets[targ_name] = data
     return targets
+
+
+def get_table_df_from_priors_dict(priors_dict):
+    priors_df = priors_dict.T
+    priors_df = priors_df.set_index("param_name")
+    priors_df.index.name = None
+    return priors_df.rename(columns={"mean": "Mean", "sd": "SD"})
