@@ -3,7 +3,7 @@ durations:
     mean: 5.0
     sd: 0.5
     param_name: Generation time mean (days)
-    evidence: Our preferred evidence for quantifying the generation interval come from examination of transmission pairs and has been estimated in multiple different contexts for SARS-CoV-2 \cite{chen2022}.
+    evidence: Our preferred evidence for quantifying the generation interval come from examination of transmission pairs and has been estimated in multiple different contexts for SARS-CoV-2. @chen2022
   gen_sd:
     mean: 2.5
     sd: 0.5
@@ -70,4 +70,3 @@ beta:
     beta: 60.0
     param_name: Cross immunity
     evidence: Pending
-    
