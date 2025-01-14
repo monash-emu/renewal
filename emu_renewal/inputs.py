@@ -1,8 +1,7 @@
 import pandas as pd
 from pathlib import Path
 
-PROJECT_PATH = Path.cwd().resolve()
-BASE_PATH = PROJECT_PATH.parent
+BASE_PATH = Path(__file__).parent.parent
 OUTPUTS_PATH =  BASE_PATH / "outputs"
 DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"  # Will not push these larger original files
@@ -17,6 +16,7 @@ VAR_MAP = {
 MOB_MAP = {
     "France": "FR",
     "Italy": "IT",
+    "Spain": "ES",
 }
 
 
