@@ -225,4 +225,6 @@ def get_table_df_from_priors_dict(priors_dict):
     priors_df = priors_dict.T
     priors_df = priors_df.set_index("param_name")
     priors_df.index.name = None
-    return priors_df.rename(columns={"mean": "Mean", "sd": "SD"})
+    priors_df.columns = priors_df.columns.str.capitalize()
+    priors_df = priors_df.rename(columns={"Sd": "SD"})
+    return priors_df
