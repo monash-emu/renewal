@@ -3,56 +3,71 @@ durations:
     mean: 5.0
     sd: 0.5
     param_name: Generation time mean (days)
+    evidence: Our preferred evidence for quantifying the generation interval come from examination of transmission pairs and has been estimated in multiple different contexts for SARS-CoV-2 \cite{chen2022}.
   gen_sd:
     mean: 2.5
     sd: 0.5
     param_name: Generation time standard deviation (days)
+    evidence: Pending
   report_mean:
     mean: 8.0
     sd: 0.5
     param_name: Infection to reporting mean (days)
+    evidence: Pending
   report_sd: 
     mean: 3.0
     sd: 0.5
     param_name: Infection to reporting standard deviation (days)
+    evidence: Pending
   death_mean: 
     mean: 21.0
     sd: 5.0
     param_name: Infection to death mean (days)
+    evidence: Pending
   death_sd:
     mean: 10.0
     sd: 2.5
     param_name: Infection to death standard deviation (days)
+    evidence: Pending
   admit_mean:
     mean: 13.0
     sd: 3.0
     param_name: Infection to hospitalisation mean (days)
+    evidence: Pending
   admit_sd: 
     mean: 6.0
     sd: 1.0
     param_name: Infection to hospitalisation standard deviation (days)
+    evidence: Pending
   stay_mean:
     mean: 14.5
     sd: 1.5
     param_name: Hospitalisation to discharge mean (days)
+    evidence: Pending
   stay_sd:
     mean: 7.0
     sd: 1.0
     param_name: Hospitalisation to discharge standard deviation (days)
+    evidence: Pending
 beta:
   cdr:
     alpha: 50.0
     beta: 100.0
     param_name: Case detection proportion
+    evidence: Pending
   har:
     alpha: 6.0
     beta: 200.0
     param_name: Hospital admission proportion
+    evidence: Pending
   ifr:
     alpha: 10.0
     beta: 900.0
     param_name: Infetion fatality proportion
+    evidence: Pending
   cross_immunity:
     alpha: 20.0
     beta: 60.0
     param_name: Cross immunity
+    evidence: Pending
+    
