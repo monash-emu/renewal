@@ -1,0 +1,44 @@
+durations:
+  gen_mean:
+    mean: 5.0
+    sd: 0.5
+  gen_sd:
+    mean: 2.5
+    sd: 0.5
+  report_mean:
+    mean: 8.0
+    sd: 0.5
+  report_sd: 
+    mean: 3.0
+    sd: 0.5
+  death_mean: 
+    mean: 21.0
+    sd: 5.0
+  death_sd:
+    mean: 10.0
+    sd: 2.5
+  admit_mean:
+    mean: 13.0
+    sd: 3.0
+  admit_sd: 
+    mean: 6.0
+    sd: 1.0
+  stay_mean:
+    mean: 14.5
+    sd: 1.5
+  stay_sd:
+    mean: 7.0
+    sd: 1.0
+beta:
+  cdr:
+    alpha: 50.0
+    beta: 100.0
+  har:
+    alpha: 6.0
+    beta: 200.0
+  ifr:
+    alpha: 10.0
+    beta: 900.0
+  cross_immunity:
+    alpha: 20.0
+    beta: 60.0
