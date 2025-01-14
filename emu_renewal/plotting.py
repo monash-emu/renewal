@@ -174,6 +174,7 @@ def plot_post_prior_comparison(
     req_vars: list[str],
     priors: list[dist.Distribution],
     req_grid=None,
+    req_size=None,
 ) -> plt.figure:
     """Plot comparison of model posterior outputs against priors.
 
@@ -187,7 +188,8 @@ def plot_post_prior_comparison(
         The figure object
     """
     grid = req_grid if req_grid else [1, len(req_vars)]
-    plot = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid)
+    size = req_size if req_size else None
+    plot = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=size)
     for i_ax, ax in enumerate(plot.ravel()):
         ax_limits = ax.get_xlim()
         x_vals = np.linspace(*ax_limits, 50)

@@ -1,0 +1,6 @@
+populations:
+  France: 68.E+6
+  Italy: 58.E+6
+alpha_seed_delays:
+  France: 0
+  Italy: 50
