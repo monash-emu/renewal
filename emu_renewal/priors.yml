@@ -20,15 +20,15 @@ durations:
     param_name: Infection to reporting standard deviation (days)
     evidence: Pending
   death_mean: 
-    mean: 21.0
+    mean: 20.5
     sd: 5.0
     param_name: Infection to death mean (days)
-    evidence: Pending
+    evidence: A meta-analysis of studies from China quantifying the mean duration from symptom onset to death found a mean delay of 15.93 days.[@khalili2020] A study leveraging individual-level data from Hubei, China in combination with early cases outside of China (not included in the meta-analysis) found a mean time from symptom onset to death of 17.8 days.[@verity2020] A cohort study from a north-eastern state of Brazil found a median 19 days from symptom onset to death.[@sousa2020] We considered 17.5 days to be a reasonable estimate for the time from symptom onset to death, which we increased by three days to account for the time from infection to symptom onset.
   death_sd:
-    mean: 10.0
+    mean: 5.0
     sd: 2.5
     param_name: Infection to death standard deviation (days)
-    evidence: Pending
+    evidence: The meta-analysis of studies from China introduced above[@khalili2020] found a range of symptom to death delays of 13.07 to 18.79 days, while the study from China[@verity2020] reported a credible interval of 16.9 to 19.2 days and the study from Brazil an interquartile range of 12 to 23 days.[@sousa2020]
   admit_mean:
     mean: 13.0
     sd: 3.0
