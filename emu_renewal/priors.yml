@@ -8,7 +8,7 @@ durations:
     mean: 2.5
     sd: 0.5
     param_name: Generation time standard deviation (days)
-    evidence: Pending
+    evidence: For the standard deviation of the generation interval, we used the same sources of evidence as for the mean.[@chen2022; @ganyani2020] The standard deviation estiamtes were typically in the range of two to four days for early Wuhan [@chen2022] and 1.5 to 2.5 days from Tianjin and Singapore [@ganyani2020].
   report_mean:
     mean: 8.0
     sd: 0.5
