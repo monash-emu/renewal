@@ -5,13 +5,14 @@ import pandas as pd
 import numpy as np
 from jax import jit
 from typing import List
-from plotly.subplots import make_subplots
-from plotly import graph_objects as go
+import matplotlib.pyplot as plt
 
 from estival.sampling.tools import SampleIterator
 
-from emu_renewal.inputs import OUTPUTS_PATH, BASE_PATH
+from emu_renewal.inputs import OUTPUTS_PATH
 from emu_renewal.calibration import StandardCalib
+
+plt.style.use("ggplot")
 
 
 def get_spaghetti(
@@ -232,11 +233,14 @@ def get_table_df_from_priors_dict(priors_dict):
     return priors_df
 
 
-def plot_beta_priors(input_priors):
-    priors = {k: dist.Beta(v["alpha"], v["beta"]) for k, v in input_priors.items()}
-    fig = make_subplots(rows=1, cols=4, subplot_titles=list(priors.keys()))
-    for i, distri in enumerate(priors.values()):
+def plot_beta_priors(all_priors):
+    beta_priors = {v["param_name"]: dist.Beta(v["alpha"], v["beta"]) for v in all_priors["beta"].values()}
+    fig, axes = plt.subplots(2, 2)
+    for i, dist_name, distri in [[i, d[0], d[1]] for i, d in enumerate(beta_priors.items())]:
         upper_lim = distri.icdf(0.999) if distri.icdf(0.999) < 0.3 else 1.0
         x_vals = np.linspace(0.0, upper_lim, 100)
-        fig.add_trace(go.Scatter(x=x_vals, y=np.exp(distri.log_prob(x_vals))), row=1, col=i+1)
-    return fig.update_layout(showlegend=False).update_yaxes(tickvals=[])
+        ax = axes.ravel()[i]
+        ax.plot(x_vals, np.exp(distri.log_prob(x_vals)))
+        ax.set_title(dist_name, size=12)
+        ax.set_yticks([])
+    return fig.tight_layout()

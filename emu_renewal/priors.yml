@@ -3,7 +3,7 @@ durations:
     mean: 4.5
     sd: 0.5
     param_name: Generation time mean (days)
-    evidence: Our preferred evidence for quantifying the generation interval come from analyses of transmission pairs that has been estimated in multiple different contexts for SARS-CoV-2.[@chen2022; @ganyani2020] Early case-contact data at the origin of the pandemic in Wuhan estimated a mean of around seven days prior to the implementation of population-wide public health and social measures such as contact tracing and movement restrictions. This led to a contraction of the mean generation interval to around four to five days after these interventions were implemented.[@chen2022] These findings are consistent with estimates from early 2020 from Tianjin, China and Singapore, which estimated generation intervals of around four and five days, respectively.[@ganyani2020] Estimates of the serial interval should be applicable to estimating the generation interval if the epidemic is not changing sufficiently rapidly to result in differences in the incubation period between infectors and infectees [@chen2022]. Estimates of the serial interval from Germany fell in a similar range as to the generation interval estimates we use.[@anderheiden2022]
+    evidence: Our preferred evidence for quantifying the generation interval come from analyses of transmission pairs that has been estimated in multiple different contexts for SARS-CoV-2.[@chen2022; @ganyani2020] Early case-contact data at the origin of the pandemic in Wuhan estimated a mean of around seven days prior to the implementation of population-wide public health and social measures such as contact tracing and movement restrictions. This led to a contraction of the mean generation interval to around four to five days after these interventions were implemented.[@chen2022] These findings are consistent with estimates from early 2020 from Tianjin, China and Singapore, which estimated generation intervals of around four and five days, respectively.[@ganyani2020] Estimates of the serial interval should be applicable to estimating the generation interval if the epidemic is not changing sufficiently rapidly to result in differences in the incubation period between infectors and infectees [@chen2022]. Estimates of the serial interval from Germany[@anderheiden2022] and Spain[@delaguilamejia2022] fell in a similar range as to the generation interval estimates we use.
   gen_sd:
     mean: 2.5
     sd: 0.5
@@ -13,12 +13,12 @@ durations:
     mean: 8.0
     sd: 0.5
     param_name: Infection to reporting mean (days)
-    evidence: This delay incorporates the incubation period and the time from symptom onset to presentation to the health care system. The incubation period for COVID-19 has been estimated at five to seven days, with presentation assumed to take one to three days thereafter.
+    evidence: This delay incorporates the incubation period and the time from symptom onset to presentation to the health care system. The incubation period for COVID-19 has been estimated at five to seven days. We have previously estimated the delay from symptom onset to notification to be four days in the Australian context.[@trauer2024; @golding2023]
   report_sd: 
     mean: 3.0
     sd: 0.5
     param_name: Infection to reporting standard deviation (days)
-    evidence: Pending
+    evidence: Our previous estimate of four days for the time to reporting from symptom onset[@trauer2024] was associated with a standard deviation of two days.
   death_mean: 
     mean: 20.5
     sd: 5.0
