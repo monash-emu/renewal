@@ -1,6 +1,6 @@
 durations:
   gen_mean:
-    mean: 5.0
+    mean: 4.5
     sd: 0.5
     param_name: Generation time mean (days)
     evidence: Our preferred evidence for quantifying the generation interval come from analyses of transmission pairs that has been estimated in multiple different contexts for SARS-CoV-2.[@chen2022; @ganyani2020] Early case-contact data at the origin of the pandemic in Wuhan estimated a mean of around seven days prior to the implementation of population-wide public health and social measures such as contact tracing and movement restrictions. This led to a contraction of the mean generation interval to around four to five days after these interventions were implemented.[@chen2022] These findings are consistent with estimates from early 2020 from Tianjin, China and Singapore, which estimated generation intervals of around four and five days, respectively.[@ganyani2020]
@@ -8,7 +8,7 @@ durations:
     mean: 2.5
     sd: 0.5
     param_name: Generation time standard deviation (days)
-    evidence: For the standard deviation of the generation interval, we used the same sources of evidence as for the mean.[@chen2022; @ganyani2020] The standard deviation estiamtes were typically in the range of two to four days for early Wuhan [@chen2022] and 1.5 to 2.5 days from Tianjin and Singapore [@ganyani2020].
+    evidence: For the standard deviation of the generation interval, we used the same sources of evidence as for the mean.[@chen2022; @ganyani2020] The standard deviation estiamtes were typically in the range of two to four days for early Wuhan [@chen2022] and 1.5 to 2.5 days from Tianjin and Singapore.[@ganyani2020]
   report_mean:
     mean: 8.0
     sd: 0.5
