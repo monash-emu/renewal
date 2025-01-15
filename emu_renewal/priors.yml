@@ -54,7 +54,7 @@ beta:
     alpha: 50.0
     beta: 100.0
     param_name: Case detection proportion
-    evidence: Pending
+    evidence: An early analysis from France of the proportion of cases detected estimated that 38% (95% confidence interval 35 to 44%) of cases were detected.[@pullano2020] This is consistent with our estimate that one in two to six cases were detected from the early stages of Australia's Omicron outbreak.[@trauer2024] Nevertheless, this quantity is difficult to determine with confidence and is likely highly context-dependent, hence our broad prior.
   har:
     alpha: 6.0
     beta: 200.0
