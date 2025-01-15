@@ -13,7 +13,7 @@ durations:
     mean: 8.0
     sd: 0.5
     param_name: Infection to reporting mean (days)
-    evidence: Pending
+    evidence: This delay incorporates the incubation period and the time from symptom onset to presentation to the health care system. The incubation period for COVID-19 has been estimated at five to seven days, with presentation assumed to take one to three days thereafter.
   report_sd: 
     mean: 3.0
     sd: 0.5
@@ -40,15 +40,15 @@ durations:
     param_name: Infection to hospitalisation standard deviation (days)
     evidence: The study from Belgium[@faes2020] above found considerable variation in the time to admission.
   stay_mean:
-    mean: 14.5
-    sd: 1.5
-    param_name: Hospitalisation to discharge mean (days)
-    evidence: Pending
+    mean: 15.0
+    sd: 2.5
+    param_name: Hospital admission duration (days)
+    evidence: A systematic review that synthesised hospital admission durations found a median stay of 14 days.[@rees2020] Although more studies were identified for China than for other countries, stay length in China appeared longer than for other countries. Another systematic review undertaken later in the pandemic period found similar durations, with a mean individual-level length of stay of 14.49 days.[@alimohamadi2022]
   stay_sd:
-    mean: 7.0
-    sd: 1.0
+    mean: 7.92
+    sd: 2.5
     param_name: Hospitalisation to discharge standard deviation (days)
-    evidence: Pending
+    evidence: The interquartile range reported in the first systematic review above[@rees2020] was ten to 19 days, while the individual-level standard deviation identified in the later systematic review above[@alimohamadi2022] was 7.92 days.
 beta:
   cdr:
     alpha: 5.0
@@ -66,7 +66,7 @@ beta:
     param_name: Infection fatality proportion
     evidence: An analysis that integrated serosurveillance with age-specific death rates from 45 countries estimated an infection fatality rate of 0.79% (credible interval 0.68 to 0.92%) for the reference population of France, [@odriscoll2021] which would be expected to vary considerably by population age structure. Other groups have found similarly variable estimates using a combination of modelling and serosurvey results, including an overall IFR estimated at 0.49 to 2.53%.[@brazeau2022] Our prior estimate is relatively broadly distributed and so should be applicable to a range of higher income settings.
   cross_immunity:
-    alpha: 20.0
-    beta: 60.0
+    alpha: 10.0
+    beta: 10.0
     param_name: Cross immunity
-    evidence: Pending
+    evidence: A meta-analysis found that protection against re-infection declined with time and varied with the variant considered, but was estimated at 78.6% (95% uncertainty interval 49.8 to 93.6%).[@covidforecasting2023] Our previous analysis of Australia's epidemic rapid succession of Omicron waves found high levels of immune escape.[@trauer2024]
