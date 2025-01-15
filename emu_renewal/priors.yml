@@ -30,15 +30,15 @@ durations:
     param_name: Infection to death standard deviation (days)
     evidence: The meta-analysis of studies from China introduced above[@khalili2020] found a range of symptom to death delays of 13.07 to 18.79 days, while the study from China[@verity2020] reported a credible interval of 16.9 to 19.2 days and the study from Brazil an interquartile range of 12 to 23 days.[@sousa2020]
   admit_mean:
-    mean: 13.0
+    mean: 8.6
     sd: 3.0
     param_name: Infection to hospitalisation mean (days)
-    evidence: Pending
+    evidence: A study from Belgium reported the duration from symptom onset to hospitalisation to be 5.6 days (Table A.2 appears to provide the correct estimate).[@faes2020] Again, we inflated this for an incubation period of three days.
   admit_sd: 
-    mean: 6.0
-    sd: 1.0
+    mean: 5.0
+    sd: 2.0
     param_name: Infection to hospitalisation standard deviation (days)
-    evidence: Pending
+    evidence: The study from Belgium[@faes2020] above found considerable variation in the time to admission.
   stay_mean:
     mean: 14.5
     sd: 1.5
@@ -51,8 +51,8 @@ durations:
     evidence: Pending
 beta:
   cdr:
-    alpha: 50.0
-    beta: 100.0
+    alpha: 5.0
+    beta: 10.0
     param_name: Case detection proportion
     evidence: An early analysis from France of the proportion of cases detected estimated that 38% (95% confidence interval 35 to 44%) of cases were detected.[@pullano2020] This is consistent with our estimate that one in two to six cases were detected from the early stages of Australia's Omicron outbreak.[@trauer2024] Nevertheless, this quantity is difficult to determine with confidence and is likely highly context-dependent, hence our broad prior.
   har:

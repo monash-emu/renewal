@@ -1,10 +1,12 @@
 from pathlib import Path
 import numpy as np
+from numpyro import distributions as dist
 import pandas as pd
 import numpy as np
 from jax import jit
 from typing import List
-import arviz as az
+from plotly.subplots import make_subplots
+from plotly import graph_objects as go
 
 from estival.sampling.tools import SampleIterator
 
@@ -228,3 +230,13 @@ def get_table_df_from_priors_dict(priors_dict):
     priors_df.columns = priors_df.columns.str.capitalize()
     priors_df = priors_df.rename(columns={"Sd": "SD"})
     return priors_df
+
+
+def plot_beta_priors(input_priors):
+    priors = {k: dist.Beta(v["alpha"], v["beta"]) for k, v in input_priors.items()}
+    fig = make_subplots(rows=1, cols=4, subplot_titles=list(priors.keys()))
+    for i, distri in enumerate(priors.values()):
+        upper_lim = distri.icdf(0.999) if distri.icdf(0.999) < 0.3 else 1.0
+        x_vals = np.linspace(0.0, upper_lim, 100)
+        fig.add_trace(go.Scatter(x=x_vals, y=np.exp(distri.log_prob(x_vals))), row=1, col=i+1)
+    return fig.update_layout(showlegend=False).update_yaxes(tickvals=[])
