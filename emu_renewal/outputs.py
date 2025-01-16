@@ -254,6 +254,8 @@ def plot_progress_priors(priors):
         label = k.split("_")[0] if row == 0 else None
         axes[row].plot(x_vals, np.exp(v.log_prob(x_vals)), label=label)
     axes[0].set_title("Mean", size=12)
+    axes[0].set_yticks([])
     axes[1].set_title("SD", size=12)
+    axes[1].set_yticks([])
     fig.legend()
     return fig.tight_layout()
