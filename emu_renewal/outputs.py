@@ -244,3 +244,16 @@ def plot_beta_priors(all_priors):
         ax.set_title(dist_name, size=12)
         ax.set_yticks([])
     return fig.tight_layout()
+
+
+def plot_progress_priors(priors):
+    fig, axes = plt.subplots(2, 1)
+    x_vals = np.linspace(0.0, 30.0, 1000)
+    for k, v in priors.items():
+        row = 0 if "mean" in k else 1
+        label = k.split("_")[0] if row == 0 else None
+        axes[row].plot(x_vals, np.exp(v.log_prob(x_vals)), label=label)
+    axes[0].set_title("Mean", size=12)
+    axes[1].set_title("SD", size=12)
+    fig.legend()
+    return fig.tight_layout()
