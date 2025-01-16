@@ -6,6 +6,7 @@ import numpy as np
 from jax import jit
 from typing import List
 import matplotlib.pyplot as plt
+from datetime import timedelta
 
 from estival.sampling.tools import SampleIterator
 
@@ -263,8 +264,13 @@ def plot_progress_priors(priors, xmax, leg=True):
     return fig.tight_layout()
 
 
-def get_mutlianalysis_ind_spaghetti(country, indicator, analysis_times):
+def get_multianalysis_ind_spaghetti(country, indicator, analysis_times):
     out_dfs = [pd.read_hdf(get_output_dir(country, k, v) / "spaghetti.h5")[indicator] for k, v in analysis_times.items()]
+    return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
+
+
+def get_multianalysis_procvals(country, analysis_times):
+    out_dfs = [pd.read_hdf(get_output_dir(country, k, v) / "updates.h5") for k, v in analysis_times.items()]
     return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
 
 
@@ -274,3 +280,11 @@ def plot_process_comparison(spaghetti, analysis_names, colours, linewidth=0.2):
         plot_data = spaghetti[analysis]
         for line in plot_data.columns:
             ax.plot(spaghetti.index, plot_data[line], color=colours[i], linewidth=linewidth)
+
+
+def plot_updates_comparison(updates, analysis_times, colours, jitter_days=1.0):
+    fig, ax = plt.subplots(figsize=[9, 5])
+    for i, analysis in enumerate(analysis_times):
+        adj = jitter_days if i == 0 else -jitter_days
+        for run in updates[analysis].columns:
+            ax.scatter(updates.index + timedelta(adj), updates[analysis, run], color=colours[i], alpha=0.2)
