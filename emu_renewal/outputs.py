@@ -261,3 +261,16 @@ def plot_progress_priors(priors, xmax, leg=True):
     if leg:
         fig.legend()
     return fig.tight_layout()
+
+
+def get_mutlianalysis_ind_spaghetti(country, indicator, analysis_times):
+    out_dfs = [pd.read_hdf(get_output_dir(country, k, v) / "spaghetti.h5")[indicator] for k, v in analysis_times.items()]
+    return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
+
+
+def plot_process_comparison(spaghetti, analysis_names, colours, linewidth=0.2):
+    fig, ax = plt.subplots(figsize=[9, 5])
+    for i, analysis in enumerate(analysis_names):
+        plot_data = spaghetti[analysis]
+        for line in plot_data.columns:
+            ax.plot(spaghetti.index, plot_data[line], color=colours[i], linewidth=linewidth)
