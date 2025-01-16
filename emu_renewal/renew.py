@@ -520,12 +520,7 @@ class MultiStrainModel(RenewalHospModel):
         self.strain_map = get_combs(len(strains))
         self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
-        if mobility is None:
-            self.mobility = jnp.ones_like(self.model_times)
-        else:
-            mobility.index = self.epoch.dti_to_index(mobility.index)
-            self.mobility = jnp.array(mobility.loc[self.start :])
-
+        self.mobility = jnp.array(mobility.loc[start: ])
         no_seed = jnp.zeros([self.n_strains - 1, self.init_length])  # Zeros for the other strains
         init_seed = jnp.vstack([self.init_series, no_seed])  # Combine with seeding for first strain
         seed_vals = self.get_seeds(seed_times, seed_rate)  # Seeding during main period
