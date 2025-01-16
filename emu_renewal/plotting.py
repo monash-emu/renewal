@@ -9,6 +9,7 @@ from numpyro import distributions as dist
 from matplotlib import pyplot as plt
 from plotly.express.colors import qualitative as qual_colours
 from matplotlib.pyplot import cm
+from datetime import timedelta
 
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import map_dict
@@ -302,3 +303,49 @@ def plot_imm_props(
     spagh.columns = spagh.columns.swaplevel()
     runs = list(set(spagh.columns.get_level_values(0)))
     return spagh[choice(runs)].plot.area()
+
+
+def plot_process_comparison(spaghetti, analysis_names, colours, linewidth=0.2):
+    fig, ax = plt.subplots(figsize=[9, 5])
+    for i, analysis in enumerate(analysis_names):
+        plot_data = spaghetti[analysis]
+        for line in plot_data.columns:
+            ax.plot(spaghetti.index, plot_data[line], color=colours[i], linewidth=linewidth)
+
+
+def plot_updates_comparison(updates, analysis_times, colours, jitter_days=1.0):
+    fig, ax = plt.subplots(figsize=[9, 5])
+    for i, analysis in enumerate(analysis_times):
+        adj = jitter_days if i == 0 else -jitter_days
+        for run in updates[analysis].columns:
+            ax.scatter(updates.index + timedelta(adj), updates[analysis, run], color=colours[i], alpha=0.2)
+
+
+def plot_beta_priors(all_priors):
+    beta_priors = {v["param_name"]: dist.Beta(v["alpha"], v["beta"]) for v in all_priors["beta"].values()}
+    fig, axes = plt.subplots(2, 2)
+    for i, dist_name, distri in [[i, d[0], d[1]] for i, d in enumerate(beta_priors.items())]:
+        upper_lim = distri.icdf(0.999) if distri.icdf(0.999) < 0.3 else 1.0
+        x_vals = np.linspace(0.0, upper_lim, 100)
+        ax = axes.ravel()[i]
+        ax.plot(x_vals, np.exp(distri.log_prob(x_vals)))
+        ax.set_title(dist_name, size=12)
+        ax.set_yticks([])
+    return fig.tight_layout()
+
+
+def plot_progress_priors(priors, xmax, leg=True):
+    fig, axes = plt.subplots(2, 1)
+    x_vals = np.linspace(0.0, xmax, 1000)
+    for k, v in priors.items():
+        row = 0 if "mean" in k else 1
+        label = k.split("_")[0] if row == 0 else None
+        y_vals = np.exp(v.log_prob(x_vals))
+        axes[row].plot(x_vals, y_vals / max(y_vals), label=label)
+    axes[0].set_title("Mean", size=12)
+    axes[0].set_yticks([])
+    axes[1].set_title("SD", size=12)
+    axes[1].set_yticks([])
+    if leg:
+        fig.legend()
+    return fig.tight_layout()
