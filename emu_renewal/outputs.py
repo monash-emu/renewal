@@ -246,3 +246,22 @@ def get_multianalysis_procvals(country, analysis_times):
 def melt_df_except_first_level(df):
     cols = set(df.columns.get_level_values(0))
     return pd.concat([df[c].melt()["value"] for c in cols], axis=1, keys=cols)
+
+
+def get_multianalysis_procvals_from_idatas(idatas, ref_analysis="no_mob"):
+    n_proc_vals = idatas[ref_analysis].posterior["proc"].shape[-1]
+    n_chains = idatas[ref_analysis].posterior.chain.size
+    multianalysis_proc_df = pd.DataFrame(columns=pd.MultiIndex.from_product([idatas.keys(), range(n_proc_vals), range(n_chains)]))
+    for a in idatas.keys():
+        idata = idatas[a]
+        proc_vals = np.swapaxes(idata.posterior["proc"].to_numpy(), 0, 1)
+        multianalysis_proc_df[a] = get_df_from_3darray(proc_vals, [0, 2, 1])
+    return multianalysis_proc_df
+
+def get_multianalysis_dispvals_from_idatas(idatas, ref_analysis="no_mob"):
+    n_chains = idatas[ref_analysis].posterior.chain.size
+    multianalysis_disp_df = pd.DataFrame(columns=pd.MultiIndex.from_product([idatas.keys(), range(n_chains)]))
+    for a in idatas.keys():
+        idata = idatas[a]
+        multianalysis_disp_df[a] = pd.DataFrame(np.swapaxes(idata.posterior["dispersion_proc"].to_numpy(), 0, 1))
+    return multianalysis_disp_df
