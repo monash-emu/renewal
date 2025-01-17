@@ -258,6 +258,7 @@ def get_multianalysis_procvals_from_idatas(idatas, ref_analysis="no_mob"):
         multianalysis_proc_df[a] = get_df_from_3darray(proc_vals, [0, 2, 1])
     return multianalysis_proc_df
 
+
 def get_multianalysis_dispvals_from_idatas(idatas, ref_analysis="no_mob"):
     n_chains = idatas[ref_analysis].posterior.chain.size
     multianalysis_disp_df = pd.DataFrame(columns=pd.MultiIndex.from_product([idatas.keys(), range(n_chains)]))
