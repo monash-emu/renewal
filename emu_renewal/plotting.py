@@ -306,11 +306,13 @@ def plot_imm_props(
 
 
 def plot_process_comparison(spaghetti, analysis_names, colours, linewidth=0.2):
-    fig, ax = plt.subplots(figsize=[9, 5])
+    fig, ax = plt.subplots(figsize=[12, 8])
     for i, analysis in enumerate(analysis_names):
         plot_data = spaghetti[analysis]
-        for line in plot_data.columns:
-            ax.plot(spaghetti.index, plot_data[line], color=colours[i], linewidth=linewidth)
+        for l, line in enumerate(plot_data.columns):
+            label = analysis if l == 0 else ""
+            ax.plot(spaghetti.index, plot_data[line], color=colours[i], alpha=0.5, linewidth=linewidth, label=label)
+    return fig
 
 
 def plot_updates_comparison(updates, analysis_times, colours, jitter_days=1.0):
