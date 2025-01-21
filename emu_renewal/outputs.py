@@ -243,6 +243,11 @@ def get_multianalysis_procvals(country, analysis_times):
     return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
 
 
+def get_multianalysis_likelihoods(country, analysis_times):
+    out_dfs = [pd.read_hdf(get_output_dir(country, k, v) / "likelihood.h5") for k, v in analysis_times.items()]
+    return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
+
+
 def melt_df_except_first_level(df):
     cols = set(df.columns.get_level_values(0))
     return pd.concat([df[c].melt()["value"] for c in cols], axis=1, keys=cols)
