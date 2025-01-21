@@ -115,7 +115,7 @@ def extract_country_from_euro_pop(
         The country-specific data
     """
     iso2_code = pycountry.countries.get(name=country).alpha_2
-    pattern = re.compile(f"^{iso2_code}[A-Z0-9]:.+$")
+    pattern = re.compile(f"^{iso2_code}[A-Z0-9]{{1,3}}:.+$")
     pop_map = data[[i for i in data.index if pattern.match(i)]]
     pop_map.index = [i.split(":")[1] for i in pop_map.index]
     return pop_map
@@ -129,6 +129,11 @@ string_pairs = [
     ["'", "-"],
     [" — ", "-"],
     ["Ile de ", "-le-de-"],
+    ["ó", "-"],
+    ["í", "-"],
+    ["ñ", "-"],
+    ["è", "-"],
+    ["Comunitat", "Comunidad"]
 ]
 
 
@@ -145,7 +150,7 @@ def replace_chars_for_map(
         The adjusted region names
     """
     for pair in string_pairs:
-        region_names.str.replace(*pair)
+        region_names = region_names.str.replace(*pair)
     return region_names
 
 
