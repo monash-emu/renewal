@@ -133,7 +133,10 @@ string_pairs = [
     ["í", "-"],
     ["ñ", "-"],
     ["è", "-"],
-    ["Comunitat", "Comunidad"]
+    ["Comunitat", "Comunidad"],
+    ["Sicily", "Sicilia"],
+    ["Valle d-Aosta/Vall-e d-Aoste", "Valle d-Aosta"],
+    ["Apulia", "Puglia"],
 ]
 
 
