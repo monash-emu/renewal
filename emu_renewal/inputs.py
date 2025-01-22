@@ -2,6 +2,7 @@ import pandas as pd
 import re
 from pathlib import Path
 import pycountry
+from datetime import timedelta
 
 
 BASE_PATH = Path(__file__).parent.parent
@@ -23,6 +24,18 @@ def get_indicator_series_from_who_data(indicator, country):
     select_data = who_data.loc[who_data["Country"] == country]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format="%d/%m/%Y")
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
+
+
+def get_who_indicators(country, analysis_start, analysis_end, init_duration, init_smooth_period=7.0):
+    cases_data = get_indicator_series_from_who_data("New_cases", country)
+    deaths_data = get_indicator_series_from_who_data("New_deaths", country)
+    data_start = analysis_start + timedelta(14)
+    cases_target = cases_data.loc[data_start: analysis_end]
+    deaths_target = deaths_data.loc[data_start: analysis_end]
+    init_start = analysis_start - timedelta(init_duration)
+    init_end = analysis_start - timedelta(1)
+    init_data = cases_data.resample("D").asfreq().interpolate().loc[init_start: init_end] / init_smooth_period
+    return cases_target, deaths_target, init_data
 
 
 def get_multicountry_df_from_who_data(indicator, countries):
