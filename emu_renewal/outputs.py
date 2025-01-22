@@ -1,16 +1,19 @@
 from pathlib import Path
 import numpy as np
-from numpyro import distributions as dist
 import pandas as pd
-import numpy as np
 from jax import jit
 from typing import List
 import matplotlib.pyplot as plt
+import arviz as az
+import pickle
+from numpyro import infer
 
 from estival.sampling.tools import SampleIterator
+from estival.sampling import tools as esamp
 
 from emu_renewal.inputs import OUTPUTS_PATH
 from emu_renewal.calibration import StandardCalib
+from emu_renewal.renew import MultiStrainModel
 
 plt.style.use("ggplot")
 
@@ -271,3 +274,40 @@ def get_multianalysis_dispvals_from_idatas(idatas, ref_analysis="no_mob"):
         idata = idatas[a]
         multianalysis_disp_df[a] = pd.DataFrame(np.swapaxes(idata.posterior["dispersion_proc"].to_numpy(), 0, 1))
     return multianalysis_disp_df
+
+
+def store_outputs(
+    country: str, 
+    mob_analysis_type: str,
+    analysis_time: str,
+    model: MultiStrainModel,
+    calib: StandardCalib,
+    mcmc: infer.MCMC,
+    n_samples=50,
+):
+    """Store model and calibration characteristics and results in standard formats.
+
+    Args:
+        country: Name of the country of interest
+        mob_analysis_type: Mobility analysis type
+        analysis_time: Time that the calibration was started
+        model: Renewal model
+        calib: Calibration object
+        mcmc: MCMC object
+        n_samples: Number of samples to extract for spaghetti
+    """
+    out_dir = get_output_dir(country, mob_analysis_type, analysis_time)
+    idata = az.from_dict(mcmc.get_samples(True))
+    idata.to_netcdf(out_dir / "idata.nc")
+    idata_sampled = az.extract(idata, num_samples=n_samples)
+    sample_params = esamp.xarray_to_sampleiterator(idata_sampled)
+    spaghetti = get_spagh_df_from_dict(get_spaghetti(calib, sample_params))
+    spaghetti.to_hdf(out_dir / "spaghetti.h5", key="spaghetti")
+    updates = pd.DataFrame(sample_params.components["proc"], columns=model.epoch.index_to_dti(model.x_proc_vals)).T
+    updates.to_hdf(out_dir / "updates.h5", key="updates")
+    likelihood = pd.DataFrame(mcmc.get_extra_fields(True)["potential_energy"]).T
+    pickle.dump(calib.sampled_params, open(out_dir / "priors.pkl", "wb"))
+    likelihood.to_hdf(out_dir / "likelihood.h5", key="likelihood")
+    for t, target in calib.targets.items():
+        target.data.to_hdf(out_dir / f"target_{t}.h5", key=t)
+    pd.Series(model.mobility).to_hdf(out_dir / "mobility.h5", key="mobility")

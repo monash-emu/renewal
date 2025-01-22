@@ -4,6 +4,8 @@ from pathlib import Path
 import pycountry
 from typing import Tuple, List
 from datetime import datetime, timedelta
+import yaml as yml
+from numpyro import distributions as dist
 
 
 BASE_PATH = Path(__file__).parent.parent
@@ -39,7 +41,7 @@ def get_who_targets(
     but initialisation incidence is converted to daily.
 
     Args:
-        country: Name of the country to run
+        country: Name of the country of interest
         analysis_start: Start date of the analysis
         analysis_end: End date of the analysis
         init_duration: Duration of the initialisation period
@@ -71,7 +73,7 @@ def get_hosp_target(
     Series is converted from daily to weekly to harmonise with WHO targets.
 
     Args:
-        country: Name of the country to run
+        country: Name of the country of interest
         analysis_start: Start date of the analysis
         analysis_end: End date of the analysis
         analysis_to_data_delay: Time from starting the analysis to comparing against targets
@@ -144,6 +146,42 @@ def get_country_mobility(country):
     national_data = national_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)  # Simplify column naming
     national_data = 1.0 + national_data / 100.0  # Convert to relative change
     return national_data.sort_index()
+
+
+def get_google_mobility(
+    country: str,
+) -> pd.Series:
+    """Load previously saved Google mobility data for a requested country.
+
+    Args:
+        country: Name of the country of interest
+
+    Returns:
+        The data
+    """
+    iso2 = pycountry.countries.get(name=country).alpha_2
+    data = pd.read_csv(DATA_PATH / f"mobility/{iso2}_mob_data.csv", index_col=0)
+    data.index = pd.to_datetime(data.index)
+    return data
+
+
+def get_fb_mobility(
+    country: str,
+) -> pd.Series:
+    """Load previously saved Facebook mobility data for a requested country.
+    This was saved in raw form, which is proportional reduction, so add one.
+
+    Args:
+        country: Name of the country of interest
+
+    Returns:
+        The data
+    """
+    iso2 = pycountry.countries.get(name=country).alpha_2
+    fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso2}_fbmob_data.csv", index_col=0)["0"]
+    fb_mob = 1.0 + fb_mob.rolling(7).mean().dropna()
+    fb_mob.index = pd.to_datetime(fb_mob.index)
+    return fb_mob
 
 
 def get_all_seroprev(
@@ -288,3 +326,21 @@ def get_weighted_average_from_df(
         vals = data[val_col]
         return (vals * weights).sum() / weights.sum()
     return mob.groupby(mob.index).apply(weighted_average)
+
+
+def get_standard_priors():
+    loaded_priors = yml.safe_load(open(BASE_PATH / "emu_renewal/priors.yml", "r"))
+    duration_priors = {
+        k: dist.TruncatedNormal(v["mean"], v["sd"], low=1.0, high=v["mean"] * 2.5) 
+        for k, v in loaded_priors["durations"].items()
+    }
+    beta_priors = {
+        k: dist.Beta(v["alpha"], v["beta"]) 
+        for k, v in loaded_priors["beta"].items()
+    }
+    other_priors = {
+        "alpha_relinfect": dist.TruncatedNormal(1.25, 0.1, low=1.0, high=1.5),
+        "rt_init": dist.Normal(0.0, 0.5),
+        "shared_dispersion": dist.HalfNormal(0.5),
+    }
+    return duration_priors | beta_priors | other_priors
