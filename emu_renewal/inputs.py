@@ -2,7 +2,8 @@ import pandas as pd
 import re
 from pathlib import Path
 import pycountry
-from datetime import timedelta
+from typing import Tuple
+from datetime import datetime, timedelta
 
 
 BASE_PATH = Path(__file__).parent.parent
@@ -26,16 +27,61 @@ def get_indicator_series_from_who_data(indicator, country):
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
 
-def get_who_indicators(country, analysis_start, analysis_end, init_duration, init_smooth_period=7.0):
+def get_who_targets(
+    country: str, 
+    analysis_start: datetime,
+    analysis_end: datetime,
+    init_duration: int, 
+    analysis_to_data_delay: int,
+) -> Tuple[pd.Series]:
+    """Get all the WHO indicators relevant to the country of interest.
+    Indicators are reported weekly, targets remain weekly 
+    but initialisation incidence is converted to daily.
+
+    Args:
+        country: Name of the country to run
+        analysis_start: Start date of the analysis
+        analysis_end: End date of the analysis
+        init_duration: Duration of the initialisation period
+        analysis_to_data_delay: Time from starting the analysis to comparing against targets
+
+    Returns:
+        Cases target, deaths target, initialisation incidence values
+    """
     cases_data = get_indicator_series_from_who_data("New_cases", country)
     deaths_data = get_indicator_series_from_who_data("New_deaths", country)
-    data_start = analysis_start + timedelta(14)
+    data_start = analysis_start + timedelta(analysis_to_data_delay)
     cases_target = cases_data.loc[data_start: analysis_end]
     deaths_target = deaths_data.loc[data_start: analysis_end]
     init_start = analysis_start - timedelta(init_duration)
     init_end = analysis_start - timedelta(1)
+    init_smooth_period = 7.0  # To correct values after resampling from weekly to daily
     init_data = cases_data.resample("D").asfreq().interpolate().loc[init_start: init_end] / init_smooth_period
     return cases_target, deaths_target, init_data
+
+
+def get_hosp_target(
+    country: str, 
+    analysis_start: datetime,
+    analysis_end: datetime,
+    analysis_to_data_delay: int,
+) -> pd.Series:
+    """Get hospitalisation target, the data for which
+    comes from OWID because not available from WHO.
+    Series is converted from daily to weekly to harmonise with WHO targets.
+
+    Args:
+        country: Name of the country to run
+        analysis_start: Start date of the analysis
+        analysis_end: End date of the analysis
+        analysis_to_data_delay: Time from starting the analysis to comparing against targets
+
+    Returns:
+        Hospital occupancy target
+    """
+    data_start = analysis_start + timedelta(analysis_to_data_delay)
+    hosp_data = get_hosp_series_from_owid_data("Daily hospital occupancy", country)
+    return hosp_data[data_start: analysis_end: 7]
 
 
 def get_multicountry_df_from_who_data(indicator, countries):
