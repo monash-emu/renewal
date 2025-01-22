@@ -1,5 +1,8 @@
 import pandas as pd
+import re
 from pathlib import Path
+import pycountry
+
 
 BASE_PATH = Path(__file__).parent.parent
 OUTPUTS_PATH =  BASE_PATH / "outputs"
@@ -76,3 +79,101 @@ def filter_seroprev(data, country, start_date, end_date):
     type_filt = (data["subgroup_var"] == "Primary Estimate") & (data["is_unity_aligned"] == "Unity-Aligned")
     data = data.loc[time_filt & country_filt & nat_filt & type_filt]
     return data["serum_pos_prevalence"]
+
+
+def extract_country_from_fb_mobility(
+    data: pd.DataFrame, 
+    country: str,
+) -> pd.DataFrame:
+    """Extract the Facebook mobility data relevant
+    to a particular country from the raw data.
+
+    Args:
+        data: The raw Facebook mobility data (by subnational region)
+        country: The country of interest
+
+    Returns:
+        The country-specific data
+    """
+    iso3_code = pycountry.countries.get(name=country).alpha_3
+    country_data = data[data["country"] == iso3_code]
+    return country_data[country_data.notna()]
+
+
+def extract_country_from_euro_pop(
+    data: pd.Series, 
+    country: str,
+) -> pd.Series:
+    """Extract the region populations
+    for a particular country from the raw data.
+
+    Args:
+        data: The raw Estat data for subnational populations
+        country: The country of interest
+
+    Returns:
+        The country-specific data
+    """
+    iso2_code = pycountry.countries.get(name=country).alpha_2
+    pattern = re.compile(f"^{iso2_code}[A-Z0-9]{{1,3}}:.+$")
+    pop_map = data[[i for i in data.index if pattern.match(i)]]
+    pop_map.index = [i.split(":")[1] for i in pop_map.index]
+    return pop_map
+
+
+string_pairs = [
+    ["Î", "-"],
+    ["ô", "-"],
+    ["é", "-"],
+    ["’", "-"],
+    ["'", "-"],
+    [" — ", "-"],
+    ["Ile de ", "-le-de-"],
+    ["ó", "-"],
+    ["í", "-"],
+    ["ñ", "-"],
+    ["è", "-"],
+    ["Comunitat", "Comunidad"],
+    ["Sicily", "Sicilia"],
+    ["Valle d-Aosta/Vall-e d-Aoste", "Valle d-Aosta"],
+    ["Apulia", "Puglia"],
+]
+
+
+def replace_chars_for_map(
+    region_names: pd.Series,
+) -> pd.Series:
+    """Adjust subnational regional strings
+    to be easier to match.
+
+    Args:
+        region_data: The unadjusted region names
+
+    Returns:
+        The adjusted region names
+    """
+    for pair in string_pairs:
+        region_names = region_names.str.replace(*pair)
+    return region_names
+
+
+def get_weighted_average_from_df(
+    mob: pd.DataFrame,
+    val_col: str,
+    weight_col: str,
+) -> pd.Series:
+    """Calculate a weighted average using 
+    two columns of a dataframe.
+
+    Args:
+        val_col: Name of the column with the data
+        weight_col: Name of the column with the weights
+
+    Returns:
+        The weighted averages
+    """
+    def weighted_average(data):
+        weights = data[weight_col]
+        vals = data[val_col]
+        return (vals * weights).sum() / weights.sum()
+    return mob.groupby(mob.index).apply(weighted_average)

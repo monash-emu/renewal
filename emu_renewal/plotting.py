@@ -306,11 +306,13 @@ def plot_imm_props(
 
 
 def plot_process_comparison(spaghetti, analysis_names, colours, linewidth=0.2):
-    fig, ax = plt.subplots(figsize=[9, 5])
+    fig, ax = plt.subplots(figsize=[12, 8])
     for i, analysis in enumerate(analysis_names):
         plot_data = spaghetti[analysis]
-        for line in plot_data.columns:
-            ax.plot(spaghetti.index, plot_data[line], color=colours[i], linewidth=linewidth)
+        for l, line in enumerate(plot_data.columns):
+            label = analysis if l == 0 else ""
+            ax.plot(spaghetti.index, plot_data[line], color=colours[i], alpha=0.5, linewidth=linewidth, label=label)
+    return fig
 
 
 def plot_updates_comparison(updates, analysis_times, colours, jitter_days=1.0):
@@ -351,12 +353,12 @@ def plot_progress_priors(priors, xmax, leg=True):
     return fig.tight_layout()
 
 
-def plot_mob_update_comparison(idatas, xlim):
+def plot_mob_update_comparison(idatas, xlim, fig_height=8):
     az_plots = {}
     for k, idata in idatas.items():
         az_plots[k] = az.plot_posterior(idata, var_names=["proc"])
         plt.close()
-    fig, axes = plt.subplots(len(idatas), 1, figsize=(10, 8), sharex=True)
+    fig, axes = plt.subplots(len(idatas), 1, figsize=(10, fig_height), sharex=True)
     n_proc_vals = idatas["no_mob"].posterior["proc"]["proc_dim_0"].shape[0]
     colours = cm.rainbow(np.linspace(0.0, 1.0, n_proc_vals))
     for an, analysis in enumerate(idatas):
@@ -365,5 +367,6 @@ def plot_mob_update_comparison(idatas, xlim):
             axes[an].plot(line.get_xdata(), line.get_ydata(), color=colours[a], linewidth=0.4)
             axes[an].set_title(analysis)
         axes[an].set_xlim([-xlim, xlim])
+    fig.tight_layout()
     plt.close()
     return fig
