@@ -159,6 +159,20 @@ def get_multivars_country_data(
     return pd.DataFrame({k: get_var_country_data(v, country) for k, v in var_map.items()})
 
 
+def get_row_proportions(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Normalise the rows of a dataframe over its columns.
+
+    Args:
+        df: The input dataframe containing numeric values
+
+    Returns:
+        The result
+    """
+    return df.divide(df.sum(axis=1), axis=0).fillna(0.0)
+
+
 def get_european_var_props(
     country: str,
     start_date: datetime,
@@ -183,24 +197,10 @@ def get_european_var_props(
     return select_props.loc[(start_date < select_data.index) & (select_data.index < end_date), "eu"]
 
 
-def get_row_proportions(
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Normalise the rows of a dataframe over its columns.
-
-    Args:
-        df: The input dataframe containing numeric values
-
-    Returns:
-        The result
-    """
-    return df.divide(df.sum(axis=1), axis=0).fillna(0.0)
-
-
-def get_country_mobility(
+def process_raw_google_mobility(
     country: str,
 ) -> pd.DataFrame:
-    """_summary_
+    """Load raw Google mobility data and process for storing.
 
     Args:
         country: Name of country of interest
@@ -237,7 +237,7 @@ def get_google_mobility(
     return data
 
 
-def get_fb_mobility(
+def process_raw_fb_mobility(
     country: str,
 ) -> pd.Series:
     """Load previously saved Facebook mobility data for a requested country.
@@ -260,7 +260,8 @@ def get_all_seroprev(
     lag: int=14,
 ) -> pd.Series:
     """Get all the seroprevalence data,
-    including lagging by 14 days.
+    including calculating midpoint for survey date 
+    and lagging by 14 days.
 
     Args:
         lag: Days to lag for antibody development
