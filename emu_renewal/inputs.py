@@ -2,7 +2,7 @@ import pandas as pd
 import re
 from pathlib import Path
 import pycountry
-from typing import Tuple
+from typing import Tuple, List
 from datetime import datetime, timedelta
 
 
@@ -84,6 +84,30 @@ def get_hosp_target(
     return hosp_data[data_start: analysis_end: 7]
 
 
+def get_european_var_props(
+    country: str,
+    start_date: datetime,
+    end_date: datetime,
+    var_names: List[str],
+) -> pd.Series:
+    """Get the variant proportions applicable to the early waves 
+    of the European epidemics.
+
+    Args:
+        country: Name of the country of interest
+        start_date: Start date for variant proportion comparisons
+        end_date: End date for variant proportion comparisons
+
+    Returns:
+        Variant proportions data
+    """
+    data = get_multivars_country_data(VAR_MAP, country)
+    data["eu"] = data["eu1"] + data["eu2"]
+    select_data = data[var_names]
+    select_props = get_row_proportions(select_data)
+    return select_props.loc[(start_date < select_data.index) & (select_data.index < end_date), "eu"]
+
+
 def get_multicountry_df_from_who_data(indicator, countries):
     data_dict = {i: get_indicator_series_from_who_data(indicator, i) for i in countries}
     return pd.DataFrame(data_dict)
@@ -122,18 +146,46 @@ def get_country_mobility(country):
     return national_data.sort_index()
 
 
-def get_seroprev():
-    data = pd.read_csv(DATA_PATH / "seroprevalence" / "serotracker.csv")
+def get_all_seroprev(
+    lag: int=14,
+) -> pd.Series:
+    """Get all the seroprevalence data,
+    including lagging by 14 days.
+
+    Args:
+        lag: Days to lag for antibody development
+
+    Returns:
+        All SeroTracker data
+    """
+    data = pd.read_csv(DATA_PATH / "seroprevalence/serotracker.csv")
     data["start"] = pd.to_datetime(data["sampling_start_date"])
     data["end"] = pd.to_datetime(data["sampling_end_date"])
-    data.index = (data["end"] - data["start"]) / 2 + data["start"]
+    data.index = (data["end"] - data["start"]) / 2 + data["start"] - timedelta(lag)
     data.index = data.index.normalize()
     return data.sort_index()
 
 
-def filter_seroprev(data, country, start_date, end_date):
+def get_filtered_seroprev(
+    country: str,
+    start: datetime,
+    end: datetime,
+) -> pd.Series:
+    """Filter the SeroTracker data according
+    to our choices about what constitutes good
+    enough data for including in the calibration targets.
+
+    Args:
+        country: Name of the country of interest
+        start: Start date of analysis
+        end: End date of analysis
+
+    Returns:
+        Filtered data to use as target
+    """
+    data = get_all_seroprev()
     country_filt = data["country"] == country
-    time_filt = (start_date < data.index) & (data.index < end_date)
+    time_filt = (start < data.index) & (data.index < end)
     nat_filt = data["estimate_grade"] == "National"
     type_filt = (data["subgroup_var"] == "Primary Estimate") & (data["is_unity_aligned"] == "Unity-Aligned")
     data = data.loc[time_filt & country_filt & nat_filt & type_filt]
@@ -149,7 +201,7 @@ def extract_country_from_fb_mobility(
 
     Args:
         data: The raw Facebook mobility data (by subnational region)
-        country: The country of interest
+        country: Name of the country of interest
 
     Returns:
         The country-specific data
@@ -168,7 +220,7 @@ def extract_country_from_euro_pop(
 
     Args:
         data: The raw Estat data for subnational populations
-        country: The country of interest
+        country: Name of the country of interest
 
     Returns:
         The country-specific data
