@@ -2,7 +2,7 @@ import pandas as pd
 import re
 from pathlib import Path
 import pycountry
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 from datetime import datetime, timedelta
 import yaml as yml
 from numpyro import distributions as dist
@@ -22,7 +22,19 @@ VAR_MAP = {
 }
 
 
-def get_indicator_series_from_who_data(indicator, country):
+def get_indicator_series_from_who_data(
+    indicator: str, 
+    country: str,
+) -> pd.Series:
+    """Get WHO estimates for single indicator from the original raw data.
+
+    Args:
+        indicator: Name of the indicator
+        country: Name of the country
+
+    Returns:
+        The data
+    """
     who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
     select_data = who_data.loc[who_data["Country"] == country]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format="%d/%m/%Y")
@@ -62,6 +74,32 @@ def get_who_targets(
     return cases_target, deaths_target, init_data
 
 
+def get_multicountry_df_from_who_data(indicator, countries):
+    """May delete later - only used for Australia analyses"""
+    data_dict = {i: get_indicator_series_from_who_data(indicator, i) for i in countries}
+    return pd.DataFrame(data_dict)
+
+
+def get_hosp_series_from_owid_data(
+    indicator: str, 
+    country: str,
+) -> pd.Series:
+    """Get OWID hospitalisation-related estimates for single indicator 
+    from the original raw data.
+
+    Args:
+        indicator: Name of the indicator
+        country: Name of the country
+
+    Returns:
+        The data
+    """
+    hosp = pd.read_csv(DATA_PATH / "owid/owid_hosp.csv", index_col="date")
+    hosp.index = pd.to_datetime(hosp.index)
+    data = hosp[hosp["entity"] == country]
+    return data.loc[data["indicator"] == indicator, "value"]
+
+
 def get_hosp_target(
     country: str, 
     analysis_start: datetime,
@@ -84,6 +122,41 @@ def get_hosp_target(
     data_start = analysis_start + timedelta(analysis_to_data_delay)
     hosp_data = get_hosp_series_from_owid_data("Daily hospital occupancy", country)
     return hosp_data[data_start: analysis_end: 7]
+
+
+def get_var_country_data(
+    var: str,
+    country: str,
+) -> pd.Series:
+    """Get data for the number of isolates attributable to
+    a particular variant in a certain country.
+
+    Args:
+        var: Nextclade name for the variant
+        country: Name of the country
+
+    Returns:
+        The data
+    """
+    data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[country]
+    dates = pd.to_datetime(data["week"])
+    return pd.Series(data["cluster_sequences"], index=dates)
+
+
+def get_multivars_country_data(
+    var_map: Dict[str, str],
+    country: str,
+) -> pd.DataFrame:
+    """Get data for multiple variants.
+
+    Args:
+        var_map: Mapping from our names for the variants to Nextclade
+        country: Name of the country
+
+    Returns:
+        The data
+    """
+    return pd.DataFrame({k: get_var_country_data(v, country) for k, v in var_map.items()})
 
 
 def get_european_var_props(
@@ -110,35 +183,34 @@ def get_european_var_props(
     return select_props.loc[(start_date < select_data.index) & (select_data.index < end_date), "eu"]
 
 
-def get_multicountry_df_from_who_data(indicator, countries):
-    data_dict = {i: get_indicator_series_from_who_data(indicator, i) for i in countries}
-    return pd.DataFrame(data_dict)
+def get_row_proportions(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Normalise the rows of a dataframe over its columns.
 
+    Args:
+        df: The input dataframe containing numeric values
 
-def get_hosp_series_from_owid_data(indicator, country):
-    hosp = pd.read_csv(DATA_PATH / "owid/owid_hosp.csv", index_col="date")
-    hosp.index = pd.to_datetime(hosp.index)
-    data = hosp[hosp["entity"] == country]
-    return data.loc[data["indicator"] == indicator, "value"]
-
-
-def get_var_country_data(var, country):
-    data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[country]
-    dates = pd.to_datetime(data["week"])
-    return pd.Series(data["cluster_sequences"], index=dates)
-
-
-def get_multivars_country_data(var_map, country):
-    return pd.DataFrame({k: get_var_country_data(v, country) for k, v in var_map.items()})
-
-
-def get_row_proportions(df):
+    Returns:
+        The result
+    """
     return df.divide(df.sum(axis=1), axis=0).fillna(0.0)
 
 
-def get_country_mobility(country):
+def get_country_mobility(
+    country: str,
+) -> pd.DataFrame:
+    """_summary_
+
+    Args:
+        country: Name of country of interest
+
+    Returns:
+        The data
+    """
     years = range(2020, 2023)
-    data_files = [pd.read_csv(RAW_MOB_PATH / f"{y}_{country}_Region_Mobility_Report.csv", index_col="date") for y in years]
+    iso2 = pycountry.countries.get(name=country).alpha_2
+    data_files = [pd.read_csv(RAW_MOB_PATH / f"{y}_{iso2}_Region_Mobility_Report.csv", index_col="date") for y in years]
     all_data = pd.concat(data_files)
     all_data.index = pd.to_datetime(all_data.index)
     national_data = all_data.loc[pd.isna(all_data["sub_region_1"])]
@@ -328,7 +400,13 @@ def get_weighted_average_from_df(
     return mob.groupby(mob.index).apply(weighted_average)
 
 
-def get_standard_priors():
+def get_standard_priors() -> Dict[str, dist.Distribution]:
+    """Load the priors from the yml and combine with 
+    standard hard-coded priors.
+
+    Returns:
+        The prior distributions        
+    """
     loaded_priors = yml.safe_load(open(BASE_PATH / "emu_renewal/priors.yml", "r"))
     duration_priors = {
         k: dist.TruncatedNormal(v["mean"], v["sd"], low=1.0, high=v["mean"] * 2.5) 
