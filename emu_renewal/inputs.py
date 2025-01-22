@@ -232,7 +232,7 @@ def get_google_mobility(
         The data
     """
     iso2 = pycountry.countries.get(name=country).alpha_2
-    data = pd.read_csv(DATA_PATH / f"mobility/{iso2}_mob_data.csv", index_col=0)
+    data = pd.read_csv(DATA_PATH / f"mobility/{iso2}_gmob_data.csv", index_col=0)
     data.index = pd.to_datetime(data.index)
     return data
 
