@@ -275,7 +275,18 @@ def get_multianalysis_likelihoods(country, analysis_times):
     return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
 
 
-def melt_df_except_first_level(df):
+def melt_df_except_first_level(
+    df: pd.DataFrame
+) -> pd.DataFrame:
+    """Melt (convert to long format)
+    a multiindex dataframe retaining the first level.
+
+    Args:
+        df: The dataframe for conversion
+
+    Returns:
+        The melted dataframe
+    """
     cols = set(df.columns.get_level_values(0))
     return pd.concat([df[c].melt()["value"] for c in cols], axis=1, keys=cols)
 
