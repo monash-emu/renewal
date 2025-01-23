@@ -2,7 +2,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from jax import jit
-from typing import List
+from typing import List, Dict
 import matplotlib.pyplot as plt
 import arviz as az
 import pickle
@@ -198,12 +198,11 @@ def get_output_dir(
     analysis: str, 
     time: str,
 ) -> Path:
-    """Get path for outputs from a run
-    and ensure directory exists
+    """Get path for outputs from a run and ensure directory exists.
 
     Args:
         country: Country name
-        analysis: Analysis type (mob or non_mob)
+        analysis: Mobility analysis approach
         time: Time that analysis was run
 
     Returns:
@@ -214,7 +213,21 @@ def get_output_dir(
     return path
 
 
-def load_targets(country, analysis, time):
+def load_targets(
+    country: str,
+    analysis: str,
+    time: str,
+) -> Dict[str, pd.Series]:
+    """Load previously saved data for calibration targets.
+
+    Args:
+        country: Name of the country of interest
+        analysis: Mobility analysis approach
+        time: Date and time that analysis was run
+
+    Returns:
+        The targets' data
+    """
     targets = {}
     targ_key = "target_"
     outputs_path = get_output_dir(country, analysis, time)
@@ -227,8 +240,19 @@ def load_targets(country, analysis, time):
     return targets
 
 
-def get_table_df_from_priors_dict(priors_dict):
-    priors_df = priors_dict.T
+def get_table_df_from_priors_dict(
+    priors_dict: pd.DataFrame,
+) -> pd.DataFrame:
+    """Convert format of priors from raw format
+    to format prepared for visualising with Quarto.
+
+    Args:
+        priors_dict: Priors in raw format
+
+    Returns:
+        The priors in the revised format
+    """
+    priors_df = pd.DataFrame.from_dict(priors_dict).T
     priors_df = priors_df.set_index("param_name")
     priors_df.index.name = None
     priors_df.columns = priors_df.columns.str.capitalize()
