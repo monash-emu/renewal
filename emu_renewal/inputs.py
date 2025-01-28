@@ -220,42 +220,6 @@ def process_raw_google_mobility(
     return national_data.sort_index()
 
 
-def get_google_mobility(
-    country: str,
-) -> pd.Series:
-    """Load previously saved Google mobility data for a requested country.
-
-    Args:
-        country: Name of the country of interest
-
-    Returns:
-        The data
-    """
-    iso2 = pycountry.countries.get(name=country).alpha_2
-    data = pd.read_csv(DATA_PATH / f"mobility/{iso2}_gmob_data.csv", index_col=0)
-    data.index = pd.to_datetime(data.index)
-    return data
-
-
-def process_raw_fb_mobility(
-    country: str,
-) -> pd.Series:
-    """Load previously saved Facebook mobility data for a requested country.
-    This was saved in raw form, which is proportional reduction, so add one.
-
-    Args:
-        country: Name of the country of interest
-
-    Returns:
-        The data
-    """
-    iso2 = pycountry.countries.get(name=country).alpha_2
-    fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso2}_fbmob_data.csv", index_col=0)["0"]
-    fb_mob = 1.0 + fb_mob.rolling(7).mean().dropna()
-    fb_mob.index = pd.to_datetime(fb_mob.index)
-    return fb_mob
-
-
 def get_all_seroprev(
     lag: int=14,
 ) -> pd.Series:
