@@ -325,3 +325,24 @@ def get_standard_priors() -> Dict[str, dist.Distribution]:
         "shared_dispersion": dist.HalfNormal(0.5),
     }
     return duration_priors | beta_priors | other_priors
+
+
+def get_worldbank_national_pop(
+    iso3,
+) -> float:
+    """Read population data downloaded from the World Bank
+    at https://databank.worldbank.org/source/population-estimates-and-projections#
+    on 28th January 2025 and return population size in 2020
+    for country of interest.
+
+    Args:
+        iso3: ISO3 code for country
+
+    Returns:
+        Population data by country ISO3 code
+    """
+    path = DATA_PATH / "population/6f450edc-f8ef-4d8c-bb2b-dbb1864d88c8_Data.csv"
+    dtype = {"2020 [YR2020]": float}
+    col = "Country Code"
+    data = pd.read_csv(path, index_col=col, na_values=['..'], dtype=dtype)["2020 [YR2020]"].dropna()
+    return data[iso3]
