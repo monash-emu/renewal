@@ -1,272 +1,223 @@
-Country Name,Country Code,Series Name,Series Code,2020 [YR2020]
-Afghanistan,AFG,"Population, total",SP.POP.TOTL,39068979
-Africa Eastern and Southern,AFE,"Population, total",SP.POP.TOTL,694446100
-Africa Western and Central,AFW,"Population, total",SP.POP.TOTL,474569351
-Albania,ALB,"Population, total",SP.POP.TOTL,2837849
-Algeria,DZA,"Population, total",SP.POP.TOTL,44042091
-American Samoa,ASM,"Population, total",SP.POP.TOTL,49761
-Andorra,AND,"Population, total",SP.POP.TOTL,77380
-Angola,AGO,"Population, total",SP.POP.TOTL,33451132
-Antigua and Barbuda,ATG,"Population, total",SP.POP.TOTL,91846
-Arab World,ARB,"Population, total",SP.POP.TOTL,453723239
-Argentina,ARG,"Population, total",SP.POP.TOTL,45191965
-Armenia,ARM,"Population, total",SP.POP.TOTL,2961500
-Aruba,ABW,"Population, total",SP.POP.TOTL,108587
-Australia,AUS,"Population, total",SP.POP.TOTL,25649248
-Austria,AUT,"Population, total",SP.POP.TOTL,8916864
-Azerbaijan,AZE,"Population, total",SP.POP.TOTL,10093121
-"Bahamas, The",BHS,"Population, total",SP.POP.TOTL,395863
-Bahrain,BHR,"Population, total",SP.POP.TOTL,1472204
-Bangladesh,BGD,"Population, total",SP.POP.TOTL,166298024
-Barbados,BRB,"Population, total",SP.POP.TOTL,281698
-Belarus,BLR,"Population, total",SP.POP.TOTL,9379952
-Belgium,BEL,"Population, total",SP.POP.TOTL,11538604
-Belize,BLZ,"Population, total",SP.POP.TOTL,390812
-Benin,BEN,"Population, total",SP.POP.TOTL,13070169
-Bermuda,BMU,"Population, total",SP.POP.TOTL,64382
-Bhutan,BTN,"Population, total",SP.POP.TOTL,770006
-Bolivia,BOL,"Population, total",SP.POP.TOTL,11816299
-Bosnia and Herzegovina,BIH,"Population, total",SP.POP.TOTL,3299349
-Botswana,BWA,"Population, total",SP.POP.TOTL,2365894
-Brazil,BRA,"Population, total",SP.POP.TOTL,208660842
-British Virgin Islands,VGB,"Population, total",SP.POP.TOTL,37135
-Brunei Darussalam,BRN,"Population, total",SP.POP.TOTL,447404
-Bulgaria,BGR,"Population, total",SP.POP.TOTL,6934015
-Burkina Faso,BFA,"Population, total",SP.POP.TOTL,21478690
-Burundi,BDI,"Population, total",SP.POP.TOTL,12617036
-Cabo Verde,CPV,"Population, total",SP.POP.TOTL,514679
-Cambodia,KHM,"Population, total",SP.POP.TOTL,16725474
-Cameroon,CMR,"Population, total",SP.POP.TOTL,26210558
-Canada,CAN,"Population, total",SP.POP.TOTL,38028638
-Caribbean small states,CSS,"Population, total",SP.POP.TOTL,3092577
-Cayman Islands,CYM,"Population, total",SP.POP.TOTL,68684
-Central African Republic,CAF,"Population, total",SP.POP.TOTL,5026628
-Central Europe and the Baltics,CEB,"Population, total",SP.POP.TOTL,102046650
-Chad,TCD,"Population, total",SP.POP.TOTL,17224679
-Channel Islands,CHI,"Population, total",SP.POP.TOTL,166235
-Chile,CHL,"Population, total",SP.POP.TOTL,19370624
-China,CHN,"Population, total",SP.POP.TOTL,1411100000
-Colombia,COL,"Population, total",SP.POP.TOTL,50629997
-Comoros,COM,"Population, total",SP.POP.TOTL,802163
-"Congo, Dem. Rep.",COD,"Population, total",SP.POP.TOTL,95989998
-"Congo, Rep.",COG,"Population, total",SP.POP.TOTL,5752791
-Costa Rica,CRI,"Population, total",SP.POP.TOTL,5034320
-Cote d'Ivoire,CIV,"Population, total",SP.POP.TOTL,28915449
-Croatia,HRV,"Population, total",SP.POP.TOTL,3914206
-Cuba,CUB,"Population, total",SP.POP.TOTL,11176354
-Curacao,CUW,"Population, total",SP.POP.TOTL,154947
-Cyprus,CYP,"Population, total",SP.POP.TOTL,1302247
-Czechia,CZE,"Population, total",SP.POP.TOTL,10697858
-Denmark,DNK,"Population, total",SP.POP.TOTL,5831404
-Djibouti,DJI,"Population, total",SP.POP.TOTL,1105188
-Dominica,DMA,"Population, total",SP.POP.TOTL,67573
-Dominican Republic,DOM,"Population, total",SP.POP.TOTL,11008300
-Early-demographic dividend,EAR,"Population, total",SP.POP.TOTL,3396051187
-East Asia & Pacific,EAS,"Population, total",SP.POP.TOTL,2369438682
-East Asia & Pacific (excluding high income),EAP,"Population, total",SP.POP.TOTL,2121866294
-East Asia & Pacific (IDA & IBRD countries),TEA,"Population, total",SP.POP.TOTL,2095759417
-Ecuador,ECU,"Population, total",SP.POP.TOTL,17546065
-"Egypt, Arab Rep.",EGY,"Population, total",SP.POP.TOTL,109315124
-El Salvador,SLV,"Population, total",SP.POP.TOTL,6234673
-Equatorial Guinea,GNQ,"Population, total",SP.POP.TOTL,1716468
-Eritrea,ERI,"Population, total",SP.POP.TOTL,3291271
-Estonia,EST,"Population, total",SP.POP.TOTL,1329522
-Eswatini,SWZ,"Population, total",SP.POP.TOTL,1192729
-Ethiopia,ETH,"Population, total",SP.POP.TOTL,118917671
-Euro area,EMU,"Population, total",SP.POP.TOTL,346922366
-Europe & Central Asia,ECS,"Population, total",SP.POP.TOTL,925088545.5
-Europe & Central Asia (excluding high income),ECA,"Population, total",SP.POP.TOTL,250655325.5
-Europe & Central Asia (IDA & IBRD countries),TEC,"Population, total",SP.POP.TOTL,463913014.5
-European Union,EUU,"Population, total",SP.POP.TOTL,447653554
-Faroe Islands,FRO,"Population, total",SP.POP.TOTL,52571
-Fiji,FJI,"Population, total",SP.POP.TOTL,914963
-Finland,FIN,"Population, total",SP.POP.TOTL,5529543
-Fragile and conflict affected situations,FCS,"Population, total",SP.POP.TOTL,996691242
-France,FRA,"Population, total",SP.POP.TOTL,67601110
-French Polynesia,PYF,"Population, total",SP.POP.TOTL,279209
-Gabon,GAB,"Population, total",SP.POP.TOTL,2322539
-"Gambia, The",GMB,"Population, total",SP.POP.TOTL,2515733
-Georgia,GEO,"Population, total",SP.POP.TOTL,3722716
-Germany,DEU,"Population, total",SP.POP.TOTL,83160871
-Ghana,GHA,"Population, total",SP.POP.TOTL,31887809
-Gibraltar,GIB,"Population, total",SP.POP.TOTL,36173
-Greece,GRC,"Population, total",SP.POP.TOTL,10698599
-Greenland,GRL,"Population, total",SP.POP.TOTL,56367
-Grenada,GRD,"Population, total",SP.POP.TOTL,116341
-Guam,GUM,"Population, total",SP.POP.TOTL,162158
-Guatemala,GTM,"Population, total",SP.POP.TOTL,17357325
-Guinea,GIN,"Population, total",SP.POP.TOTL,13371183
-Guinea-Bissau,GNB,"Population, total",SP.POP.TOTL,2013255
-Guyana,GUY,"Population, total",SP.POP.TOTL,807481
-Haiti,HTI,"Population, total",SP.POP.TOTL,11243848
-Heavily indebted poor countries (HIPC),HPC,"Population, total",SP.POP.TOTL,847743308
-High income,HIC,"Population, total",SP.POP.TOTL,1389524835
-Honduras,HND,"Population, total",SP.POP.TOTL,10119640
-"Hong Kong SAR, China",HKG,"Population, total",SP.POP.TOTL,7481000
-Hungary,HUN,"Population, total",SP.POP.TOTL,9750149
-IBRD only,IBD,"Population, total",SP.POP.TOTL,..
-Iceland,ISL,"Population, total",SP.POP.TOTL,366463
-IDA & IBRD total,IBT,"Population, total",SP.POP.TOTL,6667541078.5
-IDA blend,IDB,"Population, total",SP.POP.TOTL,..
-IDA only,IDX,"Population, total",SP.POP.TOTL,..
-IDA total,IDA,"Population, total",SP.POP.TOTL,..
-India,IND,"Population, total",SP.POP.TOTL,1402617695
-Indonesia,IDN,"Population, total",SP.POP.TOTL,274814866
-"Iran, Islamic Rep.",IRN,"Population, total",SP.POP.TOTL,87723443
-Iraq,IRQ,"Population, total",SP.POP.TOTL,42116605
-Ireland,IRL,"Population, total",SP.POP.TOTL,4985382
-Isle of Man,IMN,"Population, total",SP.POP.TOTL,84064
-Israel,ISR,"Population, total",SP.POP.TOTL,9215100
-Italy,ITA,"Population, total",SP.POP.TOTL,59438851
-Jamaica,JAM,"Population, total",SP.POP.TOTL,2830739
-Japan,JPN,"Population, total",SP.POP.TOTL,126261000
-Jordan,JOR,"Population, total",SP.POP.TOTL,10865228
-Kazakhstan,KAZ,"Population, total",SP.POP.TOTL,19482117
-Kenya,KEN,"Population, total",SP.POP.TOTL,52217334
-Kiribati,KIR,"Population, total",SP.POP.TOTL,126099
-"Korea, Dem. People's Rep.",PRK,"Population, total",SP.POP.TOTL,26136312
-"Korea, Rep.",KOR,"Population, total",SP.POP.TOTL,51836239
-Kosovo,XKX,"Population, total",SP.POP.TOTL,1790152
-Kuwait,KWT,"Population, total",SP.POP.TOTL,4400267
-Kyrgyz Republic,KGZ,"Population, total",SP.POP.TOTL,6726595.5
-Lao PDR,LAO,"Population, total",SP.POP.TOTL,7346533
-Late-demographic dividend,LTE,"Population, total",SP.POP.TOTL,2316785459.5
-Latin America & Caribbean,LCN,"Population, total",SP.POP.TOTL,645497618
-Latin America & Caribbean (excluding high income),LAC,"Population, total",SP.POP.TOTL,583125825
-Latin America & the Caribbean (IDA & IBRD countries),TLA,"Population, total",SP.POP.TOTL,630051021
-Latvia,LVA,"Population, total",SP.POP.TOTL,1900449
-Least developed countries: UN classification,LDC,"Population, total",SP.POP.TOTL,1083853567
-Lebanon,LBN,"Population, total",SP.POP.TOTL,5702398
-Lesotho,LSO,"Population, total",SP.POP.TOTL,2235727
-Liberia,LBR,"Population, total",SP.POP.TOTL,5149463
-Libya,LBY,"Population, total",SP.POP.TOTL,7045399
-Liechtenstein,LIE,"Population, total",SP.POP.TOTL,38901
-Lithuania,LTU,"Population, total",SP.POP.TOTL,2794885
-Low & middle income,LMY,"Population, total",SP.POP.TOTL,6438169877.5
-Low income,LIC,"Population, total",SP.POP.TOTL,679560744
-Lower middle income,LMC,"Population, total",SP.POP.TOTL,2966396716.5
-Luxembourg,LUX,"Population, total",SP.POP.TOTL,630419
-"Macao SAR, China",MAC,"Population, total",SP.POP.TOTL,685400
-Madagascar,MDG,"Population, total",SP.POP.TOTL,28953556
-Malawi,MWI,"Population, total",SP.POP.TOTL,19533888
-Malaysia,MYS,"Population, total",SP.POP.TOTL,33889558
-Maldives,MDV,"Population, total",SP.POP.TOTL,502118
-Mali,MLI,"Population, total",SP.POP.TOTL,21713836
-Malta,MLT,"Population, total",SP.POP.TOTL,515332
-Marshall Islands,MHL,"Population, total",SP.POP.TOTL,42706
-Mauritania,MRT,"Population, total",SP.POP.TOTL,4600131
-Mauritius,MUS,"Population, total",SP.POP.TOTL,1266014
-Mexico,MEX,"Population, total",SP.POP.TOTL,126799054
-"Micronesia, Fed. Sts.",FSM,"Population, total",SP.POP.TOTL,110916
-Middle East & North Africa,MEA,"Population, total",SP.POP.TOTL,482334398
-Middle East & North Africa (excluding high income),MNA,"Population, total",SP.POP.TOTL,418461302
-Middle East & North Africa (IDA & IBRD countries),TMN,"Population, total",SP.POP.TOTL,413658033
-Middle income,MIC,"Population, total",SP.POP.TOTL,5758609133.5
-Moldova,MDA,"Population, total",SP.POP.TOTL,2635130
-Monaco,MCO,"Population, total",SP.POP.TOTL,38050
-Mongolia,MNG,"Population, total",SP.POP.TOTL,3327204
-Montenegro,MNE,"Population, total",SP.POP.TOTL,621306
-Morocco,MAR,"Population, total",SP.POP.TOTL,36584208
-Mozambique,MOZ,"Population, total",SP.POP.TOTL,30783688
-Myanmar,MMR,"Population, total",SP.POP.TOTL,53016522
-Namibia,NAM,"Population, total",SP.POP.TOTL,2728762
-Nauru,NRU,"Population, total",SP.POP.TOTL,11643
-Nepal,NPL,"Population, total",SP.POP.TOTL,28966574
-Netherlands,NLD,"Population, total",SP.POP.TOTL,17441500
-New Caledonia,NCL,"Population, total",SP.POP.TOTL,284176
-New Zealand,NZL,"Population, total",SP.POP.TOTL,5090200
-Nicaragua,NIC,"Population, total",SP.POP.TOTL,6565267
-Niger,NER,"Population, total",SP.POP.TOTL,23717613
-Nigeria,NGA,"Population, total",SP.POP.TOTL,213996181
-North America,NAC,"Population, total",SP.POP.TOTL,369619953
-North Macedonia,MKD,"Population, total",SP.POP.TOTL,1856124
-Northern Mariana Islands,MNP,"Population, total",SP.POP.TOTL,47528
-Norway,NOR,"Population, total",SP.POP.TOTL,5379475
-Not classified,INX,"Population, total",SP.POP.TOTL,..
-OECD members,OED,"Population, total",SP.POP.TOTL,1370013876
-Oman,OMN,"Population, total",SP.POP.TOTL,4522497
-Other small states,OSS,"Population, total",SP.POP.TOTL,13884095
-Pacific island small states,PSS,"Population, total",SP.POP.TOTL,2595522
-Pakistan,PAK,"Population, total",SP.POP.TOTL,235001746
-Palau,PLW,"Population, total",SP.POP.TOTL,17792
-Panama,PAN,"Population, total",SP.POP.TOTL,4293261
-Papua New Guinea,PNG,"Population, total",SP.POP.TOTL,9815746
-Paraguay,PRY,"Population, total",SP.POP.TOTL,6603739
-Peru,PER,"Population, total",SP.POP.TOTL,32838579
-Philippines,PHL,"Population, total",SP.POP.TOTL,112081264
-Poland,POL,"Population, total",SP.POP.TOTL,37899070
-Portugal,PRT,"Population, total",SP.POP.TOTL,10297081
-Post-demographic dividend,PST,"Population, total",SP.POP.TOTL,1117765361
-Pre-demographic dividend,PRE,"Population, total",SP.POP.TOTL,998624261
-Puerto Rico,PRI,"Population, total",SP.POP.TOTL,3281557
-Qatar,QAT,"Population, total",SP.POP.TOTL,2794148
-Romania,ROU,"Population, total",SP.POP.TOTL,19265250
-Russian Federation,RUS,"Population, total",SP.POP.TOTL,145245148
-Rwanda,RWA,"Population, total",SP.POP.TOTL,13065837
-Samoa,WSM,"Population, total",SP.POP.TOTL,211944
-San Marino,SMR,"Population, total",SP.POP.TOTL,34770
-Sao Tome and Principe,STP,"Population, total",SP.POP.TOTL,217435
-Saudi Arabia,SAU,"Population, total",SP.POP.TOTL,31552510
-Senegal,SEN,"Population, total",SP.POP.TOTL,16789219
-Serbia,SRB,"Population, total",SP.POP.TOTL,6899126
-Seychelles,SYC,"Population, total",SP.POP.TOTL,98462
-Sierra Leone,SLE,"Population, total",SP.POP.TOTL,7912558
-Singapore,SGP,"Population, total",SP.POP.TOTL,5685807
-Sint Maarten (Dutch part),SXM,"Population, total",SP.POP.TOTL,41008
-Slovak Republic,SVK,"Population, total",SP.POP.TOTL,5458827
-Slovenia,SVN,"Population, total",SP.POP.TOTL,2102419
-Small states,SST,"Population, total",SP.POP.TOTL,19572194
-Solomon Islands,SLB,"Population, total",SP.POP.TOTL,744498
-Somalia,SOM,"Population, total",SP.POP.TOTL,16651191
-South Africa,ZAF,"Population, total",SP.POP.TOTL,60562381
-South Asia,SAS,"Population, total",SP.POP.TOTL,1895144142
-South Asia (IDA & IBRD),TSA,"Population, total",SP.POP.TOTL,1895144142
-South Sudan,SSD,"Population, total",SP.POP.TOTL,10698467
-Spain,ESP,"Population, total",SP.POP.TOTL,47365655
-Sri Lanka,LKA,"Population, total",SP.POP.TOTL,21919000
-St. Kitts and Nevis,KNA,"Population, total",SP.POP.TOTL,46870
-St. Lucia,LCA,"Population, total",SP.POP.TOTL,178250
-St. Martin (French part),MAF,"Population, total",SP.POP.TOTL,31786
-St. Vincent and the Grenadines,VCT,"Population, total",SP.POP.TOTL,103526
-Sub-Saharan Africa,SSF,"Population, total",SP.POP.TOTL,1169015451
-Sub-Saharan Africa (excluding high income),SSA,"Population, total",SP.POP.TOTL,1168916989
-Sub-Saharan Africa (IDA & IBRD countries),TSS,"Population, total",SP.POP.TOTL,1169015451
-Sudan,SDN,"Population, total",SP.POP.TOTL,46789231
-Suriname,SUR,"Population, total",SP.POP.TOTL,612317
-Sweden,SWE,"Population, total",SP.POP.TOTL,10353442
-Switzerland,CHE,"Population, total",SP.POP.TOTL,8638167
-Syrian Arab Republic,SYR,"Population, total",SP.POP.TOTL,21049429
-Tajikistan,TJK,"Population, total",SP.POP.TOTL,9749310
-Tanzania,TZA,"Population, total",SP.POP.TOTL,60972798
-Thailand,THA,"Population, total",SP.POP.TOTL,71641484
-Timor-Leste,TLS,"Population, total",SP.POP.TOTL,1326053
-Togo,TGO,"Population, total",SP.POP.TOTL,8669720
-Tonga,TON,"Population, total",SP.POP.TOTL,105704
-Trinidad and Tobago,TTO,"Population, total",SP.POP.TOTL,1366725
-Tunisia,TUN,"Population, total",SP.POP.TOTL,11974057
-Turkiye,TUR,"Population, total",SP.POP.TOTL,83384680
-Turkmenistan,TKM,"Population, total",SP.POP.TOTL,6949912
-Turks and Caicos Islands,TCA,"Population, total",SP.POP.TOTL,44386
-Tuvalu,TUV,"Population, total",SP.POP.TOTL,10399
-Uganda,UGA,"Population, total",SP.POP.TOTL,44457152
-Ukraine,UKR,"Population, total",SP.POP.TOTL,44680014
-United Arab Emirates,ARE,"Population, total",SP.POP.TOTL,9401038
-United Kingdom,GBR,"Population, total",SP.POP.TOTL,67081234
-United States,USA,"Population, total",SP.POP.TOTL,331526933
-Upper middle income,UMC,"Population, total",SP.POP.TOTL,2792212417
-Uruguay,URY,"Population, total",SP.POP.TOTL,3398968
-Uzbekistan,UZB,"Population, total",SP.POP.TOTL,33586372
-Vanuatu,VUT,"Population, total",SP.POP.TOTL,298858
-"Venezuela, RB",VEN,"Population, total",SP.POP.TOTL,28444077
-Viet Nam,VNM,"Population, total",SP.POP.TOTL,98079191
-Virgin Islands (U.S.),VIR,"Population, total",SP.POP.TOTL,106290
-West Bank and Gaza,PSE,"Population, total",SP.POP.TOTL,4803269
-World,WLD,"Population, total",SP.POP.TOTL,7856138789.5
-"Yemen, Rep.",YEM,"Population, total",SP.POP.TOTL,36134863
-Zambia,ZMB,"Population, total",SP.POP.TOTL,19059395
-Zimbabwe,ZWE,"Population, total",SP.POP.TOTL,15526888
+Series Name,Series Code,Country Name,Country Code,2020 [YR2020]
+"Population, total",SP.POP.TOTL,Afghanistan,AFG,39068979
+"Population, total",SP.POP.TOTL,Albania,ALB,2837849
+"Population, total",SP.POP.TOTL,Algeria,DZA,44042091
+"Population, total",SP.POP.TOTL,American Samoa,ASM,49761
+"Population, total",SP.POP.TOTL,Andorra,AND,77380
+"Population, total",SP.POP.TOTL,Angola,AGO,33451132
+"Population, total",SP.POP.TOTL,Antigua and Barbuda,ATG,91846
+"Population, total",SP.POP.TOTL,Argentina,ARG,45191965
+"Population, total",SP.POP.TOTL,Armenia,ARM,2961500
+"Population, total",SP.POP.TOTL,Aruba,ABW,108587
+"Population, total",SP.POP.TOTL,Australia,AUS,25649248
+"Population, total",SP.POP.TOTL,Austria,AUT,8916864
+"Population, total",SP.POP.TOTL,Azerbaijan,AZE,10093121
+"Population, total",SP.POP.TOTL,"Bahamas, The",BHS,395863
+"Population, total",SP.POP.TOTL,Bahrain,BHR,1472204
+"Population, total",SP.POP.TOTL,Bangladesh,BGD,166298024
+"Population, total",SP.POP.TOTL,Barbados,BRB,281698
+"Population, total",SP.POP.TOTL,Belarus,BLR,9379952
+"Population, total",SP.POP.TOTL,Belgium,BEL,11538604
+"Population, total",SP.POP.TOTL,Belize,BLZ,390812
+"Population, total",SP.POP.TOTL,Benin,BEN,13070169
+"Population, total",SP.POP.TOTL,Bermuda,BMU,64382
+"Population, total",SP.POP.TOTL,Bhutan,BTN,770006
+"Population, total",SP.POP.TOTL,Bolivia,BOL,11816299
+"Population, total",SP.POP.TOTL,Bosnia and Herzegovina,BIH,3299349
+"Population, total",SP.POP.TOTL,Botswana,BWA,2365894
+"Population, total",SP.POP.TOTL,Brazil,BRA,208660842
+"Population, total",SP.POP.TOTL,British Virgin Islands,VGB,37135
+"Population, total",SP.POP.TOTL,Brunei Darussalam,BRN,447404
+"Population, total",SP.POP.TOTL,Bulgaria,BGR,6934015
+"Population, total",SP.POP.TOTL,Burkina Faso,BFA,21478690
+"Population, total",SP.POP.TOTL,Burundi,BDI,12617036
+"Population, total",SP.POP.TOTL,Cabo Verde,CPV,514679
+"Population, total",SP.POP.TOTL,Cambodia,KHM,16725474
+"Population, total",SP.POP.TOTL,Cameroon,CMR,26210558
+"Population, total",SP.POP.TOTL,Canada,CAN,38028638
+"Population, total",SP.POP.TOTL,Cayman Islands,CYM,68684
+"Population, total",SP.POP.TOTL,Central African Republic,CAF,5026628
+"Population, total",SP.POP.TOTL,Chad,TCD,17224679
+"Population, total",SP.POP.TOTL,Channel Islands,CHI,166235
+"Population, total",SP.POP.TOTL,Chile,CHL,19370624
+"Population, total",SP.POP.TOTL,China,CHN,1411100000
+"Population, total",SP.POP.TOTL,Colombia,COL,50629997
+"Population, total",SP.POP.TOTL,Comoros,COM,802163
+"Population, total",SP.POP.TOTL,"Congo, Dem. Rep.",COD,95989998
+"Population, total",SP.POP.TOTL,"Congo, Rep.",COG,5752791
+"Population, total",SP.POP.TOTL,Costa Rica,CRI,5034320
+"Population, total",SP.POP.TOTL,Cote d'Ivoire,CIV,28915449
+"Population, total",SP.POP.TOTL,Croatia,HRV,3914206
+"Population, total",SP.POP.TOTL,Cuba,CUB,11176354
+"Population, total",SP.POP.TOTL,Curacao,CUW,154947
+"Population, total",SP.POP.TOTL,Cyprus,CYP,1302247
+"Population, total",SP.POP.TOTL,Czechia,CZE,10697858
+"Population, total",SP.POP.TOTL,Denmark,DNK,5831404
+"Population, total",SP.POP.TOTL,Djibouti,DJI,1105188
+"Population, total",SP.POP.TOTL,Dominica,DMA,67573
+"Population, total",SP.POP.TOTL,Dominican Republic,DOM,11008300
+"Population, total",SP.POP.TOTL,Ecuador,ECU,17546065
+"Population, total",SP.POP.TOTL,"Egypt, Arab Rep.",EGY,109315124
+"Population, total",SP.POP.TOTL,El Salvador,SLV,6234673
+"Population, total",SP.POP.TOTL,Equatorial Guinea,GNQ,1716468
+"Population, total",SP.POP.TOTL,Eritrea,ERI,3291271
+"Population, total",SP.POP.TOTL,Estonia,EST,1329522
+"Population, total",SP.POP.TOTL,Ethiopia,ETH,118917671
+"Population, total",SP.POP.TOTL,Faroe Islands,FRO,52571
+"Population, total",SP.POP.TOTL,Fiji,FJI,914963
+"Population, total",SP.POP.TOTL,Finland,FIN,5529543
+"Population, total",SP.POP.TOTL,France,FRA,67601110
+"Population, total",SP.POP.TOTL,French Polynesia,PYF,279209
+"Population, total",SP.POP.TOTL,Gabon,GAB,2322539
+"Population, total",SP.POP.TOTL,"Gambia, The",GMB,2515733
+"Population, total",SP.POP.TOTL,Georgia,GEO,3722716
+"Population, total",SP.POP.TOTL,Germany,DEU,83160871
+"Population, total",SP.POP.TOTL,Ghana,GHA,31887809
+"Population, total",SP.POP.TOTL,Gibraltar,GIB,36173
+"Population, total",SP.POP.TOTL,Greece,GRC,10698599
+"Population, total",SP.POP.TOTL,Greenland,GRL,56367
+"Population, total",SP.POP.TOTL,Grenada,GRD,116341
+"Population, total",SP.POP.TOTL,Guam,GUM,162158
+"Population, total",SP.POP.TOTL,Guatemala,GTM,17357325
+"Population, total",SP.POP.TOTL,Guinea,GIN,13371183
+"Population, total",SP.POP.TOTL,Guinea-Bissau,GNB,2013255
+"Population, total",SP.POP.TOTL,Guyana,GUY,807481
+"Population, total",SP.POP.TOTL,Haiti,HTI,11243848
+"Population, total",SP.POP.TOTL,Honduras,HND,10119640
+"Population, total",SP.POP.TOTL,"Hong Kong SAR, China",HKG,7481000
+"Population, total",SP.POP.TOTL,Hungary,HUN,9750149
+"Population, total",SP.POP.TOTL,Iceland,ISL,366463
+"Population, total",SP.POP.TOTL,India,IND,1402617695
+"Population, total",SP.POP.TOTL,Indonesia,IDN,274814866
+"Population, total",SP.POP.TOTL,"Iran, Islamic Rep.",IRN,87723443
+"Population, total",SP.POP.TOTL,Iraq,IRQ,42116605
+"Population, total",SP.POP.TOTL,Ireland,IRL,4985382
+"Population, total",SP.POP.TOTL,Isle of Man,IMN,84064
+"Population, total",SP.POP.TOTL,Israel,ISR,9215100
+"Population, total",SP.POP.TOTL,Italy,ITA,59438851
+"Population, total",SP.POP.TOTL,Jamaica,JAM,2830739
+"Population, total",SP.POP.TOTL,Japan,JPN,126261000
+"Population, total",SP.POP.TOTL,Jordan,JOR,10865228
+"Population, total",SP.POP.TOTL,Kazakhstan,KAZ,19482117
+"Population, total",SP.POP.TOTL,Kenya,KEN,52217334
+"Population, total",SP.POP.TOTL,Kiribati,KIR,126099
+"Population, total",SP.POP.TOTL,"Korea, Dem. People's Rep.",PRK,26136312
+"Population, total",SP.POP.TOTL,"Korea, Rep.",KOR,51836239
+"Population, total",SP.POP.TOTL,Kosovo,XKX,1790152
+"Population, total",SP.POP.TOTL,Kuwait,KWT,4400267
+"Population, total",SP.POP.TOTL,Kyrgyz Republic,KGZ,6726595.5
+"Population, total",SP.POP.TOTL,Lao PDR,LAO,7346533
+"Population, total",SP.POP.TOTL,Latvia,LVA,1900449
+"Population, total",SP.POP.TOTL,Lebanon,LBN,5702398
+"Population, total",SP.POP.TOTL,Lesotho,LSO,2235727
+"Population, total",SP.POP.TOTL,Liberia,LBR,5149463
+"Population, total",SP.POP.TOTL,Libya,LBY,7045399
+"Population, total",SP.POP.TOTL,Liechtenstein,LIE,38901
+"Population, total",SP.POP.TOTL,Lithuania,LTU,2794885
+"Population, total",SP.POP.TOTL,Luxembourg,LUX,630419
+"Population, total",SP.POP.TOTL,"Macao SAR, China",MAC,685400
+"Population, total",SP.POP.TOTL,North Macedonia,MKD,1856124
+"Population, total",SP.POP.TOTL,Madagascar,MDG,28953556
+"Population, total",SP.POP.TOTL,Malawi,MWI,19533888
+"Population, total",SP.POP.TOTL,Malaysia,MYS,33889558
+"Population, total",SP.POP.TOTL,Maldives,MDV,502118
+"Population, total",SP.POP.TOTL,Mali,MLI,21713836
+"Population, total",SP.POP.TOTL,Malta,MLT,515332
+"Population, total",SP.POP.TOTL,Marshall Islands,MHL,42706
+"Population, total",SP.POP.TOTL,Mauritania,MRT,4600131
+"Population, total",SP.POP.TOTL,Mauritius,MUS,1266014
+"Population, total",SP.POP.TOTL,Mexico,MEX,126799054
+"Population, total",SP.POP.TOTL,"Micronesia, Fed. Sts.",FSM,110916
+"Population, total",SP.POP.TOTL,Moldova,MDA,2635130
+"Population, total",SP.POP.TOTL,Monaco,MCO,38050
+"Population, total",SP.POP.TOTL,Mongolia,MNG,3327204
+"Population, total",SP.POP.TOTL,Montenegro,MNE,621306
+"Population, total",SP.POP.TOTL,Morocco,MAR,36584208
+"Population, total",SP.POP.TOTL,Mozambique,MOZ,30783688
+"Population, total",SP.POP.TOTL,Myanmar,MMR,53016522
+"Population, total",SP.POP.TOTL,Namibia,NAM,2728762
+"Population, total",SP.POP.TOTL,Nauru,NRU,11643
+"Population, total",SP.POP.TOTL,Nepal,NPL,28966574
+"Population, total",SP.POP.TOTL,Netherlands,NLD,17441500
+"Population, total",SP.POP.TOTL,New Caledonia,NCL,284176
+"Population, total",SP.POP.TOTL,New Zealand,NZL,5090200
+"Population, total",SP.POP.TOTL,Nicaragua,NIC,6565267
+"Population, total",SP.POP.TOTL,Niger,NER,23717613
+"Population, total",SP.POP.TOTL,Nigeria,NGA,213996181
+"Population, total",SP.POP.TOTL,Northern Mariana Islands,MNP,47528
+"Population, total",SP.POP.TOTL,Norway,NOR,5379475
+"Population, total",SP.POP.TOTL,Oman,OMN,4522497
+"Population, total",SP.POP.TOTL,Pakistan,PAK,235001746
+"Population, total",SP.POP.TOTL,Palau,PLW,17792
+"Population, total",SP.POP.TOTL,Panama,PAN,4293261
+"Population, total",SP.POP.TOTL,Papua New Guinea,PNG,9815746
+"Population, total",SP.POP.TOTL,Paraguay,PRY,6603739
+"Population, total",SP.POP.TOTL,Peru,PER,32838579
+"Population, total",SP.POP.TOTL,Philippines,PHL,112081264
+"Population, total",SP.POP.TOTL,Poland,POL,37899070
+"Population, total",SP.POP.TOTL,Portugal,PRT,10297081
+"Population, total",SP.POP.TOTL,Puerto Rico,PRI,3281557
+"Population, total",SP.POP.TOTL,Qatar,QAT,2794148
+"Population, total",SP.POP.TOTL,Romania,ROU,19265250
+"Population, total",SP.POP.TOTL,Russian Federation,RUS,145245148
+"Population, total",SP.POP.TOTL,Rwanda,RWA,13065837
+"Population, total",SP.POP.TOTL,Samoa,WSM,211944
+"Population, total",SP.POP.TOTL,San Marino,SMR,34770
+"Population, total",SP.POP.TOTL,Sao Tome and Principe,STP,217435
+"Population, total",SP.POP.TOTL,Saudi Arabia,SAU,31552510
+"Population, total",SP.POP.TOTL,Senegal,SEN,16789219
+"Population, total",SP.POP.TOTL,Serbia,SRB,6899126
+"Population, total",SP.POP.TOTL,Seychelles,SYC,98462
+"Population, total",SP.POP.TOTL,Sierra Leone,SLE,7912558
+"Population, total",SP.POP.TOTL,Singapore,SGP,5685807
+"Population, total",SP.POP.TOTL,Sint Maarten (Dutch part),SXM,41008
+"Population, total",SP.POP.TOTL,Slovak Republic,SVK,5458827
+"Population, total",SP.POP.TOTL,Slovenia,SVN,2102419
+"Population, total",SP.POP.TOTL,Solomon Islands,SLB,744498
+"Population, total",SP.POP.TOTL,Somalia,SOM,16651191
+"Population, total",SP.POP.TOTL,South Africa,ZAF,60562381
+"Population, total",SP.POP.TOTL,South Sudan,SSD,10698467
+"Population, total",SP.POP.TOTL,Spain,ESP,47365655
+"Population, total",SP.POP.TOTL,Sri Lanka,LKA,21919000
+"Population, total",SP.POP.TOTL,St. Kitts and Nevis,KNA,46870
+"Population, total",SP.POP.TOTL,St. Lucia,LCA,178250
+"Population, total",SP.POP.TOTL,St. Martin (French part),MAF,31786
+"Population, total",SP.POP.TOTL,St. Vincent and the Grenadines,VCT,103526
+"Population, total",SP.POP.TOTL,Sudan,SDN,46789231
+"Population, total",SP.POP.TOTL,Suriname,SUR,612317
+"Population, total",SP.POP.TOTL,Eswatini,SWZ,1192729
+"Population, total",SP.POP.TOTL,Sweden,SWE,10353442
+"Population, total",SP.POP.TOTL,Switzerland,CHE,8638167
+"Population, total",SP.POP.TOTL,Syrian Arab Republic,SYR,21049429
+"Population, total",SP.POP.TOTL,Tajikistan,TJK,9749310
+"Population, total",SP.POP.TOTL,Tanzania,TZA,60972798
+"Population, total",SP.POP.TOTL,Thailand,THA,71641484
+"Population, total",SP.POP.TOTL,Timor-Leste,TLS,1326053
+"Population, total",SP.POP.TOTL,Togo,TGO,8669720
+"Population, total",SP.POP.TOTL,Tonga,TON,105704
+"Population, total",SP.POP.TOTL,Trinidad and Tobago,TTO,1366725
+"Population, total",SP.POP.TOTL,Tunisia,TUN,11974057
+"Population, total",SP.POP.TOTL,Turkiye,TUR,83384680
+"Population, total",SP.POP.TOTL,Turkmenistan,TKM,6949912
+"Population, total",SP.POP.TOTL,Turks and Caicos Islands,TCA,44386
+"Population, total",SP.POP.TOTL,Tuvalu,TUV,10399
+"Population, total",SP.POP.TOTL,Uganda,UGA,44457152
+"Population, total",SP.POP.TOTL,Ukraine,UKR,44680014
+"Population, total",SP.POP.TOTL,United Arab Emirates,ARE,9401038
+"Population, total",SP.POP.TOTL,United Kingdom,GBR,67081234
+"Population, total",SP.POP.TOTL,United States,USA,331526933
+"Population, total",SP.POP.TOTL,Uruguay,URY,3398968
+"Population, total",SP.POP.TOTL,Uzbekistan,UZB,33586372
+"Population, total",SP.POP.TOTL,Vanuatu,VUT,298858
+"Population, total",SP.POP.TOTL,"Venezuela, RB",VEN,28444077
+"Population, total",SP.POP.TOTL,Viet Nam,VNM,98079191
+"Population, total",SP.POP.TOTL,Virgin Islands (U.S.),VIR,106290
+"Population, total",SP.POP.TOTL,West Bank and Gaza,PSE,4803269
+"Population, total",SP.POP.TOTL,"Yemen, Rep.",YEM,36134863
+"Population, total",SP.POP.TOTL,Zambia,ZMB,19059395
+"Population, total",SP.POP.TOTL,Zimbabwe,ZWE,15526888
 ,,,,
 ,,,,
 ,,,,
-Data from database: Population estimates and projections,,,,
-Last Updated: 12/16/2024,,,,
+Data from database: World Development Indicators,,,,
+Last Updated: 01/28/2025,,,,
