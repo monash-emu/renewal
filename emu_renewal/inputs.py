@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import yaml as yml
 import geopandas as gp
 from numpyro import distributions as dist
+from xarray import DataArray
 
 
 BASE_PATH = Path(__file__).parent.parent
@@ -315,7 +316,7 @@ def get_worldbank_national_pop(
 
 
 def raster_to_polydf(
-    raster_ds,
+    raster_ds: DataArray,
     data_name: str,
 ) -> gp.GeoDataFrame:
     """
