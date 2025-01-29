@@ -1,10 +1,12 @@
 import pandas as pd
-import re
+import numpy as np
+import shapely as shp
 from pathlib import Path
 import pycountry
 from typing import Tuple, List, Dict
 from datetime import datetime, timedelta
 import yaml as yml
+import geopandas as gp
 from numpyro import distributions as dist
 
 
@@ -310,3 +312,47 @@ def get_worldbank_national_pop(
     col = "Country Code"
     data = pd.read_csv(path, index_col=col, na_values=['..'], dtype=dtype)["2020 [YR2020]"].dropna()
     return data[iso3]
+
+
+def raster_to_polydf(
+    raster_ds,
+    data_name: str,
+) -> gp.GeoDataFrame:
+    """
+    Convert a raster dataset of regularly spaced
+    coordinates into polygons representing the polygons
+    that would have each coordinate as their centroid.
+
+    Args:
+        raster_ds: The rasterised dataset
+        data_name: Name for the data column
+
+    Returns:
+        The square polygons within the geopandas format
+    """
+    square_size = (raster_ds.coords["x"][1] - raster_ds.coords["x"][0]).data
+    buffer = square_size * 0.5
+    geoms = []
+    nodata_mask = raster_ds.rio.nodata
+
+    data = raster_ds.data[0]
+    n_valid = (data != nodata_mask).sum()
+    out_data = np.empty(n_valid)
+    valid_idx = 0
+
+    for ix, x in enumerate(raster_ds.coords["x"].data):
+        for iy, y in enumerate(raster_ds.coords["y"].data):
+            cell_data = data[iy, ix]
+            if cell_data != nodata_mask:
+                geoms.append(shp.Polygon([
+                        (x - buffer, y - buffer),
+                        (x + buffer, y - buffer),
+                        (x + buffer, y + buffer),
+                        (x - buffer, y + buffer),
+                    ]
+                ))
+                out_data[valid_idx] = cell_data
+                valid_idx += 1
+            
+    data = data.flatten()
+    return gp.GeoDataFrame({data_name: out_data}, geometry=geoms)
