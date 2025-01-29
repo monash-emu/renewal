@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import shapely as shp
 from pathlib import Path
+import os
 import pycountry
 from typing import Tuple, List, Dict
 from datetime import datetime, timedelta
@@ -23,6 +24,13 @@ VAR_MAP = {
     "eu2": "20A.EU2",
     "alpha": "20I.Alpha.V1"
 }
+ANALYSIS_TYPES = [
+    "no_mob",
+    "google_nonresi_linear",
+    "google_nonresi_square",
+    "fb_linear",
+    "fb_square",
+]
 
 
 def get_indicator_series_from_who_data(
@@ -357,3 +365,28 @@ def raster_to_polydf(
             
     data = data.flatten()
     return gp.GeoDataFrame({data_name: out_data}, geometry=geoms)
+
+
+def get_latest_analyses(
+    country: str,
+    analyses: List[str],
+    date_format="%Y%m%d_%H%M",
+) -> Dict[str, str]:
+    """Get the most recent analysis time string
+    for each of the requested analysis types
+    for a particular country.
+
+    Args:
+        country: Name of the country
+        analyses: The names of the mobility analysis types requested
+        date_format: String format to represent the date
+
+    Returns:
+        The requested information
+    """
+    last_analyses = {}
+    for analysis in analyses:
+        path = OUTPUTS_PATH / country / analysis
+        dates = [datetime.strptime(d, date_format) for d in os.listdir(path)]
+        last_analyses[analysis] = datetime.strftime(max(dates), date_format)
+    return last_analyses
