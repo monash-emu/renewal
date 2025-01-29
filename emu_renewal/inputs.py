@@ -135,6 +135,11 @@ def get_hosp_target(
     return hosp_data[data_start: analysis_end: 7]
 
 
+country_var_map = {
+    "Czechia": "Czech Republic",
+}
+
+
 def get_var_country_data(
     var: str,
     country: str,
@@ -149,25 +154,25 @@ def get_var_country_data(
     Returns:
         The data
     """
-    data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[country]
+    revised_country = country_var_map[country] if country in country_var_map else country
+    data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[revised_country]
     dates = pd.to_datetime(data["week"])
     return pd.Series(data["cluster_sequences"], index=dates)
 
 
 def get_multivars_country_data(
-    var_map: Dict[str, str],
     country: str,
 ) -> pd.DataFrame:
-    """Get data for multiple variants.
+    """Get data for multiple variants using mapping from
+    our names for the variants to Nextclade
 
     Args:
-        var_map: Mapping from our names for the variants to Nextclade
         country: Name of the country
 
     Returns:
         The data
     """
-    return pd.DataFrame({k: get_var_country_data(v, country) for k, v in var_map.items()})
+    return pd.DataFrame({k: get_var_country_data(v, country) for k, v in VAR_MAP.items()})
 
 
 def get_row_proportions(
@@ -201,7 +206,7 @@ def get_european_var_props(
     Returns:
         Variant proportions data
     """
-    data = get_multivars_country_data(VAR_MAP, country)
+    data = get_multivars_country_data(country)
     data["eu"] = data["eu1"] + data["eu2"]
     select_data = data[var_names]
     select_props = get_row_proportions(select_data)
