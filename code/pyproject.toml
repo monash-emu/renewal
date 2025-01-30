@@ -34,7 +34,6 @@ pycountry = "==24.6.1"
 geopandas = "*"
 rioxarray = "*"
 polars = "*"
-pandas = "<2.0.0"
 
 [tool.poetry.extras]
 full = ["kaleido"]
