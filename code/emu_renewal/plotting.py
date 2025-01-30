@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 import numpy as np
 from random import choice
 import pandas as pd
@@ -370,3 +370,27 @@ def plot_mob_update_comparison(idatas, xlim, fig_height=8):
     fig.tight_layout()
     plt.close()
     return fig
+
+
+def plot_mob_fit_comparison(
+    targets: Dict[str, dict],
+    analysis_times: List[str],
+    spaghs: Dict[str, pd.DataFrame],
+) -> plt.figure:
+    targ_names = targets[analysis_times[0]]
+    fig, axes = plt.subplots(len(targ_names), len(analysis_times), figsize=(10, 15), sharex=True, sharey="row")
+    for o, out in enumerate(targ_names):
+        for a, analysis in enumerate(analysis_times):
+            ax = axes[o, a]
+            for col in spaghs[analysis][out].columns:
+                ax.plot(spaghs[analysis].index, spaghs[analysis][out, col], color="black", linewidth=0.2)
+            target = targets[analysis][out]
+            ax.plot(target.index, target, linewidth=0.0, marker=".")
+            plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
+            if o == 0:
+                ax.set_title(analysis, fontsize=10)
+            if a == 0:
+                ax.set_ylabel(out, fontsize=10)
+    plt.subplots_adjust(wspace=0.05)
+    return fig
+
