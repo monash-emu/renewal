@@ -1,0 +1,18 @@
+[project]
+name = "renewal"
+version = "0.1.0"
+description = "Add a short description here"
+authors = ["David Shipman <dshipman@gmail.com>"]
+channels = ["conda-forge"]
+platforms = ["win-64"]
+
+[tasks]
+
+[dependencies]
+python = "3.10.*"
+pytables = "==3.8.0"
+
+[pypi-dependencies]
+emu_renewal = { path = "./code", editable = true}
+jupyterlab = ">=4.3.5, <5"
+ipywidgets = ">=8.1.5, <9"

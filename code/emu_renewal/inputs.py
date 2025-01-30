@@ -12,8 +12,9 @@ from numpyro import distributions as dist
 from xarray import DataArray
 
 
-BASE_PATH = Path(__file__).parent.parent
-OUTPUTS_PATH =  BASE_PATH / "outputs"
+BASE_PATH = Path(__file__).parent.parent.parent
+
+OUTPUTS_PATH = BASE_PATH / "outputs"
 DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"  # Will not push these larger original files
 VAR_MAP = {
@@ -22,7 +23,7 @@ VAR_MAP = {
     "ba5": "22B.Omicron",
     "eu1": "20A.EU1",
     "eu2": "20A.EU2",
-    "alpha": "20I.Alpha.V1"
+    "alpha": "20I.Alpha.V1",
 }
 ANALYSIS_TYPES = [
     "no_mob",
@@ -34,7 +35,7 @@ ANALYSIS_TYPES = [
 
 
 def get_indicator_series_from_who_data(
-    indicator: str, 
+    indicator: str,
     country: str,
 ) -> pd.Series:
     """Get WHO estimates for single indicator from the original raw data.
@@ -53,14 +54,14 @@ def get_indicator_series_from_who_data(
 
 
 def get_who_targets(
-    country: str, 
+    country: str,
     analysis_start: datetime,
     analysis_end: datetime,
-    init_duration: int, 
+    init_duration: int,
     analysis_to_data_delay: int,
 ) -> Tuple[pd.Series]:
     """Get all the WHO indicators relevant to the country of interest.
-    Indicators are reported weekly, targets remain weekly 
+    Indicators are reported weekly, targets remain weekly
     but initialisation incidence is converted to daily.
 
     Args:
@@ -76,12 +77,15 @@ def get_who_targets(
     cases_data = get_indicator_series_from_who_data("New_cases", country)
     deaths_data = get_indicator_series_from_who_data("New_deaths", country)
     data_start = analysis_start + timedelta(analysis_to_data_delay)
-    cases_target = cases_data.loc[data_start: analysis_end]
-    deaths_target = deaths_data.loc[data_start: analysis_end]
+    cases_target = cases_data.loc[data_start:analysis_end]
+    deaths_target = deaths_data.loc[data_start:analysis_end]
     init_start = analysis_start - timedelta(init_duration)
     init_end = analysis_start - timedelta(1)
     init_smooth_period = 7.0  # To correct values after resampling from weekly to daily
-    init_data = cases_data.resample("D").asfreq().interpolate().loc[init_start: init_end] / init_smooth_period
+    init_data = (
+        cases_data.resample("D").asfreq().interpolate().loc[init_start:init_end]
+        / init_smooth_period
+    )
     return cases_target, deaths_target, init_data
 
 
@@ -92,10 +96,10 @@ def get_multicountry_df_from_who_data(indicator, countries):
 
 
 def get_hosp_series_from_owid_data(
-    indicator: str, 
+    indicator: str,
     country: str,
 ) -> pd.Series:
-    """Get OWID hospitalisation-related estimates for single indicator 
+    """Get OWID hospitalisation-related estimates for single indicator
     from the original raw data.
 
     Args:
@@ -112,7 +116,7 @@ def get_hosp_series_from_owid_data(
 
 
 def get_hosp_target(
-    country: str, 
+    country: str,
     analysis_start: datetime,
     analysis_end: datetime,
     analysis_to_data_delay: int,
@@ -132,7 +136,7 @@ def get_hosp_target(
     """
     data_start = analysis_start + timedelta(analysis_to_data_delay)
     hosp_data = get_hosp_series_from_owid_data("Daily hospital occupancy", country)
-    return hosp_data[data_start: analysis_end: 7]
+    return hosp_data[data_start:analysis_end:7]
 
 
 country_var_map = {
@@ -195,7 +199,7 @@ def get_european_var_props(
     end_date: datetime,
     var_names: List[str],
 ) -> pd.Series:
-    """Get the variant proportions applicable to the early waves 
+    """Get the variant proportions applicable to the early waves
     of the European epidemics.
 
     Args:
@@ -226,21 +230,28 @@ def process_raw_google_mobility(
     """
     years = range(2020, 2023)
     iso2 = pycountry.countries.get(name=country).alpha_2
-    data_files = [pd.read_csv(RAW_MOB_PATH / f"{y}_{iso2}_Region_Mobility_Report.csv", index_col="date") for y in years]
+    data_files = [
+        pd.read_csv(RAW_MOB_PATH / f"{y}_{iso2}_Region_Mobility_Report.csv", index_col="date")
+        for y in years
+    ]
     all_data = pd.concat(data_files)
     all_data.index = pd.to_datetime(all_data.index)
     national_data = all_data.loc[pd.isna(all_data["sub_region_1"])]
-    national_data = national_data[[c for c in national_data.columns if "change_from_baseline" in c]]  # Extract the mobility columns
-    national_data = national_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)  # Simplify column naming
+    national_data = national_data[
+        [c for c in national_data.columns if "change_from_baseline" in c]
+    ]  # Extract the mobility columns
+    national_data = national_data.rename(
+        lambda c: c.replace("_percent_change_from_baseline", ""), axis=1
+    )  # Simplify column naming
     national_data = 1.0 + national_data / 100.0  # Convert to relative change
     return national_data.sort_index()
 
 
 def get_all_seroprev(
-    lag: int=14,
+    lag: int = 14,
 ) -> pd.Series:
     """Get all the seroprevalence data,
-    including calculating midpoint for survey date 
+    including calculating midpoint for survey date
     and lagging by 14 days.
 
     Args:
@@ -278,27 +289,26 @@ def get_filtered_seroprev(
     country_filt = data["country"] == country
     time_filt = (start < data.index) & (data.index < end)
     nat_filt = data["estimate_grade"] == "National"
-    type_filt = (data["subgroup_var"] == "Primary Estimate") & (data["is_unity_aligned"] == "Unity-Aligned")
+    type_filt = (data["subgroup_var"] == "Primary Estimate") & (
+        data["is_unity_aligned"] == "Unity-Aligned"
+    )
     data = data.loc[time_filt & country_filt & nat_filt & type_filt]
     return data["serum_pos_prevalence"]
 
 
 def get_standard_priors() -> Dict[str, dist.Distribution]:
-    """Load the priors from the yml and combine with 
+    """Load the priors from the yml and combine with
     standard hard-coded priors.
 
     Returns:
-        The prior distributions        
+        The prior distributions
     """
-    loaded_priors = yml.safe_load(open(BASE_PATH / "emu_renewal/priors.yml", "r"))
+    loaded_priors = yml.safe_load(open(DATA_PATH / "config/priors.yml", "r"))
     duration_priors = {
-        k: dist.TruncatedNormal(v["mean"], v["sd"], low=1.0, high=v["mean"] * 2.5) 
+        k: dist.TruncatedNormal(v["mean"], v["sd"], low=1.0, high=v["mean"] * 2.5)
         for k, v in loaded_priors["durations"].items()
     }
-    beta_priors = {
-        k: dist.Beta(v["alpha"], v["beta"]) 
-        for k, v in loaded_priors["beta"].items()
-    }
+    beta_priors = {k: dist.Beta(v["alpha"], v["beta"]) for k, v in loaded_priors["beta"].items()}
     other_priors = {
         "alpha_relinfect": dist.TruncatedNormal(1.25, 0.1, low=1.0, high=1.5),
         "rt_init": dist.Normal(0.0, 0.5),
@@ -324,7 +334,7 @@ def get_worldbank_national_pop(
     path = DATA_PATH / "population/6f450edc-f8ef-4d8c-bb2b-dbb1864d88c8_Data.csv"
     dtype = {"2020 [YR2020]": float}
     col = "Country Code"
-    data = pd.read_csv(path, index_col=col, na_values=['..'], dtype=dtype)["2020 [YR2020]"].dropna()
+    data = pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype)["2020 [YR2020]"].dropna()
     return data[iso3]
 
 
@@ -358,16 +368,19 @@ def raster_to_polydf(
         for iy, y in enumerate(raster_ds.coords["y"].data):
             cell_data = data[iy, ix]
             if cell_data != nodata_mask:
-                geoms.append(shp.Polygon([
-                        (x - buffer, y - buffer),
-                        (x + buffer, y - buffer),
-                        (x + buffer, y + buffer),
-                        (x - buffer, y + buffer),
-                    ]
-                ))
+                geoms.append(
+                    shp.Polygon(
+                        [
+                            (x - buffer, y - buffer),
+                            (x + buffer, y - buffer),
+                            (x + buffer, y + buffer),
+                            (x - buffer, y + buffer),
+                        ]
+                    )
+                )
                 out_data[valid_idx] = cell_data
                 valid_idx += 1
-            
+
     data = data.flatten()
     return gp.GeoDataFrame({data_name: out_data}, geometry=geoms)
 
