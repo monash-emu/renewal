@@ -11,6 +11,9 @@
 */.ipynb_checkpoints/*
 /data/mobility_raw/*
 /outputs/*
-/data/population/gadm_input_json/*# pixi environments
+/data/population/gadm_input_json/*
+/data/population/gadm_est/*
+/sync/*
+# pixi environments
 .pixi
 *.egg-info
