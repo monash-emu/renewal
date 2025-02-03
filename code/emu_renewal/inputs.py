@@ -408,3 +408,35 @@ def get_latest_analyses(
         dates = [datetime.strptime(d, date_format) for d in os.listdir(path)]
         last_analyses[analysis] = datetime.strftime(max(dates), date_format)
     return last_analyses
+
+
+def get_country_mobility(
+    iso3: str,
+) -> pd.DataFrame:
+    """Get all the different types of mobility
+    for a particular country.
+
+    Args:
+        iso3: ISO3 code representing the country
+
+    Returns:
+        The mobility estimates
+    """
+    g_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
+    g_mob.index = pd.to_datetime(g_mob.index)
+    nonresi_g_mob = g_mob.loc[:, g_mob.columns!="residential"].mean(axis=1).rolling(7).mean().dropna()
+    
+    fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_fbmob_data.csv", index_col=0)["0"]
+    fb_mob.index = pd.to_datetime(fb_mob.index)
+    fb_mob = 1.0 + fb_mob.rolling(7).mean().dropna()
+    
+    collated_mob = pd.DataFrame(
+        {
+            "google_nonresi_linear": nonresi_g_mob,
+            "google_nonresi_square": nonresi_g_mob ** 2.0,
+            "fb_linear": fb_mob,
+            "fb_square": fb_mob ** 2.0,
+        },
+    )
+    collated_mob["no_mob"] = 1.0
+    return collated_mob
