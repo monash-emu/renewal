@@ -73,29 +73,6 @@ def get_spagh_df_from_dict(
     return spaghetti.sort_index(axis=1, level=0)
 
 
-def get_quant_df_from_spaghetti(
-    spaghetti: pd.DataFrame,
-    quantile_req: list[float],
-) -> pd.DataFrame:
-    """Calculate requested quantiles over spaghetti created
-    in previous function.
-
-    Args:
-        spaghetti: Output of get_spaghetti
-        quantiles: The quantiles at which to make the calculations
-
-    Returns:
-        Dataframe with index of model times and multiindexed columns,
-            with first level being the output name and second the quantile
-    """
-    outputs = set(spaghetti.columns.get_level_values(0))
-    column_names = pd.MultiIndex.from_product([outputs, quantile_req])
-    quantile_df = pd.DataFrame(index=spaghetti.index, columns=column_names)
-    for out in outputs:
-        quantile_df[out] = spaghetti[out].quantile(quantile_req, axis=1).T
-    return quantile_df
-
-
 def get_model_recovered_locs(model):
     strain_map = model.strain_map
     strains = model.strains
@@ -166,31 +143,6 @@ def get_df_from_3darray(
     level_2_cols = range(array.shape[order[2]])
     cols = pd.MultiIndex.from_product([level_1_cols, level_2_cols])
     return pd.DataFrame(vals, columns=cols)
-
-
-def get_combined_df(
-    df0: pd.DataFrame, 
-    df1: pd.DataFrame, 
-    name0: str, 
-    name1: str,
-) -> pd.DataFrame:
-    """Join two pandas dataframes left-to-right
-    retaining original index but extending on columns.
-
-    Args:
-        df0: First dataframe to join
-        df1: Second dataframe to join
-        name0: Name for first dataset
-        name1: Name for second dataset
-
-    Returns:
-        New dataframe with data joined by columns
-            with a new level of the column index at the top
-            to indicate where the data came from
-    """
-    col_names0 = pd.MultiIndex.from_product([[name0]] + df0.columns.levels)
-    col_names1 = pd.MultiIndex.from_product([[name1]] + df1.columns.levels)
-    return pd.concat([df0.set_axis(col_names0, axis=1), df1.set_axis(col_names1, axis=1)], axis=1)
 
 
 def get_output_dir(

@@ -89,12 +89,6 @@ def get_who_targets(
     return cases_target, deaths_target, init_data
 
 
-def get_multicountry_df_from_who_data(indicator, countries):
-    """May delete later - only used for Australia analyses"""
-    data_dict = {i: get_indicator_series_from_who_data(indicator, i) for i in countries}
-    return pd.DataFrame(data_dict)
-
-
 def get_hosp_series_from_owid_data(
     indicator: str,
     country: str,
