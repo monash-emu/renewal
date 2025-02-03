@@ -440,3 +440,38 @@ def get_country_mobility(
     )
     collated_mob["no_mob"] = 1.0
     return collated_mob
+
+
+def get_standard_targets(
+    country: str, 
+    start: datetime,
+    end: datetime, 
+    init_duration: int, 
+    data_delay: 14,
+) -> Tuple[pd.DataFrame]:
+    """Get the standard epidemiological targets for a model run.
+
+    Args:
+        country: The country name
+        start: Analysis start time
+        end: Analysis end time
+        init_duration: Time for initialisation before analysis starts
+        data_delay: Delay from analysis starting to comparing against data
+
+    Returns:
+        Case, hospitalisation, death and seroprevalence targets and initialisation data
+    """
+    cases_target, deaths_target, init_data = get_who_targets(country, start, end, init_duration, data_delay)
+    hosp_target = get_hosp_target(country, start, end, data_delay)
+    seroprev_target = get_filtered_seroprev(country, start, end)
+    return cases_target, hosp_target, deaths_target, seroprev_target, init_data
+
+
+def get_euro_var_inputs(country, strains, analysis_start, country_inputs, seed_duration, var_target_start_date, var_target_end_date):
+    """Working code to get the variant-related information needed to run a European country.
+    """
+    var_target = get_european_var_props(country, var_target_start_date, var_target_end_date, strains)
+    alpha_seed_start = analysis_start + timedelta(country_inputs["alpha_seed_delays"][country])
+    alpha_seed_times = [alpha_seed_start, alpha_seed_start + timedelta(seed_duration)]
+    seed_times = [alpha_seed_times]
+    return var_target, seed_times
