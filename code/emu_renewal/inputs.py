@@ -461,11 +461,34 @@ def get_standard_targets(
     return cases_target, hosp_target, deaths_target, seroprev_target, init_data
 
 
-def get_euro_var_inputs(country, strains, analysis_start, country_inputs, seed_duration, var_target_start_date, var_target_end_date):
-    """Working code to get the variant-related information needed to run a European country.
+def get_euro_var_inputs(
+    country: str,
+    strains: List[str],
+    analysis_start: datetime,
+    seed_duration: int,
+    var_target_start_date: datetime,
+    var_target_end_date: datetime,
+    val: float=0.5,
+    lag: int=80,
+) -> tuple:
+    """Get information relevant to variants for European countries.
+
+    Args:
+        country: Name of the country
+        strains: The strains being implemented (always "eu" and "alpha")
+        analysis_start: Start date of the analysis
+        seed_duration: Duration for seeding alpha variant
+        var_target_start_date: Start time of window for calibrating to variant proportions
+        var_target_end_date: End time of window for calibrating to variant proportions
+        val: Proportion to reach for alpha variant
+        lag: Time before the proportion reached to start seeding
+
+    Returns:
+        The variant target and the seeding times for the alpha variant
     """
     var_target = get_european_var_props(country, var_target_start_date, var_target_end_date, strains)
-    alpha_seed_start = analysis_start + timedelta(country_inputs["alpha_seed_delays"][country])
+    before_prop_time = (var_target - val).abs().idxmin() - timedelta(lag)
+    alpha_seed_start = max([before_prop_time, analysis_start])
     alpha_seed_times = [alpha_seed_start, alpha_seed_start + timedelta(seed_duration)]
     seed_times = [alpha_seed_times]
     return var_target, seed_times
