@@ -624,6 +624,8 @@ class MultiStrainModel(RenewalHospModel):
         outputs["deaths"] = deaths[self.init_length :]
         admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
         outputs["admissions"] = admissions[self.init_length :]
+        weekly_admissions = self.get_period_output_from_daily(admissions, 7)
+        outputs["weekly_admissions"] = weekly_admissions[self.init_length :]
         occupancy = self.get_hosp_occupancy_from_admits(admissions, stay_mean, stay_sd)
         outputs["occupancy"] = occupancy[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, 7)
