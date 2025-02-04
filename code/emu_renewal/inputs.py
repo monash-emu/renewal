@@ -48,7 +48,8 @@ def get_indicator_series_from_who_data(
         The data
     """
     who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
-    select_data = who_data.loc[who_data["Country"] == country]
+    iso2 = pycountry.countries.get(name=country).alpha_2
+    select_data = who_data.loc[who_data["Country_code"] == iso2]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format="%d/%m/%Y")
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
@@ -441,7 +442,7 @@ def get_standard_targets(
     start: datetime,
     end: datetime, 
     init_duration: int, 
-    data_delay: 14,
+    data_delay: int=14,
 ) -> Tuple[pd.DataFrame]:
     """Get the standard epidemiological targets for a model run.
 
