@@ -14,6 +14,8 @@
 /data/population/gadm_input_json/*
 /data/population/gadm_est/*
 /sync/*
+/preview_plots/*
+/preview_text/*
 # pixi environments
 .pixi
 *.egg-info
