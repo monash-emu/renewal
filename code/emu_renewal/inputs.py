@@ -92,20 +92,21 @@ def get_who_targets(
 
 def get_hosp_series_from_owid_data(
     indicator: str,
-    country: str,
+    iso2: str,
 ) -> pd.Series:
     """Get OWID hospitalisation-related estimates for single indicator
     from the original raw data.
 
     Args:
         indicator: Name of the indicator
-        country: Name of the country
+        country: ISO2 code for the country
 
     Returns:
         The data
     """
     hosp = pd.read_csv(DATA_PATH / "owid/owid_hosp.csv", index_col="date")
     hosp.index = pd.to_datetime(hosp.index)
+    country = pycountry.countries.lookup(iso2).name
     data = hosp[hosp["entity"] == country]
     return data.loc[data["indicator"] == indicator, "value"]
 
