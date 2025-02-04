@@ -280,6 +280,7 @@ def get_filtered_seroprev(
         Filtered data to use as target
     """
     data = get_all_seroprev()
+    country = pycountry.countries.lookup(country).name
     country_filt = data["country"] == country
     time_filt = (start < data.index) & (data.index < end)
     nat_filt = data["estimate_grade"] == "National"
