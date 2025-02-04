@@ -48,7 +48,7 @@ def get_indicator_series_from_who_data(
         The data
     """
     who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
-    iso2 = pycountry.countries.get(name=country).alpha_2
+    iso2 = pycountry.countries.lookup(country).alpha_2
     select_data = who_data.loc[who_data["Country_code"] == iso2]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format="%d/%m/%Y")
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
@@ -134,27 +134,25 @@ def get_hosp_target(
     return hosp_data[data_start:analysis_end:7]
 
 
-country_var_map = {
-    "Czechia": "Czech Republic",
-}
-
-
 def get_var_country_data(
     var: str,
-    country: str,
+    iso2: str,
 ) -> pd.Series:
     """Get data for the number of isolates attributable to
     a particular variant in a certain country.
 
     Args:
         var: Nextclade name for the variant
-        country: Name of the country
+        country: ISO2 code for the country
 
     Returns:
         The data
     """
-    revised_country = country_var_map[country] if country in country_var_map else country
-    data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[revised_country]
+    # Countries needing official name for Nextclade data
+    offic_countries = ["CZ"]
+    pycountry_obj = pycountry.countries.lookup(iso2)
+    country_name = pycountry_obj.official_name if iso2 in offic_countries else pycountry_obj.name
+    data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[country_name]
     dates = pd.to_datetime(data["week"])
     return pd.Series(data["cluster_sequences"], index=dates)
 
