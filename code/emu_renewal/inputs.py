@@ -231,7 +231,7 @@ def process_raw_google_mobility(
     ]
     all_data = pd.concat(data_files)
     all_data.index = pd.to_datetime(all_data.index)
-    national_data = all_data.loc[pd.isna(all_data["sub_region_1"])]
+    national_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]
     national_data = national_data[
         [c for c in national_data.columns if "change_from_baseline" in c]
     ]  # Extract the mobility columns
