@@ -116,6 +116,7 @@ def get_hosp_target(
     analysis_start: datetime,
     analysis_end: datetime,
     analysis_to_data_delay: int,
+    indicator: str,
 ) -> pd.Series:
     """Get hospitalisation target, the data for which
     comes from OWID because not available from WHO.
@@ -131,8 +132,8 @@ def get_hosp_target(
         Hospital occupancy target
     """
     data_start = analysis_start + timedelta(analysis_to_data_delay)
-    hosp_data = get_hosp_series_from_owid_data("Daily hospital occupancy", country)
-    return hosp_data[data_start:analysis_end:7]
+    hosp_data = get_hosp_series_from_owid_data(indicator, country)
+    return hosp_data[data_start: analysis_end: 7]
 
 
 def get_var_country_data(
@@ -441,7 +442,8 @@ def get_standard_targets(
     country: str, 
     start: datetime,
     end: datetime, 
-    init_duration: int, 
+    init_duration: int,
+    hosp_indicator: str, 
     data_delay: int=14,
 ) -> Tuple[pd.DataFrame]:
     """Get the standard epidemiological targets for a model run.
@@ -457,7 +459,7 @@ def get_standard_targets(
         Case, hospitalisation, death and seroprevalence targets and initialisation data
     """
     cases_target, deaths_target, init_data = get_who_targets(country, start, end, init_duration, data_delay)
-    hosp_target = get_hosp_target(country, start, end, data_delay)
+    hosp_target = get_hosp_target(country, start, end, data_delay, hosp_indicator)
     seroprev_target = get_filtered_seroprev(country, start, end)
     return cases_target, hosp_target, deaths_target, seroprev_target, init_data
 
