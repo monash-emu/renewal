@@ -31,13 +31,23 @@ DEFAULT_POP_RASTER_DS_PATH = DATA_PATH / "population/gpw_v4_population_count_rev
 # https://github.com/lulingliu/GlobPOP
 
 
+def polyids_from_gadm(iso3: str, gadm_level: int) -> list[str]:
+    source = f"https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_{iso3}_{gadm_level}.json.zip"
+    dest = DATA_PATH / f"population/gadm_input_json/gadm41_{iso3}_{gadm_level}.json.zip"
+    if not dest.exists():
+        urllib.request.urlretrieve(source, dest)
+
+    poly_df = gp.read_file(dest)
+    return list(poly_df[f"GID_{gadm_level}"])
+
+
 def population_from_gadm(
-    iso3: str, gadm_level: int, pop_ds: Dataset, write_json=True
+    iso3: str, gadm_level: int, pop_ds: Dataset, force_rebuild=False, write_json=True
 ) -> dict[str, float]:
 
     # Use cached json if available;
     json_pop_path = DATA_PATH / f"population/gadm_est/{iso3}_{gadm_level}.json"
-    if json_pop_path.exists():
+    if json_pop_path.exists() and not force_rebuild:
         logger.info(f"Loading existing population from {json_pop_path}")
         return json.load(open(json_pop_path, "r"))
 
@@ -93,21 +103,25 @@ def mobility_from_population(
     gadm_level: int,
     country_pop_data: dict[str, float],
     data_col: str = "all_day_bing_tiles_visited_relative_change",
-) -> pd.Series:
+) -> pd.DataFrame:
     # Calculate weighted average over patches
     country_mob_series = pd.Series(0.0, index=country_mobility["ds"].unique(), dtype=float)
     total_pop = 0.0
+    regional_df = pd.DataFrame(index=country_mobility["ds"].unique(), dtype=float)
     for pid in country_pop_data:
         if pid in country_mobility["polygon_id"]:
             cur_data = country_mobility.filter(pl.col("polygon_id") == pid)
             mob_series = pd.Series(index=cur_data["ds"].unique(), data=cur_data[data_col]).dropna()
             region_pop = country_pop_data[pid]
+            regional_df[pid] = mob_series
             country_mob_series += (
                 mob_series.reindex(country_mob_series.index, method="nearest") * region_pop
             )
             total_pop += region_pop
+        else:
+            logger.warn(f"PID {pid} not contained in Facebook data for {iso3}/{gadm_level}")
     weighted_country_mob = country_mob_series / total_pop
-    return weighted_country_mob
+    return regional_df, weighted_country_mob
 
 
 def infer_gadm_level(country_mobility):
@@ -158,11 +172,20 @@ class FacebookMobilityBuilder:
         """
         mobility_csv_path = DATA_PATH / f"mobility/{iso3}_fbmob_data.csv"
 
+        if iso3 not in self.fb_data["country"]:
+            raise Exception(f"No Facebook data for {iso3}")
+
         country_mobility = self.fb_data.filter(pl.col("country") == iso3)
 
         if gadm_level is None:
             gadm_level = infer_gadm_level(country_mobility)
             logger.info(f"Inferred GADM level {gadm_level} for {iso3}")
+
+        gpids = set(polyids_from_gadm(iso3, gadm_level))
+        fbpids = set(country_mobility["polygon_id"].unique())
+
+        if len(gpids.intersection(fbpids)) == 0:
+            raise Exception(f"No matching polygons found for {iso3}")
 
         pop_dict = population_from_gadm(iso3, gadm_level, self.pop_ds)
         pop_info = (
@@ -170,7 +193,7 @@ class FacebookMobilityBuilder:
         )
         logger.info(pop_info)
 
-        weighted_country_mob = mobility_from_population(
+        regional_df, weighted_country_mob = mobility_from_population(
             country_mobility, iso3, gadm_level, pop_dict
         )
 
