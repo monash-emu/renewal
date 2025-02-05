@@ -9,6 +9,7 @@ import json
 import urllib.request
 from pathlib import Path
 from xarray import Dataset
+from typing import Optional
 
 from emu_renewal.inputs import DATA_PATH, RAW_MOB_PATH, raster_to_polydf
 
@@ -109,6 +110,11 @@ def mobility_from_population(
     return weighted_country_mob
 
 
+def infer_gadm_level(country_mobility):
+    poly_id_ref = country_mobility["polygon_id"][0]
+    return len(poly_id_ref.split(".")) - 1
+
+
 class FacebookMobilityBuilder:
     """Builds weighted mobility Series from GADM and gridded population datasets, and handles
     standard I/O for the emu_renewal use case
@@ -137,16 +143,32 @@ class FacebookMobilityBuilder:
         )
         self.fb_data = pl.concat([data20, data21_22])
 
-    def build_mobility(self, iso3, gadm_level, write_csv=True) -> pd.DataFrame:
+    def build_mobility(
+        self, iso3: str, gadm_level: Optional[int] = None, write_csv=True
+    ) -> pd.Series:
+        """Build a mobility series for the given country (or load cached version if already present)
+
+        Args:
+            iso3: ISO3 country code
+            gadm_level: GADM level (1 or 2); if not supplied, will be inferred from data
+            write_csv: Write resulting data to CSV. Defaults to True.
+
+        Returns:
+            _description_
+        """
         mobility_csv_path = DATA_PATH / f"mobility/{iso3}_fbmob_data.csv"
+
+        country_mobility = self.fb_data.filter(pl.col("country") == iso3)
+
+        if gadm_level is None:
+            gadm_level = infer_gadm_level(country_mobility)
+            logger.info(f"Inferred GADM level {gadm_level} for {iso3}")
 
         pop_dict = population_from_gadm(iso3, gadm_level, self.pop_ds)
         pop_info = (
             f"Total population for {iso3} is {round(sum(pop_dict.values()) / 1e6, 3)} million"
         )
         logger.info(pop_info)
-
-        country_mobility = self.fb_data.filter(pl.col("country") == iso3)
 
         weighted_country_mob = mobility_from_population(
             country_mobility, iso3, gadm_level, pop_dict
