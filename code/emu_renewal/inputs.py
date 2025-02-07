@@ -133,7 +133,7 @@ def get_hosp_target(
     """
     data_start = analysis_start + timedelta(analysis_to_data_delay)
     hosp_data = get_hosp_series_from_owid_data(indicator, country)
-    return hosp_data[data_start: analysis_end: 7]
+    return hosp_data[data_start:analysis_end:7]
 
 
 def get_var_country_data(
@@ -231,7 +231,9 @@ def process_raw_google_mobility(
     ]
     all_data = pd.concat(data_files)
     all_data.index = pd.to_datetime(all_data.index)
-    national_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]
+    national_data = all_data.loc[
+        pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])
+    ]
     national_data = national_data[
         [c for c in national_data.columns if "change_from_baseline" in c]
     ]  # Extract the mobility columns
@@ -334,53 +336,6 @@ def get_worldbank_national_pop(
     return data[iso3]
 
 
-def raster_to_polydf(
-    raster_ds: DataArray,
-    data_name: str,
-) -> gp.GeoDataFrame:
-    """
-    Convert a raster dataset of regularly spaced
-    coordinates into polygons representing the polygons
-    that would have each coordinate as their centroid.
-
-    Args:
-        raster_ds: The rasterised dataset
-        data_name: Name for the data column
-
-    Returns:
-        The square polygons within the geopandas format
-    """
-    square_size = (raster_ds.coords["x"][1] - raster_ds.coords["x"][0]).data
-    buffer = square_size * 0.5
-    geoms = []
-    nodata_mask = raster_ds.rio.nodata
-
-    data = raster_ds.data[0]
-    n_valid = (data != nodata_mask).sum()
-    out_data = np.empty(n_valid)
-    valid_idx = 0
-
-    for ix, x in enumerate(raster_ds.coords["x"].data):
-        for iy, y in enumerate(raster_ds.coords["y"].data):
-            cell_data = data[iy, ix]
-            if cell_data != nodata_mask:
-                geoms.append(
-                    shp.Polygon(
-                        [
-                            (x - buffer, y - buffer),
-                            (x + buffer, y - buffer),
-                            (x + buffer, y + buffer),
-                            (x - buffer, y + buffer),
-                        ]
-                    )
-                )
-                out_data[valid_idx] = cell_data
-                valid_idx += 1
-
-    data = data.flatten()
-    return gp.GeoDataFrame({data_name: out_data}, geometry=geoms)
-
-
 def get_latest_analyses(
     country: str,
     analyses: List[str],
@@ -420,18 +375,20 @@ def get_country_mobility(
     """
     g_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
     g_mob.index = pd.to_datetime(g_mob.index)
-    nonresi_g_mob = g_mob.loc[:, g_mob.columns!="residential"].mean(axis=1).rolling(7).mean().dropna()
-    
+    nonresi_g_mob = (
+        g_mob.loc[:, g_mob.columns != "residential"].mean(axis=1).rolling(7).mean().dropna()
+    )
+
     fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_fbmob_data.csv", index_col=0)["0"]
     fb_mob.index = pd.to_datetime(fb_mob.index)
     fb_mob = 1.0 + fb_mob.rolling(7).mean().dropna()
-    
+
     collated_mob = pd.DataFrame(
         {
             "google_nonresi_linear": nonresi_g_mob,
-            "google_nonresi_square": nonresi_g_mob ** 2.0,
+            "google_nonresi_square": nonresi_g_mob**2.0,
             "fb_linear": fb_mob,
-            "fb_square": fb_mob ** 2.0,
+            "fb_square": fb_mob**2.0,
         },
     )
     collated_mob["no_mob"] = 1.0
@@ -439,12 +396,12 @@ def get_country_mobility(
 
 
 def get_standard_targets(
-    country: str, 
+    country: str,
     start: datetime,
-    end: datetime, 
+    end: datetime,
     init_duration: int,
-    hosp_indicator: str, 
-    data_delay: int=14,
+    hosp_indicator: str,
+    data_delay: int = 14,
 ) -> Tuple[pd.DataFrame]:
     """Get the standard epidemiological targets for a model run.
 
@@ -458,7 +415,9 @@ def get_standard_targets(
     Returns:
         Case, hospitalisation, death and seroprevalence targets and initialisation data
     """
-    cases_target, deaths_target, init_data = get_who_targets(country, start, end, init_duration, data_delay)
+    cases_target, deaths_target, init_data = get_who_targets(
+        country, start, end, init_duration, data_delay
+    )
     hosp_target = get_hosp_target(country, start, end, data_delay, hosp_indicator)
     seroprev_target = get_filtered_seroprev(country, start, end)
     return cases_target, hosp_target, deaths_target, seroprev_target, init_data
@@ -471,8 +430,8 @@ def get_euro_var_inputs(
     seed_duration: int,
     var_target_start_date: datetime,
     var_target_end_date: datetime,
-    val: float=0.5,
-    lag: int=80,
+    val: float = 0.5,
+    lag: int = 80,
 ) -> tuple:
     """Get information relevant to variants for European countries.
 
@@ -489,7 +448,9 @@ def get_euro_var_inputs(
     Returns:
         The variant target and the seeding times for the alpha variant
     """
-    var_target = get_european_var_props(country, var_target_start_date, var_target_end_date, strains)
+    var_target = get_european_var_props(
+        country, var_target_start_date, var_target_end_date, strains
+    )
     before_prop_time = (var_target - val).abs().idxmin() - timedelta(lag)
     alpha_seed_start = max([before_prop_time, analysis_start])
     alpha_seed_times = [alpha_seed_start, alpha_seed_start + timedelta(seed_duration)]
