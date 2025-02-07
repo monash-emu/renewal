@@ -1,15 +1,12 @@
 import pandas as pd
-import numpy as np
-import shapely as shp
+import json
 from pathlib import Path
 import os
 import pycountry
 from typing import Tuple, List, Dict
 from datetime import datetime, timedelta
 import yaml as yml
-import geopandas as gp
 from numpyro import distributions as dist
-from xarray import DataArray
 
 
 BASE_PATH = Path(__file__).parent.parent.parent
@@ -513,3 +510,35 @@ def get_first_date_above_cov(
     """
     vacc_data = get_country_vacc_data(iso3)
     return vacc_data[vacc_data.gt(coverage_val)].idxmin()
+
+
+def get_all_var_data() -> dict:
+    """Get all the downloaded NextClade data
+    for all strains listed in VAR_MAP.
+
+    Returns:
+        Data in raw form
+    """
+    return {k: json.load(open(DATA_PATH / f"nextclade/{v}.json", "r")) for k, v in VAR_MAP.items()}
+
+
+def get_country_var_data(
+    raw_data: dict, 
+    country: str,
+) -> pd.DataFrame:
+    """Extract the NextClade data available
+    for a particular country.
+
+    Args:
+        raw_data: Raw NextClade data returned by get_all_var_data above
+        country: The country name
+
+    Returns:
+        The variant data relevant to the country
+    """
+    data = pd.DataFrame()
+    for v in raw_data:
+        if country in raw_data[v]:
+            var_data = raw_data[v][country]
+            data[v] = pd.Series(var_data["cluster_sequences"], index=var_data["week"])
+    return data
