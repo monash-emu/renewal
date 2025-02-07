@@ -456,3 +456,38 @@ def get_euro_var_inputs(
     alpha_seed_times = [alpha_seed_start, alpha_seed_start + timedelta(seed_duration)]
     seed_times = [alpha_seed_times]
     return var_target, seed_times
+
+
+def get_country_vacc_data(
+    iso3 :str,
+) -> pd.DataFrame:
+    """Get the initial course cumulative vaccination coverage
+    data for a specific country.
+
+    Args:
+        iso3: ISO3 code for country
+
+    Returns:
+        The data
+    """
+    country_name = pycountry.countries.lookup(iso3).name
+    data = pd.read_csv(DATA_PATH / "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv", index_col="Day")
+    data.index = pd.to_datetime(data.index)
+    return data.loc[data["Entity"] == country_name, "People fully vaccinated (cumulative, per hundred)"]
+
+
+def get_first_date_above_cov(
+    iso3 :str,
+    coverage_val: float,
+) -> datetime:
+    """Find the first time vaccination coverage exceeds a threshold.
+
+    Args:
+        iso3: ISO3 code for country
+        coverage_val: The coverage threshold as a proportion
+
+    Returns:
+        The time
+    """
+    vacc_data = get_country_vacc_data(iso3)
+    return vacc_data[vacc_data.gt(coverage_val)].idxmin()
