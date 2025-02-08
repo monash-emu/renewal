@@ -541,4 +541,5 @@ def get_country_var_data(
         if country in raw_data[v]:
             var_data = raw_data[v][country]
             data[v] = pd.Series(var_data["cluster_sequences"], index=var_data["week"])
+    data.index = pd.to_datetime(data.index)
     return data
