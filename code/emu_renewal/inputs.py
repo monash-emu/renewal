@@ -495,23 +495,6 @@ def get_country_vacc_data(
     return data.loc[data["Entity"] == country_name, "People fully vaccinated (cumulative, per hundred)"]
 
 
-def get_first_date_above_cov(
-    iso3 :str,
-    coverage_val: float,
-) -> datetime:
-    """Find the first time vaccination coverage exceeds a threshold.
-
-    Args:
-        iso3: ISO3 code for country
-        coverage_val: The coverage threshold as a proportion
-
-    Returns:
-        The time
-    """
-    vacc_data = get_country_vacc_data(iso3)
-    return vacc_data[vacc_data.gt(coverage_val)].idxmin()
-
-
 def get_all_var_data() -> dict:
     """Get all the downloaded NextClade data
     for all strains listed in VAR_MAP.
