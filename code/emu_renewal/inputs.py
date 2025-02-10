@@ -648,3 +648,47 @@ def get_country_var_data(
             data[v] = pd.Series(var_data["cluster_sequences"], index=var_data["week"])
     data.index = pd.to_datetime(data.index)
     return data
+
+
+def get_country_vars(
+    country: str,
+) -> pd.DataFrame:
+    """Get all the CoVariants data for a particular country.
+
+    Args:
+        country: The country name
+
+    Returns:
+        The data
+    """
+    data = pd.DataFrame()
+    for var in VAR_NAMES:
+        all_var_data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")
+        if country in all_var_data:
+            raw_data = all_var_data[country]
+            dates = pd.to_datetime(raw_data["week"])
+            vals = raw_data["cluster_sequences"]
+            data[var] = pd.Series(vals, index=dates)
+    return data
+
+
+def find_relevant_vars(
+    data: pd.DataFrame,
+    date_cutoff: datetime,
+    threshold_seqs: int,
+) -> List[str]:
+    """Find the variants that have a significant number of
+    sequences before a particular date.
+
+    Args:
+        data: The full country-specific data (returned by get_country_vars)
+        threshold_seqs: The number of sequences to consider the variant relevant
+
+    Returns:
+        The names of the relevant variants
+    """
+    relevant_vars = []
+    for var in data:
+        if data.loc[data.index < date_cutoff, var].sum() > threshold_seqs:
+            relevant_vars.append(var)
+    return relevant_vars
