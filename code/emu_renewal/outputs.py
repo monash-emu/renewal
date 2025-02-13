@@ -7,11 +7,13 @@ import matplotlib.pyplot as plt
 import arviz as az
 import pickle
 from numpyro import infer
+from datetime import datetime
+import pycountry
 
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
-from emu_renewal.inputs import OUTPUTS_PATH
+from emu_renewal.inputs import OUTPUTS_PATH, DATE_FORMAT
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
 
@@ -298,3 +300,24 @@ def store_outputs(
     for t, target in calib.targets.items():
         target.data.to_hdf(out_dir / f"target_{t}.h5", key=t)
     pd.Series(model.mobility).to_hdf(out_dir / "mobility.h5", key="mobility")
+
+
+def load_last_runs_from_path(path):
+    spaghs = {}
+    targets = {}
+    countries = []
+    for country_folder in path.iterdir():
+        country = pycountry.countries.lookup(country_folder.parts[-1]).alpha_3
+        countries.append(country)
+        spaghs[country] = {}
+        targets[country] = {}
+        for analysis_folder in country_folder.iterdir():
+            analysis_name = analysis_folder.parts[-1]
+            avail_times = [datetime.strptime(d.parts[-1], DATE_FORMAT) for d in analysis_folder.iterdir()]
+            last_time = datetime.strftime(max(avail_times), DATE_FORMAT)
+            path = country_folder / analysis_folder / last_time
+            spaghs[country][analysis_name] = pd.read_hdf(path / "spaghetti.h5")
+            target_files = path.glob("target_*.h5")
+            for targ in target_files:
+                targets[country][targ.parts[-1][7:-3]] = pd.read_hdf(targ)
+    return spaghs, targets, countries

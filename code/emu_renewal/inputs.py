@@ -9,6 +9,8 @@ import yaml as yml
 from numpyro import distributions as dist
 
 
+DATE_FORMAT = "%Y%m%d_%H%M"
+
 BASE_PATH = Path(__file__).parent.parent.parent
 
 OUTPUTS_PATH = BASE_PATH / "outputs"
