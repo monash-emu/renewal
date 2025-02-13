@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Add a short description here"
 authors = ["David Shipman <dshipman@gmail.com>"]
 channels = ["conda-forge"]
-platforms = ["win-64", "osx-arm64"]
+platforms = ["win-64", "osx-arm64", "linux-64"]
 
 [tasks]
 
