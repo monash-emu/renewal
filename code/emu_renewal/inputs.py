@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 import yaml as yml
 from numpyro import distributions as dist
 
+from emu_renewal.utils import get_row_proportions
+
 
 DATE_FORMAT = "%Y%m%d_%H%M"
 
@@ -218,20 +220,6 @@ def get_multivars_country_data(
         The data
     """
     return pd.DataFrame({k: get_var_country_data(v, country) for k, v in VAR_MAP.items()})
-
-
-def get_row_proportions(
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Normalise the rows of a dataframe over its columns.
-
-    Args:
-        df: The input dataframe containing numeric values
-
-    Returns:
-        The result
-    """
-    return df.divide(df.sum(axis=1), axis=0).fillna(0.0)
 
 
 def get_european_var_props(
@@ -529,7 +517,7 @@ def get_all_var_data() -> dict:
     Returns:
         Data in raw form
     """
-    return {k: json.load(open(DATA_PATH / f"nextclade/{v}.json", "r")) for k, v in VAR_MAP.items()}
+    return {v: json.load(open(DATA_PATH / f"nextclade/{v}.json", "r")) for v in VAR_NAMES}
 
 
 def get_country_var_data(

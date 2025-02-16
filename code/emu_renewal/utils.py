@@ -1,3 +1,4 @@
+import pandas as pd
 from datetime import datetime
 from functools import partial
 import itertools
@@ -153,3 +154,17 @@ def get_combs(n_cats: int) -> np.ndarray:
         The combinations, with each list element having n_cats entries.
     """
     return np.array([list(i) for i in itertools.product([False, True], repeat=n_cats)]).T
+
+
+def get_row_proportions(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Normalise the rows of a dataframe over its columns.
+
+    Args:
+        df: The input dataframe containing numeric values
+
+    Returns:
+        The result
+    """
+    return df.divide(df.sum(axis=1), axis=0).fillna(0.0)
