@@ -219,31 +219,7 @@ def get_multivars_country_data(
     Returns:
         The data
     """
-    return pd.DataFrame({k: get_var_country_data(v, country) for k, v in VAR_MAP.items()})
-
-
-def get_european_var_props(
-    country: str,
-    start_date: datetime,
-    end_date: datetime,
-    var_names: List[str],
-) -> pd.Series:
-    """Get the variant proportions applicable to the early waves
-    of the European epidemics.
-
-    Args:
-        country: Name of the country of interest
-        start_date: Start date for variant proportion comparisons
-        end_date: End date for variant proportion comparisons
-
-    Returns:
-        Variant proportions data
-    """
-    data = get_multivars_country_data(country)
-    data["eu"] = data["eu1"] + data["eu2"]
-    select_data = data[var_names]
-    select_props = get_row_proportions(select_data)
-    return select_props.loc[(start_date < select_data.index) & (select_data.index < end_date), "eu"]
+    return pd.DataFrame({v: get_var_country_data(v, country) for v in VAR_NAMES})
 
 
 def process_raw_google_mobility(
@@ -455,41 +431,6 @@ def get_standard_targets(
     hosp_target = get_hosp_target(country, start, end, data_delay, hosp_indicator)
     seroprev_target = get_filtered_seroprev(country, start, end)
     return cases_target, hosp_target, deaths_target, seroprev_target, init_data
-
-
-def get_euro_var_inputs(
-    country: str,
-    strains: List[str],
-    analysis_start: datetime,
-    seed_duration: int,
-    var_target_start_date: datetime,
-    var_target_end_date: datetime,
-    val: float = 0.5,
-    lag: int = 80,
-) -> tuple:
-    """Get information relevant to variants for European countries.
-
-    Args:
-        country: Name of the country
-        strains: The strains being implemented (always "eu" and "alpha")
-        analysis_start: Start date of the analysis
-        seed_duration: Duration for seeding alpha variant
-        var_target_start_date: Start time of window for calibrating to variant proportions
-        var_target_end_date: End time of window for calibrating to variant proportions
-        val: Proportion to reach for alpha variant
-        lag: Time before the proportion reached to start seeding
-
-    Returns:
-        The variant target and the seeding times for the alpha variant
-    """
-    var_target = get_european_var_props(
-        country, var_target_start_date, var_target_end_date, strains
-    )
-    before_prop_time = (var_target - val).abs().idxmin() - timedelta(lag)
-    alpha_seed_start = max([before_prop_time, analysis_start])
-    alpha_seed_times = [alpha_seed_start, alpha_seed_start + timedelta(seed_duration)]
-    seed_times = [alpha_seed_times]
-    return var_target, seed_times
 
 
 def get_country_vacc_data(
