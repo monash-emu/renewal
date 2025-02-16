@@ -1,10 +1,10 @@
-from jax import numpy as jnp, Array
+from jax import numpy as jnp
 import numpy as np
 import pandas as pd
 import numpyro
 from numpyro import distributions as dist
 
-from emu_renewal.renew import RenewalModel, ModelResult
+from emu_renewal.renew import RenewalModel
 from emu_renewal.utils import custom_init
 from emu_renewal.targets import Target
 
@@ -42,9 +42,7 @@ class StandardCalib:
             ind_data = targets[ind].data
             common_dates_idx = ind_data.index.intersection(analysis_indices)
             self.targets[ind].set_calibration_data(jnp.array(ind_data.loc[common_dates_idx]))
-            common_abs_indices = np.array(
-                self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int)
-            )
+            common_abs_indices = np.array(self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int))
             self.common_indices[ind] = common_abs_indices - self.epi_model.model_times[0]
 
         self.params = params
@@ -53,12 +51,8 @@ class StandardCalib:
         _ = [p.mean for p in self.params.values() if isinstance(p, dist.Distribution)]
 
         # Separate parameters to sample vs fixed values
-        self.sampled_params = {
-            k: v for k, v in self.params.items() if isinstance(v, dist.Distribution)
-        }
-        self.fixed_params = {
-            k: v for k, v in self.params.items() if not isinstance(v, dist.Distribution)
-        }
+        self.sampled_params = {k: v for k, v in self.params.items() if isinstance(v, dist.Distribution)}
+        self.fixed_params = {k: v for k, v in self.params.items() if not isinstance(v, dist.Distribution)}
 
         self.proc_dispersion = proc_dispersion
 
