@@ -366,7 +366,7 @@ def get_latest_analyses(
     last_analyses = {}
     for analysis in analyses:
         path = OUTPUTS_PATH / country / analysis
-        dates = [datetime.strptime(d, date_format) for d in os.listdir(path)]
+        dates = [datetime.strptime(d.parts[-1], date_format) for d in path.iterdir()]
         last_analyses[analysis] = datetime.strftime(max(dates), date_format)
     return last_analyses
 
