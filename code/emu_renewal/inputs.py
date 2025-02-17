@@ -12,6 +12,7 @@ from emu_renewal.utils import get_row_proportions
 
 
 DATE_FORMAT = "%Y%m%d_%H%M"
+TEXT_DATE_FORMAT = "%d/%m/%Y"
 
 BASE_PATH = Path(__file__).parent.parent.parent
 
@@ -98,7 +99,7 @@ def get_indicator_series_from_who_data(
     who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
     iso2 = pycountry.countries.lookup(country).alpha_2
     select_data = who_data.loc[who_data["Country_code"] == iso2]
-    select_data.index = pd.to_datetime(select_data["Date_reported"], format="%d/%m/%Y")
+    select_data.index = pd.to_datetime(select_data["Date_reported"], format=TEXT_DATE_FORMAT)
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
 
