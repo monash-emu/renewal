@@ -22,7 +22,7 @@ def plot_spaghetti_calib_comparison(
     """Plot model outputs and compare against targets where available.
 
     Args:
-        spaghetti: Output of get_spaghetti
+        spaghetti: Output of run_for_spaghetti
         calib_data: _description_
         out_req: _description_
 

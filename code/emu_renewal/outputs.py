@@ -21,7 +21,7 @@ plt.style.use("ggplot")
 
 TARGET_KEY = "target_"
 
-def get_spaghetti(
+def run_for_spaghetti(
     calib: StandardCalib,
     params: SampleIterator,
 ) -> pd.DataFrame:
@@ -55,10 +55,10 @@ def get_spaghetti(
 def get_spagh_df_from_dict(
     spagh_dict: dict[str, pd.DataFrame],
 ) -> pd.DataFrame:
-    """Process the dictionaries produced by get_spaghetti into dataframe format.
+    """Process the dictionaries produced by run_for_spaghetti into dataframe format.
 
     Args:
-        spagh_dict: The output of get_spaghetti
+        spagh_dict: The output of run_for_spaghetti
 
     Returns:
         Dataframe with model times as index and multiindexed columns,
@@ -134,12 +134,38 @@ def read_multianalysis_hdf5(
     return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
 
 
-def get_multianalysis_ind_spaghetti(country_path, indicator, analysis_times):
+def get_multianalysis_ind_spaghetti(
+    country_path: Path, 
+    indicator: str,
+    analysis_times: Dict[str, str],
+) -> pd.DataFrame:
+    """Read the spaghetti HDF file and extract a particular indicator.
+
+    Args:
+        country_path: The location of all the runs
+        indicator: The indicator of interest
+        analysis_times: The names of the analyses mapped to the time strings for their runs
+
+    Returns:
+        Column multiindexed dataframe with first level analysis type and second level chain/run string
+    """
     out_dfs = [pd.read_hdf(country_path / a / analysis_times[a] / "spaghetti.h5")[indicator] for a in ANALYSIS_TYPES]
     return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
 
 
-def get_multianalysis_dispvals_from_idatas(idatas, ref_analysis="no_mob"):
+def get_multianalysis_dispvals_from_idatas(
+    idatas: Dict[str, az.InferenceData],
+    ref_analysis="no_mob",
+):
+    """Get the dispersion values from a set of country runs
+
+    Args:
+        idatas: The inference data objects
+        ref_analysis: An arbitrary analysis string to get the number of chains from
+
+    Returns:
+        Column multiindexed dataframe with first level analysis type and second level chains
+    """
     n_chains = idatas[ref_analysis].posterior.chain.size
     multianalysis_disp_df = pd.DataFrame(columns=pd.MultiIndex.from_product([idatas.keys(), range(n_chains)]))
     for a in idatas.keys():
@@ -168,7 +194,7 @@ def store_outputs(
     idata.to_netcdf(out_dir / "idata.nc")
     idata_sampled = az.extract(idata, num_samples=n_samples)
     sample_params = esamp.xarray_to_sampleiterator(idata_sampled)
-    spaghetti = get_spagh_df_from_dict(get_spaghetti(calib, sample_params))
+    spaghetti = get_spagh_df_from_dict(run_for_spaghetti(calib, sample_params))
     spaghetti.to_hdf(out_dir / "spaghetti.h5", key="spaghetti")
     updates = pd.DataFrame(sample_params.components["proc"], columns=model.epoch.index_to_dti(model.x_proc_vals)).T
     updates.to_hdf(out_dir / "updates.h5", key="updates")
@@ -195,9 +221,9 @@ def load_last_runs_from_path(path):
             last_time = datetime.strftime(max(avail_times), DATE_FORMAT)
             path = country_folder / analysis_folder / last_time
             spaghs[country][analysis_name] = pd.read_hdf(path / "spaghetti.h5")
-            target_files = path.glob("target_*.h5")
+            target_files = path.glob(f"{TARGET_KEY}*.h5")
             for targ in target_files:
-                targets[country][targ.parts[-1][7:-3]] = pd.read_hdf(targ)
+                targets[country][targ.parts[-1][len(TARGET_KEY):-3]] = pd.read_hdf(targ)
     return spaghs, targets, countries
 
 
