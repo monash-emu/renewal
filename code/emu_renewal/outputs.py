@@ -214,18 +214,20 @@ def get_table_df_from_priors_dict(
     return priors_df
 
 
-def get_multianalysis_ind_spaghetti(country, indicator, analysis_times):
-    out_dfs = [pd.read_hdf(get_output_dir(country, k, v) / "spaghetti.h5")[indicator] for k, v in analysis_times.items()]
+def get_multianalysis_ind_spaghetti(country_path, indicator, analysis_times):
+    out_dfs = [pd.read_hdf(country_path / a / analysis_times[a] / "spaghetti.h5")[indicator] for a in ANALYSIS_TYPES]
     return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
 
 
-def get_multianalysis_procvals(country, analysis_times):
-    out_dfs = [pd.read_hdf(get_output_dir(country, k, v) / "updates.h5") for k, v in analysis_times.items()]
-    return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
+from emu_renewal.inputs import ANALYSIS_TYPES
+
+def get_multianalysis_procvals(country_path, analysis_times):
+    proc_dfs__ = [pd.read_hdf(country_path / a / analysis_times[a] / "updates.h5") for a in ANALYSIS_TYPES]
+    return pd.concat(proc_dfs__, keys=analysis_times.keys(), axis=1)
 
 
-def get_multianalysis_likelihoods(country, analysis_times):
-    out_dfs = [pd.read_hdf(get_output_dir(country, k, v) / "likelihood.h5") for k, v in analysis_times.items()]
+def get_multianalysis_likelihoods(country_path, analysis_times):
+    out_dfs = [pd.read_hdf(country_path / a / analysis_times[a] / "likelihood.h5") for a in ANALYSIS_TYPES]
     return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
 
 
