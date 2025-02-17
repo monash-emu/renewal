@@ -347,7 +347,7 @@ def get_worldbank_national_pop(
 
 
 def get_latest_analyses(
-    country: str,
+    country_path: Path,
     analyses: List[str],
     date_format="%Y%m%d_%H%M",
 ) -> Dict[str, str]:
@@ -365,7 +365,7 @@ def get_latest_analyses(
     """
     last_analyses = {}
     for analysis in analyses:
-        path = OUTPUTS_PATH / country / analysis
+        path = country_path / analysis
         dates = [datetime.strptime(d.parts[-1], date_format) for d in path.iterdir()]
         last_analyses[analysis] = datetime.strftime(max(dates), date_format)
     return last_analyses
