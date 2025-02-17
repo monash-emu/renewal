@@ -19,6 +19,7 @@ from emu_renewal.renew import MultiStrainModel
 
 plt.style.use("ggplot")
 
+TARGET_KEY = "target_"
 
 def get_spaghetti(
     calib: StandardCalib,
@@ -122,29 +123,22 @@ def get_output_dir(
 
 
 def load_targets(
-    country: str,
-    analysis: str,
-    time: str,
+    outdir: Path,
 ) -> Dict[str, pd.Series]:
     """Load previously saved data for calibration targets.
 
     Args:
-        country: Name of the country of interest
-        analysis: Mobility analysis approach
-        time: Date and time that analysis was run
+        outdir: Directory 
 
     Returns:
         The targets' data
     """
     targets = {}
-    targ_key = "target_"
-    outputs_path = get_output_dir(country, analysis, time)
-    for file in outputs_path.iterdir():
+    for file in outdir.iterdir():
         filename = file.name
-        if filename.startswith(targ_key):
-            targ_name = file.stem[len(targ_key):]
-            data = pd.read_hdf(outputs_path / filename)
-            targets[targ_name] = data
+        if filename.startswith(TARGET_KEY):
+            targ_name = file.stem[len(TARGET_KEY):]
+            targets[targ_name] = pd.read_hdf(outdir / filename)
     return targets
 
 
