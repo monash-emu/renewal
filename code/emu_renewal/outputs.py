@@ -44,10 +44,8 @@ def get_spaghetti(
     spagh_dict = {}
     for i, p in params.iterrows():
         epi_params = {k: v for k, v in p.items() if "dispersion" not in k}
-        res = get_full_result(**epi_params)
-        spagh = pd.DataFrame(res)
+        spagh = pd.DataFrame(get_full_result(**epi_params))
         spagh.index = times
-        #spagh.columns = res.keys
         spagh_dict[str(i)] = spagh
 
     return spagh_dict
@@ -66,39 +64,13 @@ def get_spagh_df_from_dict(
             with first level being the output name and second the parameter set
             by chain and iteration
     """
-    outputs = list(spagh_dict.values())[0].columns  # Arbitrary output dataframe
+    outputs = list(spagh_dict.values())[0].columns  # Arbitrarily chosen output dataframe
     column_names = pd.MultiIndex.from_product([spagh_dict.keys(), outputs])
     spaghetti = pd.DataFrame(columns=column_names)
     for i in spagh_dict:
         spaghetti[i] = spagh_dict[i]
     spaghetti.columns = spaghetti.columns.swaplevel()
     return spaghetti.sort_index(axis=1, level=0)
-
-
-def get_model_recovered_locs(model):
-    strain_map = model.strain_map
-    strains = model.strains
-    ever_infect_cols = {}
-    for st, strain in enumerate(strains):
-        locs = [f"sus_{su}" for su in range(strain_map.shape[1]) if strain_map[st, su]]
-        ever_infect_cols[strain] = locs
-    return ever_infect_cols
-
-
-def get_recovered_df(spagh, model, locs):
-    rec_cats = [f"rec_{s}" for s in model.strains]
-    runs = spagh.columns.get_level_values(1).unique()
-    new_cols = pd.MultiIndex.from_product([rec_cats, runs])
-    rec_df = pd.DataFrame(index=spagh.index, columns=new_cols)
-    for s in model.strains:
-        rec_df[f"rec_{s}"] = spagh[locs[s]].T.groupby(level=[1]).sum().T
-    return rec_df
-
-
-def add_recovered_to_spaghetti(spagh, model):
-    rec_locs = get_model_recovered_locs(model)
-    rec_df = get_recovered_df(spagh, model, rec_locs)
-    return spagh.join(rec_df)
 
 
 def get_col_abs_dist_from_mean(
