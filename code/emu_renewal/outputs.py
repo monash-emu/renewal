@@ -193,9 +193,7 @@ def get_multianalysis_dispvals_from_idatas(idatas, ref_analysis="no_mob"):
 
 
 def store_outputs(
-    country: str, 
-    mob_analysis_type: str,
-    analysis_time: str,
+    out_dir: Path, 
     model: MultiStrainModel,
     calib: StandardCalib,
     mcmc: infer.MCMC,
@@ -204,15 +202,12 @@ def store_outputs(
     """Store model and calibration characteristics and results in standard formats.
 
     Args:
-        country: Name of the country of interest
-        mob_analysis_type: Mobility analysis type
-        analysis_time: Time that the calibration was started
+        out_dir: Location to store the outputs
         model: Renewal model
         calib: Calibration object
         mcmc: MCMC object
         n_samples: Number of samples to extract for spaghetti
     """
-    out_dir = get_output_dir(country, mob_analysis_type, analysis_time)
     idata = az.from_dict(mcmc.get_samples(True))
     idata.to_netcdf(out_dir / "idata.nc")
     idata_sampled = az.extract(idata, num_samples=n_samples)
