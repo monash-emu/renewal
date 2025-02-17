@@ -73,24 +73,6 @@ def get_spagh_df_from_dict(
     return spaghetti.sort_index(axis=1, level=0)
 
 
-def get_col_abs_dist_from_mean(
-    results_df: pd.DataFrame,
-) -> pd.Series:
-    """For a given dataframe, find the divergence 
-    of each value from the mean of that column,
-    then find the average absolute value of this
-    divergence across each row.
-
-    Args:
-        results_df: Spaghetti for the variable process
-
-    Returns:
-        The series over time described above
-    """
-    diff_from_mean = results_df - results_df.mean()
-    return diff_from_mean.abs().mean(axis=1)
-
-
 def get_df_from_3darray(
     array: np.ndarray,
     order: List[int],
@@ -199,33 +181,6 @@ def get_multianalysis_procvals(country_path, analysis_times):
 def get_multianalysis_likelihoods(country_path, analysis_times):
     out_dfs = [pd.read_hdf(country_path / a / analysis_times[a] / "likelihood.h5") for a in ANALYSIS_TYPES]
     return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
-
-
-def melt_df_except_first_level(
-    df: pd.DataFrame
-) -> pd.DataFrame:
-    """Melt (convert to long format)
-    a multiindex dataframe retaining the first level.
-
-    Args:
-        df: The dataframe for conversion
-
-    Returns:
-        The melted dataframe
-    """
-    cols = set(df.columns.get_level_values(0))
-    return pd.concat([df[c].melt()["value"] for c in cols], axis=1, keys=cols)
-
-
-def get_multianalysis_procvals_from_idatas(idatas, ref_analysis="no_mob"):
-    n_proc_vals = idatas[ref_analysis].posterior["proc"].shape[-1]
-    n_chains = idatas[ref_analysis].posterior.chain.size
-    multianalysis_proc_df = pd.DataFrame(columns=pd.MultiIndex.from_product([idatas.keys(), range(n_proc_vals), range(n_chains)]))
-    for a in idatas.keys():
-        idata = idatas[a]
-        proc_vals = np.swapaxes(idata.posterior["proc"].to_numpy(), 0, 1)
-        multianalysis_proc_df[a] = get_df_from_3darray(proc_vals, [0, 2, 1])
-    return multianalysis_proc_df
 
 
 def get_multianalysis_dispvals_from_idatas(idatas, ref_analysis="no_mob"):

@@ -168,3 +168,19 @@ def get_row_proportions(
         The result
     """
     return df.divide(df.sum(axis=1), axis=0).fillna(0.0)
+
+
+def melt_df_except_first_level(
+    df: pd.DataFrame
+) -> pd.DataFrame:
+    """Melt (convert to long format)
+    a multiindex dataframe retaining the first level.
+
+    Args:
+        df: The dataframe for conversion
+
+    Returns:
+        The melted dataframe
+    """
+    cols = set(df.columns.get_level_values(0))
+    return pd.concat([df[c].melt()["value"] for c in cols], axis=1, keys=cols)

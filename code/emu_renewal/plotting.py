@@ -7,13 +7,11 @@ from plotly.subplots import make_subplots
 import arviz as az
 from numpyro import distributions as dist
 from matplotlib import pyplot as plt
-from plotly.express.colors import qualitative as qual_colours
 from matplotlib.pyplot import cm
 from datetime import timedelta
 
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import map_dict
-from emu_renewal.outputs import get_col_abs_dist_from_mean
 
 
 def plot_spaghetti_calib_comparison(
