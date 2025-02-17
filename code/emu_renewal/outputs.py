@@ -74,54 +74,6 @@ def get_spagh_df_from_dict(
     return spaghetti.sort_index(axis=1, level=0)
 
 
-def get_df_from_3darray(
-    array: np.ndarray,
-    order: List[int],
-) -> pd.DataFrame:
-    """Convert numpy array to pandas dataframe
-    with count index and count multi-indexing over columns.
-
-    Args:
-        array: 3-dimensional numpy array
-        order: The order of the dimensions in 
-            the output dataframe relative to the input array
-
-    Returns:
-        Dataframe with:
-            Index:
-                Count over first dimension of numpy array
-            First level of column multiindexing: 
-                Count over dimension of input array listed second in order
-            Second level of column multiindexing:
-                Count over dimension of input array listed last in order
-    """
-    vals = array.reshape(array.shape[order[0]], -1)
-    level_1_cols = range(array.shape[order[1]])
-    level_2_cols = range(array.shape[order[2]])
-    cols = pd.MultiIndex.from_product([level_1_cols, level_2_cols])
-    return pd.DataFrame(vals, columns=cols)
-
-
-def get_output_dir(
-    country: str, 
-    analysis: str, 
-    time: str,
-) -> Path:
-    """Get path for outputs from a run and ensure directory exists.
-
-    Args:
-        country: Country name
-        analysis: Mobility analysis approach
-        time: Time that analysis was run
-
-    Returns:
-        The path
-    """
-    path = Path(OUTPUTS_PATH / country.lower() / analysis / time)
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
 def load_targets(
     outdir: Path,
 ) -> Dict[str, pd.Series]:
@@ -214,7 +166,7 @@ def store_outputs(
     pickle.dump(calib.sampled_params, open(out_dir / "priors.pkl", "wb"))
     likelihood.to_hdf(out_dir / "likelihood.h5", key="likelihood")
     for t, target in calib.targets.items():
-        target.data.to_hdf(out_dir / f"target_{t}.h5", key=t)
+        target.data.to_hdf(out_dir / f"{TARGET_KEY}{t}.h5", key=t)
     pd.Series(model.mobility).to_hdf(out_dir / "mobility.h5", key="mobility")
 
 
