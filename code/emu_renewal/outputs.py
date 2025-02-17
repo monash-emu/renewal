@@ -13,7 +13,7 @@ import pycountry
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
-from emu_renewal.inputs import OUTPUTS_PATH, DATE_FORMAT
+from emu_renewal.inputs import OUTPUTS_PATH, DATE_FORMAT, ANALYSIS_TYPES
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
 
@@ -219,8 +219,6 @@ def get_multianalysis_ind_spaghetti(country_path, indicator, analysis_times):
     return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
 
 
-from emu_renewal.inputs import ANALYSIS_TYPES
-
 def get_multianalysis_procvals(country_path, analysis_times):
     proc_dfs__ = [pd.read_hdf(country_path / a / analysis_times[a] / "updates.h5") for a in ANALYSIS_TYPES]
     return pd.concat(proc_dfs__, keys=analysis_times.keys(), axis=1)
@@ -328,7 +326,6 @@ def load_last_runs_from_path(path):
 def get_latest_analyses(
     country_path: Path,
     analyses: List[str],
-    date_format="%Y%m%d_%H%M",
 ) -> Dict[str, str]:
     """Get the most recent analysis time string
     for each of the requested analysis types
@@ -345,6 +342,6 @@ def get_latest_analyses(
     last_analyses = {}
     for analysis in analyses:
         path = country_path / analysis
-        dates = [datetime.strptime(d.parts[-1], date_format) for d in path.iterdir()]
-        last_analyses[analysis] = datetime.strftime(max(dates), date_format)
+        dates = [datetime.strptime(d.parts[-1], DATE_FORMAT) for d in path.iterdir()]
+        last_analyses[analysis] = datetime.strftime(max(dates), DATE_FORMAT)
     return last_analyses
