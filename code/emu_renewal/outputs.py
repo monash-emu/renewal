@@ -323,3 +323,28 @@ def load_last_runs_from_path(path):
             for targ in target_files:
                 targets[country][targ.parts[-1][7:-3]] = pd.read_hdf(targ)
     return spaghs, targets, countries
+
+
+def get_latest_analyses(
+    country_path: Path,
+    analyses: List[str],
+    date_format="%Y%m%d_%H%M",
+) -> Dict[str, str]:
+    """Get the most recent analysis time string
+    for each of the requested analysis types
+    for a particular country.
+
+    Args:
+        country: Name of the country
+        analyses: The names of the mobility analysis types requested
+        date_format: String format to represent the date
+
+    Returns:
+        The requested information
+    """
+    last_analyses = {}
+    for analysis in analyses:
+        path = country_path / analysis
+        dates = [datetime.strptime(d.parts[-1], date_format) for d in path.iterdir()]
+        last_analyses[analysis] = datetime.strftime(max(dates), date_format)
+    return last_analyses
