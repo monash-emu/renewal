@@ -13,7 +13,7 @@
 
 # Number of CPUs for each (virtual) machine
 # Set this to the number of cores you need;
-# eg for 4 chains, use 4 CPUs
+# e.g. for 4 chains, use 4 CPUs
 #SBATCH --cpus-per-task=8
 
 # To receive an email when job completes or fails
@@ -24,7 +24,7 @@
 #SBATCH --mail-type=FAIL
 
 # Set this to the range of values that will be received in your script
-# e.g --array=1-4
+# e.g. --array=1-4
 # will result in 4 jobs, receiving 1,2,3,4 respectively
 
 #SBATCH --array=1-16
