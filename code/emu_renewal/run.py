@@ -56,8 +56,7 @@ def find_run_end_time(
 
 
 def gather_targets(iso3, start_time, end_time, most_extreme_prop, min_var_samples, hosp_out):
-    iso2 = pycountry.countries.lookup(iso3).alpha_2
-    cases_target, hosp_target, deaths_target, seroprev_target, init_data = get_standard_targets(iso2, start_time, end_time, 50, hosp_out)
+    cases_target, hosp_target, deaths_target, seroprev_target, init_data = get_standard_targets(iso3, start_time, end_time, 50, hosp_out)
     cases_target = cases_target[cases_target.index >= datetime(2020, 6, 1)]  # Ignore initial cases before testing scaled up
     var_country_name = pycountry.countries.lookup(iso3).official_name if iso3 in ["CZE"] else pycountry.countries.lookup(iso3).name
     var_data = get_country_vars(var_country_name)

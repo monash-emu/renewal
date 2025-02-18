@@ -97,8 +97,7 @@ def get_indicator_series_from_who_data(
         The data
     """
     who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
-    iso2 = pycountry.countries.lookup(country).alpha_2
-    select_data = who_data.loc[who_data["Country_code"] == iso2]
+    select_data = who_data.loc[who_data["Country_code"] == pycountry.countries.lookup(country).alpha_2]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format=TEXT_DATE_FORMAT)
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
@@ -115,7 +114,7 @@ def get_who_targets(
     but initialisation incidence is converted to daily.
 
     Args:
-        country: Name of the country of interest
+        country: Code for the country of interest
         analysis_start: Start date of the analysis
         analysis_end: End date of the analysis
         init_duration: Duration of the initialisation period
@@ -132,30 +131,27 @@ def get_who_targets(
     init_start = analysis_start - timedelta(init_duration)
     init_end = analysis_start - timedelta(1)
     init_smooth_period = 7.0  # To correct values after resampling from weekly to daily
-    init_data = (
-        cases_data.resample("D").asfreq().interpolate().loc[init_start:init_end]
-        / init_smooth_period
-    )
+    init_data = cases_data.resample("D").asfreq().interpolate().loc[init_start:init_end] / init_smooth_period
     return cases_target, deaths_target, init_data
 
 
 def get_hosp_series_from_owid_data(
     indicator: str,
-    iso2: str,
+    country: str,
 ) -> pd.Series:
     """Get OWID hospitalisation-related estimates for single indicator
     from the original raw data.
 
     Args:
         indicator: Name of the indicator
-        country: ISO2 code for the country
+        country: Country name or code
 
     Returns:
         The data
     """
     hosp = pd.read_csv(DATA_PATH / "owid/owid_hosp.csv", index_col="date")
     hosp.index = pd.to_datetime(hosp.index)
-    country = pycountry.countries.lookup(iso2).name
+    country = pycountry.countries.lookup(country).name
     data = hosp[hosp["entity"] == country]
     return data.loc[data["indicator"] == indicator, "value"]
 
@@ -187,22 +183,22 @@ def get_hosp_target(
 
 def get_var_country_data(
     var: str,
-    iso2: str,
+    country: str,
 ) -> pd.Series:
     """Get data for the number of isolates attributable to
     a particular variant in a certain country.
 
     Args:
         var: Nextclade name for the variant
-        country: ISO2 code for the country
+        country: Name or code for the country of interest
 
     Returns:
         The data
     """
     # Countries needing official name for Nextclade data
-    offic_countries = ["CZ"]
-    pycountry_obj = pycountry.countries.lookup(iso2)
-    country_name = pycountry_obj.official_name if iso2 in offic_countries else pycountry_obj.name
+    offic_countries = ["CZE"]
+    pycountry_obj = pycountry.countries.lookup(country)
+    country_name = pycountry_obj.official_name if country in offic_countries else pycountry_obj.name
     data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[country_name]
     dates = pd.to_datetime(data["week"])
     return pd.Series(data["cluster_sequences"], index=dates)
@@ -235,22 +231,13 @@ def process_raw_google_mobility(
         The data
     """
     years = range(2020, 2023)
-    iso2 = pycountry.countries.get(name=country).alpha_2
-    data_files = [
-        pd.read_csv(RAW_MOB_PATH / f"{y}_{iso2}_Region_Mobility_Report.csv", index_col="date")
-        for y in years
-    ]
+    iso2 = pycountry.countries.lookup(country).alpha_2
+    data_files = [pd.read_csv(RAW_MOB_PATH / f"{y}_{iso2}_Region_Mobility_Report.csv", index_col="date") for y in years]
     all_data = pd.concat(data_files)
     all_data.index = pd.to_datetime(all_data.index)
-    national_data = all_data.loc[
-        pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])
-    ]
-    national_data = national_data[
-        [c for c in national_data.columns if "change_from_baseline" in c]
-    ]  # Extract the mobility columns
-    national_data = national_data.rename(
-        lambda c: c.replace("_percent_change_from_baseline", ""), axis=1
-    )  # Simplify column naming
+    national_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]
+    national_data = national_data[[c for c in national_data.columns if "change_from_baseline" in c]]  # Extract the mobility columns
+    national_data = national_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)  # Simplify column naming
     national_data = 1.0 + national_data / 100.0  # Convert to relative change
     return national_data.sort_index()
 
@@ -392,7 +379,7 @@ def get_standard_targets(
     """Get the standard epidemiological targets for a model run.
 
     Args:
-        country: The country name
+        country: The country code
         start: Analysis start time
         end: Analysis end time
         init_duration: Time for initialisation before analysis starts
@@ -401,9 +388,7 @@ def get_standard_targets(
     Returns:
         Case, hospitalisation, death and seroprevalence targets and initialisation data
     """
-    cases_target, deaths_target, init_data = get_who_targets(
-        country, start, end, init_duration, data_delay
-    )
+    cases_target, deaths_target, init_data = get_who_targets(country, start, end, init_duration, data_delay)
     hosp_target = get_hosp_target(country, start, end, data_delay, hosp_indicator)
     seroprev_target = get_filtered_seroprev(country, start, end)
     return cases_target, hosp_target, deaths_target, seroprev_target, init_data
