@@ -3,7 +3,8 @@ import pycountry
 from numpyro import distributions as dist
 from numpyro import infer
 from jax import random
-import json
+from typing import Tuple
+import pandas as pd
 
 from emu_renewal.inputs import DATE_FORMAT, BASE_PATH, DATA_PATH, ANALYSIS_TYPES, get_indicator_series_from_who_data, \
     get_country_vacc_data, get_standard_targets, get_country_vars, \
@@ -57,7 +58,28 @@ def find_run_end_time(
     return vacc_data[vacc_data.gt(cov_threshold * 100)].idxmin()
 
 
-def gather_targets(iso3, start_time, end_time, most_extreme_prop, min_var_samples, hosp_out):
+def gather_targets(
+    iso3: str, 
+    start_time: datetime, 
+    end_time: datetime,
+    extreme_var_prop: float,
+    min_var_samples: int,
+    hosp_out: str,
+) -> Tuple[pd.Series]:
+    """Get the targets as separate series, plus the initialisation series.
+
+    Args:
+        iso3: Country identifier
+        start_time: Time that analysis starts
+        end_time: Time that analysis ends
+        extreme_var_prop: The most extreme value for the variant proportion permitted
+        min_var_samples: The minimum number of variant samples allowed
+        hosp_out: The hospitalisation output required from the OWID data
+            (either "Daily hospital occupancy" or "Weekly new hospital admissions")
+
+    Returns:
+        The various calibration targets and initialisation data
+    """
     cases_target, hosp_target, deaths_target, seroprev_target, init_data = get_standard_targets(iso3, start_time, end_time, 50, hosp_out)
     cases_target = cases_target[cases_target.index >= datetime(2020, 6, 1)]  # Ignore initial cases before testing scaled up
     var_country_name = pycountry.countries.lookup(iso3).official_name if iso3 in ["CZE"] else pycountry.countries.lookup(iso3).name
@@ -65,7 +87,7 @@ def gather_targets(iso3, start_time, end_time, most_extreme_prop, min_var_sample
     var_data = var_data[var_data.sum(axis=1) >= min_var_samples]
     prealpha_vars = ["20A.EU1"] if iso3 == "LTU" else ["20A.EU1", "20A.EU2"]  # Lithuania has no 20A.EU2
     prealpha_prop = var_data[prealpha_vars].sum(axis=1) / var_data.sum(axis=1)
-    prealpha_prop = prealpha_prop[(most_extreme_prop < prealpha_prop) & (prealpha_prop < 1.0 - most_extreme_prop)]
+    prealpha_prop = prealpha_prop[(extreme_var_prop < prealpha_prop) & (prealpha_prop < 1.0 - extreme_var_prop)]
     return cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data
 
 
