@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime, timedelta
 import pycountry
 from numpyro import distributions as dist
@@ -128,10 +129,14 @@ def run_single_country(country, seed_duration, proc_update_freq, init_duration, 
     store_outputs(storage_path, model, calib, mcmc)
 
 
+COUNTRIES = ["CZE", "ITA", "DEU", "LTU"]
+
+
 if __name__=="main":
     initial_countries = json.load(open(DATA_PATH / f"config/countries.json", "r"))
     all_countries = initial_countries["admissions"] + initial_countries["occupancy"]
-    country = "Czechia"
+    array_task_id = int(sys.argv[2])
+    country = COUNTRIES[array_task_id - 1]  # Convert to Python indexing
     hosp_out, hosp_out_name = ("Daily hospital occupancy", "occupancy") if country in initial_countries["occupancy"] else ("Weekly new hospital admissions", "admissions")
     for mob_analysis_type in ANALYSIS_TYPES:
         run_single_country(country, 10, 7, 50, mob_analysis_type, 100, hosp_out, hosp_out_name)
