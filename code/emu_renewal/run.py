@@ -3,8 +3,10 @@ import pycountry
 from numpyro import distributions as dist
 from numpyro import infer
 from jax import random
+import json
 
-from emu_renewal.inputs import DATE_FORMAT, BASE_PATH, get_indicator_series_from_who_data, get_country_vacc_data, get_standard_targets, get_country_vars, \
+from emu_renewal.inputs import DATE_FORMAT, BASE_PATH, DATA_PATH, ANALYSIS_TYPES, get_indicator_series_from_who_data, \
+    get_country_vacc_data, get_standard_targets, get_country_vars, \
     get_worldbank_national_pop, get_country_mobility, get_standard_priors
 from emu_renewal.targets import StandardDispTarget
 from emu_renewal.process import CosineMultiCurve
@@ -124,3 +126,12 @@ def run_single_country(country, seed_duration, proc_update_freq, init_duration, 
     storage_path = BASE_PATH / "outputs" / country / mob_analysis_type / analysis_time
     storage_path.mkdir(parents=True, exist_ok=True)
     store_outputs(storage_path, model, calib, mcmc)
+
+
+if __name__=="main":
+    initial_countries = json.load(open(DATA_PATH / f"config/countries.json", "r"))
+    all_countries = initial_countries["admissions"] + initial_countries["occupancy"]
+    country = "Czechia"
+    hosp_out, hosp_out_name = ("Daily hospital occupancy", "occupancy") if country in initial_countries["occupancy"] else ("Weekly new hospital admissions", "admissions")
+    for mob_analysis_type in ANALYSIS_TYPES:
+        run_single_country(country, 10, 7, 50, mob_analysis_type, 100, hosp_out, hosp_out_name)

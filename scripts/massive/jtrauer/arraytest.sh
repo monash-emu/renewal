@@ -34,4 +34,4 @@ cd /projects/sh30/users/jtrauer/renewal
 
 # The run path to your Python script that will actually do the work
 # Run this with pixi, the environment will be automatically handled
-pixi run python scripts/massive/jtrauer/arraytest.py $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
+pixi run python code/emu_renewal/run.py $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
