@@ -92,11 +92,16 @@ def find_variant_seeds(val, prealpha_prop, start_time, seed_duration):
 
 def run_single_country(country, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name, num_chains=4):
     analysis_time = datetime.now().strftime(DATE_FORMAT)
+    print(f"\n________________________\nRunning job at {analysis_time}")
     iso3 = pycountry.countries.lookup(country).alpha_3
+    print(f"Country: {iso3}")
+    print(f"Mobility approach: {mob_analysis_type}")
     pop = get_worldbank_national_pop(iso3)
     start_time = find_run_start_time(iso3, pop, 2e-6)
+    print(f"Running from {start_time.strftime(DATE_FORMAT)}")
     most_extreme_prop = 0.05
     end_time = find_run_end_time(country, most_extreme_prop)
+    print(f"Running to {end_time.strftime(DATE_FORMAT)}")
     cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data = gather_targets(iso3, start_time, end_time, most_extreme_prop, 10, hosp_out)
     targets = collate_targets(cases_target, deaths_target, hosp_target, hosp_out_name, seroprev_target, most_extreme_prop, prealpha_prop, start_time, end_time)
     seed_times = find_variant_seeds(0.5, prealpha_prop, start_time, seed_duration)
@@ -125,4 +130,5 @@ def run_single_country(country, seed_duration, proc_update_freq, init_duration, 
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
     storage_path = BASE_PATH / "outputs" / country / mob_analysis_type / analysis_time
     storage_path.mkdir(parents=True, exist_ok=True)
+    print(f"Writing to: {storage_path}")
     store_outputs(storage_path, model, calib, mcmc)
