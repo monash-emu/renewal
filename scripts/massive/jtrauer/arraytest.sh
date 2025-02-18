@@ -14,7 +14,7 @@
 # Number of CPUs for each (virtual) machine
 # Set this to the number of cores you need;
 # eg for 4 chains, use 4 CPUs
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8
 
 # To receive an email when job completes or fails
 # Delete this section if you don't require email notifications
