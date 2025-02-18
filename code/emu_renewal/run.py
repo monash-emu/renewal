@@ -55,10 +55,9 @@ def find_run_end_time(
     return vacc_data[vacc_data.gt(cov_threshold * 100)].idxmin()
 
 
-def gather_targets(iso3, start_time, end_time, most_extreme_prop, min_var_samples, initial_countries):
+def gather_targets(iso3, start_time, end_time, most_extreme_prop, min_var_samples, hosp_out):
     iso2 = pycountry.countries.lookup(iso3).alpha_2
-    hosp_indicator, hosp_output = ("Weekly new hospital admissions", "weekly_admissions") if iso2 in initial_countries["admissions"] else ("Daily hospital occupancy", "occupancy")
-    cases_target, hosp_target, deaths_target, seroprev_target, init_data = get_standard_targets(iso2, start_time, end_time, 50, hosp_indicator)
+    cases_target, hosp_target, deaths_target, seroprev_target, init_data = get_standard_targets(iso2, start_time, end_time, 50, hosp_out)
     cases_target = cases_target[cases_target.index >= datetime(2020, 6, 1)]  # Ignore initial cases before testing scaled up
     var_country_name = pycountry.countries.lookup(iso3).official_name if iso3 in ["CZE"] else pycountry.countries.lookup(iso3).name
     var_data = get_country_vars(var_country_name)
@@ -66,10 +65,10 @@ def gather_targets(iso3, start_time, end_time, most_extreme_prop, min_var_sample
     prealpha_vars = ["20A.EU1"] if iso3 == "LTU" else ["20A.EU1", "20A.EU2"]  # Lithuania has no 20A.EU2
     prealpha_prop = var_data[prealpha_vars].sum(axis=1) / var_data.sum(axis=1)
     prealpha_prop = prealpha_prop[(most_extreme_prop < prealpha_prop) & (prealpha_prop < 1.0 - most_extreme_prop)]
-    return cases_target, hosp_target, hosp_output, deaths_target, seroprev_target, prealpha_prop, init_data
+    return cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data
 
 
-def collate_targets(cases_target, deaths_target, hosp_target, hosp_output, seroprev_target, most_extreme_prop, prealpha_prop, start_time, end_time):
+def collate_targets(cases_target, deaths_target, hosp_target, hosp_output_name, seroprev_target, most_extreme_prop, prealpha_prop, start_time, end_time):
     seroprev_target = seroprev_target[(most_extreme_prop < seroprev_target) & (seroprev_target < 1.0 - most_extreme_prop)]
     seroprev_target_dict = {"seropos": StandardDispTarget(seroprev_target, weight=10.0)} if any(seroprev_target) else {}
     select_cases = cases_target.loc[(start_time < cases_target.index) & (cases_target.index < end_time)]
@@ -78,7 +77,7 @@ def collate_targets(cases_target, deaths_target, hosp_target, hosp_output, serop
     all_targets = {
         "weekly_cases": StandardDispTarget(select_cases, weight=20.0 * len(select_cases) / len(select_deaths)),
         "weekly_deaths": StandardDispTarget(select_deaths, weight=20.0),
-        hosp_output: StandardDispTarget(select_hosps, weight=20.0 * len(select_hosps) / len(select_deaths)),
+        hosp_output_name: StandardDispTarget(select_hosps, weight=20.0 * len(select_hosps) / len(select_deaths)),
         "prop_eu": StandardDispTarget(prealpha_prop, weight=20.0),
     } | seroprev_target_dict
     return all_targets
@@ -90,15 +89,15 @@ def find_variant_seeds(val, prealpha_prop, start_time, seed_duration):
     return [[alpha_seed_start, alpha_seed_start + timedelta(seed_duration)]]
 
 
-def run_single_country(country, initial_countries, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations):
+def run_single_country(country, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name):
     analysis_time = datetime.now().strftime(DATE_FORMAT)
     iso3 = pycountry.countries.lookup(country).alpha_3
     pop = get_worldbank_national_pop(iso3)
     start_time = find_run_start_time(iso3, pop, 2e-6)
     most_extreme_prop = 0.05
     end_time = find_run_end_time(country, most_extreme_prop)
-    cases_target, hosp_target, hosp_output, deaths_target, seroprev_target, prealpha_prop, init_data = gather_targets(iso3, start_time, end_time, most_extreme_prop, 10, initial_countries)
-    targets = collate_targets(cases_target, deaths_target, hosp_target, hosp_output, seroprev_target, most_extreme_prop, prealpha_prop, start_time, end_time)
+    cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data = gather_targets(iso3, start_time, end_time, most_extreme_prop, 10, hosp_out)
+    targets = collate_targets(cases_target, deaths_target, hosp_target, hosp_out_name, seroprev_target, most_extreme_prop, prealpha_prop, start_time, end_time)
     seed_times = find_variant_seeds(0.5, prealpha_prop, start_time, seed_duration)
     mobility = get_country_mobility(iso3)
     priors = get_standard_priors()
