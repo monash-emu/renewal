@@ -62,9 +62,9 @@ def gather_targets(
     iso3: str, 
     start_time: datetime, 
     end_time: datetime,
-    extreme_var_prop: float,
     min_var_samples: int,
     hosp_out: str,
+    init_duration: int,
 ) -> Tuple[pd.Series]:
     """Get the targets as separate series, plus the initialisation series.
 
@@ -72,7 +72,6 @@ def gather_targets(
         iso3: Country identifier
         start_time: Time that analysis starts
         end_time: Time that analysis ends
-        extreme_var_prop: The most extreme value for the variant proportion permitted
         min_var_samples: The minimum number of variant samples allowed
         hosp_out: The hospitalisation output required from the OWID data
             (either "Daily hospital occupancy" or "Weekly new hospital admissions")
@@ -80,23 +79,23 @@ def gather_targets(
     Returns:
         The various calibration targets and initialisation data
     """
-    cases_target, hosp_target, deaths_target, seroprev_target, init_data = get_standard_targets(iso3, start_time, end_time, 50, hosp_out)
+    cases_target, hosp_target, deaths_target, seroprev_target, init_data = get_standard_targets(iso3, start_time, end_time, init_duration, hosp_out)
     cases_target = cases_target[cases_target.index >= datetime(2020, 6, 1)]  # Ignore initial cases before testing scaled up
     var_country_name = pycountry.countries.lookup(iso3).official_name if iso3 in ["CZE"] else pycountry.countries.lookup(iso3).name
     var_data = get_country_vars(var_country_name)
     var_data = var_data[var_data.sum(axis=1) >= min_var_samples]
     prealpha_vars = ["20A.EU1"] if iso3 == "LTU" else ["20A.EU1", "20A.EU2"]  # Lithuania has no 20A.EU2
     prealpha_prop = var_data[prealpha_vars].sum(axis=1) / var_data.sum(axis=1)
-    prealpha_prop = prealpha_prop[(extreme_var_prop < prealpha_prop) & (prealpha_prop < 1.0 - extreme_var_prop)]
     return cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data
 
 
 def collate_targets(cases_target, deaths_target, hosp_target, hosp_output_name, seroprev_target, most_extreme_prop, prealpha_prop, start_time, end_time):
-    seroprev_target = seroprev_target[(most_extreme_prop < seroprev_target) & (seroprev_target < 1.0 - most_extreme_prop)]
-    seroprev_target_dict = {"seropos": StandardDispTarget(seroprev_target, weight=10.0)} if any(seroprev_target) else {}
     select_cases = cases_target.loc[(start_time < cases_target.index) & (cases_target.index < end_time)]
     select_deaths = deaths_target.loc[(start_time < deaths_target.index) & (deaths_target.index < end_time)]
     select_hosps = hosp_target.loc[(start_time < hosp_target.index) & (hosp_target.index < end_time)]   
+    seroprev_target = seroprev_target[(most_extreme_prop < seroprev_target) & (seroprev_target < 1.0 - most_extreme_prop)]
+    seroprev_target_dict = {"seropos": StandardDispTarget(seroprev_target, weight=10.0)} if any(seroprev_target) else {}
+    prealpha_prop = prealpha_prop[(most_extreme_prop < prealpha_prop) & (prealpha_prop < 1.0 - most_extreme_prop)]
     all_targets = {
         "weekly_cases": StandardDispTarget(select_cases, weight=20.0 * len(select_cases) / len(select_deaths)),
         "weekly_deaths": StandardDispTarget(select_deaths, weight=20.0),
@@ -124,7 +123,7 @@ def run_single_country(country, seed_duration, proc_update_freq, init_duration, 
     most_extreme_prop = 0.05
     end_time = find_run_end_time(country, most_extreme_prop)
     print(f"Running to {end_time.strftime(DATE_FORMAT)}")
-    cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data = gather_targets(iso3, start_time, end_time, most_extreme_prop, 10, hosp_out)
+    cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data = gather_targets(iso3, start_time, end_time, 10, hosp_out, init_duration)
     targets = collate_targets(cases_target, deaths_target, hosp_target, hosp_out_name, seroprev_target, most_extreme_prop, prealpha_prop, start_time, end_time)
     seed_times = find_variant_seeds(0.5, prealpha_prop, start_time, seed_duration)
     mobility = get_country_mobility(iso3)
