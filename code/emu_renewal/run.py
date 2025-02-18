@@ -3,10 +3,10 @@ import pycountry
 from numpyro import distributions as dist
 from numpyro import infer
 from jax import random
-from typing import Tuple
+from typing import Tuple, Dict
 import pandas as pd
 
-from emu_renewal.inputs import DATE_FORMAT, BASE_PATH, DATA_PATH, ANALYSIS_TYPES, get_indicator_series_from_who_data, \
+from emu_renewal.inputs import DATE_FORMAT, BASE_PATH, get_indicator_series_from_who_data, \
     get_country_vacc_data, get_standard_targets, get_country_vars, \
     get_worldbank_national_pop, get_country_mobility, get_standard_priors
 from emu_renewal.targets import StandardDispTarget
@@ -89,7 +89,23 @@ def gather_targets(
     return cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data
 
 
-def collate_targets(cases_target, deaths_target, hosp_target, hosp_output_name, seroprev_target, most_extreme_prop, prealpha_prop, start_time, end_time):
+def collate_targets(
+    cases_target: pd.Series,
+    deaths_target: pd.Series,
+    hosp_target: pd.Series,
+    hosp_output_name: pd.Series,
+    seroprev_target: pd.Series,
+    most_extreme_prop: pd.Series,
+    prealpha_prop: pd.Series,
+    start_time: pd.Series,
+    end_time: pd.Series,
+) -> Dict[str, StandardDispTarget]:
+    """Collate the targets gathered in the previous function
+    into the appropriate structure for the calibration algorithm.
+
+    Returns:
+        All targets, either four or five, depending on whether there are seroprevalence estimates
+    """
     select_cases = cases_target.loc[(start_time < cases_target.index) & (cases_target.index < end_time)]
     select_deaths = deaths_target.loc[(start_time < deaths_target.index) & (deaths_target.index < end_time)]
     select_hosps = hosp_target.loc[(start_time < hosp_target.index) & (hosp_target.index < end_time)]   
