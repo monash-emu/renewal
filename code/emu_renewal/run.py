@@ -90,7 +90,7 @@ def find_variant_seeds(val, prealpha_prop, start_time, seed_duration):
     return [[alpha_seed_start, alpha_seed_start + timedelta(seed_duration)]]
 
 
-def run_single_country(country, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name):
+def run_single_country(country, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name, num_chains=4):
     analysis_time = datetime.now().strftime(DATE_FORMAT)
     iso3 = pycountry.countries.lookup(country).alpha_3
     pop = get_worldbank_national_pop(iso3)
@@ -121,7 +121,7 @@ def run_single_country(country, seed_duration, proc_update_freq, init_duration, 
     )
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=calib.custom_init(radius=0.1))
-    mcmc = infer.MCMC(kernel, num_chains=4, num_samples=iterations, num_warmup=iterations)
+    mcmc = infer.MCMC(kernel, num_chains=num_chains, num_samples=iterations, num_warmup=iterations)
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
     storage_path = BASE_PATH / "outputs" / country / mob_analysis_type / analysis_time
     storage_path.mkdir(parents=True, exist_ok=True)
