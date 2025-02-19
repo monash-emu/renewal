@@ -13,4 +13,4 @@ if __name__=="__main__":
     hosp_out, hosp_out_name = ("Daily hospital occupancy", "occupancy") if \
         country in initial_countries["occupancy"] else ("Weekly new hospital admissions", "admissions")
     for mob_analysis_type in ANALYSIS_TYPES:
-        run_single_country(country, 10, 7, 50, mob_analysis_type, 100, hosp_out, hosp_out_name, sys.argv[1], num_chains=8)
+        run_single_country(country, 10, 7, 50, mob_analysis_type, 1000, hosp_out, hosp_out_name, sys.argv[1], num_chains=8)

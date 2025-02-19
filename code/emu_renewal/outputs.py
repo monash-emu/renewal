@@ -9,6 +9,7 @@ import pickle
 from numpyro import infer
 from datetime import datetime
 import pycountry
+import re
 
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
@@ -210,3 +211,20 @@ def get_latest_analyses(
         dates = [datetime.strptime(d.parts[-1], DATE_FORMAT) for d in path.iterdir()]
         last_analyses[analysis] = datetime.strftime(max(dates), DATE_FORMAT)
     return last_analyses
+
+
+def drop_cols_from_output_df(
+    df: pd.DataFrame,
+    cols: List[int],
+) -> pd.DataFrame:
+    """Drop columns from spaghetti based on chain indexes.
+
+    Args:
+        df: The dataframe to adapt
+        cols: The list of columns to drop
+
+    Returns:
+        The adjusted spaghetti
+    """
+    match_str = r"\((\d+),"
+    return df[[col for col in df.columns if int(re.search(match_str, col[1]).group(1)) not in cols]]
