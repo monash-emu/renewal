@@ -3,7 +3,6 @@ import pandas as pd
 from jax import Array, numpy as jnp
 from numpyro import distributions as dist
 from numpyro.distributions.distribution import DistributionMeta
-import numpyro
 
 
 Transform = Union[Callable | None]

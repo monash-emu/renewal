@@ -114,45 +114,6 @@ def get_table_df_from_priors_dict(
     return priors_df
 
 
-def read_multianalysis_hdf5(
-    country_path: Path, 
-    analysis_times: Dict[str, str],
-    filename: str,
-) -> pd.DataFrame:
-    """Read an HDF file for a certain set of analysis types at a particular path
-    (typically representing a country).
-
-    Args:
-        country_path: The location of all the runs
-        analysis_times: The names of the analyses mapped to the time strings for their runs
-        filename: The type of file to be loaded (currently either updates or likelihood)
-
-    Returns:
-        Column multiindexed dataframe with first level analysis type and second level chains
-    """
-    out_dfs = [pd.read_hdf(country_path / a / analysis_times[a] / f"{filename}.h5") for a in ANALYSIS_TYPES]
-    return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
-
-
-def get_multianalysis_ind_spaghetti(
-    country_path: Path, 
-    indicator: str,
-    analysis_times: Dict[str, str],
-) -> pd.DataFrame:
-    """Read the spaghetti HDF file and extract a particular indicator.
-
-    Args:
-        country_path: The location of all the runs
-        indicator: The indicator of interest
-        analysis_times: The names of the analyses mapped to the time strings for their runs
-
-    Returns:
-        Column multiindexed dataframe with first level analysis type and second level chain/run string
-    """
-    out_dfs = [pd.read_hdf(country_path / a / analysis_times[a] / "spaghetti.h5")[indicator] for a in ANALYSIS_TYPES]
-    return pd.concat(out_dfs, keys=analysis_times.keys(), axis=1)
-
-
 def get_multianalysis_dispvals_from_idatas(
     idatas: Dict[str, az.InferenceData],
     ref_analysis="no_mob",

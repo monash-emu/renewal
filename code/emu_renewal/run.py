@@ -127,9 +127,8 @@ def find_variant_seeds(val, prealpha_prop, start_time, seed_duration):
     return [[alpha_seed_start, alpha_seed_start + timedelta(seed_duration)]]
 
 
-def run_single_country(country, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name, num_chains=4):
-    analysis_time = datetime.now().strftime(DATE_FORMAT)
-    print(f"\n________________________\nRunning job at {analysis_time}")
+def run_single_country(country, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name, analysis_name, num_chains=4):
+    print(f"\n________________________\nRunning job at {analysis_name}")
     iso3 = pycountry.countries.lookup(country).alpha_3
     print(f"Country: {iso3}")
     print(f"Mobility approach: {mob_analysis_type}")
@@ -165,7 +164,7 @@ def run_single_country(country, seed_duration, proc_update_freq, init_duration, 
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=calib.custom_init(radius=0.1))
     mcmc = infer.MCMC(kernel, num_chains=num_chains, num_samples=iterations, num_warmup=iterations)
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
-    storage_path = BASE_PATH / "outputs" / country / mob_analysis_type / analysis_time
+    storage_path = BASE_PATH / "outputs" / analysis_name / country / mob_analysis_type
     storage_path.mkdir(parents=True, exist_ok=True)
     print(f"Writing to: {storage_path}")
     store_outputs(storage_path, model, calib, mcmc)
