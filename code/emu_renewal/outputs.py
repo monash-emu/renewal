@@ -13,7 +13,7 @@ import pycountry
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
-from emu_renewal.inputs import OUTPUTS_PATH, DATE_FORMAT, ANALYSIS_TYPES
+from emu_renewal.inputs import DATE_FORMAT
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
 
