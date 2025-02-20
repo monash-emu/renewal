@@ -162,7 +162,7 @@ def run_single_country(country, seed_duration, proc_update_freq, init_duration, 
     )
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=calib.custom_init(radius=0.1))
-    mcmc = infer.MCMC(kernel, num_chains=num_chains, num_samples=iterations, num_warmup=iterations)
+    mcmc = infer.MCMC(kernel, num_chains=num_chains, num_samples=iterations, num_warmup=iterations, progress_bar=False)
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
     storage_path = BASE_PATH / "outputs" / analysis_name / country / mob_analysis_type
     storage_path.mkdir(parents=True, exist_ok=True)
