@@ -152,17 +152,34 @@ def store_outputs(
         mcmc: MCMC object
         n_samples: Number of samples to extract for spaghetti
     """
-    idata = az.from_dict(mcmc.get_samples(True))
+    #idata = az.from_dict(mcmc.get_samples(True))
+    idata_full = az.from_numpyro(mcmc)
+    idata_full.to_netcdf(out_dir / "idata_full.nc")
+
+    likelihood = pd.DataFrame(mcmc.get_extra_fields(True)["potential_energy"]).T
+    likelihood = 0.0 - likelihood
+    likelihood.to_hdf(out_dir / "likelihood.h5", key="likelihood")
+
+    ll_chain_mean = likelihood.mean(axis=0)
+    max_diff = ll_chain_mean[ll_chain_mean.idxmax()].std()
+
+    bad_idx_table = (ll_chain_mean.max() - ll_chain_mean) > max_diff
+    good_chains = list(bad_idx_table.index[~bad_idx_table])
+
+    print(f"Selected chains {good_chains}")
+
+    idata = idata_full.sel(chain=good_chains)
     idata.to_netcdf(out_dir / "idata.nc")
+
     idata_sampled = az.extract(idata, num_samples=n_samples)
     sample_params = esamp.xarray_to_sampleiterator(idata_sampled)
     spaghetti = get_spagh_df_from_dict(run_for_spaghetti(calib, sample_params))
     spaghetti.to_hdf(out_dir / "spaghetti.h5", key="spaghetti")
     updates = pd.DataFrame(sample_params.components["proc"], columns=model.epoch.index_to_dti(model.x_proc_vals)).T
     updates.to_hdf(out_dir / "updates.h5", key="updates")
-    likelihood = pd.DataFrame(mcmc.get_extra_fields(True)["potential_energy"]).T
+    
     pickle.dump(calib.sampled_params, open(out_dir / "priors.pkl", "wb"))
-    likelihood.to_hdf(out_dir / "likelihood.h5", key="likelihood")
+    
     for t, target in calib.targets.items():
         target.data.to_hdf(out_dir / f"{TARGET_KEY}{t}.h5", key=t)
     pd.Series(model.mobility).to_hdf(out_dir / "mobility.h5", key="mobility")
