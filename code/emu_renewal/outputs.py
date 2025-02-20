@@ -161,7 +161,7 @@ def store_outputs(
     likelihood.to_hdf(out_dir / "likelihood.h5", key="likelihood")
 
     ll_chain_mean = likelihood.mean(axis=0)
-    max_diff = ll_chain_mean[ll_chain_mean.idxmax()].std()
+    max_diff = likelihood[ll_chain_mean.idxmax()].std()
 
     bad_idx_table = (ll_chain_mean.max() - ll_chain_mean) > max_diff
     good_chains = list(bad_idx_table.index[~bad_idx_table])
