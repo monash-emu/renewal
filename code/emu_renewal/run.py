@@ -5,6 +5,7 @@ from numpyro import infer
 from jax import random
 from typing import Tuple, Dict
 import pandas as pd
+import sys
 
 from emu_renewal.inputs import DATE_FORMAT, BASE_PATH, get_indicator_series_from_who_data, \
     get_country_vacc_data, get_standard_targets, get_country_vars, \
@@ -126,18 +127,21 @@ def find_variant_seeds(val, prealpha_prop, start_time, seed_duration):
     alpha_seed_start = max([before_prop_time, start_time])
     return [[alpha_seed_start, alpha_seed_start + timedelta(seed_duration)]]
 
+def log(log_str: str):
+    print(log_str)
+    sys.stdout.flush()
 
 def run_single_country(country, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name, analysis_name, num_chains=4):
-    print(f"\n________________________\nRunning job at {analysis_name}")
+    log(f"\n________________________\nRunning job at {analysis_name}")
     iso3 = pycountry.countries.lookup(country).alpha_3
-    print(f"Country: {iso3}")
-    print(f"Mobility approach: {mob_analysis_type}")
+    log(f"Country: {iso3}")
+    log(f"Mobility approach: {mob_analysis_type}")
     pop = get_worldbank_national_pop(iso3)
     start_time = find_run_start_time(iso3, pop, 2e-6)
-    print(f"Running from {start_time.strftime(DATE_FORMAT)}")
+    log(f"Running from {start_time.strftime(DATE_FORMAT)}")
     most_extreme_prop = 0.05
     end_time = find_run_end_time(country, most_extreme_prop)
-    print(f"Running to {end_time.strftime(DATE_FORMAT)}")
+    log(f"Running to {end_time.strftime(DATE_FORMAT)}")
     cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data = gather_targets(iso3, start_time, end_time, 10, hosp_out, init_duration)
     targets = collate_targets(cases_target, deaths_target, hosp_target, hosp_out_name, seroprev_target, most_extreme_prop, prealpha_prop, start_time, end_time)
     seed_times = find_variant_seeds(0.5, prealpha_prop, start_time, seed_duration)
@@ -166,5 +170,5 @@ def run_single_country(country, seed_duration, proc_update_freq, init_duration, 
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
     storage_path = BASE_PATH / "outputs" / analysis_name / country / mob_analysis_type
     storage_path.mkdir(parents=True, exist_ok=True)
-    print(f"Writing to: {storage_path}")
+    log(f"Writing to: {storage_path}")
     store_outputs(storage_path, model, calib, mcmc)
