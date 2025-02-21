@@ -87,6 +87,8 @@ def gather_targets(
     var_data = var_data[var_data.sum(axis=1) >= min_var_samples]
     prealpha_vars = ["20A.EU1"] if iso3 == "LTU" else ["20A.EU1", "20A.EU2"]  # Lithuania has no 20A.EU2
     prealpha_prop = var_data[prealpha_vars].sum(axis=1) / var_data.sum(axis=1)
+    if iso3 == "PRT":
+        prealpha_prop = prealpha_prop[prealpha_prop.index > datetime(2021, 1, 1)]  # Fluctuations in sample numbers in Portugal
     return cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data
 
 
@@ -131,7 +133,7 @@ def log(log_str: str):
     print(log_str)
     sys.stdout.flush()
 
-def run_single_country(country, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name, analysis_name, num_chains=4):
+def run_single_country(country, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name, analysis_name, num_chains=4, prog_bar=False):
     log(f"\n________________________\nRunning job at {analysis_name}")
     iso3 = pycountry.countries.lookup(country).alpha_3
     log(f"Country: {iso3}")
@@ -166,7 +168,7 @@ def run_single_country(country, seed_duration, proc_update_freq, init_duration, 
     )
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=calib.custom_init(radius=0.1))
-    mcmc = infer.MCMC(kernel, num_chains=num_chains, num_samples=iterations, num_warmup=iterations, progress_bar=False)
+    mcmc = infer.MCMC(kernel, num_chains=num_chains, num_samples=iterations, num_warmup=iterations, progress_bar=prog_bar)
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
     storage_path = BASE_PATH / "outputs" / analysis_name / country / mob_analysis_type
     storage_path.mkdir(parents=True, exist_ok=True)
