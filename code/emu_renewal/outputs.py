@@ -115,27 +115,6 @@ def get_table_df_from_priors_dict(
     return priors_df
 
 
-def get_multianalysis_dispvals_from_idatas(
-    idatas: Dict[str, az.InferenceData],
-    ref_analysis="no_mob",
-):
-    """Get the dispersion values from a set of country runs
-
-    Args:
-        idatas: The inference data objects
-        ref_analysis: An arbitrary analysis string to get the number of chains from
-
-    Returns:
-        Column multiindexed dataframe with first level analysis type and second level chains
-    """
-    n_chains = idatas[ref_analysis].posterior.chain.size
-    multianalysis_disp_df = pd.DataFrame(columns=pd.MultiIndex.from_product([idatas.keys(), range(n_chains)]))
-    for a in idatas.keys():
-        idata = idatas[a]
-        multianalysis_disp_df[a] = pd.DataFrame(np.swapaxes(idata.posterior["dispersion_proc"].to_numpy(), 0, 1))
-    return multianalysis_disp_df
-
-
 def store_outputs(
     out_dir: Path, 
     model: MultiStrainModel,
@@ -183,48 +162,3 @@ def store_outputs(
     for t, target in calib.targets.items():
         target.data.to_hdf(out_dir / f"{TARGET_KEY}{t}.h5", key=t)
     pd.Series(model.mobility).to_hdf(out_dir / "mobility.h5", key="mobility")
-
-
-def load_last_runs_from_path(path):
-    spaghs = {}
-    targets = {}
-    countries = []
-    for country_folder in path.iterdir():
-        country = pycountry.countries.lookup(country_folder.parts[-1]).alpha_3
-        countries.append(country)
-        spaghs[country] = {}
-        targets[country] = {}
-        for analysis_folder in country_folder.iterdir():
-            analysis_name = analysis_folder.parts[-1]
-            avail_times = [datetime.strptime(d.parts[-1], DATE_FORMAT) for d in analysis_folder.iterdir()]
-            last_time = datetime.strftime(max(avail_times), DATE_FORMAT)
-            path = country_folder / analysis_folder / last_time
-            spaghs[country][analysis_name] = pd.read_hdf(path / "spaghetti.h5")
-            target_files = path.glob(f"{TARGET_KEY}*.h5")
-            for targ in target_files:
-                targets[country][targ.parts[-1][len(TARGET_KEY):-3]] = pd.read_hdf(targ)
-    return spaghs, targets, countries
-
-
-def get_latest_analyses(
-    country_path: Path,
-    analyses: List[str],
-) -> Dict[str, str]:
-    """Get the most recent analysis time string
-    for each of the requested analysis types
-    for a particular country.
-
-    Args:
-        country: Name of the country
-        analyses: The names of the mobility analysis types requested
-        date_format: String format to represent the date
-
-    Returns:
-        The requested information
-    """
-    last_analyses = {}
-    for analysis in analyses:
-        path = country_path / analysis
-        dates = [datetime.strptime(d.parts[-1], DATE_FORMAT) for d in path.iterdir()]
-        last_analyses[analysis] = datetime.strftime(max(dates), DATE_FORMAT)
-    return last_analyses
