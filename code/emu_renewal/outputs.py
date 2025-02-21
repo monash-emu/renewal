@@ -147,10 +147,10 @@ def store_outputs(
 
     print(f"Selected chains {good_chains}")
 
-    idata = idata_full.sel(chain=good_chains)
-    idata.to_netcdf(out_dir / "idata.nc")
+    idata_filtered = idata_full.sel(chain=good_chains)
+    idata_filtered.to_netcdf(out_dir / "idata_filtered.nc")
 
-    idata_sampled = az.extract(idata, num_samples=n_samples)
+    idata_sampled = az.extract(idata_filtered, num_samples=n_samples)
     sample_params = esamp.xarray_to_sampleiterator(idata_sampled)
     spaghetti = get_spagh_df_from_dict(run_for_spaghetti(calib, sample_params))
     spaghetti.to_hdf(out_dir / "spaghetti.h5", key="spaghetti")
