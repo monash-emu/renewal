@@ -1,14 +1,11 @@
 import pandas as pd
 import json
 from pathlib import Path
-import os
 import pycountry
 from typing import Tuple, List, Dict
 from datetime import datetime, timedelta
 import yaml as yml
 from numpyro import distributions as dist
-
-from emu_renewal.utils import get_row_proportions
 
 
 DATE_FORMAT = "%Y%m%d_%H%M"
@@ -126,12 +123,12 @@ def get_who_targets(
     cases_data = get_indicator_series_from_who_data("New_cases", country)
     deaths_data = get_indicator_series_from_who_data("New_deaths", country)
     data_start = analysis_start + timedelta(analysis_to_data_delay)
-    cases_target = cases_data.loc[data_start:analysis_end]
-    deaths_target = deaths_data.loc[data_start:analysis_end]
+    cases_target = cases_data.loc[data_start: analysis_end]
+    deaths_target = deaths_data.loc[data_start: analysis_end]
     init_start = analysis_start - timedelta(init_duration)
     init_end = analysis_start - timedelta(1)
     init_smooth_period = 7.0  # To correct values after resampling from weekly to daily
-    init_data = cases_data.resample("D").asfreq().interpolate().loc[init_start:init_end] / init_smooth_period
+    init_data = cases_data.resample("D").asfreq().interpolate().loc[init_start: init_end] / init_smooth_period
     return cases_target, deaths_target, init_data
 
 
@@ -178,7 +175,7 @@ def get_hosp_target(
     """
     data_start = analysis_start + timedelta(analysis_to_data_delay)
     hosp_data = get_hosp_series_from_owid_data(indicator, country)
-    return hosp_data[data_start:analysis_end:7]
+    return hosp_data[data_start: analysis_end: 7]
 
 
 def get_var_country_data(
@@ -186,7 +183,7 @@ def get_var_country_data(
     country: str,
 ) -> pd.Series:
     """Get data for the number of isolates attributable to
-    a particular variant in a certain country.
+    a particular variant in a particular country.
 
     Args:
         var: Nextclade name for the variant
@@ -195,28 +192,12 @@ def get_var_country_data(
     Returns:
         The data
     """
-    # Countries needing official name for Nextclade data
-    offic_countries = ["CZE"]
+    offic_countries = ["CZE"]  # Countries needing official name for Nextclade data
     pycountry_obj = pycountry.countries.lookup(country)
     country_name = pycountry_obj.official_name if country in offic_countries else pycountry_obj.name
     data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[country_name]
     dates = pd.to_datetime(data["week"])
     return pd.Series(data["cluster_sequences"], index=dates)
-
-
-def get_multivars_country_data(
-    country: str,
-) -> pd.DataFrame:
-    """Get data for multiple variants using mapping from
-    our names for the variants to Nextclade
-
-    Args:
-        country: Name of the country
-
-    Returns:
-        The data
-    """
-    return pd.DataFrame({v: get_var_country_data(v, country) for v in VAR_NAMES})
 
 
 def process_raw_google_mobility(
@@ -235,11 +216,11 @@ def process_raw_google_mobility(
     data_files = [pd.read_csv(RAW_MOB_PATH / f"{y}_{iso2}_Region_Mobility_Report.csv", index_col="date") for y in years]
     all_data = pd.concat(data_files)
     all_data.index = pd.to_datetime(all_data.index)
-    national_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]
-    national_data = national_data[[c for c in national_data.columns if "change_from_baseline" in c]]  # Extract the mobility columns
-    national_data = national_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)  # Simplify column naming
-    national_data = 1.0 + national_data / 100.0  # Convert to relative change
-    return national_data.sort_index()
+    nat_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]  # The rows at the national level
+    nat_data = nat_data[[c for c in nat_data.columns if "change_from_baseline" in c]]  # The mobility columns
+    nat_data = nat_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)  # Simplify column naming
+    nat_data = 1.0 + nat_data / 100.0  # Convert from percentage reduction to ratio
+    return nat_data.sort_index()
 
 
 def get_all_seroprev(
@@ -285,11 +266,8 @@ def get_filtered_seroprev(
     country_filt = data["country"] == country
     time_filt = (start < data.index) & (data.index < end)
     nat_filt = data["estimate_grade"] == "National"
-    type_filt = (data["subgroup_var"] == "Primary Estimate") & (
-        data["is_unity_aligned"] == "Unity-Aligned"
-    )
-    data = data.loc[time_filt & country_filt & nat_filt & type_filt]
-    return data["serum_pos_prevalence"]
+    type_filt = (data["subgroup_var"] == "Primary Estimate") & (data["is_unity_aligned"] == "Unity-Aligned")
+    return data.loc[time_filt & country_filt & nat_filt & type_filt, "serum_pos_prevalence"]
 
 
 def get_standard_priors() -> Dict[str, dist.Distribution]:
@@ -348,9 +326,7 @@ def get_country_mobility(
     """
     g_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
     g_mob.index = pd.to_datetime(g_mob.index)
-    nonresi_g_mob = (
-        g_mob.loc[:, g_mob.columns != "residential"].mean(axis=1).rolling(7).mean().dropna()
-    )
+    nonresi_g_mob = (g_mob.loc[:, g_mob.columns != "residential"].mean(axis=1).rolling(7).mean().dropna())
 
     fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_fbmob_data.csv", index_col=0)["0"]
     fb_mob.index = pd.to_datetime(fb_mob.index)
@@ -359,9 +335,9 @@ def get_country_mobility(
     collated_mob = pd.DataFrame(
         {
             "google_nonresi_linear": nonresi_g_mob,
-            "google_nonresi_square": nonresi_g_mob**2.0,
+            "google_nonresi_square": nonresi_g_mob ** 2.0,
             "fb_linear": fb_mob,
-            "fb_square": fb_mob**2.0,
+            "fb_square": fb_mob ** 2.0,
         },
     )
     collated_mob["no_mob"] = 1.0
