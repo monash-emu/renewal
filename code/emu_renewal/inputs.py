@@ -398,29 +398,6 @@ def get_all_var_data() -> dict:
     return {v: json.load(open(DATA_PATH / f"nextclade/{v}.json", "r")) for v in VAR_NAMES}
 
 
-def get_country_var_data(
-    raw_data: dict, 
-    country: str,
-) -> pd.DataFrame:
-    """Extract the NextClade data available
-    for a particular country.
-
-    Args:
-        raw_data: Raw NextClade data returned by get_all_var_data above
-        country: The country name
-
-    Returns:
-        The variant data relevant to the country
-    """
-    data = pd.DataFrame()
-    for v in raw_data:
-        if country in raw_data[v]:
-            var_data = raw_data[v][country]
-            data[v] = pd.Series(var_data["cluster_sequences"], index=var_data["week"])
-    data.index = pd.to_datetime(data.index)
-    return data
-
-
 def get_country_vars(
     country: str,
 ) -> pd.DataFrame:
