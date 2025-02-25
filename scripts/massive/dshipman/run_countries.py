@@ -19,7 +19,7 @@ if __name__ == "__main__":
         run_single_country(
             country,
             10,
-            1,
+            7,
             50,
             mob_analysis_type,
             1000,

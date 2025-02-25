@@ -94,7 +94,9 @@ def get_indicator_series_from_who_data(
         The data
     """
     who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
-    select_data = who_data.loc[who_data["Country_code"] == pycountry.countries.lookup(country).alpha_2]
+    select_data = who_data.loc[
+        who_data["Country_code"] == pycountry.countries.lookup(country).alpha_2
+    ]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format=TEXT_DATE_FORMAT)
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
@@ -123,12 +125,15 @@ def get_who_targets(
     cases_data = get_indicator_series_from_who_data("New_cases", country)
     deaths_data = get_indicator_series_from_who_data("New_deaths", country)
     data_start = analysis_start + timedelta(analysis_to_data_delay)
-    cases_target = cases_data.loc[data_start: analysis_end]
-    deaths_target = deaths_data.loc[data_start: analysis_end]
+    cases_target = cases_data.loc[data_start:analysis_end]
+    deaths_target = deaths_data.loc[data_start:analysis_end]
     init_start = analysis_start - timedelta(init_duration)
     init_end = analysis_start - timedelta(1)
     init_smooth_period = 7.0  # To correct values after resampling from weekly to daily
-    init_data = cases_data.resample("D").asfreq().interpolate().loc[init_start: init_end] / init_smooth_period
+    init_data = (
+        cases_data.resample("D").asfreq().interpolate().loc[init_start:init_end]
+        / init_smooth_period
+    )
     return cases_target, deaths_target, init_data
 
 
@@ -175,7 +180,7 @@ def get_hosp_target(
     """
     data_start = analysis_start + timedelta(analysis_to_data_delay)
     hosp_data = get_hosp_series_from_owid_data(indicator, country)
-    return hosp_data[data_start: analysis_end: 7]
+    return hosp_data[data_start:analysis_end:7]
 
 
 def get_var_country_data(
@@ -213,12 +218,21 @@ def process_raw_google_mobility(
     """
     years = range(2020, 2023)
     iso2 = pycountry.countries.lookup(country).alpha_2
-    data_files = [pd.read_csv(RAW_MOB_PATH / f"{y}_{iso2}_Region_Mobility_Report.csv", index_col="date") for y in years]
+    data_files = [
+        pd.read_csv(RAW_MOB_PATH / f"{y}_{iso2}_Region_Mobility_Report.csv", index_col="date")
+        for y in years
+    ]
     all_data = pd.concat(data_files)
     all_data.index = pd.to_datetime(all_data.index)
-    nat_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]  # The rows at the national level
-    nat_data = nat_data[[c for c in nat_data.columns if "change_from_baseline" in c]]  # The mobility columns
-    nat_data = nat_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)  # Simplify column naming
+    nat_data = all_data.loc[
+        pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])
+    ]  # The rows at the national level
+    nat_data = nat_data[
+        [c for c in nat_data.columns if "change_from_baseline" in c]
+    ]  # The mobility columns
+    nat_data = nat_data.rename(
+        lambda c: c.replace("_percent_change_from_baseline", ""), axis=1
+    )  # Simplify column naming
     nat_data = 1.0 + nat_data / 100.0  # Convert from percentage reduction to ratio
     return nat_data.sort_index()
 
@@ -266,7 +280,9 @@ def get_filtered_seroprev(
     country_filt = data["country"] == country
     time_filt = (start < data.index) & (data.index < end)
     nat_filt = data["estimate_grade"] == "National"
-    type_filt = (data["subgroup_var"] == "Primary Estimate") & (data["is_unity_aligned"] == "Unity-Aligned")
+    type_filt = (data["subgroup_var"] == "Primary Estimate") & (
+        data["is_unity_aligned"] == "Unity-Aligned"
+    )
     return data.loc[time_filt & country_filt & nat_filt & type_filt, "serum_pos_prevalence"]
 
 
@@ -326,18 +342,18 @@ def get_country_mobility(
     """
     g_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
     g_mob.index = pd.to_datetime(g_mob.index)
-    nonresi_g_mob = (g_mob.loc[:, g_mob.columns != "residential"].mean(axis=1).rolling(7).mean().dropna())
+    nonresi_g_mob = g_mob.loc[:, g_mob.columns != "residential"].mean(axis=1).dropna()
 
     fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_fbmob_data.csv", index_col=0)["0"]
     fb_mob.index = pd.to_datetime(fb_mob.index)
-    fb_mob = 1.0 + fb_mob.rolling(7).mean().dropna()
+    fb_mob = 1.0 + fb_mob.dropna()
 
     collated_mob = pd.DataFrame(
         {
             "google_nonresi_linear": nonresi_g_mob,
-            "google_nonresi_square": nonresi_g_mob ** 2.0,
+            "google_nonresi_square": nonresi_g_mob**2.0,
             "fb_linear": fb_mob,
-            "fb_square": fb_mob ** 2.0,
+            "fb_square": fb_mob**2.0,
         },
     )
     collated_mob["no_mob"] = 1.0
@@ -364,14 +380,16 @@ def get_standard_targets(
     Returns:
         Case, hospitalisation, death and seroprevalence targets and initialisation data
     """
-    cases_target, deaths_target, init_data = get_who_targets(country, start, end, init_duration, data_delay)
+    cases_target, deaths_target, init_data = get_who_targets(
+        country, start, end, init_duration, data_delay
+    )
     hosp_target = get_hosp_target(country, start, end, data_delay, hosp_indicator)
     seroprev_target = get_filtered_seroprev(country, start, end)
     return cases_target, hosp_target, deaths_target, seroprev_target, init_data
 
 
 def get_country_vacc_data(
-    iso3 :str,
+    iso3: str,
 ) -> pd.DataFrame:
     """Get the initial course cumulative vaccination coverage
     data for a specific country.
@@ -383,9 +401,15 @@ def get_country_vacc_data(
         The data
     """
     country_name = pycountry.countries.lookup(iso3).name
-    data = pd.read_csv(DATA_PATH / "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv", index_col="Day")
+    data = pd.read_csv(
+        DATA_PATH
+        / "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv",
+        index_col="Day",
+    )
     data.index = pd.to_datetime(data.index)
-    return data.loc[data["Entity"] == country_name, "People fully vaccinated (cumulative, per hundred)"]
+    return data.loc[
+        data["Entity"] == country_name, "People fully vaccinated (cumulative, per hundred)"
+    ]
 
 
 def get_all_var_data() -> dict:
