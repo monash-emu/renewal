@@ -99,39 +99,6 @@ def get_indicator_series_from_who_data(
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
 
-def get_who_targets(
-    country: str,
-    analysis_start: datetime,
-    analysis_end: datetime,
-    init_duration: int,
-    analysis_to_data_delay: int,
-) -> Tuple[pd.Series]:
-    """Get all the WHO indicators relevant to the country of interest.
-    Indicators are reported weekly, targets remain weekly
-    but initialisation incidence is converted to daily.
-
-    Args:
-        country: Code for the country of interest
-        analysis_start: Start date of the analysis
-        analysis_end: End date of the analysis
-        init_duration: Duration of the initialisation period
-        analysis_to_data_delay: Time from starting the analysis to comparing against targets
-
-    Returns:
-        Cases target, deaths target, initialisation incidence values
-    """
-    cases_data = get_indicator_series_from_who_data("New_cases", country)
-    deaths_data = get_indicator_series_from_who_data("New_deaths", country)
-    data_start = analysis_start + timedelta(analysis_to_data_delay)
-    cases_target = cases_data.loc[data_start: analysis_end]
-    deaths_target = deaths_data.loc[data_start: analysis_end]
-    init_start = analysis_start - timedelta(init_duration)
-    init_end = analysis_start - timedelta(1)
-    init_smooth_period = 7.0  # To correct values after resampling from weekly to daily
-    init_data = cases_data.resample("D").asfreq().interpolate().loc[init_start: init_end] / init_smooth_period
-    return cases_target, deaths_target, init_data
-
-
 def get_hosp_series_from_owid_data(
     indicator: str,
     country: str,
@@ -155,9 +122,8 @@ def get_hosp_series_from_owid_data(
 
 def get_hosp_target(
     country: str,
-    analysis_start: datetime,
+    data_start: datetime,
     analysis_end: datetime,
-    analysis_to_data_delay: int,
     indicator: str,
 ) -> pd.Series:
     """Get hospitalisation target, the data for which
@@ -168,12 +134,10 @@ def get_hosp_target(
         country: Name of the country of interest
         analysis_start: Start date of the analysis
         analysis_end: End date of the analysis
-        analysis_to_data_delay: Time from starting the analysis to comparing against targets
 
     Returns:
         Hospital occupancy target
     """
-    data_start = analysis_start + timedelta(analysis_to_data_delay)
     hosp_data = get_hosp_series_from_owid_data(indicator, country)
     return hosp_data[data_start: analysis_end: 7]
 
@@ -346,11 +310,9 @@ def get_country_mobility(
 
 def get_standard_targets(
     country: str,
-    start: datetime,
-    end: datetime,
-    init_duration: int,
+    data_start: datetime,
+    analysis_end: datetime,
     hosp_indicator: str,
-    data_delay: int = 14,
 ) -> Tuple[pd.DataFrame]:
     """Get the standard epidemiological targets for a model run.
 
@@ -359,15 +321,17 @@ def get_standard_targets(
         start: Analysis start time
         end: Analysis end time
         init_duration: Time for initialisation before analysis starts
-        data_delay: Delay from analysis starting to comparing against data
 
     Returns:
         Case, hospitalisation, death and seroprevalence targets and initialisation data
     """
-    cases_target, deaths_target, init_data = get_who_targets(country, start, end, init_duration, data_delay)
-    hosp_target = get_hosp_target(country, start, end, data_delay, hosp_indicator)
-    seroprev_target = get_filtered_seroprev(country, start, end)
-    return cases_target, hosp_target, deaths_target, seroprev_target, init_data
+    cases_data = get_indicator_series_from_who_data("New_cases", country)
+    deaths_data = get_indicator_series_from_who_data("New_deaths", country)
+    cases_target = cases_data.loc[data_start: analysis_end]
+    deaths_target = deaths_data.loc[data_start: analysis_end]
+    hosp_target = get_hosp_target(country, data_start, analysis_end, hosp_indicator)
+    seroprev_target = get_filtered_seroprev(country, data_start, analysis_end)
+    return cases_target, hosp_target, deaths_target, seroprev_target
 
 
 def get_country_vacc_data(

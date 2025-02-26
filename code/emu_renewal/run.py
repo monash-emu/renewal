@@ -61,11 +61,10 @@ def find_run_end_time(
 
 def gather_targets(
     iso3: str, 
-    start_time: datetime, 
-    end_time: datetime,
+    data_start: datetime, 
+    analysis_end: datetime,
     min_var_samples: int,
     hosp_out: str,
-    init_duration: int,
 ) -> Tuple[pd.Series]:
     """Get the targets as separate series, plus the initialisation series.
 
@@ -80,7 +79,7 @@ def gather_targets(
     Returns:
         The various calibration targets and initialisation data
     """
-    cases_target, hosp_target, deaths_target, seroprev_target, init_data = get_standard_targets(iso3, start_time, end_time, init_duration, hosp_out)
+    cases_target, hosp_target, deaths_target, seroprev_target = get_standard_targets(iso3, data_start, analysis_end, hosp_out)
     cases_target = cases_target[cases_target.index >= datetime(2020, 6, 1)]  # Ignore initial cases before testing scaled up
     var_country_name = pycountry.countries.lookup(iso3).official_name if iso3 in ["CZE"] else pycountry.countries.lookup(iso3).name
     var_data = get_country_vars(var_country_name)
@@ -89,7 +88,7 @@ def gather_targets(
     prealpha_prop = var_data[prealpha_vars].sum(axis=1) / var_data.sum(axis=1)
     if iso3 == "PRT":
         prealpha_prop = prealpha_prop[prealpha_prop.index > datetime(2021, 1, 1)]  # Fluctuations in sample numbers in Portugal
-    return cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data
+    return cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop
 
 
 def collate_targets(

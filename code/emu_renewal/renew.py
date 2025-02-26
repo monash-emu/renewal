@@ -547,7 +547,7 @@ class MultiStrainModel(RenewalHospModel):
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = self.mobility[t]  # Mobility data (scalar)
-            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + self.seed_array[:, t + len(self.init_series)])  # Incidence history (array of shape n_strains X window_len)
+            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + self.seed_array[:, t + self.init_length])  # Incidence history (array of shape n_strains X window_len)
             contributions = (densities * past_inc).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
             target_inf_rates = contributions * proc_val * mob_val * rel_infect / self.pop  # Infection rate (vector of length n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-target_inf_rates)  # Ceiling in case of very high incidence rates within a given day (vector of length n_strains)
