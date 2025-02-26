@@ -124,10 +124,10 @@ def collate_targets(
     return all_targets
 
 
-def find_variant_seeds(val, prealpha_prop, start_time, seed_duration):
+def find_variant_seeds(val, prealpha_prop, start_time):
     before_prop_time = (prealpha_prop - val).abs().idxmin() - timedelta(80)
     alpha_seed_start = max([before_prop_time, start_time])
-    return [[alpha_seed_start, alpha_seed_start + timedelta(seed_duration)]]
+    return [alpha_seed_start]
 
 def log(log_str: str):
     print(log_str)
