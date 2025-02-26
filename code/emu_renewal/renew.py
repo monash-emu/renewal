@@ -532,7 +532,7 @@ class MultiStrainModel(RenewalHospModel):
             indices = [int(self.epoch.dti_to_index(t) + init_duration) for t in strain_times]
             self.seed_array = self.seed_array.at[s, slice(*indices)].set(seed_rate)
 
-    def renew(self, mean, sd, proc, init, cross_immunity, inc_seeding, alpha_relinfect):
+    def renew(self, mean, sd, proc, init, cross_immunity, alpha_relinfect):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
         init_inc = jnp.fliplr(self.seed_array[:, :self.init_length])  # Reverse initialisation
@@ -588,9 +588,8 @@ class MultiStrainModel(RenewalHospModel):
         alpha_relinfect: float,
         **kwargs,
     ) -> ModelResult:
-        inc_seeding = None
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
-        outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, inc_seeding, alpha_relinfect)
+        outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, alpha_relinfect)
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
         outputs["inc"] = full_inc[self.init_length :]
