@@ -525,7 +525,7 @@ class MultiStrainModel(RenewalHospModel):
 
         self.seed_array = jnp.zeros([len(self.strains), self.init_length + len(self.model_times)])
         for s, strain_times in enumerate(seed_times):
-            strain_start = int(self.epoch.dti_to_index(strain_times))
+            strain_start = int(self.epoch.dti_to_index(strain_times)) + self.init_length
             self.seed_array = self.seed_array.at[s, strain_start: strain_start + seed_duration].set(seed_rate)
 
     def renew(self, mean, sd, proc, init, cross_immunity, alpha_relinfect):
