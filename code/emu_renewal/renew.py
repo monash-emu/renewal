@@ -521,59 +521,29 @@ class MultiStrainModel(RenewalHospModel):
         self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
         self.mobility = jnp.array(mobility.loc[start: ])
-        no_seed = jnp.zeros([self.n_strains - 1, self.init_length])  # Zeros for the other strains
-        init_seed = jnp.vstack([self.init_series, no_seed])  # Combine with seeding for first strain
-        seed_vals = self.get_seeds(seed_times, seed_rate)  # Seeding during main period
-        self.seeding = jnp.hstack([init_seed, seed_vals])  # Join together
 
         init_duration = len(self.init_series)
         seed_duration = 10
         wild_seed_times = [start - timedelta(init_duration), start - timedelta(init_duration) + timedelta(seed_duration)]
         new_seed_times = [wild_seed_times] + seed_times
 
-        self.seed_array = np.zeros([len(self.strains), init_duration + len(self.model_times)])
+        self.seed_array = jnp.zeros([len(self.strains), init_duration + len(self.model_times)])
         for s, strain_times in enumerate(new_seed_times):
             indices = [int(self.epoch.dti_to_index(t) + init_duration) for t in strain_times]
-            self.seed_array[s, slice(*indices)] = seed_rate
+            self.seed_array = self.seed_array.at[s, slice(*indices)].set(seed_rate)
 
 
     def date_to_index(self, date):
         return int(self.epoch.datetime_to_number(date))
 
-    def get_seeds(
-        self,
-        seed_times: List[datetime.date],
-        seed_rate: float,
-    ) -> Array:
-        """Convert seed requests to seeding values array.
-
-        Args:
-            seed_times: List of length one less than number of strains
-                with each element representing the strains other than the start strain,
-                and each element containing two elements representing the start
-                and end time for the seeding process.
-            seed_rate: The rate at which new people are introduced.
-
-        Returns:
-            Jaxified seeding rate array
-        """
-        seed_vals = np.zeros([self.n_strains, len(self.model_times)])
-        for s in range(self.n_strains - 1):
-            strain_seed_times = seed_times[s]
-            seed_start = self.date_to_index(strain_seed_times[0])
-            seed_end = self.date_to_index(strain_seed_times[1])
-            seed_vals[s + 1, seed_start:seed_end] = seed_rate
-        return jnp.array(seed_vals)
 
     def renew(self, mean, sd, proc, init, cross_immunity, inc_seeding, alpha_relinfect):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
-        init_inc = jnp.fliplr(inc_seeding[:, :self.init_length])  # Reverse initialisation
+        init_inc = jnp.fliplr(self.seed_array[:, :self.init_length])  # Reverse initialisation
         start_pop = self.pop - jnp.sum(init_inc)  # Starting susceptible population
         start_pops = jnp.zeros(self.strain_map.shape[1])  # Starting susceptible distribution
         start_pops = start_pops.at[0].set(start_pop)
-        init_zeroes = jnp.zeros([self.n_strains, 1])  # Seeding is added to the day before
-        seeding_array = jnp.concat([init_zeroes, self.seeding[:, self.init_length:]], axis=1)  # Array for seeding during analysis period
         rel_infect = jnp.ones(self.n_strains)
         rel_infect = rel_infect.at[1].set(alpha_relinfect)
         
@@ -584,7 +554,7 @@ class MultiStrainModel(RenewalHospModel):
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = self.mobility[t]  # Mobility data (scalar)
-            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seeding_array[:, t] + self.new_seed_func(t))  # Incidence history (array of shape n_strains X window_len)
+            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + self.seed_array[:, t])  # Incidence history (array of shape n_strains X window_len)
             contributions = (densities * past_inc).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
             target_inf_rates = contributions * proc_val * mob_val * rel_infect / self.pop  # Infection rate (vector of length n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-target_inf_rates)  # Ceiling in case of very high incidence rates within a given day (vector of length n_strains)
@@ -624,8 +594,8 @@ class MultiStrainModel(RenewalHospModel):
         alpha_relinfect: float,
         **kwargs,
     ) -> ModelResult:
-        inc_seeding = self.seeding / cdr
-        start_inc = jnp.sum(self.seeding[:, : self.init_length], axis=0)
+        inc_seeding = None
+        start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
         outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, inc_seeding, alpha_relinfect)
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
