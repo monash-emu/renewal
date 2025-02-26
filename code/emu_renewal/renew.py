@@ -532,11 +532,6 @@ class MultiStrainModel(RenewalHospModel):
             indices = [int(self.epoch.dti_to_index(t) + init_duration) for t in strain_times]
             self.seed_array = self.seed_array.at[s, slice(*indices)].set(seed_rate)
 
-
-    def date_to_index(self, date):
-        return int(self.epoch.datetime_to_number(date))
-
-
     def renew(self, mean, sd, proc, init, cross_immunity, inc_seeding, alpha_relinfect):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
@@ -554,7 +549,7 @@ class MultiStrainModel(RenewalHospModel):
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = self.mobility[t]  # Mobility data (scalar)
-            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + self.seed_array[:, t])  # Incidence history (array of shape n_strains X window_len)
+            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + self.seed_array[:, t + len(self.init_series)])  # Incidence history (array of shape n_strains X window_len)
             contributions = (densities * past_inc).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
             target_inf_rates = contributions * proc_val * mob_val * rel_infect / self.pop  # Infection rate (vector of length n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-target_inf_rates)  # Ceiling in case of very high incidence rates within a given day (vector of length n_strains)
@@ -571,7 +566,6 @@ class MultiStrainModel(RenewalHospModel):
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
         return outputs
-
 
     def renewal_func(
         self,
