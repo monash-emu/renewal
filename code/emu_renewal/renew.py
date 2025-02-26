@@ -2,7 +2,7 @@ from typing import Union, List, Tuple
 from typing import NamedTuple
 from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 from warnings import warn
@@ -526,6 +526,17 @@ class MultiStrainModel(RenewalHospModel):
         seed_vals = self.get_seeds(seed_times, seed_rate)  # Seeding during main period
         self.seeding = jnp.hstack([init_seed, seed_vals])  # Join together
 
+        init_duration = len(self.init_series)
+        seed_duration = 10
+        wild_seed_times = [start - timedelta(init_duration), start - timedelta(init_duration) + timedelta(seed_duration)]
+        new_seed_times = [wild_seed_times] + seed_times
+
+        self.seed_array = np.zeros([len(self.strains), init_duration + len(self.model_times)])
+        for s, strain_times in enumerate(new_seed_times):
+            indices = [int(self.epoch.dti_to_index(t) + init_duration) for t in strain_times]
+            self.seed_array[s, slice(*indices)] = seed_rate
+
+
     def date_to_index(self, date):
         return int(self.epoch.datetime_to_number(date))
 
@@ -573,7 +584,7 @@ class MultiStrainModel(RenewalHospModel):
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = self.mobility[t]  # Mobility data (scalar)
-            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seeding_array[:, t])  # Incidence history (array of shape n_strains X window_len)
+            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seeding_array[:, t] + self.new_seed_func(t))  # Incidence history (array of shape n_strains X window_len)
             contributions = (densities * past_inc).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
             target_inf_rates = contributions * proc_val * mob_val * rel_infect / self.pop  # Infection rate (vector of length n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-target_inf_rates)  # Ceiling in case of very high incidence rates within a given day (vector of length n_strains)
@@ -590,6 +601,7 @@ class MultiStrainModel(RenewalHospModel):
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
         return outputs
+
 
     def renewal_func(
         self,
