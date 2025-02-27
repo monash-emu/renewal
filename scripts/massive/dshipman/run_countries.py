@@ -18,8 +18,7 @@ if __name__ == "__main__":
     for mob_analysis_type in ANALYSIS_TYPES:
         run_single_country(
             country,
-            10,
-            1,
+            7,
             50,
             mob_analysis_type,
             1000,

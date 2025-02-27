@@ -5,6 +5,7 @@ from numpyro import infer
 from jax import random
 from typing import Tuple, Dict
 import pandas as pd
+import numpy as np
 import sys
 
 from emu_renewal.inputs import DATE_FORMAT, BASE_PATH, get_indicator_series_from_who_data, \
@@ -128,35 +129,40 @@ def find_variant_seeds(val, prealpha_prop, start_time):
     alpha_seed_start = max([before_prop_time, start_time])
     return [alpha_seed_start]
 
+
 def log(log_str: str):
     print(log_str)
     sys.stdout.flush()
 
-def run_single_country(country, seed_duration, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name, analysis_name, num_chains=4, prog_bar=False):
+
+def run_single_country(country, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name, analysis_name, num_chains=4, prog_bar=False):
     log(f"\n________________________\nRunning job at {analysis_name}")
     iso3 = pycountry.countries.lookup(country).alpha_3
     log(f"Country: {iso3}")
     log(f"Mobility approach: {mob_analysis_type}")
     pop = get_worldbank_national_pop(iso3)
-    start_time = find_run_start_time(iso3, pop, 2e-6)
-    log(f"Running from {start_time.strftime(DATE_FORMAT)}")
+    data_start = find_run_start_time(iso3, pop, 2e-6)
     most_extreme_prop = 0.05
     end_time = find_run_end_time(country, most_extreme_prop)
+    cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop = gather_targets(iso3, data_start, end_time, 10, hosp_out)
+    targets = collate_targets(cases_target, deaths_target, hosp_target, hosp_out_name, seroprev_target, most_extreme_prop, prealpha_prop, data_start, end_time)
+    run_start = data_start - timedelta(40)
+    log(f"Running from {run_start.strftime(DATE_FORMAT)} with data starting from {data_start.strftime(DATE_FORMAT)}")
     log(f"Running to {end_time.strftime(DATE_FORMAT)}")
-    cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop, init_data = gather_targets(iso3, start_time, end_time, 10, hosp_out, init_duration)
-    targets = collate_targets(cases_target, deaths_target, hosp_target, hosp_out_name, seroprev_target, most_extreme_prop, prealpha_prop, start_time, end_time)
-    seed_times = find_variant_seeds(0.5, prealpha_prop, start_time, seed_duration)
+    seed_times = find_variant_seeds(0.5, prealpha_prop, run_start)
+    seed_times = [run_start] + seed_times
     mobility = get_country_mobility(iso3)
     priors = get_standard_priors()
+    seed_duration = 10
     model = MultiStrainModel(
         pop,
-        start_time,
+        run_start,
         end_time,
         proc_update_freq,
         CosineMultiCurve(),
         GammaDens(),
         init_duration,
-        init_data,
+        np.zeros(init_duration),
         GammaDens(),
         GammaDens(),
         ["eu", "alpha"],
@@ -164,6 +170,7 @@ def run_single_country(country, seed_duration, proc_update_freq, init_duration, 
         seed_times,
         100.0,
         mobility[mob_analysis_type].dropna(),
+        seed_duration,
     )
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=calib.custom_init(radius=0.1))
