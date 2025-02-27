@@ -1,15 +1,11 @@
 from pathlib import Path
-import numpy as np
 import pandas as pd
 from jax import jit
-from typing import List, Dict
+from typing import Dict
 import matplotlib.pyplot as plt
 import arviz as az
 import pickle
 from numpyro import infer
-from datetime import datetime
-import pycountry
-import re
 
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
@@ -131,7 +127,6 @@ def store_outputs(
         mcmc: MCMC object
         n_samples: Number of samples to extract for spaghetti
     """
-    #idata = az.from_dict(mcmc.get_samples(True))
     idata_full = az.from_numpyro(mcmc)
     idata_full.to_netcdf(out_dir / "idata_full.nc")
 
