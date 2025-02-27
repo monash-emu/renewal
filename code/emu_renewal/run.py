@@ -135,25 +135,39 @@ def log(log_str: str):
     sys.stdout.flush()
 
 
-def run_single_country(country, proc_update_freq, init_duration, mob_analysis_type, iterations, hosp_out, hosp_out_name, analysis_name, num_chains=4, prog_bar=False):
+def run_single_country(
+    country, 
+    proc_update_freq, 
+    init_duration, 
+    mob_analysis_type, 
+    iterations, 
+    hosp_out, 
+    hosp_out_name, 
+    analysis_name,
+    run_data_delay: int=70,
+    most_extreme_prop: float=0.05,
+    deaths_start_threshold: float=2e-6,
+    min_var_threshold: int=10,
+    seed_duration: int=10,
+    num_chains=4, 
+    prog_bar=False,
+):
     log(f"\n________________________\nRunning job at {analysis_name}")
     iso3 = pycountry.countries.lookup(country).alpha_3
     log(f"Country: {iso3}")
     log(f"Mobility approach: {mob_analysis_type}")
     pop = get_worldbank_national_pop(iso3)
-    data_start = find_run_start_time(iso3, pop, 2e-6)
-    most_extreme_prop = 0.05
+    data_start = find_run_start_time(iso3, pop, deaths_start_threshold)
     end_time = find_run_end_time(country, most_extreme_prop)
-    cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop = gather_targets(iso3, data_start, end_time, 10, hosp_out)
+    cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop = gather_targets(iso3, data_start, end_time, min_var_threshold, hosp_out)
     targets = collate_targets(cases_target, deaths_target, hosp_target, hosp_out_name, seroprev_target, most_extreme_prop, prealpha_prop, data_start, end_time)
-    run_start = data_start - timedelta(40)
+    run_start = data_start - timedelta(run_data_delay)
     log(f"Running from {run_start.strftime(DATE_FORMAT)} with data starting from {data_start.strftime(DATE_FORMAT)}")
     log(f"Running to {end_time.strftime(DATE_FORMAT)}")
     seed_times = find_variant_seeds(0.5, prealpha_prop, run_start)
     seed_times = [run_start] + seed_times
     mobility = get_country_mobility(iso3)
     priors = get_standard_priors()
-    seed_duration = 10
     model = MultiStrainModel(
         pop,
         run_start,
