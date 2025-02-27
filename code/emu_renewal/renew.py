@@ -522,13 +522,9 @@ class MultiStrainModel(RenewalHospModel):
         self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
         self.mobility = jnp.array(mobility.loc[start: ])
-        self.get_seeding(seed_times, seed_duration, seed_rate)
-
-    def get_seeding(self, times, duration, rate):
-        self.seed_array = jnp.zeros([len(self.strains), self.init_length + len(self.model_times)])
-        for s, time in enumerate(times):
-            strain_start = int(self.epoch.dti_to_index(time)) + self.init_length
-            self.seed_array = self.seed_array.at[s, strain_start: strain_start + duration].set(rate)
+        self.seed_times = seed_times
+        self.seed_duration = seed_duration
+        self.seed_rate = seed_rate
 
     def renew(self, mean, sd, proc, init, cross_immunity, alpha_relinfect):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
@@ -586,6 +582,10 @@ class MultiStrainModel(RenewalHospModel):
         alpha_relinfect: float,
         **kwargs,
     ) -> ModelResult:
+        self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
+        for s in range(self.n_strains):
+            strain_start = int(self.epoch.dti_to_index(self.seed_times[s])) + self.init_length
+            self.seed_array = self.seed_array.at[s, strain_start: strain_start + self.seed_duration].set(self.seed_rate)
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
         outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, alpha_relinfect)
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
