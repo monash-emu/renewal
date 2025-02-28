@@ -4,12 +4,13 @@ from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
 from datetime import datetime
 import numpy as np
-from warnings import warn
+import pandas as pd
 import copy
 
 from summer2.utils import Epoch
 
-from emu_renewal.process import sinterp
+from emu_renewal.process import sinterp, MultiCurve
+from emu_renewal.distributions import Dens
 from emu_renewal.utils import format_date_for_str, round_sigfig, get_combs
 
 
@@ -85,22 +86,41 @@ class MultiStrainModel:
 
     def __init__(
         self,
-        population,
-        start,
-        end,
-        proc_update_freq,
-        proc_fitter,
-        dens_obj,
-        window_len,
-        init_length,
-        reporting_dist,
-        discharge_dens,
-        strains,
-        start_strain,
-        seed_times,
-        mobility,
-        seed_duration,
+        population: float,
+        start: datetime,
+        end: datetime,
+        proc_update_freq: int,
+        proc_fitter: MultiCurve,
+        dens_obj: Dens,
+        window_len: int,
+        init_length: int,
+        reporting_dist: Dens,
+        discharge_dens: Dens,
+        strains: List[str],
+        start_strain: str,
+        seed_times: List[datetime],
+        mobility: pd.Series,
+        seed_duration: int,
     ):
+        """_summary_
+
+        Args:
+            population: 
+            start: _description_
+            end: _description_
+            proc_update_freq: _description_
+            proc_fitter: _description_
+            dens_obj: _description_
+            window_len: _description_
+            init_length: _description_
+            reporting_dist: _description_
+            discharge_dens: _description_
+            strains: _description_
+            start_strain: _description_
+            seed_times: _description_
+            mobility: _description_
+            seed_duration: _description_
+        """
         assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
         self.n_strains = len(strains)
