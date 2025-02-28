@@ -182,7 +182,6 @@ def run_single_country(
         ["eu", "alpha"],
         "eu",
         seed_times,
-        100.0,
         mobility[mob_analysis_type].dropna(),
         seed_duration,
     )

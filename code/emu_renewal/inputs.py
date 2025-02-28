@@ -251,6 +251,8 @@ def get_standard_priors() -> Dict[str, dist.Distribution]:
         "alpha_relinfect": dist.TruncatedNormal(1.25, 0.1, low=1.0, high=1.5),
         "rt_init": dist.Normal(0.0, 0.5),
         "shared_dispersion": dist.HalfNormal(0.5),
+        "first_seed_rate": dist.Normal(50.0, 200.0),
+        "other_seed_rate": dist.Normal(50.0, 150.0),
     }
     return duration_priors | beta_priors | other_priors
 
