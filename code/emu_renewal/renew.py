@@ -1,17 +1,15 @@
-from typing import Union, List, Tuple
+from typing import Union, List
 from typing import NamedTuple
 from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
-from datetime import datetime, timedelta
-import pandas as pd
+from datetime import datetime
 import numpy as np
 from warnings import warn
 import copy
 
 from summer2.utils import Epoch
 
-from emu_renewal.process import sinterp, MultiCurve
-from emu_renewal.distributions import Dens
+from emu_renewal.process import sinterp
 from emu_renewal.utils import format_date_for_str, round_sigfig, get_combs
 
 
@@ -78,54 +76,42 @@ def get_trans_mats(dests: np.ndarray):
     return trans_mats
 
 
-class RenewalState(NamedTuple):
-    incidence: jnp.array
-    suscept: float
-
-
 class MultistrainState(NamedTuple):
     incidence: jnp.array
     suscept: jnp.array
 
 
-class RenewalModel:
+class MultiStrainModel:
+
     def __init__(
         self,
-        population: float,
-        start: Union[datetime, int],
-        end: Union[datetime, int],
-        proc_update_freq: int,
-        proc_fitter: MultiCurve,
-        dens_obj: Dens,
-        window_len: int,
-        init_series: Union[pd.Series, np.array],
-        reporting_dist: Dens,
+        population,
+        start,
+        end,
+        proc_update_freq,
+        proc_fitter,
+        dens_obj,
+        window_len,
+        init_length,
+        reporting_dist,
+        discharge_dens,
+        strains,
+        start_strain,
+        seed_times,
+        mobility,
+        seed_duration,
     ):
-        """Standard renewal model object.
-
-        Args:
-            population: Starting population value
-            start: Start time for the analysis period (excluding run-in)
-            end: End time for the analysis period
-            proc_update_freq: Frequency with with the vairable process is updated
-            proc_fitter: The object containing the method for fitting to the variable process series
-            dens_obj: Generation time distribution
-            window_len: How far to look back in calculating the renewal process
-            init_series: Initialisation series prior to analysis start
-        """
-
-        # Initialising series
-        if len(init_series) < window_len:
-            warn("Padding initialisation series with zeroes because shorter than window")
-            self.init_series = np.concatenate(
-                [np.zeros(window_len - len(init_series)), init_series]
-            )
-        elif len(init_series) > window_len:
-            warn("Trimming initialisation series because longer than window")
-            self.init_series = jnp.array(init_series[-window_len:])
-        else:
-            self.init_series = jnp.array(init_series)
-        self.init_length = len(self.init_series)
+        assert start_strain in strains, "Start strain not among modelled strains"
+        self.strains = strains
+        self.n_strains = len(strains)
+        self.strain_map = get_combs(len(strains))
+        self.dests = get_dests(self.strain_map)
+        self.trans_mats = get_trans_mats(self.dests)
+        self.mobility = jnp.array(mobility.loc[start: ])
+        self.seed_times = seed_times
+        self.seed_duration = seed_duration
+        self.discharge_dens = discharge_dens
+        self.init_length = init_length
 
         # Times
         self.epoch = Epoch(start) if isinstance(start, datetime) else None
@@ -210,33 +196,6 @@ class RenewalModel:
         else:
             raise ValueError(msg)
 
-    def fit_process_curve(
-        self,
-        y_proc_req: List[float],
-        rt_init,
-    ) -> jnp.array:
-        """See describe_process below.
-
-        Args:
-            y_proc_req: The submitted log values for the variable process
-
-        Returns:
-            The values of the variable process at each model time
-        """
-        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((rt_init,)), y_proc_req]))
-        y_proc_data = sinterp.get_scale_data(y_proc_vals)
-        cos_func = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
-        return jnp.exp(cos_func(self.model_times, self.x_proc_data, y_proc_data))
-
-    def describe_process(self):
-        self.description["Variable process"] += self.proc_fitter.get_description()
-        self.description["Variable process"] += (
-            "The parameters for the variable process are explored as "
-            "the update of each process value relative to the preceding value. "
-            "Each of the parameters for the variable process is exponentiated, "
-            "such that these parameters are explored in the log-transformed space. "
-        )
-
     def get_output_from_inc(
         self,
         full_inc: jnp.array,
@@ -270,6 +229,37 @@ class RenewalModel:
             "for case notifications. "
         )
 
+    def fit_process_curve(
+        self,
+        y_proc_req: List[float],
+        rt_init,
+    ) -> jnp.array:
+        """See describe_process below.
+
+        Args:
+            y_proc_req: The submitted log values for the variable process
+
+        Returns:
+            The values of the variable process at each model time
+        """
+        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((rt_init,)), y_proc_req]))
+        y_proc_data = sinterp.get_scale_data(y_proc_vals)
+        cos_func = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
+        return jnp.exp(cos_func(self.model_times, self.x_proc_data, y_proc_data))
+
+    def describe_process(self):
+        self.description["Variable process"] += self.proc_fitter.get_description()
+        self.description["Variable process"] += (
+            "The parameters for the variable process are explored as "
+            "the update of each process value relative to the preceding value. "
+            "Each of the parameters for the variable process is exponentiated, "
+            "such that these parameters are explored in the log-transformed space. "
+        )
+
+    def get_hosp_occupancy_from_admits(self, full_admits, stay_mean, stay_sd):
+        discharge = 1.0 - self.discharge_dens.get_cum_dens(self.window_len, stay_mean, stay_sd)
+        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
+    
     def get_period_output_from_daily(
         self,
         raw_series: jnp.array,
@@ -286,243 +276,6 @@ class RenewalModel:
         """
         windower = jnp.array([1.0] * n_sum_times)
         return jnp.convolve(raw_series, windower)[: len(raw_series)]
-
-    def describe_weekly_sum(self):
-        self.description["Reporting"] += (
-            "Last, weekly case counts are then calculated from this "
-            "time series of notifications. "
-        )
-
-    def renewal_func(
-        self,
-        proc: List[float],
-        gen_mean: float,
-        gen_sd: float,
-        cdr: float,
-        rt_init: float,
-        report_mean: float,
-        report_sd: float,
-        prop_immune: float = 0.0,
-        **kwargs,
-    ) -> ModelResult:
-        """See describe_renewal
-
-        Args:
-            gen_mean: Generation time mean
-            gen_sd: Generation time standard deviation
-            proc: Values of the variable process
-            cdr: Case detection proportion
-            rt_init: Initialisation value for variable process
-            report_mean: Mean time from incidence to notification
-            report_sd: Standard deviation of the time from incidence to notification
-            prop_immune: Starting proportion of the population immune
-
-        Returns:
-            Epidemiological results of the model run
-        """
-        full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
-        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
-        outputs["cases"] = cases[self.init_length :]
-        weekly_cases = self.get_period_output_from_daily(cases, 7)
-        outputs["weekly_cases"] = weekly_cases[self.init_length :]
-        seropos = (self.pop - outputs["suscept"]) / self.pop
-        outputs["seropos"] = seropos
-        return outputs
-
-    def renew(
-        self,
-        mean: float,
-        sd: float,
-        proc: List[float],
-        cdr: float,
-        init: float,
-        imm: float,
-    ) -> Tuple[float, Array, Array, ModelResult]:
-        """Run the renewal process calculations.
-
-        Args:
-            mean: Generation time mean
-            sd: Generation time standard deviation
-            proc: Values of the variable process
-            cdr: Case detection proportion
-            init: Initialisation value for variable process
-            imm: Starting proportion of the population immune
-
-        Returns:
-            Starting population value
-            Initialisation incidence sequence
-            Incidence series
-            Object containing the core epi outputs obtained directly from the renewal process
-        """
-        densities = self.dens_obj.get_densities(self.window_len, mean, sd)
-        process_vals = self.fit_process_curve(proc, init)
-        init_inc = self.init_series / cdr
-        start_pop = self.pop * (1.0 - imm) - jnp.sum(init_inc)
-        init_state = RenewalState(init_inc[::-1], start_pop)
-
-        def state_update(state: RenewalState, t) -> tuple[RenewalState, jnp.array]:
-            proc_val = process_vals[t - self.start]  # Variable process
-            target_inf_rate = ((densities * state.incidence).sum() * proc_val / self.pop)  # Calculated incidence
-            inf_rate = 1.0 - jnp.exp(-target_inf_rate)
-            actual_inc = inf_rate * state.suscept
-            suscept = state.suscept - actual_inc  # Susceptible depletion
-            inc = jnp.concat([jnp.array([actual_inc]), state.incidence[:-1]])  # Move up in matrix
-            out = {
-                "incidence": actual_inc,
-                "suscept": suscept,
-                "r_t": proc_val * state.suscept / self.pop,
-                "process": proc_val,
-            }
-            return RenewalState(inc, suscept), out
-
-        end_state, outputs = lax.scan(state_update, init_state, self.model_times)
-        full_inc = jnp.concatenate([init_inc, jnp.array(outputs["incidence"])])
-        return full_inc, outputs
-
-    def describe_renewal(self):
-        self.description["Renewal process"] = (
-            "Calculation of the renewal process "
-            "consists of multiplying the incidence values for the preceding days "
-            "by the reversed generation time distribution values. "
-            "This follows a standard formula, "
-            "described elsewhere by several groups,[@cori2013; @faria2021] i.e. "
-            "$$i_t = R_t\sum_{\\tau<t} i_\\tau g_{t-\\tau}$$\n"
-            "$R_t$ is calculated as the product of the proportion "
-            "of the population remaining susceptible "
-            "and the non-mechanistic random process "
-            "generated external to the renewal model. "
-            "The susceptible population is calculated by "
-            "subtracting the number of new incident cases from the "
-            "running total of susceptibles at each iteration. "
-            "If incidence exceeds the number of susceptible persons available "
-            "for infection in the model, incidence is capped at the "
-            "remaining number of susceptibles. "
-        )
-
-    def get_description(self) -> str:
-        """Compile the description of model.
-
-        Returns:
-            Description
-        """
-        description = ""
-        for title, text in self.description.items():
-            description += f"\n\n### {title}\n"
-            description += text
-        return description
-
-
-class RenewalHospModel(RenewalModel):
-
-    def __init__(
-        self,
-        population,
-        start,
-        end,
-        proc_update_freq,
-        proc_fitter,
-        dens_obj,
-        window_len,
-        init_series,
-        reporting_dist,
-        discharge_dens,
-    ):
-        super().__init__(
-            population,
-            start,
-            end,
-            proc_update_freq,
-            proc_fitter,
-            dens_obj,
-            window_len,
-            init_series,
-            reporting_dist,
-        )
-        self.discharge_dens = discharge_dens
-
-    def get_hosp_occupancy_from_admits(self, full_admits, stay_mean, stay_sd):
-        discharge = 1.0 - self.discharge_dens.get_cum_dens(self.window_len, stay_mean, stay_sd)
-        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
-
-    def renewal_func(
-        self,
-        proc: List[float],
-        gen_mean: float,
-        gen_sd: float,
-        cdr: float,
-        ifr: float,
-        rt_init: float,
-        report_mean: float,
-        report_sd: float,
-        death_mean: float,
-        death_sd: float,
-        admit_mean: float,
-        admit_sd: float,
-        stay_mean: float,
-        stay_sd: float,
-        har: float,
-        prop_immune: float = 0.0,
-        **kwargs,
-    ) -> ModelResult:
-        full_inc, outputs = self.renew(gen_mean, gen_sd, proc, cdr, rt_init, prop_immune)
-        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
-        outputs["cases"] = cases[self.init_length :]
-        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
-        outputs["deaths"] = deaths[self.init_length :]
-        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
-        outputs["admissions"] = admissions[self.init_length :]
-        occupancy = self.get_hosp_occupancy_from_admits(admissions, stay_mean, stay_sd)
-        outputs["occupancy"] = occupancy[self.init_length :]
-        weekly_cases = self.get_period_output_from_daily(cases, 7)
-        outputs["weekly_cases"] = weekly_cases[self.init_length :]
-        weekly_deaths = self.get_period_output_from_daily(deaths, 7)
-        outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
-        seropos = (self.pop - outputs["suscept"]) / self.pop
-        outputs["seropos"] = seropos
-        return outputs
-
-
-class MultiStrainModel(RenewalHospModel):
-
-    def __init__(
-        self,
-        population,
-        start,
-        end,
-        proc_update_freq,
-        proc_fitter,
-        dens_obj,
-        window_len,
-        init_series,
-        reporting_dist,
-        discharge_dens,
-        strains,
-        start_strain,
-        seed_times,
-        mobility,
-        seed_duration,
-    ):
-        super().__init__(
-            population,
-            start,
-            end,
-            proc_update_freq,
-            proc_fitter,
-            dens_obj,
-            window_len,
-            init_series,
-            reporting_dist,
-            discharge_dens,
-        )
-        assert start_strain in strains, "Start strain not among modelled strains"
-        self.strains = strains
-        self.n_strains = len(strains)
-        self.strain_map = get_combs(len(strains))
-        self.dests = get_dests(self.strain_map)
-        self.trans_mats = get_trans_mats(self.dests)
-        self.mobility = jnp.array(mobility.loc[start: ])
-        self.seed_times = seed_times
-        self.seed_duration = seed_duration
 
     def renew(self, mean, sd, proc, init, cross_immunity, alpha_relinfect):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
@@ -558,6 +311,26 @@ class MultiStrainModel(RenewalHospModel):
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
         return outputs
+
+    def describe_renewal(self):
+        self.description["Renewal process"] = (
+            "Calculation of the renewal process "
+            "consists of multiplying the incidence values for the preceding days "
+            "by the reversed generation time distribution values. "
+            "This follows a standard formula, "
+            "described elsewhere by several groups,[@cori2013; @faria2021] i.e. "
+            "$$i_t = R_t\sum_{\\tau<t} i_\\tau g_{t-\\tau}$$\n"
+            "$R_t$ is calculated as the product of the proportion "
+            "of the population remaining susceptible "
+            "and the non-mechanistic random process "
+            "generated external to the renewal model. "
+            "The susceptible population is calculated by "
+            "subtracting the number of new incident cases from the "
+            "running total of susceptibles at each iteration. "
+            "If incidence exceeds the number of susceptible persons available "
+            "for infection in the model, incidence is capped at the "
+            "remaining number of susceptibles. "
+        )
 
     def renewal_func(
         self,
@@ -609,3 +382,21 @@ class MultiStrainModel(RenewalHospModel):
         outputs["seropos"] = (self.pop - outputs["sus_0"]) / self.pop
         strain_props = {f"prop_{strain}": outputs[strain] / outputs["inc"] for strain in self.strains}
         return outputs | strain_props
+
+    def describe_weekly_sum(self):
+        self.description["Reporting"] += (
+            "Last, weekly case counts are then calculated from this "
+            "time series of notifications. "
+        )
+
+    def get_description(self) -> str:
+        """Compile the description of model.
+
+        Returns:
+            Description
+        """
+        description = ""
+        for title, text in self.description.items():
+            description += f"\n\n### {title}\n"
+            description += text
+        return description

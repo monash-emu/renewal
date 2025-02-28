@@ -176,7 +176,7 @@ def run_single_country(
         CosineMultiCurve(),
         GammaDens(),
         init_duration,
-        np.zeros(init_duration),
+        init_duration,
         GammaDens(),
         GammaDens(),
         ["eu", "alpha"],

@@ -4,7 +4,7 @@ import pandas as pd
 import numpyro
 from numpyro import distributions as dist
 
-from emu_renewal.renew import RenewalModel
+from emu_renewal.renew import MultiStrainModel
 from emu_renewal.utils import custom_init
 from emu_renewal.targets import Target
 
@@ -16,7 +16,7 @@ ParamDict = dict[str, dist.Distribution | float]
 class StandardCalib:
     def __init__(
         self,
-        epi_model: RenewalModel,
+        epi_model: MultiStrainModel,
         params: ParamDict,
         targets: dict[str, Target],
         proc_dispersion: dist.Distribution = dist.HalfNormal(0.1),
