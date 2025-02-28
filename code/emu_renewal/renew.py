@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import List
 from typing import NamedTuple
 from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
@@ -135,8 +135,8 @@ class MultiStrainModel:
 
         # Times
         self.epoch = Epoch(start) if isinstance(start, datetime) else None
-        self.start = self.process_time_req(start)
-        self.end = self.process_time_req(end)
+        self.start = int(self.epoch.dti_to_index(start))
+        self.end = int(self.epoch.dti_to_index(end))
         self.model_times = jnp.arange(self.start, self.end + 1)
         self.description = {
             "Fixed parameters": (
@@ -193,110 +193,6 @@ class MultiStrainModel:
         self.description["Reporting"] += self.report_dist.get_desc()
         self.describe_weekly_sum()
 
-    def process_time_req(
-        self,
-        req: Union[datetime, int],
-    ) -> int:
-        """Sort out a user requested date.
-
-        Args:
-            req: The request
-
-        Raises:
-            ValueError: If neither date nor int
-
-        Returns:
-            The request converted to int according to the model's epoch
-        """
-        msg = "Time data type not supported"
-        if isinstance(req, int):
-            return req
-        elif isinstance(req, datetime):
-            return int(self.epoch.dti_to_index(req))
-        else:
-            raise ValueError(msg)
-
-    def get_output_from_inc(
-        self,
-        full_inc: jnp.array,
-        report_mean: float,
-        report_sd: float,
-        cdr: float,
-    ) -> jnp.array:
-        """Apply an observation model as a convolution to calculate an epidemiological output series.
-
-        Args:
-            full_inc: The full incidence series including the initialisation
-            report_mean: Mean delay to reporting
-            report_sd: Standard deviation of delay to reporting
-            cdr: Case detection/ascertainment proportion
-
-        Returns:
-            Output from start of initialisation to end of model time
-        """
-        densities = self.dens_obj.get_densities(self.window_len, report_mean, report_sd)
-        convolved_cases = jnp.convolve(full_inc, densities) * cdr
-        return convolved_cases[: len(full_inc)]
-
-    def describe_reporting(self):
-        self.description["Reporting"] = (
-            "Notifications are calculated by first convoling "
-            "the probability distribution representing the time from "
-            "onset of an infection episode to reporting with the "
-            "time series of incidence. "
-            "This is then multiplied through by the modelled "
-            "case detection rate to obtain the final time series "
-            "for case notifications. "
-        )
-
-    def fit_process_curve(
-        self,
-        y_proc_req: List[float],
-        rt_init,
-    ) -> jnp.array:
-        """See describe_process below.
-
-        Args:
-            y_proc_req: The submitted log values for the variable process
-
-        Returns:
-            The values of the variable process at each model time
-        """
-        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((rt_init,)), y_proc_req]))
-        y_proc_data = sinterp.get_scale_data(y_proc_vals)
-        cos_func = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
-        return jnp.exp(cos_func(self.model_times, self.x_proc_data, y_proc_data))
-
-    def describe_process(self):
-        self.description["Variable process"] += self.proc_fitter.get_description()
-        self.description["Variable process"] += (
-            "The parameters for the variable process are explored as "
-            "the update of each process value relative to the preceding value. "
-            "Each of the parameters for the variable process is exponentiated, "
-            "such that these parameters are explored in the log-transformed space. "
-        )
-
-    def get_hosp_occupancy_from_admits(self, full_admits, stay_mean, stay_sd):
-        discharge = 1.0 - self.discharge_dens.get_cum_dens(self.window_len, stay_mean, stay_sd)
-        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
-    
-    def get_period_output_from_daily(
-        self,
-        raw_series: jnp.array,
-        n_sum_times: int,
-    ) -> jnp.array:
-        """Sum over a preceding window period to get counts over a period of time.
-
-        Args:
-            raw_series: Observations before windowing applied
-            n_sum_times: Duration of period for summing
-
-        Returns:
-            Summed series
-        """
-        windower = jnp.array([1.0] * n_sum_times)
-        return jnp.convolve(raw_series, windower)[: len(raw_series)]
-
     def renew(self, mean, sd, proc, init, cross_immunity, alpha_relinfect):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
@@ -331,6 +227,33 @@ class MultiStrainModel:
 
         end_state, outputs = lax.scan(state_update, MultistrainState(init_inc, start_pops), self.model_times)
         return outputs
+
+    def fit_process_curve(
+        self,
+        y_proc_req: List[float],
+        rt_init,
+    ) -> jnp.array:
+        """See describe_process below.
+
+        Args:
+            y_proc_req: The submitted log values for the variable process
+
+        Returns:
+            The values of the variable process at each model time
+        """
+        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((rt_init,)), y_proc_req]))
+        y_proc_data = sinterp.get_scale_data(y_proc_vals)
+        cos_func = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
+        return jnp.exp(cos_func(self.model_times, self.x_proc_data, y_proc_data))
+
+    def describe_process(self):
+        self.description["Variable process"] += self.proc_fitter.get_description()
+        self.description["Variable process"] += (
+            "The parameters for the variable process are explored as "
+            "the update of each process value relative to the preceding value. "
+            "Each of the parameters for the variable process is exponentiated, "
+            "such that these parameters are explored in the log-transformed space. "
+        )
 
     def describe_renewal(self):
         self.description["Renewal process"] = (
@@ -403,11 +326,65 @@ class MultiStrainModel:
         strain_props = {f"prop_{strain}": outputs[strain] / outputs["inc"] for strain in self.strains}
         return outputs | strain_props
 
+    def get_output_from_inc(
+        self,
+        full_inc: jnp.array,
+        report_mean: float,
+        report_sd: float,
+        cdr: float,
+    ) -> jnp.array:
+        """Apply an observation model as a convolution to calculate an epidemiological output series.
+
+        Args:
+            full_inc: The full incidence series including the initialisation
+            report_mean: Mean delay to reporting
+            report_sd: Standard deviation of delay to reporting
+            cdr: Case detection/ascertainment proportion
+
+        Returns:
+            Output from start of initialisation to end of model time
+        """
+        densities = self.dens_obj.get_densities(self.window_len, report_mean, report_sd)
+        convolved_cases = jnp.convolve(full_inc, densities) * cdr
+        return convolved_cases[: len(full_inc)]
+
+    def describe_reporting(self):
+        self.description["Reporting"] = (
+            "Notifications are calculated by first convoling "
+            "the probability distribution representing the time from "
+            "onset of an infection episode to reporting with the "
+            "time series of incidence. "
+            "This is then multiplied through by the modelled "
+            "case detection rate to obtain the final time series "
+            "for case notifications. "
+        )
+
+    def get_period_output_from_daily(
+        self,
+        raw_series: jnp.array,
+        n_sum_times: int,
+    ) -> jnp.array:
+        """Sum over a preceding window period to get counts over a period of time.
+
+        Args:
+            raw_series: Observations before windowing applied
+            n_sum_times: Duration of period for summing
+
+        Returns:
+            Summed series
+        """
+        windower = jnp.array([1.0] * n_sum_times)
+        return jnp.convolve(raw_series, windower)[: len(raw_series)]
+
     def describe_weekly_sum(self):
         self.description["Reporting"] += (
             "Last, weekly case counts are then calculated from this "
             "time series of notifications. "
         )
+
+    def get_hosp_occupancy_from_admits(self, full_admits, stay_mean, stay_sd):
+        discharge = 1.0 - self.discharge_dens.get_cum_dens(self.window_len, stay_mean, stay_sd)
+        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
 
     def get_description(self) -> str:
         """Compile the description of model.
