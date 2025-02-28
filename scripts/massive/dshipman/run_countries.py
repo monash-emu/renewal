@@ -25,5 +25,6 @@ if __name__ == "__main__":
             hosp_out,
             hosp_out_name,
             sys.argv[1],
+            50,
             num_chains=8,
         )
