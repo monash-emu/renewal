@@ -102,24 +102,24 @@ class MultiStrainModel:
         mobility: pd.Series,
         seed_duration: int,
     ):
-        """_summary_
+        """Construct the object for running the renewal process.
 
         Args:
-            population: 
-            start: _description_
-            end: _description_
-            proc_update_freq: _description_
-            proc_fitter: _description_
-            dens_obj: _description_
-            window_len: _description_
-            init_length: _description_
-            reporting_dist: _description_
-            discharge_dens: _description_
-            strains: _description_
-            start_strain: _description_
-            seed_times: _description_
-            mobility: _description_
-            seed_duration: _description_
+            population: Number of people considered in the analysis
+            start: Time to run the model from
+            end: Time to run the model until
+            proc_update_freq: Frequency to adjust the variable process
+            proc_fitter: Method for fitting a curve to the points in the variable process
+            dens_obj: Distribution for the renewal process
+            window_len: How far back to go with the sliding window
+            init_length: Initialisation period
+            reporting_dist: Distribution for the time from infection to case reporting
+            discharge_dens: Distribution for the time from hospital admission to discharge
+            strains: Names of the variants to be implemented
+            start_strain: Which of the variants to consider as the first strain
+            seed_times: Times to seed each variant (including the first one)
+            mobility: The mobility time series to scale transmission with
+            seed_duration: The duration of seeding new variants
         """
         assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
