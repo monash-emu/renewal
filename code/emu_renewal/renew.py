@@ -134,7 +134,7 @@ class MultiStrainModel:
         self.init_length = init_length
 
         # Times
-        self.epoch = Epoch(start) if isinstance(start, datetime) else None
+        self.epoch = Epoch(start)
         self.start = int(self.epoch.dti_to_index(start))
         self.end = int(self.epoch.dti_to_index(end))
         self.model_times = jnp.arange(self.start, self.end + 1)
