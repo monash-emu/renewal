@@ -1,5 +1,7 @@
 from typing import List
 from typing import NamedTuple
+from warnings import warn
+
 from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
 from datetime import datetime
@@ -127,7 +129,6 @@ class MultiStrainModel:
         self.strain_map = get_combs(len(strains))
         self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
-        self.mobility = jnp.array(mobility.loc[start: ])
         self.seed_times = seed_times
         self.seed_duration = seed_duration
         self.discharge_dens = discharge_dens
@@ -145,6 +146,19 @@ class MultiStrainModel:
                 f"with a preceding initialisation period of {self.init_length} days. "
             )
         }
+
+        if start < mobility.index[0]:
+            extend_mob_start = (mobility.index[0] - start).days
+            warn(f"Mobility series starts later than model, extending by {extend_mob_start} days")
+            mob_array = jnp.concat([jnp.repeat(mobility.iloc[0], extend_mob_start),jnp.array(mobility)])
+        else:
+            mob_array = jnp.array(mobility.loc[start: ])
+        if end > mobility.index[-1]:
+            extend_mob_end = (end - mobility.index[-1]).days
+            warn(f"Mobility series ends earlier than model, extending by {extend_mob_end} days")
+            mob_array = jnp.concat([mob_array,jnp.repeat(mobility.iloc[-1], extend_mob_end)])
+
+        self.mobility = mob_array
 
         # Population
         self.pop = population
