@@ -1,7 +1,7 @@
 import json
 import sys
 
-from emu_renewal.inputs import DATA_PATH, ANALYSIS_TYPES
+from emu_renewal.inputs import DATA_PATH
 from emu_renewal.run import run_single_country
 
 
@@ -15,5 +15,10 @@ if __name__ == "__main__":
         if country in initial_countries["occupancy"]
         else ("Weekly new hospital admissions", "admissions")
     )
+    ANALYSIS_TYPES = [
+        "no_mob",
+        "google_nonresi_linear",
+        "fb_linear",
+    ]
     for mob_analysis_type in ANALYSIS_TYPES:
         run_single_country(country, 7, 50, mob_analysis_type, 1000, hosp_out, hosp_out_name, 50, sys.argv[1], num_chains=8)

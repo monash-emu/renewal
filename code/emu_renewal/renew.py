@@ -207,7 +207,7 @@ class MultiStrainModel:
         self.description["Reporting"] += self.report_dist.get_desc()
         self.describe_weekly_sum()
 
-    def renew(self, mean, sd, proc, init, cross_immunity, alpha_relinfect):
+    def renew(self, mean, sd, proc, init, cross_immunity, alpha_relinfect, mob_pow):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
         init_inc = jnp.fliplr(self.seed_array[:, :self.init_length])  # Reverse initialisation
@@ -223,7 +223,7 @@ class MultiStrainModel:
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
-            mob_val = self.mobility[t]  # Mobility data (scalar)
+            mob_val = self.mobility[t - self.start] ** mob_pow  # Mobility data (scalar)
             past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + self.seed_array[:, t + self.init_length])  # Incidence history (array of shape n_strains X window_len)
             contributions = (densities * past_inc).sum(axis=1)  # Incidence convolved with generation (vector of length n_strains)
             target_inf_rates = contributions * proc_val * mob_val * rel_infect / self.pop  # Infection rate (vector of length n_strains)
@@ -310,6 +310,7 @@ class MultiStrainModel:
         alpha_relinfect: float,
         first_seed_rate: float,
         other_seed_rate: float,
+        mob_pow: float,
         **kwargs,
     ) -> ModelResult:
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
@@ -318,7 +319,7 @@ class MultiStrainModel:
             strain_start = int(self.epoch.dti_to_index(self.seed_times[s])) + self.init_length
             self.seed_array = self.seed_array.at[s, strain_start: strain_start + self.seed_duration].set(seed_rate)
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
-        outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, alpha_relinfect)
+        outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, alpha_relinfect, mob_pow)
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
         outputs["inc"] = full_inc[self.init_length :]
