@@ -16,9 +16,18 @@ if __name__ == "__main__":
         else ("Weekly new hospital admissions", "admissions")
     )
     ANALYSIS_TYPES = [
-        "no_mob",
-        "google_nonresi_linear",
-        "fb_linear",
+        "gmob",
     ]
     for mob_analysis_type in ANALYSIS_TYPES:
-        run_single_country(country, 7, 50, mob_analysis_type, 1000, hosp_out, hosp_out_name, 50, sys.argv[1], num_chains=8)
+        run_single_country(
+            country,
+            7,
+            50,
+            mob_analysis_type,
+            1000,
+            hosp_out,
+            hosp_out_name,
+            50,
+            sys.argv[1],
+            num_chains=8,
+        )
