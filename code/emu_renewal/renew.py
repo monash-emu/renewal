@@ -226,7 +226,7 @@ class MultiStrainModel:
         )  # Complete susceptibility if never infected before
 
         norm_mob_weights = mob_weights / mob_weights.sum()
-        mobility = ((self.mobility**mob_exp) * norm_mob_weights).sum(axis=1)
+        mobility = (self.mobility * norm_mob_weights).sum(axis=1) ** mob_exp
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
