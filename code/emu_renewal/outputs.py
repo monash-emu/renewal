@@ -17,6 +17,7 @@ plt.style.use("ggplot")
 
 TARGET_KEY = "target_"
 
+
 def run_for_spaghetti(
     calib: StandardCalib,
     params: SampleIterator,
@@ -76,7 +77,7 @@ def load_targets(
     """Load previously saved data for calibration targets.
 
     Args:
-        outdir: Directory 
+        outdir: Directory
 
     Returns:
         The targets' data
@@ -85,7 +86,7 @@ def load_targets(
     for file in outdir.iterdir():
         filename = file.name
         if filename.startswith(TARGET_KEY):
-            targ_name = file.stem[len(TARGET_KEY):]
+            targ_name = file.stem[len(TARGET_KEY) :]
             targets[targ_name] = pd.read_hdf(outdir / filename)
     return targets
 
@@ -111,7 +112,7 @@ def get_table_df_from_priors_dict(
 
 
 def store_outputs(
-    out_dir: Path, 
+    out_dir: Path,
     model: MultiStrainModel,
     calib: StandardCalib,
     mcmc: infer.MCMC,
@@ -148,11 +149,13 @@ def store_outputs(
     sample_params = esamp.xarray_to_sampleiterator(idata_sampled)
     spaghetti = get_spagh_df_from_dict(run_for_spaghetti(calib, sample_params))
     spaghetti.to_hdf(out_dir / "spaghetti.h5", key="spaghetti")
-    updates = pd.DataFrame(sample_params.components["proc"], columns=model.epoch.index_to_dti(model.x_proc_vals)).T
+    updates = pd.DataFrame(
+        sample_params.components["proc"], columns=model.epoch.index_to_dti(model.x_proc_vals)
+    ).T
     updates.to_hdf(out_dir / "updates.h5", key="updates")
-    
+
     pickle.dump(calib.sampled_params, open(out_dir / "priors.pkl", "wb"))
-    
+
     for t, target in calib.targets.items():
         target.data.to_hdf(out_dir / f"{TARGET_KEY}{t}.h5", key=t)
-    pd.Series(model.mobility).to_hdf(out_dir / "mobility.h5", key="mobility")
+    pd.DataFrame(model.mobility).to_hdf(out_dir / "mobility.h5", key="mobility")
