@@ -158,4 +158,3 @@ def store_outputs(
 
     for t, target in calib.targets.items():
         target.data.to_hdf(out_dir / f"{TARGET_KEY}{t}.h5", key=t)
-    pd.DataFrame(model.mobility).to_hdf(out_dir / "mobility.h5", key="mobility")
