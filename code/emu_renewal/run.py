@@ -26,6 +26,7 @@ from emu_renewal.renew import MultiStrainModel
 from emu_renewal.distributions import GammaDens
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.outputs import store_outputs
+from emu_renewal import mobility
 
 
 def find_run_start_time(
@@ -174,6 +175,26 @@ def log(log_str: str):
     sys.stdout.flush()
 
 
+def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.MobilityProvider:
+
+    if mob_analysis_type == "weighted_google_1exp":
+        g_mob_df = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
+        g_mob_df.index = pd.to_datetime(g_mob_df.index)
+        g_mob_df = g_mob_df.rolling(7).mean().dropna()
+
+        priors = {
+            "mob_weights": dist.Uniform(np.zeros(6), np.ones(6)),
+            "mob_exp": dist.Uniform(0.0, 2.0),
+        }
+
+        mob_provider = mobility.WeightedExpMobilityProvider(g_mob_df, priors)
+        return mob_provider
+    elif mob_analysis_type == "no_mob":
+        return mobility.NoMobilityProvider()
+    else:
+        raise Exception(f"No provider available for analysis type {mob_analysis_type}")
+
+
 def run_single_country(
     country,
     proc_update_freq,
@@ -219,12 +240,10 @@ def run_single_country(
     log(f"Running to {end_time.strftime(DATE_FORMAT)}")
     seed_times = find_variant_seeds(0.5, prealpha_prop, run_start)
     seed_times = [run_start] + seed_times
-    mobility = get_country_mobility(iso3)
-    priors = get_standard_priors()
 
-    g_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
-    g_mob.index = pd.to_datetime(g_mob.index)
-    g_mob = g_mob.rolling(7).mean().dropna()
+    mob_provider = get_mobility_provider(iso3, mob_analysis_type)
+
+    priors = get_standard_priors()
 
     model = MultiStrainModel(
         pop,
@@ -240,7 +259,7 @@ def run_single_country(
         ["eu", "alpha"],
         "eu",
         seed_times,
-        g_mob,
+        mob_provider,
         seed_duration,
     )
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))

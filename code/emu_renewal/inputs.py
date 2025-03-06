@@ -267,8 +267,6 @@ def get_standard_priors() -> Dict[str, dist.Distribution]:
         "shared_dispersion": dist.HalfNormal(0.5),
         "first_seed_rate": dist.Uniform(1.0, 100.0),
         "other_seed_rate": dist.Uniform(1.0, 100.0),
-        "mob_weights": dist.Uniform(np.zeros(6), np.ones(6)),
-        "mob_exp": dist.Uniform(0.0, 2.0),
     }
     return duration_priors | beta_priors | other_priors
 

@@ -14,6 +14,7 @@ from summer2.utils import Epoch
 from emu_renewal.process import sinterp, MultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import format_date_for_str, round_sigfig, get_combs
+from emu_renewal.mobility import MobilityProvider
 
 
 ModelResult = dict[str, Array]
@@ -101,7 +102,7 @@ class MultiStrainModel:
         strains: List[str],
         start_strain: str,
         seed_times: List[datetime],
-        mobility: pd.DataFrame,
+        mobility: MobilityProvider,
         seed_duration: int,
     ):
         """Construct the object for running the renewal process.
@@ -147,20 +148,7 @@ class MultiStrainModel:
             )
         }
 
-        if start < mobility.index[0]:
-            extend_mob_start = (mobility.index[0] - start).days
-            warn(f"Mobility series starts later than model, extending by {extend_mob_start} days")
-            extension = jnp.repeat(mobility.iloc[0].to_numpy()[:, None], extend_mob_start, 1).T
-            mob_array = jnp.concat([extension, mobility.to_numpy()])
-        else:
-            mob_array = jnp.array(mobility.loc[start:])
-        if end > mobility.index[-1]:
-            extend_mob_end = (end - mobility.index[-1]).days
-            warn(f"Mobility series ends earlier than model, extending by {extend_mob_end} days")
-            extension = jnp.repeat(mobility.iloc[-1].to_numpy()[:, None], extend_mob_end, 1).T
-            mob_array = jnp.concat([mob_array, extension])
-
-        self.mobility = mob_array
+        self.mob_provider = mobility
 
         # Population
         self.pop = population
@@ -209,7 +197,7 @@ class MultiStrainModel:
         self.description["Reporting"] += self.report_dist.get_desc()
         self.describe_weekly_sum()
 
-    def renew(self, mean, sd, proc, init, cross_immunity, alpha_relinfect, mob_weights, mob_exp):
+    def renew(self, mean, sd, proc, init, cross_immunity, alpha_relinfect, **kwargs):
         densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
         init_inc = jnp.fliplr(self.seed_array[:, : self.init_length])  # Reverse initialisation
@@ -225,8 +213,7 @@ class MultiStrainModel:
             1.0
         )  # Complete susceptibility if never infected before
 
-        norm_mob_weights = mob_weights / mob_weights.sum()
-        mobility = (self.mobility * norm_mob_weights).sum(axis=1) ** mob_exp
+        mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
@@ -335,8 +322,6 @@ class MultiStrainModel:
         alpha_relinfect: float,
         first_seed_rate: float,
         other_seed_rate: float,
-        mob_weights: float,
-        mob_exp: float,
         **kwargs,
     ) -> ModelResult:
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
@@ -348,7 +333,7 @@ class MultiStrainModel:
             ].set(seed_rate)
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
         outputs = self.renew(
-            gen_mean, gen_sd, proc, rt_init, cross_immunity, alpha_relinfect, mob_weights, mob_exp
+            gen_mean, gen_sd, proc, rt_init, cross_immunity, alpha_relinfect, **kwargs
         )
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
