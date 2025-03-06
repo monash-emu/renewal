@@ -100,3 +100,62 @@ class NoMobilityProvider(MobilityProvider):
 
     def get_parameterised_mobility(self, **kwargs) -> Array:
         return self.mob_arr
+
+
+class SingleSeriesMobilityProvider(MobilityProvider):
+    def __init__(self, mobility: pd.Series):
+        """Provide a mobility array to a RenewalModel, which is the weighted
+        sum of a DataFrame, which is then exponentiated.
+
+        Args:
+            mobility: The untransformed source data
+            priors: Priors for the transform parameters
+        """
+        self.mobility_series = mobility
+
+    def get_priors(self) -> dict[str, Distribution | float]:
+        return {}
+
+    def reconcile_times(self, start: datetime, end: datetime):
+        if start < self.mobility_series.index[0]:
+            extend_mob_start = (self.mobility_series.index[0] - start).days
+            warn(f"Mobility series starts later than model, extending by {extend_mob_start} days")
+            mob_array = jnp.concat(
+                [
+                    jnp.repeat(self.mobility_series.iloc[0], extend_mob_start),
+                    jnp.array(self.mobility_series),
+                ]
+            )
+        else:
+            mob_array = jnp.array(self.mobility_series.loc[start:])
+        if end > self.mobility_series.index[-1]:
+            extend_mob_end = (end - self.mobility_series.index[-1]).days
+            warn(f"Mobility series ends earlier than model, extending by {extend_mob_end} days")
+            mob_array = jnp.concat(
+                [mob_array, jnp.repeat(self.mobility_series.iloc[-1], extend_mob_end)]
+            )
+
+        self.mobility_arr = mob_array
+
+    def get_parameterised_mobility(self, **kwargs) -> Array:
+        return self.mobility_arr
+
+
+class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
+    def __init__(self, mobility: pd.Series, priors: PriorDict):
+        """Provide a mobility array to a RenewalModel, from a single series
+        that is exponentiated by a sampled value
+
+        Args:
+            mobility: The untransformed source data
+            priors: Priors for the transform parameters
+        """
+        self.mobility_series = mobility
+        assert set(priors.keys()) == set(["mob_exp"])
+        self.priors = priors
+
+    def get_priors(self) -> dict[str, Distribution | float]:
+        return self.priors
+
+    def get_parameterised_mobility(self, mob_exp, **kwargs) -> Array:
+        return self.mobility_arr**mob_exp
