@@ -239,7 +239,7 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
         nseries = len(all_df.columns)
         priors = {
             "mob_weights": dist.Uniform(np.zeros(nseries), np.ones(nseries)),
-            "mob_exp": dist.Uniform(np.repeat(0.0, nseries), np.repeat(2.0, nseries)),
+            "mob_exp": dist.Uniform(np.repeat(-2.0, nseries), np.repeat(2.0, nseries)),
         }
         return mobility.WeightedMultiExpMobilityProvider(all_df, priors)
 

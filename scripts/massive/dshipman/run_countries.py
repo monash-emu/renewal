@@ -15,7 +15,7 @@ if __name__ == "__main__":
         if country in initial_countries["occupancy"]
         else ("Weekly new hospital admissions", "admissions")
     )
-    ANALYSIS_TYPES = ["all_source_multiexp", "no_mob"]
+    ANALYSIS_TYPES = ["all_source_multiexp"]
 
     for mob_analysis_type in ANALYSIS_TYPES:
         run_single_country(
@@ -23,7 +23,7 @@ if __name__ == "__main__":
             7,
             50,
             mob_analysis_type,
-            1000,
+            2000,
             hosp_out,
             hosp_out_name,
             50,
