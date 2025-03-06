@@ -235,7 +235,7 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
         g_mob_df = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
         g_mob_df.index = pd.to_datetime(g_mob_df.index)
         g_mob_df = g_mob_df.rolling(7).mean().dropna()
-        all_df = pd.concat([apple_df, fb_s, g_mob_df]).bfill().ffill()
+        all_df = pd.concat([apple_df, fb_s, g_mob_df], axis=1).bfill().ffill()
         nseries = len(all_df.columns)
         priors = {
             "mob_weights": dist.Uniform(np.zeros(nseries), np.ones(nseries)),
