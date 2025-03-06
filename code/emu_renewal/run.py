@@ -191,11 +191,13 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
         return mob_provider
     elif mob_analysis_type == "fb_linear":
         mob_df = get_country_mobility(iso3)
-        mob_series = mob_df["fb_linear"]
+        # Additional dropna required since dataframe may extend beyond series validity
+        mob_series = mob_df["fb_linear"].dropna()
         return mobility.SingleSeriesMobilityProvider(mob_series)
     elif mob_analysis_type == "fb_exp":
         mob_df = get_country_mobility(iso3)
-        mob_series = mob_df["fb_linear"]
+        # Additional dropna required since dataframe may extend beyond series validity
+        mob_series = mob_df["fb_linear"].dropna()
         priors = {"mob_exp": dist.Uniform(0.0, 2.0)}
         return mobility.SingleSeriesExpMobilityProvider(mob_series, priors)
     elif mob_analysis_type == "no_mob":
