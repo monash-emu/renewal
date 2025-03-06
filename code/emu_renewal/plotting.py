@@ -1,3 +1,4 @@
+from typing import List, Dict
 import numpy as np
 from random import choice
 import pandas as pd
@@ -6,14 +7,12 @@ from plotly.subplots import make_subplots
 import arviz as az
 from numpyro import distributions as dist
 from matplotlib import pyplot as plt
-from matplotlib.pyplot import cm
-from datetime import timedelta
 
 from emu_renewal.calibration import StandardCalib
 
 
 def plot_spaghetti_calib_comparison(
-    spaghetti: pd.DataFrame, 
+    spaghetti: pd.DataFrame,
     calib_data: StandardCalib,
     out_req: list[str],
 ) -> go.Figure:
@@ -34,17 +33,17 @@ def plot_spaghetti_calib_comparison(
         vertical_spacing=0.02,
         horizontal_spacing=0.05,
         subplot_titles=out_req,
-    ).update_layout(height=300*len(out_req), width=800, showlegend=False)
+    ).update_layout(height=300 * len(out_req), width=800, showlegend=False)
     out_style = {"color": "black", "width": 0.5}
     targ_style = {"color": "red"}
     for o, out in enumerate(out_req):
         for col in spaghetti[out].columns:
             line = go.Scatter(x=spaghetti.index, y=spaghetti[out][col], line=out_style)
-            fig.add_trace(line, row=o+1, col=1)
+            fig.add_trace(line, row=o + 1, col=1)
         if out in calib_data:
             target = calib_data[out]
             target_scatter = go.Scatter(x=target.index, y=target, mode="markers", line=targ_style)
-            fig.add_trace(target_scatter, row=o+1, col=1)
+            fig.add_trace(target_scatter, row=o + 1, col=1)
     return fig
 
 
@@ -79,7 +78,7 @@ def plot_post_prior_comparison(
 
 
 def plot_imm_props(
-    spaghetti: pd.DataFrame, 
+    spaghetti: pd.DataFrame,
     n_strains: int,
 ) -> go.Figure:
     """Plot susceptible population proportions from randomly selected run.
@@ -91,14 +90,16 @@ def plot_imm_props(
     Returns:
         Figure
     """
-    spagh = spaghetti[[f"sus_{i}" for i in range(2 ** n_strains)]]
+    spagh = spaghetti[[f"sus_{i}" for i in range(2**n_strains)]]
     spagh.columns = spagh.columns.swaplevel()
     runs = list(set(spagh.columns.get_level_values(0)))
     return spagh[choice(runs)].plot.area()
 
 
 def plot_beta_priors(all_priors):
-    beta_priors = {v["param_name"]: dist.Beta(v["alpha"], v["beta"]) for v in all_priors["beta"].values()}
+    beta_priors = {
+        v["param_name"]: dist.Beta(v["alpha"], v["beta"]) for v in all_priors["beta"].values()
+    }
     fig, axes = plt.subplots(2, 2)
     for i, dist_name, distri in [[i, d[0], d[1]] for i, d in enumerate(beta_priors.items())]:
         upper_lim = distri.icdf(0.999) if distri.icdf(0.999) < 0.3 else 1.0
@@ -125,3 +126,44 @@ def plot_progress_priors(priors, xmax, leg=True):
     if leg:
         fig.legend()
     return fig.tight_layout()
+
+
+def plot_multianalysis_fit(
+    country: str,
+    analyses: List[str],
+    targets: Dict[str, pd.Series],
+    spaghs: Dict[str, pd.DataFrame],
+) -> plt.Figure:
+    """Plot the fit of each of the analyses to data
+    using spaghetti and calibration targets.
+
+    Args:
+        country: Name of the country
+        analyses: The analyses that were run
+        targets: The calibration targets
+        spaghs: The spaghettis
+
+    Returns:
+        The figure
+    """
+    n_targs = len(targets)
+    n_analyses = len(analyses)
+    fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 15], sharex=True, sharey="row")
+    fig.suptitle(country, fontsize=18, y=1.0)
+    for a, analysis in enumerate(analyses):
+        a_spaghs = spaghs[analysis]
+        for o, out in enumerate(targets):
+            ax = axes[o, a]
+            o_spagh = a_spaghs[out]
+            for col in o_spagh.columns:
+                ax.plot(o_spagh.index, o_spagh[col], color="black", linewidth=0.2)
+            target = targets[out]
+            ax.plot(target.index, target, linewidth=0.0, marker=".")
+            plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
+            if o == 0:
+                ax.set_title(analysis, fontsize=10)
+            if a == 0:
+                ax.set_ylabel(out, fontsize=10)
+    fig.tight_layout()
+    fig.subplots_adjust(wspace=0.05)
+    return fig
