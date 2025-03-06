@@ -19,6 +19,7 @@ from emu_renewal.inputs import (
     get_worldbank_national_pop,
     get_country_mobility,
     get_standard_priors,
+    get_apple_mobility,
 )
 from emu_renewal.targets import StandardDispTarget
 from emu_renewal.process import CosineMultiCurve
@@ -200,6 +201,14 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
         mob_series = mob_df["fb_linear"].dropna()
         priors = {"mob_exp": dist.Uniform(0.0, 2.0)}
         return mobility.SingleSeriesExpMobilityProvider(mob_series, priors)
+    elif mob_analysis_type == "weighted_apple_1exp":
+        mob_df = get_apple_mobility(iso3)
+        nseries = len(mob_df.columns)
+        priors = {
+            "mob_weights": dist.Uniform(np.zeros(nseries), np.ones(nseries)),
+            "mob_exp": dist.Uniform(0.0, 2.0),
+        }
+        return mobility.WeightedExpMobilityProvider(mob_df, priors)
     elif mob_analysis_type == "no_mob":
         return mobility.NoMobilityProvider()
     else:

@@ -292,6 +292,32 @@ def get_worldbank_national_pop(
     return data[iso3]
 
 
+def get_apple_mobility(iso3: str) -> pd.DataFrame:
+    all_data = pd.read_csv(
+        DATA_PATH / "mobility/apple-mobility-test_apple_latest_apple-mobility-trends-report.csv",
+        low_memory=False,
+    )
+    national_data = all_data.loc[all_data["country"].isnull()]
+    national_data.index = pd.MultiIndex.from_arrays(
+        [national_data["region"], national_data["transportation_type"]]
+    )
+    national_data = national_data.iloc[:, 6:].T
+    national_data.index = pd.to_datetime(national_data.index)
+
+    countries = national_data.columns.levels[0]
+    crename_map = {
+        "Republic of Korea": "South Korea",
+        "Russia": "Russian Federation",
+        "Turkey": "Türkiye",
+    }
+    reverse_lookup = {
+        pycountry.countries.lookup(crename_map.get(c) or c).alpha_3: c for c in countries
+    }
+
+    country_df = national_data[reverse_lookup[iso3]].interpolate()
+    return country_df / 100.0
+
+
 def get_country_mobility(
     iso3: str,
 ) -> pd.DataFrame:

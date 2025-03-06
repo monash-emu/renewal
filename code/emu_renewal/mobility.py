@@ -88,6 +88,27 @@ class WeightedExpMobilityProvider(MobilityProvider):
         return mobility
 
 
+class WeightedMultiExpMobilityProvider(WeightedExpMobilityProvider):
+    def __init__(self, mobility: pd.DataFrame, priors: PriorDict):
+        """Provide a mobility array to a RenewalModel, which is the weighted
+        sum of an exponentiated table (with one exponent per column)
+
+        Args:
+            mobility: The untransformed source data
+            priors: Priors for the transform parameters
+        """
+        self.mobility_df = mobility
+        assert set(priors.keys()) == set(["mob_weights", "mob_exp"])
+        assert priors["mob_weights"].batch_shape == (len(self.mobility_df.columns),)
+        assert priors["mob_exp"].batch_shape == (len(self.mobility_df.columns),)
+        self.priors = priors
+
+    def get_parameterised_mobility(self, mob_weights, mob_exp, **kwargs) -> Array:
+        norm_mob_weights = mob_weights / mob_weights.sum()
+        mobility = (self.mobility_arr**mob_exp * norm_mob_weights).sum(axis=1)
+        return mobility
+
+
 class NoMobilityProvider(MobilityProvider):
     def __init__(self):
         pass
