@@ -15,9 +15,8 @@ if __name__ == "__main__":
         if country in initial_countries["occupancy"]
         else ("Weekly new hospital admissions", "admissions")
     )
-    ANALYSIS_TYPES = [
-        "gmob",
-    ]
+    ANALYSIS_TYPES = ["weighted_google_1exp", "fb_exp", "weighted_apple_1exp", "no_mob"]
+
     for mob_analysis_type in ANALYSIS_TYPES:
         run_single_country(
             country,

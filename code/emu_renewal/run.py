@@ -190,6 +190,18 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
 
         mob_provider = mobility.WeightedExpMobilityProvider(g_mob_df, priors)
         return mob_provider
+    elif mob_analysis_type == "weighted_google_multiexp":
+        g_mob_df = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
+        g_mob_df.index = pd.to_datetime(g_mob_df.index)
+        g_mob_df = g_mob_df.rolling(7).mean().dropna()
+
+        priors = {
+            "mob_weights": dist.Uniform(np.zeros(6), np.ones(6)),
+            "mob_exp": dist.Uniform(np.repeat(0.0, 6), np.repeat(2.0, 6)),
+        }
+
+        mob_provider = mobility.WeightedMultiExpMobilityProvider(g_mob_df, priors)
+        return mob_provider
     elif mob_analysis_type == "fb_linear":
         mob_df = get_country_mobility(iso3)
         # Additional dropna required since dataframe may extend beyond series validity
@@ -209,6 +221,14 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
             "mob_exp": dist.Uniform(0.0, 2.0),
         }
         return mobility.WeightedExpMobilityProvider(mob_df, priors)
+    elif mob_analysis_type == "weighted_apple_multiexp":
+        mob_df = get_apple_mobility(iso3)
+        nseries = len(mob_df.columns)
+        priors = {
+            "mob_weights": dist.Uniform(np.zeros(nseries), np.ones(nseries)),
+            "mob_exp": dist.Uniform(np.repeat(0.0, nseries), np.repeat(2.0, nseries)),
+        }
+        return mobility.WeightedMultiExpMobilityProvider(mob_df, priors)
     elif mob_analysis_type == "no_mob":
         return mobility.NoMobilityProvider()
     else:
