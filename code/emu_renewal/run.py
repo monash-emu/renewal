@@ -243,7 +243,7 @@ def run_single_country(
 
     mob_provider = get_mobility_provider(iso3, mob_analysis_type)
 
-    priors = get_standard_priors()
+    priors = get_standard_priors() | mob_provider.get_priors()
 
     model = MultiStrainModel(
         pop,

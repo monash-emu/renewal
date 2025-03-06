@@ -149,6 +149,7 @@ class MultiStrainModel:
         }
 
         self.mob_provider = mobility
+        self.mob_provider.reconcile_times(start, end)
 
         # Population
         self.pop = population
