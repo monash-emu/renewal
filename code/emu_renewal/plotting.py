@@ -1,4 +1,5 @@
 from typing import List, Dict
+import warnings
 import numpy as np
 from random import choice
 import pandas as pd
@@ -146,6 +147,9 @@ def plot_multianalysis_fit(
     Returns:
         The figure
     """
+    msg = ".*axis already has a converter set*"
+    warnings.filterwarnings("ignore", message=msg)
+    pd.options.plotting.backend = "matplotlib"
     n_targs = len(targets)
     n_analyses = len(analyses)
     fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 15], sharex=True, sharey="row")
@@ -155,8 +159,7 @@ def plot_multianalysis_fit(
         for o, out in enumerate(targets):
             ax = axes[o, a]
             o_spagh = a_spaghs[out]
-            for col in o_spagh.columns:
-                ax.plot(o_spagh.index, o_spagh[col], color="black", linewidth=0.2)
+            o_spagh.plot(ax=ax, legend=False, color="black", linewidth=0.15)
             target = targets[out]
             ax.plot(target.index, target, linewidth=0.0, marker=".")
             plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
