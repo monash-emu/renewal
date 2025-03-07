@@ -1,3 +1,4 @@
+from typing import List
 from pathlib import Path
 import pandas as pd
 from jax import jit
@@ -160,12 +161,41 @@ def store_outputs(
         target.data.to_hdf(out_dir / f"{TARGET_KEY}{t}.h5", key=t)
 
 
-def get_country_likelihoods(path, countries):
+def get_country_analyses(
+    path: Path,
+) -> List[str]:
+    """Find the names of the analyses that were conducted for
+    a particular set of runs (generally for a country).
+
+    Args:
+        path: The parent path
+
+    Returns:
+        The names of the analyses
+    """
+    return [a.parts[-1] for a in path.iterdir()]
+
+
+def get_country_posteriors(
+    path: Path, 
+    countries: List[str],
+) -> Dict[str, pd.DataFrame]:
+    """Get dataframes containing the posterior
+    values for a combination of countries
+    and analysis types.
+
+    Args:
+        path: Parent path for all runs
+        countries: The names of the countries of interest
+
+    Returns:
+        The posterior dataframes
+    """
     likes = {}
     for c in countries:
         country_path = path / c
         c_likes = []
-        analyses = [a.parts[-1] for a in country_path.iterdir()]
+        analyses = get_country_analyses(country_path)
         for a in analyses:
             idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
             c_likes.append(idata["sample_stats"]["lp"].to_pandas().T)
@@ -173,12 +203,26 @@ def get_country_likelihoods(path, countries):
     return likes
 
 
-def get_country_disps(path, countries):
+def get_country_disps(
+    path: Path, 
+    countries: List[str],
+) -> Dict[str, pd.DataFrame]:
+    """Get dataframes containing the dispersion
+    values for a combination of countries
+    and analysis types.
+
+    Args:
+        path: Parent path for all runs
+        countries: The names of the countries of interest
+
+    Returns:
+        The dispersion dataframes
+    """
     disps = {}
     for c in countries:
         country_path = path / c
         c_disps = []
-        analyses = [a.parts[-1] for a in country_path.iterdir()]
+        analyses = get_country_analyses(country_path)
         for a in analyses:
             idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
             c_disps.append(idata.posterior["dispersion_proc"].to_series())
