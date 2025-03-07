@@ -229,6 +229,20 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
             "mob_exp": dist.Uniform(np.repeat(0.0, nseries), np.repeat(2.0, nseries)),
         }
         return mobility.WeightedMultiExpMobilityProvider(mob_df, priors)
+    elif mob_analysis_type == "all_source_multiexp":
+        apple_df = get_apple_mobility(iso3)
+        fb_s = get_country_mobility(iso3)["fb_linear"]
+        g_mob_df = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
+        g_mob_df.index = pd.to_datetime(g_mob_df.index)
+        g_mob_df = g_mob_df.rolling(7).mean().dropna()
+        all_df = pd.concat([apple_df, fb_s, g_mob_df], axis=1).bfill().ffill()
+        nseries = len(all_df.columns)
+        priors = {
+            "mob_weights": dist.Uniform(np.zeros(nseries), np.ones(nseries)),
+            "mob_exp": dist.Uniform(np.repeat(0.0, nseries), np.repeat(2.0, nseries)),
+        }
+        return mobility.WeightedMultiExpMobilityProvider(all_df, priors)
+
     elif mob_analysis_type == "no_mob":
         return mobility.NoMobilityProvider()
     else:
