@@ -160,10 +160,10 @@ def store_outputs(
         target.data.to_hdf(out_dir / f"{TARGET_KEY}{t}.h5", key=t)
 
 
-def get_country_likelihoods(job_path, countries):
+def get_country_likelihoods(path, countries):
     likes = {}
     for c in countries:
-        country_path = job_path / c
+        country_path = path / c
         c_likes = []
         analyses = [a.parts[-1] for a in country_path.iterdir()]
         for a in analyses:
@@ -171,3 +171,16 @@ def get_country_likelihoods(job_path, countries):
             c_likes.append(idata["sample_stats"]["lp"].to_pandas().T)
         likes[c] = -pd.concat(c_likes, keys=analyses, axis=1)
     return likes
+
+
+def get_country_disps(path, countries):
+    disps = {}
+    for c in countries:
+        country_path = path / c
+        c_disps = []
+        analyses = [a.parts[-1] for a in country_path.iterdir()]
+        for a in analyses:
+            idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
+            c_disps.append(idata.posterior["dispersion_proc"].to_series())
+        disps[c] = pd.concat(c_disps, keys=analyses, axis=1)
+    return disps

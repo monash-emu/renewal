@@ -178,7 +178,9 @@ def plot_multianalysis_fit(
 def plot_like_comparison(
     likelihoods: Dict[str, pd.DataFrame],
     colours: Tuple[tuple],
-    alpha: 0.2,
+    title: str,
+    filename: str,
+    alpha: float=0.1,
 ):
     """Plot the comparison of the kernel density of the likelihoods
     for each analysis type by country.
@@ -186,10 +188,12 @@ def plot_like_comparison(
     Args:
         likelihoods: The likelihood values (by chain and draw) for each country
         colours: The colours for shading (to allow consistency between plots)
+        title: Title to go above the whole figure
+        filename: Filename stem for saving
         alpha: Depth of the shading of the areas
     """
     like_fig, axes = plt.subplots(4, 4, figsize=[10, 10])
-    like_fig.suptitle("Likelihood comparison", fontsize=15)
+    like_fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
     for c, (country, c_likes) in enumerate(likelihoods.items()):
         country_name = pycountry.countries.lookup(country).name
@@ -200,4 +204,4 @@ def plot_like_comparison(
         if c != 0:
             flat_axes[c].get_legend().remove()
     like_fig.tight_layout()
-    like_fig.savefig("like_fig.svg")
+    like_fig.savefig(f"{filename}_fig.svg")
