@@ -1,13 +1,15 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import warnings
 import numpy as np
 from random import choice
 import pandas as pd
+import seaborn as sns
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 import arviz as az
 from numpyro import distributions as dist
 from matplotlib import pyplot as plt
+import pycountry
 
 from emu_renewal.calibration import StandardCalib
 
@@ -153,7 +155,8 @@ def plot_multianalysis_fit(
     n_targs = len(targets)
     n_analyses = len(analyses)
     fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 15], sharex=True, sharey="row")
-    fig.suptitle(country, fontsize=18, y=1.0)
+    country_name = pycountry.countries.lookup(country).name
+    fig.suptitle(country_name, fontsize=18, y=1.0)
     for a, analysis in enumerate(analyses):
         a_spaghs = spaghs[analysis]
         for o, out in enumerate(targets):
@@ -170,3 +173,31 @@ def plot_multianalysis_fit(
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)
     return fig
+
+
+def plot_like_comparison(
+    likelihoods: Dict[str, pd.DataFrame],
+    colours: Tuple[tuple],
+    alpha: 0.2,
+):
+    """Plot the comparison of the kernel density of the likelihoods
+    for each analysis type by country.
+
+    Args:
+        likelihoods: The likelihood values (by chain and draw) for each country
+        colours: The colours for shading (to allow consistency between plots)
+        alpha: Depth of the shading of the areas
+    """
+    like_fig, axes = plt.subplots(4, 4, figsize=[10, 10])
+    like_fig.suptitle("Likelihood comparison", fontsize=15)
+    flat_axes = axes.ravel()
+    for c, (country, c_likes) in enumerate(likelihoods.items()):
+        country_name = pycountry.countries.lookup(country).name
+        c_ax = sns.kdeplot(c_likes, fill=True, ax=flat_axes[c], palette=colours, alpha=alpha)
+        c_ax.set_title(country_name)
+        c_ax.set_yticks([])
+        c_ax.set_ylabel("")
+        if c != 0:
+            flat_axes[c].get_legend().remove()
+    like_fig.tight_layout()
+    like_fig.savefig("like_fig.svg")
