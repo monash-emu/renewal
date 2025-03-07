@@ -158,3 +158,16 @@ def store_outputs(
 
     for t, target in calib.targets.items():
         target.data.to_hdf(out_dir / f"{TARGET_KEY}{t}.h5", key=t)
+
+
+def get_country_likelihoods(job_path, countries):
+    likes = {}
+    for c in countries:
+        country_path = job_path / c
+        c_likes = []
+        analyses = [a.parts[-1] for a in country_path.iterdir()]
+        for a in analyses:
+            idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
+            c_likes.append(idata["sample_stats"]["lp"].to_pandas().T)
+        likes[c] = -pd.concat(c_likes, keys=analyses, axis=1)
+    return likes
