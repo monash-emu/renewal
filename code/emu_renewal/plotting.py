@@ -1,4 +1,5 @@
 from typing import List, Dict, Tuple
+from pathlib import Path
 import warnings
 import numpy as np
 from random import choice
@@ -175,18 +176,19 @@ def plot_multianalysis_fit(
     return fig
 
 
-def plot_like_comparison(
-    likelihoods: Dict[str, pd.DataFrame],
+def plot_kde_comparison(
+    data: Dict[str, pd.DataFrame],
     colours: Tuple[tuple],
     title: str,
     filename: str,
     alpha: float=0.1,
 ):
-    """Plot the comparison of the kernel density of the likelihoods
+    """Plot the comparison of the kernel density of some 
+    repeatedly sampled quantity (posterior or parameter)
     for each analysis type by country.
 
     Args:
-        likelihoods: The likelihood values (by chain and draw) for each country
+        data: The values of interest for each country
         colours: The colours for shading (to allow consistency between plots)
         title: Title to go above the whole figure
         filename: Filename stem for saving
@@ -195,7 +197,7 @@ def plot_like_comparison(
     like_fig, axes = plt.subplots(4, 4, figsize=[10, 10])
     like_fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
-    for c, (country, c_likes) in enumerate(likelihoods.items()):
+    for c, (country, c_likes) in enumerate(data.items()):
         country_name = pycountry.countries.lookup(country).name
         c_ax = sns.kdeplot(c_likes, fill=True, ax=flat_axes[c], palette=colours, alpha=alpha)
         c_ax.set_title(country_name)
@@ -206,15 +208,31 @@ def plot_like_comparison(
     like_fig.tight_layout()
     like_fig.savefig(f"{filename}_fig.svg")
 
+from emu_renewal.outputs import get_country_analyses
 
-def plot_proc_comparison(procs, countries, colours):
+
+def plot_proc_comparison(
+    procs: Dict[str, pd.DataFrame], 
+    countries: List[str], 
+    colours: List[tuple], 
+    path: Path,
+):
+    """Plot the comparison of the variable processes
+    across analysis types.
+
+    Args:
+        procs: Variable process data
+        countries: Names of the countries
+        colours: Colours to use for lines
+        path: Path to the analyses
+    """
     n_rows = 4
     proc_fig, axes = plt.subplots(n_rows, 4, figsize=[10, 10])
     flat_axes = axes.ravel()
     for c, country in enumerate(countries):
         c_ax = flat_axes[c]
         c_ax.set_title(pycountry.countries.lookup(country).name)
-        analyses = set(procs[country].columns.get_level_values(0))
+        analyses = get_country_analyses(path / country)
         for a, analysis in enumerate(analyses):
             quants = procs[country][analysis].quantile([0.05, 0.5, 0.95], axis=1).T
             c_ax.plot(quants.index, quants[0.5], color=colours[a], label=analysis, linewidth=2.0)
