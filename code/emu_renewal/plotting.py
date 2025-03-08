@@ -195,8 +195,8 @@ def plot_kde_comparison(
         filename: Filename stem for saving
         alpha: Depth of the shading of the areas
     """
-    like_fig, axes = plt.subplots(4, 4, figsize=[10, 10])
-    like_fig.suptitle(title, fontsize=15)
+    kde_fig, axes = plt.subplots(4, 4, figsize=[10, 10])
+    kde_fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
     for c, (country, c_likes) in enumerate(data.items()):
         country_name = pycountry.countries.lookup(country).name
@@ -206,14 +206,15 @@ def plot_kde_comparison(
         c_ax.set_ylabel("")
         if c != 0:
             flat_axes[c].get_legend().remove()
-    like_fig.tight_layout()
-    like_fig.savefig(f"{filename}_fig.svg")
+    kde_fig.tight_layout()
+    kde_fig.savefig(f"{filename}_fig.svg")
 
 
 def plot_proc_comparison(
     procs: Dict[str, pd.DataFrame], 
     countries: List[str], 
     colours: List[tuple], 
+    title: str,
     path: Path,
 ):
     """Plot the comparison of the variable processes
@@ -223,10 +224,12 @@ def plot_proc_comparison(
         procs: Variable process data
         countries: Names of the countries
         colours: Colours to use for lines
+        title: Title to go above the whole figure
         path: Path to the analyses
     """
     n_rows = 4
     proc_fig, axes = plt.subplots(n_rows, 4, figsize=[10, 10])
+    proc_fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
     for c, country in enumerate(countries):
         c_ax = flat_axes[c]
