@@ -205,3 +205,25 @@ def plot_like_comparison(
             flat_axes[c].get_legend().remove()
     like_fig.tight_layout()
     like_fig.savefig(f"{filename}_fig.svg")
+
+
+def plot_proc_comparison(procs, countries, colours):
+    n_rows = 4
+    proc_fig, axes = plt.subplots(n_rows, 4, figsize=[10, 10])
+    flat_axes = axes.ravel()
+    for c, country in enumerate(countries):
+        c_ax = flat_axes[c]
+        c_ax.set_title(pycountry.countries.lookup(country).name)
+        analyses = set(procs[country].columns.get_level_values(0))
+        for a, analysis in enumerate(analyses):
+            quants = procs[country][analysis].quantile([0.05, 0.5, 0.95], axis=1).T
+            c_ax.plot(quants.index, quants[0.5], color=colours[a], label=analysis, linewidth=2.0)
+            c_ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.2)
+        if c == 0:
+            c_ax.legend()
+        plt.setp(c_ax.xaxis.get_majorticklabels(), rotation=70)
+        if c_ax.get_subplotspec().rowspan.stop != n_rows:
+            c_ax.set_xticklabels([])
+        c_ax.set_yticks([])
+    proc_fig.tight_layout()
+    proc_fig.savefig("proc_fig.svg")

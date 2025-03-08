@@ -228,3 +228,29 @@ def get_country_disps(
             c_disps.append(idata.posterior["dispersion_proc"].to_series())
         disps[c] = pd.concat(c_disps, keys=analyses, axis=1)
     return disps
+
+
+def get_country_procs(
+    path: Path, 
+    countries: List[str],
+) -> Dict[str, pd.DataFrame]:
+    """Get dataframes containing the variable process
+    values for a combination of countries
+    and analysis types.
+
+    Args:
+        path: Parent path for all runs
+        countries: The names of the countries of interest
+
+    Returns:
+        The variable process dataframes
+    """
+    procs = {}
+    for c in countries:
+        country_path = path / c
+        c_procs = []
+        analyses = get_country_analyses(country_path)
+        for a in analyses:
+            c_procs.append(pd.read_hdf(country_path / a / "spaghetti.h5")["process"])
+        procs[c] = pd.concat(c_procs, keys=analyses, axis=1)
+    return procs
