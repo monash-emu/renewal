@@ -12,6 +12,7 @@ from numpyro import distributions as dist
 from matplotlib import pyplot as plt
 import pycountry
 
+from emu_renewal.outputs import get_country_analyses
 from emu_renewal.calibration import StandardCalib
 
 
@@ -207,8 +208,6 @@ def plot_kde_comparison(
             flat_axes[c].get_legend().remove()
     like_fig.tight_layout()
     like_fig.savefig(f"{filename}_fig.svg")
-
-from emu_renewal.outputs import get_country_analyses
 
 
 def plot_proc_comparison(
