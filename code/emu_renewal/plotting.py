@@ -247,3 +247,26 @@ def plot_proc_comparison(
         c_ax.set_yticks([])
     proc_fig.tight_layout()
     proc_fig.savefig("proc_fig.svg")
+
+
+def get_param_medians(
+    param_vals: Dict[str, pd.DataFrame],
+    countries: List[str],
+) -> pd.DataFrame:
+    """Get median values for a parameter
+    for presentation as a table.
+
+    Args:
+        param_vals: The parameter values by country
+        countries: Names of the countries
+
+    Returns:
+        The formatted table
+    """
+    medians = pd.DataFrame()
+    for country in countries:
+        medians[country] = param_vals[country].median()
+    to_country_name = lambda c: pycountry.countries.lookup(c).name
+    medians = medians.rename(columns=to_country_name)
+    return medians.T
+
