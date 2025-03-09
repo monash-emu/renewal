@@ -182,9 +182,9 @@ def plot_kde_comparison(
     colours: Tuple[tuple],
     title: str,
     filename: str,
-    alpha: float=0.1,
+    alpha: float = 0.1,
 ):
-    """Plot the comparison of the kernel density of some 
+    """Plot the comparison of the kernel density of some
     repeatedly sampled quantity (posterior or parameter)
     for each analysis type by country.
 
@@ -193,7 +193,7 @@ def plot_kde_comparison(
         colours: The colours for shading (to allow consistency between plots)
         title: Title to go above the whole figure
         filename: Filename stem for saving
-        alpha: Depth of the shading of the areas
+        alpha: Depth of the shading of the patches
     """
     kde_fig, axes = plt.subplots(4, 4, figsize=[10, 10])
     kde_fig.suptitle(title, fontsize=15)
@@ -211,9 +211,9 @@ def plot_kde_comparison(
 
 
 def plot_proc_comparison(
-    procs: Dict[str, pd.DataFrame], 
-    countries: List[str], 
-    colours: List[tuple], 
+    procs: Dict[str, pd.DataFrame],
+    countries: List[str],
+    colours: List[tuple],
     title: str,
     path: Path,
 ):
@@ -270,3 +270,35 @@ def get_param_medians(
     medians = medians.rename(columns=to_country_name)
     return medians.T
 
+
+def plot_param_kde_comparison(
+    data: Dict[str, pd.DataFrame],
+    colours: Tuple[Tuple[float]],
+    title: str,
+    filename: str,
+    alpha=0.1,
+):
+    """Plot the comparison of parameter posteriors
+    across analysis types and countries.
+
+    Args:
+        data: The data to
+        colours: Colours to use for lines/patches
+        title: Title to go above the whole figure
+        filename: Filename stem for saving
+        alpha: Depth of the shading of the patches
+    """
+    disp_fig, axes = plt.subplots(4, 4, figsize=[10, 10])
+    disp_fig.suptitle(title, fontsize=15)
+    flat_axes = axes.ravel()
+    for c, country in enumerate(data.keys()):
+        country_name = pycountry.countries.lookup(country).name
+        c_ax = flat_axes[c]
+        c_ax.set_title(country_name)
+        sns.kdeplot(data[country], fill=True, ax=c_ax, palette=colours, alpha=alpha)
+        c_ax.set_yticks([])
+        c_ax.set_ylabel("")
+        if c != 0:
+            flat_axes[c].get_legend().remove()
+    disp_fig.tight_layout()
+    disp_fig.savefig(f"{filename}_fig.svg")

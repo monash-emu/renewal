@@ -276,3 +276,25 @@ def get_all_like_comps(
         all_likes["total_ll"] = -idata["sample_stats"]["lp"].to_dataframe()
         likes_by_analysis.append(all_likes)
     return pd.concat(likes_by_analysis, axis=1, keys=analyses)
+
+
+def get_param_vals_by_analysis(
+    param_name: str,
+    country_path: Path,
+) -> pd.DataFrame:
+    """Get dataframe of accepted parameter values
+    by analysis for a particular parameter and country.
+
+    Args:
+        param_name: Name of the parameter
+        country_path: Location of the country analyses
+
+    Returns:
+        The 
+    """
+    param_df = []
+    analyses = get_country_analyses(country_path)
+    for a in analyses:
+        idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
+        param_df.append(idata["posterior"][param_name].to_series())
+    return pd.concat(param_df, axis=1, keys=analyses)
