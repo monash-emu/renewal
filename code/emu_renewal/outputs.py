@@ -254,3 +254,27 @@ def get_country_procs(
             c_procs.append(pd.read_hdf(country_path / a / "spaghetti.h5")["process"])
         procs[c] = pd.concat(c_procs, keys=analyses, axis=1)
     return procs
+
+
+def get_all_like_comps(
+    country_path: Path,
+) -> pd.DataFrame:
+    """Get the likelihood components and
+    the overall likelihood for a set of runs.
+
+    Args:
+        country_path: Location of the country analyses
+
+    Returns:
+        The collated likelihood components by analysis
+    """
+    analyses = get_country_analyses(country_path)
+    likes_by_analysis = []
+    for analysis in analyses:
+        idata = az.from_netcdf(country_path / analysis / "idata_filtered.nc")
+        all_likes = idata["log_likelihood"].to_dataframe()
+        total_like = -idata["sample_stats"]["lp"].to_pandas().T.melt()["value"]
+        total_like.index = all_likes.index
+        all_likes["total_ll"] = total_like
+        likes_by_analysis.append(all_likes)
+    return pd.concat(likes_by_analysis, axis=1, keys=analyses)
