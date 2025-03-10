@@ -254,6 +254,7 @@ def get_country_procs(
 def get_param_vals_by_analysis(
     param_name: str,
     country_path: Path,
+    analyses: List[str] = None,
 ) -> pd.DataFrame:
     """Get dataframe of accepted parameter values
     by analysis for a particular parameter and country.
@@ -266,7 +267,8 @@ def get_param_vals_by_analysis(
         The posterior estimates
     """
     param_df = []
-    analyses = get_country_analyses(country_path)
+    if not analyses:
+        analyses = get_country_analyses(country_path)
     for a in analyses:
         idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
         param_df.append(idata.posterior[param_name].to_series())
