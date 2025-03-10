@@ -177,7 +177,7 @@ def get_country_analyses(
 
 
 def get_country_posteriors(
-    path: Path, 
+    path: Path,
     countries: List[str],
 ) -> Dict[str, pd.DataFrame]:
     """Get dataframes containing the posterior
@@ -203,35 +203,30 @@ def get_country_posteriors(
     return likes
 
 
-def get_country_disps(
-    path: Path, 
-    countries: List[str],
-) -> Dict[str, pd.DataFrame]:
-    """Get dataframes containing the dispersion
-    values for a combination of countries
-    and analysis types.
+def get_all_like_comps(
+    country_path: Path,
+) -> pd.DataFrame:
+    """Get the likelihood components and
+    the overall likelihood for a set of runs.
 
     Args:
-        path: Parent path for all runs
-        countries: The names of the countries of interest
+        country_path: Location of the country analyses
 
     Returns:
-        The dispersion dataframes
+        The collated likelihood components by analysis
     """
-    disps = {}
-    for c in countries:
-        country_path = path / c
-        c_disps = []
-        analyses = get_country_analyses(country_path)
-        for a in analyses:
-            idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
-            c_disps.append(idata.posterior["dispersion_proc"].to_series())
-        disps[c] = pd.concat(c_disps, keys=analyses, axis=1)
-    return disps
+    analyses = get_country_analyses(country_path)
+    likes_by_analysis = []
+    for analysis in analyses:
+        idata = az.from_netcdf(country_path / analysis / "idata_filtered.nc")
+        all_likes = idata["log_likelihood"].to_dataframe()
+        all_likes["total_ll"] = -idata["sample_stats"]["lp"].to_dataframe()
+        likes_by_analysis.append(all_likes)
+    return pd.concat(likes_by_analysis, axis=1, keys=analyses)
 
 
 def get_country_procs(
-    path: Path, 
+    path: Path,
     countries: List[str],
 ) -> Dict[str, pd.DataFrame]:
     """Get dataframes containing the variable process
@@ -256,28 +251,6 @@ def get_country_procs(
     return procs
 
 
-def get_all_like_comps(
-    country_path: Path,
-) -> pd.DataFrame:
-    """Get the likelihood components and
-    the overall likelihood for a set of runs.
-
-    Args:
-        country_path: Location of the country analyses
-
-    Returns:
-        The collated likelihood components by analysis
-    """
-    analyses = get_country_analyses(country_path)
-    likes_by_analysis = []
-    for analysis in analyses:
-        idata = az.from_netcdf(country_path / analysis / "idata_filtered.nc")
-        all_likes = idata["log_likelihood"].to_dataframe()
-        all_likes["total_ll"] = -idata["sample_stats"]["lp"].to_dataframe()
-        likes_by_analysis.append(all_likes)
-    return pd.concat(likes_by_analysis, axis=1, keys=analyses)
-
-
 def get_param_vals_by_analysis(
     param_name: str,
     country_path: Path,
@@ -290,11 +263,11 @@ def get_param_vals_by_analysis(
         country_path: Location of the country analyses
 
     Returns:
-        The 
+        The posterior estimates
     """
     param_df = []
     analyses = get_country_analyses(country_path)
     for a in analyses:
         idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
-        param_df.append(idata["posterior"][param_name].to_series())
+        param_df.append(idata.posterior[param_name].to_series())
     return pd.concat(param_df, axis=1, keys=analyses)
