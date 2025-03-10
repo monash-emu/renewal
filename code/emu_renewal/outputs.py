@@ -1,5 +1,7 @@
 from typing import List
 from pathlib import Path
+import git
+import json
 import pandas as pd
 from jax import jit
 from typing import Dict
@@ -112,6 +114,15 @@ def get_table_df_from_priors_dict(
     return priors_df
 
 
+def get_gitinfo() -> dict[str, str]:
+    import emu_renewal
+
+    rpath = Path(emu_renewal.__path__[0]).parent.parent
+    repo = git.Repo(rpath)
+    git_info = {"branch": str(repo.active_branch), "sha": repo.head.object.hexsha}
+    return git_info
+
+
 def store_outputs(
     out_dir: Path,
     model: MultiStrainModel,
@@ -159,6 +170,8 @@ def store_outputs(
 
     for t, target in calib.targets.items():
         target.data.to_hdf(out_dir / f"{TARGET_KEY}{t}.h5", key=t)
+
+    json.dump(get_gitinfo(), open(out_dir / "gitinfo.json", "w"))
 
 
 def get_country_analyses(
