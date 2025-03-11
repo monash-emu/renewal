@@ -318,6 +318,37 @@ def get_apple_mobility(iso3: str) -> pd.DataFrame:
     return country_df / 100.0
 
 
+def get_google_mobility(iso3):
+    g_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
+    g_mob.index = pd.to_datetime(g_mob.index)
+    return g_mob
+
+
+def get_nonresi_g_mob(
+    iso3: str,
+) -> pd.Series:
+    """Takes the rolling mean of each Google mobility
+    field and then does a flat average across all fields,
+    except for residential.
+
+    Args:
+        iso3: Country identifier
+
+    Returns:
+        The mobility data
+    """
+    g_mob = get_google_mobility(iso3)
+    nonresi_data = g_mob.loc[:, g_mob.columns != "residential"].mean(axis=1).rolling(7, center=True)
+    return nonresi_data.mean().dropna()
+
+
+def get_fb_mobility(iso3):
+    fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_fbmob_data.csv", index_col=0)["0"]
+    fb_mob.index = pd.to_datetime(fb_mob.index)
+    fb_mob = 1.0 + fb_mob.rolling(7, center=True).mean().dropna()
+    return fb_mob
+
+
 def get_country_mobility(
     iso3: str,
 ) -> pd.DataFrame:
@@ -330,16 +361,8 @@ def get_country_mobility(
     Returns:
         The mobility estimates
     """
-    g_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
-    g_mob.index = pd.to_datetime(g_mob.index)
-    nonresi_g_mob = (
-        g_mob.loc[:, g_mob.columns != "residential"].mean(axis=1).rolling(7).mean().dropna()
-    )
-
-    fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_fbmob_data.csv", index_col=0)["0"]
-    fb_mob.index = pd.to_datetime(fb_mob.index)
-    fb_mob = 1.0 + fb_mob.rolling(7).mean().dropna()
-
+    nonresi_g_mob = get_nonresi_g_mob(iso3)
+    fb_mob = get_fb_mobility(iso3)
     collated_mob = pd.DataFrame(
         {
             "google_nonresi_linear": nonresi_g_mob,
