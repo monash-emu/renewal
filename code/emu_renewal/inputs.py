@@ -315,21 +315,30 @@ def get_apple_mobility(iso3: str) -> pd.DataFrame:
     }
 
     country_df = national_data[reverse_lookup[iso3]].interpolate()
-    return country_df / 100.0
+    country_df /= 100.0
+    return country_df.rolling(7, center=True).mean().dropna()
 
 
-def get_google_mobility(iso3):
+def get_google_mobility(
+    iso3,
+) -> pd.DataFrame:
+    """Get all the Google mobility fields.
+
+    Args:
+        iso3: Country identifier
+
+    Returns:
+        The mobility data
+    """
     g_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
     g_mob.index = pd.to_datetime(g_mob.index)
-    return g_mob
+    return g_mob.rolling(7, center=True).mean().dropna()
 
 
 def get_nonresi_g_mob(
     iso3: str,
 ) -> pd.Series:
-    """Takes the rolling mean of each Google mobility
-    field and then does a flat average across all fields,
-    except for residential.
+    """Takes a flat average across all fields except residential.
 
     Args:
         iso3: Country identifier
@@ -338,15 +347,13 @@ def get_nonresi_g_mob(
         The mobility data
     """
     g_mob = get_google_mobility(iso3)
-    nonresi_data = g_mob.loc[:, g_mob.columns != "residential"].mean(axis=1).rolling(7, center=True)
-    return nonresi_data.mean().dropna()
+    return g_mob.loc[:, g_mob.columns != "residential"].mean(axis=1)
 
 
 def get_fb_mobility(iso3):
     fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_fbmob_data.csv", index_col=0)["0"]
     fb_mob.index = pd.to_datetime(fb_mob.index)
-    fb_mob = 1.0 + fb_mob.rolling(7, center=True).mean().dropna()
-    return fb_mob
+    return 1.0 + fb_mob.rolling(7, center=True).mean().dropna()
 
 
 def get_country_mobility(
