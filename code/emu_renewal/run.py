@@ -11,7 +11,6 @@ import sys
 from emu_renewal.inputs import (
     DATE_FORMAT,
     BASE_PATH,
-    DATA_PATH,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_standard_targets,

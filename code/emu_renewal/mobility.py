@@ -58,6 +58,7 @@ class WeightedExpMobilityProvider(MobilityProvider):
         assert set(priors.keys()) == set(["mob_weights", "mob_exp"])
         assert priors["mob_weights"].batch_shape == (len(self.mobility_df.columns),)
         self.priors = priors
+        self.mob_end = mobility.index[-1]
 
     def get_priors(self) -> dict[str, Distribution | float]:
         return self.priors
@@ -102,6 +103,7 @@ class WeightedMultiExpMobilityProvider(WeightedExpMobilityProvider):
         assert priors["mob_weights"].batch_shape == (len(self.mobility_df.columns),)
         assert priors["mob_exp"].batch_shape == (len(self.mobility_df.columns),)
         self.priors = priors
+        self.mob_end = mobility.index[-1]
 
     def get_parameterised_mobility(self, mob_weights, mob_exp, **kwargs) -> Array:
         norm_mob_weights = mob_weights / mob_weights.sum()
@@ -111,7 +113,7 @@ class WeightedMultiExpMobilityProvider(WeightedExpMobilityProvider):
 
 class NoMobilityProvider(MobilityProvider):
     def __init__(self):
-        pass
+        self.mob_end = None
 
     def get_priors(self) -> dict[str, Distribution | float]:
         return {}
@@ -133,6 +135,7 @@ class SingleSeriesMobilityProvider(MobilityProvider):
             priors: Priors for the transform parameters
         """
         self.mobility_series = mobility
+        self.mob_end = mobility.index[-1]
 
     def get_priors(self) -> dict[str, Distribution | float]:
         return {}
@@ -174,6 +177,7 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         self.mobility_series = mobility
         assert set(priors.keys()) == set(["mob_exp"])
         self.priors = priors
+        self.mob_end = mobility.index[-1]
 
     def get_priors(self) -> dict[str, Distribution | float]:
         return self.priors
