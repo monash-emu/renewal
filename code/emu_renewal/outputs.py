@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import arviz as az
 import pickle
 from numpyro import infer
+from os import listdir as ls
 
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
@@ -286,3 +287,21 @@ def get_param_vals_by_analysis(
         idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
         param_df.append(idata.posterior[param_name].to_series())
     return pd.concat(param_df, axis=1, keys=analyses)
+
+
+def get_completed_chains(job_path):
+    completion_lists = []
+    countries = ls(job_path)
+    for c in countries:
+        c_path = job_path / c
+        analyses = ls(c_path)
+        c_complete = pd.DataFrame(columns=analyses)
+        for a in analyses:
+            a_path = c_path / a
+            all_idata = az.from_netcdf(a_path / "idata_full.nc")
+            filt_idata = az.from_netcdf(a_path / "idata_filtered.nc")
+            all_chains = all_idata["posterior"]["chain"].to_index()
+            completed_chains = filt_idata["posterior"]["chain"].to_index()
+            c_complete[a] = [c in completed_chains for c in all_chains]
+        completion_lists.append(c_complete)
+    return pd.concat(completion_lists, keys=countries, axis=1)
