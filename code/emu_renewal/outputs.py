@@ -300,8 +300,8 @@ def get_completed_chains(job_path):
             a_path = c_path / a
             all_idata = az.from_netcdf(a_path / "idata_full.nc")
             filt_idata = az.from_netcdf(a_path / "idata_filtered.nc")
-            all_chains = all_idata["posterior"]["chain"].to_index()
-            completed_chains = filt_idata["posterior"]["chain"].to_index()
+            all_chains = all_idata["posterior"]["chain"].data
+            completed_chains = filt_idata["posterior"]["chain"].data
             c_complete[a] = [c in completed_chains for c in all_chains]
         completion_lists.append(c_complete)
     return pd.concat(completion_lists, keys=countries, axis=1)
