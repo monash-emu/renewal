@@ -186,7 +186,7 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
             "mob_exp": dist.Uniform(0.0, 2.0),
         }
         return mobility.WeightedExpMobilityProvider(mob, priors)
-    
+
     elif mob_analysis_type == "weighted_google_multiexp":
         mob = get_google_mobility(iso3)
         nseries = len(mob.columns)
@@ -195,16 +195,16 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
             "mob_exp": dist.Uniform(np.repeat(0.0, nseries), np.repeat(2.0, nseries)),
         }
         return mobility.WeightedMultiExpMobilityProvider(mob, priors)
-    
+
     elif mob_analysis_type == "fb_linear":
         mob = get_fb_mobility(iso3)
         return mobility.SingleSeriesMobilityProvider(mob)
-    
+
     elif mob_analysis_type == "fb_exp":
         mob = get_fb_mobility(iso3)
         priors = {"mob_exp": dist.Uniform(0.0, 2.0)}
         return mobility.SingleSeriesExpMobilityProvider(mob, priors)
-    
+
     elif mob_analysis_type == "weighted_apple_1exp":
         mob = get_apple_mobility(iso3)
         nseries = len(mob.columns)
@@ -213,7 +213,7 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
             "mob_exp": dist.Uniform(0.0, 2.0),
         }
         return mobility.WeightedExpMobilityProvider(mob, priors)
-    
+
     elif mob_analysis_type == "weighted_apple_multiexp":
         mob = get_apple_mobility(iso3)
         nseries = len(mob.columns)
@@ -222,7 +222,7 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
             "mob_exp": dist.Uniform(np.repeat(0.0, nseries), np.repeat(2.0, nseries)),
         }
         return mobility.WeightedMultiExpMobilityProvider(mob, priors)
-    
+
     elif mob_analysis_type == "all_source_multiexp":
         apple_mob = get_apple_mobility(iso3)
         fb_mob = get_fb_mobility(iso3)
@@ -289,6 +289,8 @@ def run_single_country(
     seed_times = [run_start] + seed_times
 
     mob_provider = get_mobility_provider(iso3, mob_analysis_type)
+    if mob_provider.mob_end:
+        end_time = min([end_time, mob_provider.mob_end])
 
     priors = get_standard_priors() | mob_provider.get_priors()
 
