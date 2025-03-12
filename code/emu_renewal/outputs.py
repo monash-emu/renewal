@@ -175,21 +175,6 @@ def store_outputs(
     json.dump(get_gitinfo(), open(out_dir / "gitinfo.json", "w"))
 
 
-def get_country_analyses(
-    path: Path,
-) -> List[str]:
-    """Find the names of the analyses that were conducted for
-    a particular set of runs (generally for a country).
-
-    Args:
-        path: The parent path
-
-    Returns:
-        The names of the analyses
-    """
-    return [a.parts[-1] for a in path.iterdir()]
-
-
 def get_country_posteriors(
     path: Path,
     countries: List[str],
@@ -209,7 +194,7 @@ def get_country_posteriors(
     for c in countries:
         country_path = path / c
         c_likes = []
-        analyses = get_country_analyses(country_path)
+        analyses = ls(country_path)
         for a in analyses:
             idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
             c_likes.append(idata["sample_stats"]["lp"].to_pandas().T)
@@ -229,7 +214,7 @@ def get_all_like_comps(
     Returns:
         The collated likelihood components by analysis
     """
-    analyses = get_country_analyses(country_path)
+    analyses = ls(country_path)
     likes_by_analysis = []
     for analysis in analyses:
         idata = az.from_netcdf(country_path / analysis / "idata_filtered.nc")
@@ -258,7 +243,7 @@ def get_country_procs(
     for c in countries:
         country_path = path / c
         c_procs = []
-        analyses = get_country_analyses(country_path)
+        analyses = ls(country_path)
         for a in analyses:
             c_procs.append(pd.read_hdf(country_path / a / "spaghetti.h5")["process"])
         procs[c] = pd.concat(c_procs, keys=analyses, axis=1)
@@ -282,7 +267,7 @@ def get_param_vals_by_analysis(
     """
     param_df = []
     if not analyses:
-        analyses = get_country_analyses(country_path)
+        analyses = ls(country_path)
     for a in analyses:
         idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
         param_df.append(idata.posterior[param_name].to_series())
