@@ -13,6 +13,7 @@ from matplotlib import pyplot as plt
 import pycountry
 from os import listdir as ls
 
+from emu_renewal.inputs import get_google_mobility, get_apple_mobility 
 from emu_renewal.calibration import StandardCalib
 
 
@@ -270,3 +271,33 @@ def plot_kde_comparison(
             flat_axes[c].get_legend().remove()
     kde_fig.tight_layout()
     kde_fig.savefig(f"{filename}_fig.svg")
+
+
+def plot_mob_weights_by_country(job_path, mob_type, normalise=False):
+    fig, axes = plt.subplots(4, 4, figsize=[10, 10])
+    flat_axes = axes.ravel()
+    countries = ls(job_path)
+    for c, country in enumerate(countries):
+        c_path = job_path / country
+        country_name = pycountry.countries.lookup(country).name
+        idata = az.from_netcdf(c_path / f"weighted_{mob_type}_1exp/idata_filtered.nc")
+        mob_weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
+        if normalise:
+            mob_weights = mob_weights.div(mob_weights.sum(axis=1), axis=0)
+        if mob_type == "google":
+            mob_columns = get_google_mobility(country).columns
+        elif mob_type == "apple":
+            mob_columns = get_apple_mobility(country).columns
+        else:
+            raise ValueError("unavailable mobility type request")
+        mob_weights.columns = mob_columns
+        c_ax = flat_axes[c]
+        sns.kdeplot(mob_weights, fill=True, alpha=0.1, linewidth=1.5, ax=c_ax)
+        c_ax.set_yticks([])
+        c_ax.set_ylabel("")
+        c_ax.set_title(country_name)
+        c_ax.get_legend().set_title("")
+        if country != "FIN" and mob_type == "google":
+            c_ax.get_legend().remove()
+    fig.tight_layout()
+    fig.savefig("mob_fig.svg")
