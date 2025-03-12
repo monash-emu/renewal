@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 import pycountry
 from os import listdir as ls
 
-from emu_renewal.inputs import get_google_mobility, get_apple_mobility 
+from emu_renewal.inputs import get_google_mobility, get_apple_mobility
 from emu_renewal.calibration import StandardCalib
 
 
@@ -301,3 +301,27 @@ def plot_mob_weights_by_country(job_path, mob_type, normalise=False):
             c_ax.get_legend().remove()
     fig.tight_layout()
     fig.savefig("mob_fig.svg")
+
+
+def compare_proc_versus_mobility(proc_centiles, mob_types, mob_source="google"):
+    mob_comparison_fig, axes = plt.subplots(4, 4, figsize=[15, 15], sharex=True)
+    flat_axes = axes.ravel()
+    for c, country in enumerate(proc_centiles):
+        c_ax = flat_axes[c]
+        country_name = pycountry.countries.lookup(country).name
+        c_ax.set_title(country_name)
+        centiles = proc_centiles[country]
+        c_ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
+        c_ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
+        if mob_source == "google":
+            mob = get_google_mobility(country)
+        elif mob_source == "apple":
+            mob = get_apple_mobility(country)
+        mobility = mob.loc[mob.index < centiles.index[-1]]
+        for mob_type in mob_types:
+            c_ax.plot(mobility.index, mobility[mob_type], label=mob_type)
+        if country == "FIN":
+            c_ax.legend()
+        plt.setp(c_ax.xaxis.get_majorticklabels(), rotation=70)
+    mob_comparison_fig.tight_layout()
+    return mob_comparison_fig
