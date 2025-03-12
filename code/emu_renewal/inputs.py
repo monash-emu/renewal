@@ -335,51 +335,10 @@ def get_google_mobility(
     return g_mob.rolling(7, center=True).mean().dropna()
 
 
-def get_nonresi_g_mob(
-    iso3: str,
-) -> pd.Series:
-    """Takes a flat average across all fields except residential.
-
-    Args:
-        iso3: Country identifier
-
-    Returns:
-        The mobility data
-    """
-    g_mob = get_google_mobility(iso3)
-    return g_mob.loc[:, g_mob.columns != "residential"].mean(axis=1)
-
-
 def get_fb_mobility(iso3):
     fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_fbmob_data.csv", index_col=0)["0"]
     fb_mob.index = pd.to_datetime(fb_mob.index)
     return 1.0 + fb_mob.rolling(7, center=True).mean().dropna()
-
-
-def get_country_mobility(
-    iso3: str,
-) -> pd.DataFrame:
-    """Get all the different types of mobility
-    for a particular country.
-
-    Args:
-        iso3: ISO3 code representing the country
-
-    Returns:
-        The mobility estimates
-    """
-    nonresi_g_mob = get_nonresi_g_mob(iso3)
-    fb_mob = get_fb_mobility(iso3)
-    collated_mob = pd.DataFrame(
-        {
-            "google_nonresi_linear": nonresi_g_mob,
-            "google_nonresi_square": nonresi_g_mob**2.0,
-            "fb_linear": fb_mob,
-            "fb_square": fb_mob**2.0,
-        },
-    )
-    collated_mob["no_mob"] = 1.0
-    return collated_mob
 
 
 def get_standard_targets(
