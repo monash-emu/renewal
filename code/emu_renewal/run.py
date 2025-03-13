@@ -132,31 +132,40 @@ def collate_targets(
     Returns:
         All targets, either four or five, depending on whether there are seroprevalence estimates
     """
-    select_cases = cases_target.loc[
-        (start_time < cases_target.index) & (cases_target.index < end_time)
-    ]
-    select_deaths = deaths_target.loc[
-        (start_time < deaths_target.index) & (deaths_target.index < end_time)
-    ]
-    select_hosps = hosp_target.loc[
-        (start_time < hosp_target.index) & (hosp_target.index < end_time)
-    ]
-    seroprev_target = seroprev_target[
-        (most_extreme_prop < seroprev_target) & (seroprev_target < 1.0 - most_extreme_prop)
-    ]
+    case_mask = (
+        (start_time < cases_target.index) & (cases_target.index < end_time) & (cases_target > 0.0)
+    )
+    select_cases = cases_target.loc[case_mask]
+    death_mask = (
+        (start_time < deaths_target.index)
+        & (deaths_target.index < end_time)
+        & (deaths_target > 0.0)
+    )
+    select_deaths = deaths_target.loc[death_mask]
+    hosp_mask = (
+        (start_time < hosp_target.index) & (hosp_target.index < end_time) & (hosp_target > 0.0)
+    )
+    select_hosps = hosp_target.loc[hosp_mask]
+    prev_mask = (
+        (most_extreme_prop < seroprev_target)
+        & (seroprev_target < 1.0 - most_extreme_prop)
+        & (seroprev_target > 0.0)
+    )
+    seroprev_target = seroprev_target[prev_mask]
     seroprev_target_dict = (
         {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
         if any(seroprev_target)
         else {}
     )
-    prealpha_prop = prealpha_prop[
-        (most_extreme_prop < prealpha_prop) & (prealpha_prop < 1.0 - most_extreme_prop)
-    ]
+    var_mask = (most_extreme_prop < prealpha_prop) & (prealpha_prop < 1.0 - most_extreme_prop)
+    prealpha_prop = prealpha_prop[var_mask]
     all_targets = {
         "weekly_cases": StandardDispTarget(
             select_cases, weight=20.0 * len(select_cases) / len(select_deaths)
         ),
-        "weekly_deaths": StandardDispTarget(select_deaths, weight=20.0),
+        "weekly_deaths": StandardDispTarget(
+            select_deaths, weight=20.0
+        ),
         hosp_output_name: StandardDispTarget(
             select_hosps, weight=20.0 * len(select_hosps) / len(select_deaths)
         ),
