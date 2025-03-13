@@ -242,10 +242,11 @@ def get_filtered_seroprev(
     country_filt = data["country"] == country
     time_filt = (start < data.index) & (data.index < end)
     nat_filt = data["estimate_grade"] == "National"
-    type_filt = (data["subgroup_var"] == "Primary Estimate") & (
-        data["is_unity_aligned"] == "Unity-Aligned"
-    )
-    return data.loc[time_filt & country_filt & nat_filt & type_filt, "serum_pos_prevalence"]
+    type_filt = data["subgroup_var"] == "Primary Estimate"
+    unity_filt = data["is_unity_aligned"] == "Unity-Aligned"
+    n_filt = data["denominator_value"] > 599
+    all_filt = time_filt & country_filt & nat_filt & type_filt & unity_filt & n_filt
+    return data.loc[all_filt, "serum_pos_prevalence"]
 
 
 def get_standard_priors() -> Dict[str, dist.Distribution]:
