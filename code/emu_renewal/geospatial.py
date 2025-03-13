@@ -33,7 +33,7 @@ DEFAULT_POP_RASTER_DS_PATH = DATA_PATH / "population/gpw_v4_population_count_rev
 
 
 def raster_to_polydf(
-    raster_ds: DataArray, data_name: str, out_type: shp.GeometryType = shp.GeometryType.POLYGON
+    raster_ds: DataArray, data_name: str, out_type: shp.GeometryType = shp.GeometryType.POINT
 ) -> gp.GeoDataFrame:
     """
     Convert a raster dataset of regularly spaced
@@ -110,7 +110,7 @@ def population_from_gadm(
     force_rebuild=False,
     write_json=True,
     poly_ids=None,
-    geom_method=shp.GeometryType.POLYGON,
+    geom_method=shp.GeometryType.POINT,
     process_gadm_func=None,
 ) -> dict[str, float]:
 
@@ -162,15 +162,26 @@ def population_from_gadm(
                 pyproj.CRS.from_wkt(pop_ds.rio.crs.to_wkt())
             )  # Reconcile projection of polygon and population data
 
-            # Find population based on intersections
-
-            isect = gp.overlay(pop_df, poly_df.iloc[i_poly : i_poly + 1], keep_geom_type=False)
-            if geom_method == shp.GeometryType.POLYGON:
-                pop_val = float((isect.area / pix_dim**2 * isect.population).sum())
-            elif geom_method == shp.GeometryType.POINT:
-                pop_val = float(isect.population.sum())
-            else:
+            # Find population based on query
+            # This is _dramatically_ faster than previous methods, but doesn't do the fancy
+            # intersection supported by overlay etc
+            # Really only makes sense for GeometryType.POINT
+            if geom_method != shp.GeometryType.POINT:
                 raise Exception(f"Invalid geom_method {geom_method}")
+
+            qres = pop_df.sindex.query(poly_df.iloc[i_poly : i_poly + 1].geometry, "contains")
+
+            pop_val = pop_df.loc[qres[1]].population.sum()
+
+            # +++ Old code for intersection methods;
+            # isect = gp.overlay(pop_df, poly_df.iloc[i_poly : i_poly + 1], keep_geom_type=False)
+            # We may want to reinstate this at some point
+            # if geom_method == shp.GeometryType.POLYGON:
+            #    pop_val = float((isect.area / pix_dim**2 * isect.population).sum())
+            # elif geom_method == shp.GeometryType.POINT:
+            #    pop_val = float(isect.population.sum())
+            # else:
+            #    raise Exception(f"Invalid geom_method {geom_method}")
             pop_dict[poly_id] = pop_val
             logger.info(f"{poly_id} has population of {round(pop_val / 1e3)} thousand")
 
@@ -245,7 +256,7 @@ class FacebookMobilityBuilder:
         iso3: str,
         gadm_level: Optional[int] = None,
         write_csv=True,
-        geom_method=shp.GeometryType.POLYGON,
+        geom_method=shp.GeometryType.POINT,
         force_rebuild=False,
         process_gadm_func=None,
     ) -> pd.Series:
@@ -274,13 +285,14 @@ class FacebookMobilityBuilder:
         fbpids = set(country_mobility["polygon_id"].unique())
 
         if len(gpids.intersection(fbpids)) == 0:
+            logger.error(f"No matching polygons found for {iso3}")
             raise Exception(f"No matching polygons found for {iso3}")
 
         pop_dict = population_from_gadm(
             iso3,
             gadm_level,
             self.pop_ds,
-            poly_ids=fbpids,
+            poly_ids=fbpids,  # fbpid_updated
             force_rebuild=force_rebuild,
             geom_method=geom_method,
             process_gadm_func=process_gadm_func,
