@@ -274,7 +274,7 @@ def run_single_country(
     log(f"Mobility approach: {mob_analysis_type}")
     pop = get_worldbank_national_pop(iso3)
     data_start = find_run_start_time(iso3, pop, deaths_start_threshold)
-    end_time = find_run_end_time(country, most_extreme_prop)
+    end_time = find_run_end_time(iso3, most_extreme_prop)
     cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop = gather_targets(
         iso3, data_start, end_time, min_var_threshold, hosp_out
     )
