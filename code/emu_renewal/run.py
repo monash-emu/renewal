@@ -14,7 +14,6 @@ from emu_renewal.inputs import (
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_standard_targets,
-    get_country_vars,
     get_worldbank_national_pop,
     get_standard_priors,
     get_google_mobility,
