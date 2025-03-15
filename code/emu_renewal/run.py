@@ -20,6 +20,7 @@ from emu_renewal.inputs import (
     get_google_mobility,
     get_apple_mobility,
     get_fb_mobility,
+    get_prealpha_prop,
 )
 from emu_renewal.targets import StandardDispTarget
 from emu_renewal.process import CosineMultiCurve
@@ -97,21 +98,7 @@ def gather_targets(
     cases_target = cases_target[
         cases_target.index >= datetime(2020, 6, 1)
     ]  # Ignore initial cases before testing scaled up
-    var_country_name = (
-        pycountry.countries.lookup(iso3).official_name
-        if iso3 in ["CZE"]
-        else pycountry.countries.lookup(iso3).name
-    )
-    var_data = get_country_vars(var_country_name)
-    var_data = var_data[var_data.sum(axis=1) >= min_var_samples]
-    prealpha_vars = (
-        ["20A.EU1"] if iso3 == "LTU" else ["20A.EU1", "20A.EU2"]
-    )  # Lithuania has no 20A.EU2
-    prealpha_prop = var_data[prealpha_vars].sum(axis=1) / var_data.sum(axis=1)
-    if iso3 == "PRT":
-        prealpha_prop = prealpha_prop[
-            prealpha_prop.index > datetime(2021, 1, 1)
-        ]  # Fluctuations in sample numbers in Portugal
+    prealpha_prop = get_prealpha_prop(iso3, min_var_samples)
     return cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop
 
 

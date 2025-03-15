@@ -444,3 +444,24 @@ def find_relevant_vars(
         if data.loc[data.index < date_cutoff, var].sum() > threshold_seqs:
             relevant_vars.append(var)
     return relevant_vars
+
+
+def get_prealpha_prop(iso3, min_var_samples):
+    if iso3 == "CZE":
+        country = pycountry.countries.lookup(iso3).official_name
+    elif iso3 == "USA":
+        country = pycountry.countries.lookup(iso3).alpha_3
+    else:
+        country = pycountry.countries.lookup(iso3).name
+    var_data = get_country_vars(country)
+    var_data = var_data[var_data.sum(axis=1) >= min_var_samples]
+
+    # Lithuania has no 20A.EU2
+    prealpha_vars = ["20A.EU1"] if iso3 == "LTU" else ["20A.EU1", "20A.EU2"]
+    prealpha_prop = var_data[prealpha_vars].sum(axis=1) / var_data.sum(axis=1)
+
+    # Fluctuations in sample numbers in Portugal
+    if iso3 == "PRT":
+        prealpha_prop = prealpha_prop[prealpha_prop.index > datetime(2021, 1, 1)]
+
+    return prealpha_prop
