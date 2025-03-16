@@ -384,15 +384,11 @@ def get_country_vacc_data(
         country_name = pycountry.countries.lookup(iso3).common_name
     else:
         country_name = pycountry.countries.lookup(iso3).name
-    data = pd.read_csv(
-        DATA_PATH
-        / "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv",
-        index_col="Day",
-    )
+    owid_vacc_filename = "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv"
+    data = pd.read_csv(DATA_PATH / owid_vacc_filename, index_col="Day")
     data.index = pd.to_datetime(data.index)
-    return data.loc[
-        data["Entity"] == country_name, "People fully vaccinated (cumulative, per hundred)"
-    ]
+    col_name = "People fully vaccinated (cumulative, per hundred)"
+    return data.loc[data["Entity"] == country_name, col_name]
 
 
 def get_all_var_data() -> dict:

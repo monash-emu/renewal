@@ -53,7 +53,7 @@ def find_run_start_time(
 
 
 def find_run_end_time(
-    country: str,
+    vacc_data: pd.Series,
     cov_threshold: float,
 ) -> datetime:
     """Find the time that the analysis should finish.
@@ -61,13 +61,12 @@ def find_run_end_time(
     passes the requested threshold.
 
     Args:
-        country: The name of the country
+        vacc_data: The vaccination data for the country considered
         cov_threshold: The threshold
 
     Returns:
         The date at which the threshold is reached
     """
-    vacc_data = get_country_vacc_data(country)
     return vacc_data[vacc_data.gt(cov_threshold * 100)].idxmin()
 
 
@@ -260,7 +259,8 @@ def run_single_country(
     log(f"Mobility approach: {mob_analysis_type}")
     pop = get_worldbank_national_pop(iso3)
     data_start = find_run_start_time(iso3, pop, deaths_start_threshold)
-    end_time = find_run_end_time(iso3, most_extreme_prop)
+    vacc_data = get_country_vacc_data(iso3)
+    end_time = find_run_end_time(vacc_data, most_extreme_prop)
     cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop = gather_targets(
         iso3, data_start, end_time, min_var_threshold, hosp_out
     )
