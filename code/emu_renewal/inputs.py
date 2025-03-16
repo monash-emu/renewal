@@ -373,6 +373,10 @@ def get_country_vacc_data(
 ) -> pd.DataFrame:
     """Get the initial course cumulative vaccination coverage
     data for a specific country.
+    *** No full dose vaccination coverage data available from OWID.
+    Have substituted Germany for Switzerland because these two
+    countries had almost identical profiles of vaccine doses
+    administered per person in the early phases of the roll-out.
 
     Args:
         iso3: ISO3 code for country
@@ -382,6 +386,8 @@ def get_country_vacc_data(
     """
     if iso3 == "KOR":
         country_name = pycountry.countries.lookup(iso3).common_name
+    elif iso3 == "CHE":
+        country_name = pycountry.countries.lookup("DEU").name
     else:
         country_name = pycountry.countries.lookup(iso3).name
     owid_vacc_filename = "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv"
