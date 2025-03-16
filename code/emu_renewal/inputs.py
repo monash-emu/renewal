@@ -380,7 +380,10 @@ def get_country_vacc_data(
     Returns:
         The data
     """
-    country_name = pycountry.countries.lookup(iso3).name
+    if iso3 == "KOR":
+        country_name = pycountry.countries.lookup(iso3).common_name
+    else:
+        country_name = pycountry.countries.lookup(iso3).name
     data = pd.read_csv(
         DATA_PATH
         / "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv",
