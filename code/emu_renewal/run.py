@@ -13,13 +13,14 @@ from emu_renewal.inputs import (
     BASE_PATH,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
-    get_standard_targets,
     get_worldbank_national_pop,
     get_standard_priors,
     get_google_mobility,
     get_apple_mobility,
     get_fb_mobility,
     get_prealpha_prop,
+    get_filtered_seroprev,
+    get_hosp_target,
 )
 from emu_renewal.targets import StandardDispTarget
 from emu_renewal.process import CosineMultiCurve
@@ -31,25 +32,24 @@ from emu_renewal import mobility
 
 
 def find_run_start_time(
-    iso3: str,
+    deaths_data,
     pop: float,
-    death_start_threshold: float,
+    threshold: float,
 ) -> datetime:
     """Determine the time that the model should start running from.
     Calculated as the time until the per capita death rate reaches the
     specified threshold.
 
     Args:
-        iso3: Country identifier
+        deaths_data: Deaths time series for the country considered
         pop: Population size
         death_start_threshold: How many deaths to reach
 
     Returns:
         The date that the threshold is reached
     """
-    deaths_series = get_indicator_series_from_who_data("New_deaths", iso3)
-    per_capita_deaths = deaths_series / pop
-    return per_capita_deaths.index[per_capita_deaths.gt(death_start_threshold)].min()
+    per_capita_deaths = deaths_data / pop
+    return per_capita_deaths.index[per_capita_deaths.gt(threshold)].min()
 
 
 def find_run_end_time(
@@ -70,36 +70,6 @@ def find_run_end_time(
     return vacc_data[vacc_data.gt(cov_threshold * 100)].idxmin()
 
 
-def gather_targets(
-    iso3: str,
-    data_start: datetime,
-    analysis_end: datetime,
-    min_var_samples: int,
-    hosp_out: str,
-) -> Tuple[pd.Series]:
-    """Get the targets as separate series, plus the initialisation series.
-
-    Args:
-        iso3: Country identifier
-        start_time: Time that analysis starts
-        end_time: Time that analysis ends
-        min_var_samples: The minimum number of variant samples allowed
-        hosp_out: The hospitalisation output required from the OWID data
-            (either "Daily hospital occupancy" or "Weekly new hospital admissions")
-
-    Returns:
-        The various calibration targets and initialisation data
-    """
-    cases_target, hosp_target, deaths_target, seroprev_target = get_standard_targets(
-        iso3, data_start, analysis_end, hosp_out
-    )
-    cases_target = cases_target[
-        cases_target.index >= datetime(2020, 6, 1)
-    ]  # Ignore initial cases before testing scaled up
-    prealpha_prop = get_prealpha_prop(iso3, min_var_samples)
-    return cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop
-
-
 def collate_targets(
     cases_target: pd.Series,
     deaths_target: pd.Series,
@@ -108,8 +78,8 @@ def collate_targets(
     seroprev_target: pd.Series,
     most_extreme_prop: pd.Series,
     prealpha_prop: pd.Series,
-    start_time: pd.Series,
-    end_time: pd.Series,
+    start: pd.Series,
+    end: pd.Series,
 ) -> Dict[str, StandardDispTarget]:
     """Collate the targets gathered in the previous function
     into the appropriate structure for the calibration algorithm.
@@ -117,25 +87,14 @@ def collate_targets(
     Returns:
         All targets, either four or five, depending on whether there are seroprevalence estimates
     """
-    case_mask = (
-        (start_time < cases_target.index) & (cases_target.index < end_time) & (cases_target > 0.0)
-    )
+    # Ignore initial cases before testing scaled up
+    case_mask = (start < cases_target.index) & (cases_target.index < end) & (cases_target > 0.0) & (cases_target.index > datetime(2020, 6, 1))
     select_cases = cases_target.loc[case_mask]
-    death_mask = (
-        (start_time < deaths_target.index)
-        & (deaths_target.index < end_time)
-        & (deaths_target > 0.0)
-    )
+    death_mask = (start < deaths_target.index) & (deaths_target.index < end) & (deaths_target > 0.0)
     select_deaths = deaths_target.loc[death_mask]
-    hosp_mask = (
-        (start_time < hosp_target.index) & (hosp_target.index < end_time) & (hosp_target > 0.0)
-    )
+    hosp_mask = (start < hosp_target.index) & (hosp_target.index < end) & (hosp_target > 0.0)
     select_hosps = hosp_target.loc[hosp_mask]
-    prev_mask = (
-        (most_extreme_prop < seroprev_target)
-        & (seroprev_target < 1.0 - most_extreme_prop)
-        & (seroprev_target > 0.0)
-    )
+    prev_mask = (most_extreme_prop < seroprev_target) & (seroprev_target < 1.0 - most_extreme_prop) & (seroprev_target > 0.0)
     seroprev_target = seroprev_target[prev_mask]
     seroprev_target_dict = (
         {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
@@ -258,15 +217,19 @@ def run_single_country(
     log(f"Country: {iso3}")
     log(f"Mobility approach: {mob_analysis_type}")
     pop = get_worldbank_national_pop(iso3)
-    data_start = find_run_start_time(iso3, pop, deaths_start_threshold)
     vacc_data = get_country_vacc_data(iso3)
     end_time = find_run_end_time(vacc_data, most_extreme_prop)
-    cases_target, hosp_target, deaths_target, seroprev_target, prealpha_prop = gather_targets(
-        iso3, data_start, end_time, min_var_threshold, hosp_out
-    )
+
+    cases_data = get_indicator_series_from_who_data("New_cases", country)
+    deaths_data = get_indicator_series_from_who_data("New_deaths", country)
+    data_start = find_run_start_time(deaths_data, pop, deaths_start_threshold)
+    hosp_target = get_hosp_target(country, data_start, end_time, hosp_out)
+    seroprev_target = get_filtered_seroprev(country, data_start, end_time)
+    prealpha_prop = get_prealpha_prop(iso3, min_var_threshold)
+
     targets = collate_targets(
-        cases_target,
-        deaths_target,
+        cases_data,
+        deaths_data,
         hosp_target,
         hosp_out_name,
         seroprev_target,

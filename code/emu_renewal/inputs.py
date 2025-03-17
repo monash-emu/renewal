@@ -342,32 +342,6 @@ def get_fb_mobility(iso3):
     return 1.0 + fb_mob.rolling(7, center=True).mean().dropna()
 
 
-def get_standard_targets(
-    country: str,
-    data_start: datetime,
-    analysis_end: datetime,
-    hosp_indicator: str,
-) -> Tuple[pd.DataFrame]:
-    """Get the standard epidemiological targets for a model run.
-
-    Args:
-        country: The country code
-        start: Analysis start time
-        end: Analysis end time
-        init_duration: Time for initialisation before analysis starts
-
-    Returns:
-        Case, hospitalisation, death and seroprevalence targets and initialisation data
-    """
-    cases_data = get_indicator_series_from_who_data("New_cases", country)
-    deaths_data = get_indicator_series_from_who_data("New_deaths", country)
-    cases_target = cases_data.loc[data_start:analysis_end]
-    deaths_target = deaths_data.loc[data_start:analysis_end]
-    hosp_target = get_hosp_target(country, data_start, analysis_end, hosp_indicator)
-    seroprev_target = get_filtered_seroprev(country, data_start, analysis_end)
-    return cases_target, hosp_target, deaths_target, seroprev_target
-
-
 def get_country_vacc_data(
     iso3: str,
 ) -> pd.DataFrame:
