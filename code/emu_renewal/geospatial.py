@@ -83,23 +83,44 @@ def raster_to_polydf(
     return gp.GeoDataFrame({data_name: out_data}, geometry=geoms)
 
 
-def polyids_from_gadm(iso3: str, gadm_level: int) -> list[str]:
+def retag_poly_revision(poly_id, new_rev=1):
+    parts = poly_id.split("_")
+    return f"{parts[0]}_{new_rev}"
+
+
+def retag_gidcol(poly_df, gadm_level, revision=1) -> gp.GeoDataFrame:
+    pdf = poly_df.copy()
+    gid_col = f"GID_{gadm_level}"
+    pdf[gid_col] = [retag_poly_revision(pid) for pid in pdf[gid_col]]
+    return pdf
+
+
+def polyids_from_gadm(iso3: str, gadm_level: int, force_rev: int = 1) -> list[str]:
     source = f"https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_{iso3}_{gadm_level}.json.zip"
     dest = DATA_PATH / f"population/gadm_input_json/gadm41_{iso3}_{gadm_level}.json.zip"
     if not dest.exists():
         urllib.request.urlretrieve(source, dest)
 
     poly_df = gp.read_file(dest)
-    return list(poly_df[f"GID_{gadm_level}"])
+    pid_col = f"GID_{gadm_level}"
+
+    if force_rev is not None:
+        poly_df = retag_gidcol(poly_df, gadm_level)
+
+    return list(poly_df[pid_col])
 
 
-def polydf_from_gadm(iso3: str, gadm_level: int):
+def polydf_from_gadm(iso3: str, gadm_level: int, force_rev: int = 1):
     source = f"https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_{iso3}_{gadm_level}.json.zip"
     dest = DATA_PATH / f"population/gadm_input_json/gadm41_{iso3}_{gadm_level}.json.zip"
     if not dest.exists():
         urllib.request.urlretrieve(source, dest)
 
     poly_df = gp.read_file(dest)
+
+    if force_rev is not None:
+        poly_df = retag_gidcol(poly_df, gadm_level)
+
     return poly_df
 
 
@@ -129,12 +150,14 @@ def population_from_gadm(
     # These files are directly downloadable as of 21/01/2025 via
     # https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_{iso3}_{gadm_level}.json.zip
     # Download the appropriate GADM boundaries json (or use cached if it exists)
-    source = f"https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_{iso3}_{gadm_level}.json.zip"
-    dest = DATA_PATH / f"population/gadm_input_json/gadm41_{iso3}_{gadm_level}.json.zip"
-    if not dest.exists():
-        urllib.request.urlretrieve(source, dest)
+    poly_df = polydf_from_gadm(iso3, gadm_level)
 
-    poly_df = gp.read_file(dest)
+    # source = f"https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_{iso3}_{gadm_level}.json.zip"
+    # dest = DATA_PATH / f"population/gadm_input_json/gadm41_{iso3}_{gadm_level}.json.zip"
+    # if not dest.exists():
+    #     urllib.request.urlretrieve(source, dest)
+
+    # poly_df = gp.read_file(dest)
 
     if process_gadm_func is not None:
         poly_df = process_gadm_func(poly_df)
