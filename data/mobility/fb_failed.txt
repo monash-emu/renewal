@@ -1,16 +1,1 @@
-['ZWE',
- 'MAC',
- 'DJI',
- 'URY',
- 'MEX',
- 'BOL',
- 'KOR',
- 'HKG',
- 'BRA',
- 'IMN',
- 'COL',
- 'USA',
- 'TGO',
- 'KHM',
- 'GHA',
- 'ZMB']
+['GHA', 'HKG', 'IMN', 'MAC', 'USA']
