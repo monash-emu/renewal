@@ -273,7 +273,7 @@ def get_standard_priors() -> Dict[str, dist.Distribution]:
 
 
 def get_worldbank_national_pop(
-    iso3,
+    iso3: str,
 ) -> float:
     """Read population data downloaded from the World Bank
     at https://databank.worldbank.org/source/population-estimates-and-projections#
@@ -291,6 +291,23 @@ def get_worldbank_national_pop(
     col = "Country Code"
     data = pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype)["2020 [YR2020]"].dropna()
     return data[iso3]
+
+
+def get_undesa_national_pop(iso3: str) -> float:
+    """Get UN-DESA population estimate for a single country, for 2020
+
+    Sourced from
+    https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/EXCEL_FILES/2_Population/WPP2024_POP_F01_1_POPULATION_SINGLE_AGE_BOTH_SEXES.xlsx
+
+    Args:
+        iso3: ISO3 country code
+
+    Returns:
+        2020 UNDESA population total for country
+    """
+    csv_path = DATA_PATH / "population/undesa_pops_2020.csv"
+    data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
+    return data["population"][iso3]
 
 
 def get_apple_mobility(iso3: str) -> pd.DataFrame:
@@ -364,7 +381,9 @@ def get_country_vacc_data(
         country_name = pycountry.countries.lookup("DEU").name
     else:
         country_name = pycountry.countries.lookup(iso3).name
-    owid_vacc_filename = "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv"
+    owid_vacc_filename = (
+        "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv"
+    )
     data = pd.read_csv(DATA_PATH / owid_vacc_filename, index_col="Day")
     data.index = pd.to_datetime(data.index)
     col_name = "People fully vaccinated (cumulative, per hundred)"
