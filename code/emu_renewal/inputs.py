@@ -307,7 +307,7 @@ def get_undesa_national_pop(iso3: str) -> float:
     """
     csv_path = DATA_PATH / "population/undesa_pops_2020.csv"
     data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
-    return data["population"][iso3]
+    return data.loc[iso3, "population"]
 
 
 def get_apple_mobility(iso3: str) -> pd.DataFrame:
