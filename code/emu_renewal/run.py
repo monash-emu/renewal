@@ -14,6 +14,7 @@ from emu_renewal.inputs import (
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
+    get_undesa_national_pop,
     get_standard_priors,
     get_google_mobility,
     get_apple_mobility,
@@ -88,13 +89,22 @@ def collate_targets(
         All targets, either four or five, depending on whether there are seroprevalence estimates
     """
     # Ignore initial cases before testing scaled up
-    case_mask = (start < cases_target.index) & (cases_target.index < end) & (cases_target > 0.0) & (cases_target.index > datetime(2020, 6, 1))
+    case_mask = (
+        (start < cases_target.index)
+        & (cases_target.index < end)
+        & (cases_target > 0.0)
+        & (cases_target.index > datetime(2020, 6, 1))
+    )
     select_cases = cases_target.loc[case_mask]
     death_mask = (start < deaths_target.index) & (deaths_target.index < end) & (deaths_target > 0.0)
     select_deaths = deaths_target.loc[death_mask]
     hosp_mask = (start < hosp_target.index) & (hosp_target.index < end) & (hosp_target > 0.0)
     select_hosps = hosp_target.loc[hosp_mask]
-    prev_mask = (most_extreme_prop < seroprev_target) & (seroprev_target < 1.0 - most_extreme_prop) & (seroprev_target > 0.0)
+    prev_mask = (
+        (most_extreme_prop < seroprev_target)
+        & (seroprev_target < 1.0 - most_extreme_prop)
+        & (seroprev_target > 0.0)
+    )
     seroprev_target = seroprev_target[prev_mask]
     seroprev_target_dict = (
         {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
@@ -107,9 +117,7 @@ def collate_targets(
         "weekly_cases": StandardDispTarget(
             select_cases, weight=20.0 * len(select_cases) / len(select_deaths)
         ),
-        "weekly_deaths": StandardDispTarget(
-            select_deaths, weight=20.0
-        ),
+        "weekly_deaths": StandardDispTarget(select_deaths, weight=20.0),
         hosp_output_name: StandardDispTarget(
             select_hosps, weight=20.0 * len(select_hosps) / len(select_deaths)
         ),
@@ -216,7 +224,11 @@ def run_single_country(
     iso3 = pycountry.countries.lookup(country).alpha_3
     log(f"Country: {iso3}")
     log(f"Mobility approach: {mob_analysis_type}")
-    pop = get_worldbank_national_pop(iso3)
+    try:
+        pop = get_worldbank_national_pop(iso3)
+    except:
+        log("World Bank population unavailable, using UN DESA")
+        pop = get_undesa_national_pop(iso3)
     vacc_data = get_country_vacc_data(iso3)
     end_time = find_run_end_time(vacc_data, most_extreme_prop)
 
