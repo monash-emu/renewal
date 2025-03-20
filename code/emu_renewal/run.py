@@ -21,7 +21,7 @@ from emu_renewal.inputs import (
     get_fb_mobility,
     get_prealpha_prop,
     get_filtered_seroprev,
-    get_hosp_target,
+    get_country_hosps,
 )
 from emu_renewal.targets import StandardDispTarget
 from emu_renewal.process import CosineMultiCurve
@@ -96,33 +96,43 @@ def collate_targets(
         & (cases_target.index > datetime(2020, 6, 1))
     )
     select_cases = cases_target.loc[case_mask]
+
     death_mask = (start < deaths_target.index) & (deaths_target.index < end) & (deaths_target > 0.0)
     select_deaths = deaths_target.loc[death_mask]
+
     hosp_mask = (start < hosp_target.index) & (hosp_target.index < end) & (hosp_target > 0.0)
     select_hosps = hosp_target.loc[hosp_mask]
-    prev_mask = (
+    if select_hosps.empty:
+        hosp_target_dict = {}
+    else:
+        hosp_weight = 20.0 * len(select_hosps) / len(select_deaths)
+        hosp_target_dict = {hosp_output_name: StandardDispTarget(select_hosps, weight=hosp_weight)}
+
+    seroprev_mask = (
         (most_extreme_prop < seroprev_target)
         & (seroprev_target < 1.0 - most_extreme_prop)
         & (seroprev_target > 0.0)
     )
-    seroprev_target = seroprev_target[prev_mask]
-    seroprev_target_dict = (
+    seroprev_target = seroprev_target[seroprev_mask]
+    if seroprev_target.empty:
+        seroprev_target_dict = {}
+    else:
         {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
-        if any(seroprev_target)
-        else {}
-    )
+
     var_mask = (most_extreme_prop < prealpha_prop) & (prealpha_prop < 1.0 - most_extreme_prop)
     prealpha_prop = prealpha_prop[var_mask]
-    all_targets = {
-        "weekly_cases": StandardDispTarget(
-            select_cases, weight=20.0 * len(select_cases) / len(select_deaths)
-        ),
-        "weekly_deaths": StandardDispTarget(select_deaths, weight=20.0),
-        hosp_output_name: StandardDispTarget(
-            select_hosps, weight=20.0 * len(select_hosps) / len(select_deaths)
-        ),
-        "prop_eu": StandardDispTarget(prealpha_prop, weight=20.0),
-    } | seroprev_target_dict
+
+    all_targets = (
+        {
+            "weekly_cases": StandardDispTarget(
+                select_cases, weight=20.0 * len(select_cases) / len(select_deaths)
+            ),
+            "weekly_deaths": StandardDispTarget(select_deaths, weight=20.0),
+            "prop_eu": StandardDispTarget(prealpha_prop, weight=20.0),
+        }
+        | seroprev_target_dict
+        | hosp_target_dict
+    )
     return all_targets
 
 
@@ -209,8 +219,6 @@ def run_single_country(
     init_duration,
     mob_analysis_type,
     iterations,
-    hosp_out,
-    hosp_out_name,
     run_data_delay,
     analysis_name,
     most_extreme_prop: float = 0.05,
@@ -235,7 +243,7 @@ def run_single_country(
     cases_data = get_indicator_series_from_who_data("New_cases", country)
     deaths_data = get_indicator_series_from_who_data("New_deaths", country)
     data_start = find_run_start_time(deaths_data, pop, deaths_start_threshold)
-    hosp_target = get_hosp_target(country, data_start, end_time, hosp_out)
+    hosp_target, hosp_out_name = get_country_hosps(country, data_start, end_time)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
     prealpha_prop = get_prealpha_prop(iso3, min_var_threshold)
 

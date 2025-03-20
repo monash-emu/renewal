@@ -123,26 +123,25 @@ def get_hosp_series_from_owid_data(
     return data.loc[data["indicator"] == indicator, "value"]
 
 
-def get_hosp_target(
-    country: str,
-    data_start: datetime,
-    analysis_end: datetime,
-    indicator: str,
-) -> pd.Series:
-    """Get hospitalisation target, the data for which
-    comes from OWID because not available from WHO.
-    Series is converted from daily to weekly to harmonise with WHO targets.
-
-    Args:
-        country: Name of the country of interest
-        analysis_start: Start date of the analysis
-        analysis_end: End date of the analysis
-
-    Returns:
-        Hospital occupancy target
-    """
-    hosp_data = get_hosp_series_from_owid_data(indicator, country)
-    return hosp_data[data_start:analysis_end:7]
+def get_country_hosps(country, start, end):
+    admits = get_hosp_series_from_owid_data("Weekly new hospital admissions", country)
+    filt_admits = admits[(start < admits.index) & (admits.index < end)]
+    occup = get_hosp_series_from_owid_data("Daily hospital occupancy", country)
+    filt_occup = occup[(start < occup.index) & (occup.index < end)]
+    icu_admits = get_hosp_series_from_owid_data("Weekly new ICU admissions", country)
+    # filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
+    icu_occup = get_hosp_series_from_owid_data("Daily ICU occupancy", country)
+    # filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
+    if not filt_admits.empty:
+        return filt_admits[::7], "admissions"
+    elif not filt_occup.empty:
+        return filt_occup[::7], "occupancy"
+    # elif not filt_icu_admits.empty:
+    #     return filt_icu_admits[::7], "icu_admits"
+    # elif not filt_icu_occup.empty:
+    #     return filt_icu_occup[::7], "icu_occup"
+    else:
+        return None, ""
 
 
 def get_var_country_data(
