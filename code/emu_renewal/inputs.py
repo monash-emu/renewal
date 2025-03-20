@@ -118,8 +118,8 @@ def get_hosp_series_from_owid_data(
     """
     hosp = pd.read_csv(DATA_PATH / "owid/owid_hosp.csv", index_col="date")
     hosp.index = pd.to_datetime(hosp.index)
-    country = pycountry.countries.lookup(country).name
-    data = hosp[hosp["entity"] == country]
+    iso3 = pycountry.countries.lookup(country).alpha_3
+    data = hosp[hosp["iso_code"] == iso3]
     return data.loc[data["indicator"] == indicator, "value"]
 
 
