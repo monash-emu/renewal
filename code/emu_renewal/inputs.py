@@ -400,16 +400,22 @@ def get_all_var_data() -> dict:
 
 
 def get_country_vars(
-    country: str,
+    iso3: str,
 ) -> pd.DataFrame:
     """Get all the CoVariants data for a particular country.
 
     Args:
-        country: The country name
+        iso3: The country identifier
 
     Returns:
         The data
     """
+    if iso3 == "CZE":
+        country = pycountry.countries.lookup(iso3).official_name
+    elif iso3 == "USA":
+        country = pycountry.countries.lookup(iso3).alpha_3
+    else:
+        country = pycountry.countries.lookup(iso3).name
     data = pd.DataFrame()
     for var in VAR_NAMES:
         all_var_data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")
@@ -444,13 +450,7 @@ def find_relevant_vars(
 
 
 def get_prealpha_prop(iso3, min_var_samples):
-    if iso3 == "CZE":
-        country = pycountry.countries.lookup(iso3).official_name
-    elif iso3 == "USA":
-        country = pycountry.countries.lookup(iso3).alpha_3
-    else:
-        country = pycountry.countries.lookup(iso3).name
-    var_data = get_country_vars(country)
+    var_data = get_country_vars(iso3)
     var_data = var_data[var_data.sum(axis=1) >= min_var_samples]
 
     # Lithuania has no 20A.EU2
