@@ -49,6 +49,26 @@ durations:
     sd: 2.5
     param_name: Hospitalisation to discharge standard deviation (days)
     evidence: The interquartile range reported in the first systematic review above[@rees2020] was ten to 19 days, while the individual-level standard deviation identified in the later systematic review above[@alimohamadi2022] was 7.92 days.
+  icu_admit_mean:
+    mean: 11.4
+    sd: 7.0
+    param_name: Infection to ICU admission mean (days)
+    evidence: ISARIC report (Table 6) gives mean 2.8 days (6.1 days standard deviation) from hospital admission to ICU entry.
+  icu_admit_sd: 
+    mean: 5.0
+    sd: 2.0
+    param_name: Infection to ICU admission standard deviation (days)
+    evidence: To populate
+  icu_stay_mean:
+    mean: 7.0
+    sd: 3.0
+    param_name: ICU admission duration (days)
+    evidence: The systematic review introduced above[@rees2020] reported a median ICU length of stay outside of China of seven days with an interquartile range from four to 11 days.
+  icu_stay_sd:
+    mean: 5.0
+    sd: 2.5
+    param_name: ICU admission to discharge standard deviation (days)
+    evidence: To populate, I think not reported by the Rees systematic review.
 beta:
   cdr:
     alpha: 5.0

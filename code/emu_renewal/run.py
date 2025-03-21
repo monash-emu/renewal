@@ -232,11 +232,7 @@ def run_single_country(
     iso3 = pycountry.countries.lookup(country).alpha_3
     log(f"Country: {iso3}")
     log(f"Mobility approach: {mob_analysis_type}")
-    try:
-        pop = get_worldbank_national_pop(iso3)
-    except:
-        log("World Bank population unavailable, using UN DESA")
-        pop = get_undesa_national_pop(iso3)
+    pop = get_worldbank_national_pop(iso3)
     vacc_data = get_country_vacc_data(iso3)
     end_time = find_run_end_time(vacc_data, most_extreme_prop)
 
