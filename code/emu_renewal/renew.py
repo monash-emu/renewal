@@ -319,6 +319,11 @@ class MultiStrainModel:
         stay_mean: float,
         stay_sd: float,
         har: float,
+        icu_admit_mean: float,
+        icu_admit_sd: float,
+        icu_stay_mean: float,
+        icu_stay_sd: float,
+        icu_ar: float,
         cross_immunity: float,
         alpha_relinfect: float,
         first_seed_rate: float,
@@ -339,20 +344,31 @@ class MultiStrainModel:
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
         outputs["inc"] = full_inc[self.init_length :]
+
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length :]
+        weekly_cases = self.get_period_output_from_daily(cases, 7)
+        outputs["weekly_cases"] = weekly_cases[self.init_length :]
+
         deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
         outputs["deaths"] = deaths[self.init_length :]
+        weekly_deaths = self.get_period_output_from_daily(deaths, 7)
+        outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
+
         admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
         outputs["admissions"] = admissions[self.init_length :]
         weekly_admissions = self.get_period_output_from_daily(admissions, 7)
         outputs["weekly_admissions"] = weekly_admissions[self.init_length :]
         occupancy = self.get_hosp_occupancy_from_admits(admissions, stay_mean, stay_sd)
         outputs["occupancy"] = occupancy[self.init_length :]
-        weekly_cases = self.get_period_output_from_daily(cases, 7)
-        outputs["weekly_cases"] = weekly_cases[self.init_length :]
-        weekly_deaths = self.get_period_output_from_daily(deaths, 7)
-        outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
+
+        icu_admits = self.get_output_from_inc(full_inc, icu_admit_mean, icu_admit_sd, har * icu_ar)
+        outputs["icu_admissions"] = icu_admits[self.init_length :]
+        icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, 7)
+        outputs["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
+        icu_occupancy = self.get_hosp_occupancy_from_admits(icu_admits, icu_stay_mean, icu_stay_sd)
+        outputs["icu_occupancy"] = icu_occupancy[self.init_length :]
+
         outputs["seropos"] = (self.pop - outputs["sus_0"]) / self.pop
         strain_props = {
             f"prop_{strain}": outputs[strain] / outputs["inc"] for strain in self.strains

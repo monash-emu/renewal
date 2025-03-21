@@ -80,6 +80,11 @@ beta:
     beta: 186.64
     param_name: Infection hospitalisation proportion
     evidence: This quantity was estimated to be 3.39% (credible interval 2.79 to 3.97%) from officially reported data in England prior to the marked declines that occurred as population-wide vaccination was rolled out.[@ward2024]
+  icu_ar:
+    alpha: 17.0
+    beta: 83.0
+    param_name: Hospitalisation ICU admission proportion
+    evidence: ISARIC
   ifr:
     alpha: 7.9
     beta: 992.1
