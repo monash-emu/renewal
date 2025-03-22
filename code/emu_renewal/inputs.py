@@ -2,11 +2,11 @@ import pandas as pd
 import json
 from pathlib import Path
 import pycountry
-from typing import Tuple, List, Dict
+from typing import List, Dict, Tuple
 from datetime import datetime, timedelta
 import yaml as yml
 from numpyro import distributions as dist
-import numpy as np
+import pycountry_convert as pc
 
 
 DATE_FORMAT = "%Y%m%d_%H%M"
@@ -462,3 +462,166 @@ def get_prealpha_prop(iso3, min_var_samples):
         prealpha_prop = prealpha_prop[prealpha_prop.index > datetime(2021, 1, 1)]
 
     return prealpha_prop
+
+
+def get_pre_alpha_vars(
+    country: str,
+    min_samples: int=5, 
+    end_date: datetime=datetime(2021, 6, 30),
+) -> pd.DataFrame:
+    """Find the number of pre-Alpha variant samples
+    and the total number of specimens, discarding
+    data at zero or 100% pre-Alpha specimens.
+
+    Args:
+        country: The country identifier
+        min_samples: Minimum number of samples for inclusion
+        end_date: End date for extracting the data
+
+    Returns:
+        Number of pre-Alpha specimens, total specimens and 
+            proportion pre-Alpha by date
+    """
+    pre_alpha_vars = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
+    var_data = get_country_vars(country)
+    var_data = var_data[var_data.index < end_date]
+    var_data = var_data[var_data.sum(axis=1) >= min_samples]
+    avail_pre_alpha = [c for c in pre_alpha_vars if c in var_data.columns]
+    pre_alpha_vals = var_data[avail_pre_alpha].sum(axis=1)
+    totals = var_data.sum(axis=1)
+    country_df = pd.DataFrame(
+        {
+            "pre_alpha": pre_alpha_vals,
+            "totals": totals,
+            "pre_alpha_prop": pre_alpha_vals / totals,
+        }
+    )
+    return country_df[(0.0 < country_df["pre_alpha_prop"]) & (country_df["pre_alpha_prop"] < 1.0)]
+
+
+def get_sufficient_pre_alpha_vars(
+    countries: List[str],
+    min_obs=5,
+) -> Dict[str, pd.DataFrame]:
+    """Collate the variant data for each country,
+    discarding if there are less than a minimum
+    number of observation dates in the available data.
+
+    Args:
+        countries: The countries of interest
+        min_obs: The threshold for discarding
+
+    Returns:
+        The data for the countries with enough observations
+    """
+    all_data = {}
+    for c in countries:
+        data = get_pre_alpha_vars(c)
+        if len(data) > min_obs:
+            all_data[c] = data
+    return all_data
+
+
+def get_continent_pre_alpha_vars(
+    data: Dict[str, pd.DataFrame],
+) -> Dict[str, pd.DataFrame]:
+    """Get pre-Alpha proportions by continent
+    from country data, except no data available for Africa.
+
+    Args:
+        data: Data on variants by country, 
+            the output of get_sufficient_pre_alpha_vars
+
+    Returns:
+        The data for each country
+    """
+    continents = ["NA", "SA", "AS", "EU"]
+    cont_data_dict = {}
+    for cont in continents:
+        cont_data = pd.DataFrame()
+        for c in data:
+            iso2 = pycountry.countries.lookup(c).alpha_2
+            if pc.country_alpha2_to_continent_code(iso2) == cont:
+                cont_data = cont_data.add(data[c], fill_value=0.0)
+        cont_data["pre_alpha_prop"] = cont_data["pre_alpha"] / cont_data["totals"]
+        cont_data_dict[cont] = cont_data
+    return cont_data_dict
+
+
+def get_country_var_prop(
+    country: str, 
+    country_data: pd.DataFrame, 
+    cont_data: Dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    """The the data for the country of interest,
+    either using the data for that country or the
+    continent average where not available.
+
+    Args:
+        country: The country of interest
+        country_data: The data for the country
+        cont_data: The data for all continents
+
+    Returns:
+        The data to use for the country
+    """
+    continent = pc.country_alpha2_to_continent_code(pycountry.countries.lookup(country).alpha_2)
+    if country in country_data:
+        return country_data[country]
+    elif continent == "AF":
+        return None
+    else:
+        return cont_data[continent]
+    
+
+def find_increasing_groups(
+    data: pd.Series,
+) -> Tuple[pd.DatetimeIndex]:
+    """Find the indexes at which a series
+    (which is supposed to be generally decreasing)
+    is increasing.
+
+    Args:
+        data: The data
+
+    Returns:
+        Two lists of indexes with the same length
+            representing the starts and the ends of the
+            increasing sections of the series
+    """
+    inc_elements = (data.diff() > 0.0).astype(int)
+    group_limits = inc_elements.diff().shift(-1).fillna(0.0)
+    starts = group_limits[group_limits == 1.0].index
+    ends = group_limits[group_limits == -1.0].index
+    return starts, ends
+
+
+def revise_data_with_pooled_totals(
+    starts: pd.DatetimeIndex,
+    ends: pd.DatetimeIndex,
+    data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Replace periods of the pre-Alpha data
+    that are increasing over time with averages
+    over the period of increase.
+
+    Args:
+        starts: Starts of the increasing periods,
+            the output from find_increasing_groups
+        ends: Ends of the increasing periods,
+            the output from find_increasing_groups
+        data: The unadjusted data
+
+    Returns:
+        The adjusted data
+    """
+    period_sums = pd.DataFrame(columns=["pre_alpha", "totals", "pre_alpha_prop"])
+    indexes_to_remove = []
+    for limits in zip(starts, ends):
+        period = data.loc[limits[0]: limits[1]]
+        average_date = period.index.mean()
+        period_sums.loc[average_date] = period.sum()
+        indexes_to_remove += list(period.index)
+    new_data = pd.concat([period_sums, data.drop(index=indexes_to_remove)])
+    new_data["pre_alpha_prop"] = new_data["pre_alpha"] / new_data["totals"]
+    return new_data.sort_index()
