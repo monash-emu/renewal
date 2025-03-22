@@ -624,4 +624,5 @@ def revise_data_with_pooled_totals(
         indexes_to_remove += list(period.index)
     new_data = pd.concat([period_sums, data.drop(index=indexes_to_remove)])
     new_data["pre_alpha_prop"] = new_data["pre_alpha"] / new_data["totals"]
+    new_data.index = new_data.index.round("D")
     return new_data.sort_index()
