@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
 import pycountry
+import pycountry_convert as pc
 from numpyro import distributions as dist
 from numpyro import infer
 from jax import random
-from typing import Tuple, Dict
+from typing import Dict
 import pandas as pd
 import numpy as np
 import sys
@@ -14,7 +15,6 @@ from emu_renewal.inputs import (
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
-    get_undesa_national_pop,
     get_standard_priors,
     get_google_mobility,
     get_apple_mobility,
@@ -230,6 +230,8 @@ def run_single_country(
 ):
     log(f"\n________________________\nRunning job at {analysis_name}")
     iso3 = pycountry.countries.lookup(country).alpha_3
+    iso2 = pycountry.countries.lookup(iso3).alpha_2
+    continent = pc.country_alpha2_to_continent_code(iso2)
     log(f"Country: {iso3}")
     log(f"Mobility approach: {mob_analysis_type}")
     pop = get_worldbank_national_pop(iso3)

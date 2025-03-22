@@ -524,6 +524,7 @@ def get_sufficient_pre_alpha_vars(
 
 def get_continent_pre_alpha_vars(
     data: Dict[str, pd.DataFrame],
+    continents: List[str]=["NA", "SA", "AS", "EU"],
 ) -> Dict[str, pd.DataFrame]:
     """Get pre-Alpha proportions by continent
     from country data, except no data available for Africa.
@@ -531,11 +532,11 @@ def get_continent_pre_alpha_vars(
     Args:
         data: Data on variants by country, 
             the output of get_sufficient_pre_alpha_vars
+        continents: The continents to make the calculations for
 
     Returns:
         The data for each country
     """
-    continents = ["NA", "SA", "AS", "EU"]
     cont_data_dict = {}
     for cont in continents:
         cont_data = pd.DataFrame()
@@ -548,7 +549,7 @@ def get_continent_pre_alpha_vars(
     return cont_data_dict
 
 
-def get_country_var_prop(
+def get_nearest_country_vars(
     country: str, 
     country_data: pd.DataFrame, 
     cont_data: Dict[str, pd.DataFrame],
