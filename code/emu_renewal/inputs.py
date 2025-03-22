@@ -468,6 +468,7 @@ def get_pre_alpha_vars(
     country: str,
     min_samples: int=5, 
     end_date: datetime=datetime(2021, 6, 30),
+    min_obs=5,
 ) -> pd.DataFrame:
     """Find the number of pre-Alpha variant samples
     and the total number of specimens, discarding
@@ -477,6 +478,7 @@ def get_pre_alpha_vars(
         country: The country identifier
         min_samples: Minimum number of samples for inclusion
         end_date: End date for extracting the data
+        min_obs: The threshold for discarding
 
     Returns:
         Number of pre-Alpha specimens, total specimens and 
@@ -496,30 +498,9 @@ def get_pre_alpha_vars(
             "pre_alpha_prop": pre_alpha_vals / totals,
         }
     )
-    return country_df[(0.0 < country_df["pre_alpha_prop"]) & (country_df["pre_alpha_prop"] < 1.0)]
-
-
-def get_sufficient_pre_alpha_vars(
-    countries: List[str],
-    min_obs=5,
-) -> Dict[str, pd.DataFrame]:
-    """Collate the variant data for each country,
-    discarding if there are less than a minimum
-    number of observation dates in the available data.
-
-    Args:
-        countries: The countries of interest
-        min_obs: The threshold for discarding
-
-    Returns:
-        The data for the countries with enough observations
-    """
-    all_data = {}
-    for c in countries:
-        data = get_pre_alpha_vars(c)
-        if len(data) > min_obs:
-            all_data[c] = data
-    return all_data
+    out_df = country_df[(0.0 < country_df["pre_alpha_prop"]) & (country_df["pre_alpha_prop"] < 1.0)]
+    if len(out_df) > 5:
+        return out_df
 
 
 def get_continent_pre_alpha_vars(
@@ -539,7 +520,7 @@ def get_continent_pre_alpha_vars(
     cont_data = pd.DataFrame()
     for c in data:
         iso2 = pycountry.countries.lookup(c).alpha_2
-        if pc.country_alpha2_to_continent_code(iso2) == continent:
+        if pc.country_alpha2_to_continent_code(iso2) == continent and data[c] is not None:
             cont_data = cont_data.add(data[c], fill_value=0.0)
     cont_data["pre_alpha_prop"] = cont_data["pre_alpha"] / cont_data["totals"]
     return cont_data
