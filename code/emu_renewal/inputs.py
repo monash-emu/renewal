@@ -524,35 +524,31 @@ def get_sufficient_pre_alpha_vars(
 
 def get_continent_pre_alpha_vars(
     data: Dict[str, pd.DataFrame],
-    continents: List[str]=["NA", "SA", "AS", "EU"],
+    continent: str,
 ) -> Dict[str, pd.DataFrame]:
-    """Get pre-Alpha proportions by continent
-    from country data, except no data available for Africa.
+    """Get pre-Alpha proportions by continent from country data.
 
     Args:
         data: Data on variants by country, 
             the output of get_sufficient_pre_alpha_vars
-        continents: The continents to make the calculations for
+        continent: The continent to make the calculations for
 
     Returns:
-        The data for each country
+        The data for the continent
     """
-    cont_data_dict = {}
-    for cont in continents:
-        cont_data = pd.DataFrame()
-        for c in data:
-            iso2 = pycountry.countries.lookup(c).alpha_2
-            if pc.country_alpha2_to_continent_code(iso2) == cont:
-                cont_data = cont_data.add(data[c], fill_value=0.0)
-        cont_data["pre_alpha_prop"] = cont_data["pre_alpha"] / cont_data["totals"]
-        cont_data_dict[cont] = cont_data
-    return cont_data_dict
+    cont_data = pd.DataFrame()
+    for c in data:
+        iso2 = pycountry.countries.lookup(c).alpha_2
+        if pc.country_alpha2_to_continent_code(iso2) == continent:
+            cont_data = cont_data.add(data[c], fill_value=0.0)
+    cont_data["pre_alpha_prop"] = cont_data["pre_alpha"] / cont_data["totals"]
+    return cont_data
 
 
 def get_nearest_country_vars(
     country: str, 
     country_data: pd.DataFrame, 
-    cont_data: Dict[str, pd.DataFrame],
+    cont_data: pd.DataFrame,
 ) -> pd.DataFrame:
     """The the data for the country of interest,
     either using the data for that country or the
@@ -566,13 +562,14 @@ def get_nearest_country_vars(
     Returns:
         The data to use for the country
     """
-    continent = pc.country_alpha2_to_continent_code(pycountry.countries.lookup(country).alpha_2)
+    iso2 = pycountry.countries.lookup(country).alpha_2
+    continent = pc.country_alpha2_to_continent_code(iso2)
     if country in country_data:
         return country_data[country]
     elif continent == "AF":
         return None
     else:
-        return cont_data[continent]
+        return cont_data
     
 
 def find_increasing_groups(
