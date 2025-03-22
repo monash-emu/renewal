@@ -545,33 +545,6 @@ def get_continent_pre_alpha_vars(
     return cont_data
 
 
-def get_nearest_country_vars(
-    country: str, 
-    country_data: pd.DataFrame, 
-    cont_data: pd.DataFrame,
-) -> pd.DataFrame:
-    """The the data for the country of interest,
-    either using the data for that country or the
-    continent average where not available.
-
-    Args:
-        country: The country of interest
-        country_data: The data for the country
-        cont_data: The data for all continents
-
-    Returns:
-        The data to use for the country
-    """
-    iso2 = pycountry.countries.lookup(country).alpha_2
-    continent = pc.country_alpha2_to_continent_code(iso2)
-    if country in country_data:
-        return country_data[country]
-    elif continent == "AF":
-        return None
-    else:
-        return cont_data
-    
-
 def find_increasing_groups(
     data: pd.Series,
 ) -> Tuple[pd.DatetimeIndex]:
