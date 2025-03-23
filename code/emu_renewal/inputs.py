@@ -506,14 +506,15 @@ def get_pre_alpha_vars(
 def get_continent_pre_alpha_vars(
     data: Dict[str, pd.DataFrame],
 ) -> Dict[str, pd.DataFrame]:
-    """Get pre-Alpha proportions by continent from country data.
+    """Get pre-Alpha proportions for a continent from the 
+    country data for that continent.
 
     Args:
-        data: Data on variants by country, 
+        data: Data on variants by country for a continent, 
             the output of get_sufficient_pre_alpha_vars
 
     Returns:
-        The data for the continent
+        The aggregated data for the continent
     """
     cont_data = pd.DataFrame()
     for d in data.values():
