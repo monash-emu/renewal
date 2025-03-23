@@ -588,8 +588,7 @@ def get_continent_data(continent):
     all_countries = [c for c in pycountry.countries if c.alpha_2 not in invalid_countries]
     cont_data = {}
     for country in all_countries:
-        iso2 = country.alpha_2
-        iso3 = country.alpha_3
-        if pc.country_alpha2_to_continent_code(iso2) == continent:
+        if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
+            iso3 = country.alpha_3
             cont_data[iso3] = get_pre_alpha_vars(iso3)    
     return cont_data
