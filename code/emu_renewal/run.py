@@ -224,7 +224,6 @@ def run_single_country(
     analysis_name,
     most_extreme_prop: float = 0.05,
     deaths_start_threshold: float = 2e-6,
-    min_var_threshold: int = 10,
     seed_duration: int = 10,
     num_chains=4,
     prog_bar=False,
