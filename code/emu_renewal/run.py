@@ -120,8 +120,11 @@ def collate_targets(
     else:
         seroprev_target_dict = {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
 
-    var_mask = (most_extreme_prop < prealpha_prop) & (prealpha_prop < 1.0 - most_extreme_prop)
-    prealpha_prop = prealpha_prop[var_mask]
+    if prealpha_prop is not None:
+        var_mask = (most_extreme_prop < prealpha_prop) & (prealpha_prop < 1.0 - most_extreme_prop)
+        var_target_dict = {"prop_eu": StandardDispTarget(prealpha_prop[var_mask], weight=20.0)}
+    else:
+        var_target_dict = {}
 
     all_targets = (
         {
@@ -129,10 +132,10 @@ def collate_targets(
                 select_cases, weight=20.0 * len(select_cases) / len(select_deaths)
             ),
             "weekly_deaths": StandardDispTarget(select_deaths, weight=20.0),
-            "prop_eu": StandardDispTarget(prealpha_prop, weight=20.0),
         }
         | seroprev_target_dict
         | hosp_target_dict
+        | var_target_dict
     )
     return all_targets
 
@@ -261,8 +264,13 @@ def run_single_country(
         f"Running from {run_start.strftime(DATE_FORMAT)} with data starting from {data_start.strftime(DATE_FORMAT)}"
     )
     log(f"Running to {end_time.strftime(DATE_FORMAT)}")
-    seed_times = find_variant_seeds(0.5, prealpha_prop, run_start)
-    seed_times = [run_start] + seed_times
+    if continent == "AF":
+        vars = ["eu"]
+        seed_times = [run_start]
+    else:
+        vars = ["eu", "alpha"]
+        seed_times = find_variant_seeds(0.5, prealpha_prop, run_start)
+        seed_times = [run_start] + seed_times
 
     mob_provider = get_mobility_provider(iso3, mob_analysis_type)
     if mob_provider.mob_end:
@@ -281,7 +289,7 @@ def run_single_country(
         init_duration,
         GammaDens(),
         GammaDens(),
-        ["eu", "alpha"],
+        vars,
         "eu",
         seed_times,
         mob_provider,
