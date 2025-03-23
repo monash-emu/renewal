@@ -505,23 +505,20 @@ def get_pre_alpha_vars(
 
 def get_continent_pre_alpha_vars(
     data: Dict[str, pd.DataFrame],
-    continent: str,
 ) -> Dict[str, pd.DataFrame]:
     """Get pre-Alpha proportions by continent from country data.
 
     Args:
         data: Data on variants by country, 
             the output of get_sufficient_pre_alpha_vars
-        continent: The continent to make the calculations for
 
     Returns:
         The data for the continent
     """
     cont_data = pd.DataFrame()
-    for c in data:
-        iso2 = pycountry.countries.lookup(c).alpha_2
-        if pc.country_alpha2_to_continent_code(iso2) == continent and data[c] is not None:
-            cont_data = cont_data.add(data[c], fill_value=0.0)
+    for d in data.values():
+        if d is not None:
+            cont_data = cont_data.add(d, fill_value=0.0)
     cont_data["pre_alpha_prop"] = cont_data["pre_alpha"] / cont_data["totals"]
     return cont_data
 
@@ -548,7 +545,7 @@ def find_increasing_groups(
     return starts, ends
 
 
-def revise_data_with_pooled_totals(
+def pool_totals(
     starts: pd.DatetimeIndex,
     ends: pd.DatetimeIndex,
     data: pd.DataFrame,
@@ -578,3 +575,20 @@ def revise_data_with_pooled_totals(
     new_data["pre_alpha_prop"] = new_data["pre_alpha"] / new_data["totals"]
     new_data.index = new_data.index.round("D")
     return new_data.sort_index()
+
+
+def get_pooled_totals(var_data):
+    group_starts, group_ends = find_increasing_groups(var_data["pre_alpha_prop"])
+    pooled_data = pool_totals(group_starts, group_ends, var_data)
+    return pooled_data
+
+def get_continent_data(continent):
+    invalid_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
+    all_countries = [c for c in pycountry.countries if c.alpha_2 not in invalid_countries]
+    cont_data = {}
+    for country in all_countries:
+        iso2 = country.alpha_2
+        iso3 = country.alpha_3
+        if pc.country_alpha2_to_continent_code(iso2) == continent:
+            cont_data[iso3] = get_pre_alpha_vars(iso3)    
+    return cont_data
