@@ -618,3 +618,15 @@ def get_pooled_totals(
     """
     group_starts, group_ends = find_increasing_groups(data["pre_alpha_prop"])
     return pool_totals(group_starts, group_ends, data)
+
+
+def get_var_target(country):
+    country_vars = get_pre_alpha_vars(country)
+    index_iso2 = pycountry.countries.lookup(country).alpha_2
+    continent = pc.country_alpha2_to_continent_code(index_iso2)
+    if country_vars is not None:
+        return get_pooled_totals(country_vars)["pre_alpha_prop"]
+    elif continent != "AF":
+        cont_data = get_continent_data(continent)
+        country_vars = get_continent_pre_alpha_vars(cont_data)
+        return get_pooled_totals(country_vars)["pre_alpha_prop"]

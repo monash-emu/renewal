@@ -22,6 +22,7 @@ from emu_renewal.inputs import (
     get_prealpha_prop,
     get_filtered_seroprev,
     get_country_hosps,
+    get_var_target,
 )
 from emu_renewal.targets import StandardDispTarget
 from emu_renewal.process import CosineMultiCurve
@@ -117,7 +118,7 @@ def collate_targets(
     if seroprev_target.empty:
         seroprev_target_dict = {}
     else:
-        {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
+        seroprev_target_dict = {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
 
     var_mask = (most_extreme_prop < prealpha_prop) & (prealpha_prop < 1.0 - most_extreme_prop)
     prealpha_prop = prealpha_prop[var_mask]
@@ -243,7 +244,7 @@ def run_single_country(
     data_start = find_run_start_time(deaths_data, pop, deaths_start_threshold)
     hosp_target, hosp_out_name = get_country_hosps(country, data_start, end_time)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
-    prealpha_prop = get_prealpha_prop(iso3, min_var_threshold)
+    prealpha_prop = get_var_target(iso3)
 
     targets = collate_targets(
         cases_data,
