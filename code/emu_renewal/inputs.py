@@ -472,13 +472,14 @@ def get_pre_alpha_vars(
 ) -> pd.DataFrame:
     """Find the number of pre-Alpha variant samples
     and the total number of specimens, discarding
-    data at zero or 100% pre-Alpha specimens.
+    data if zero or 100% pre-Alpha specimens.
 
     Args:
         country: The country identifier
-        min_samples: Minimum number of samples for inclusion
+        min_samples: Minimum number of samples for including a date
         end_date: End date for extracting the data
-        min_obs: The threshold for discarding
+        min_obs: Threshold for the number of dates available 
+            before discarding all the data
 
     Returns:
         Number of pre-Alpha specimens, total specimens and 
@@ -499,19 +500,44 @@ def get_pre_alpha_vars(
         }
     )
     out_df = country_df[(0.0 < country_df["pre_alpha_prop"]) & (country_df["pre_alpha_prop"] < 1.0)]
-    if len(out_df) > 5:
+    if len(out_df) > min_obs:
         return out_df
+
+
+def get_continent_data(
+    continent: str,
+) -> Dict[str, pd.DataFrame]:
+    """Get the variant data for each country of 
+    a particular continent, ignoring the (small) pycountry
+    countries that don't have a continent.
+
+    Args:
+        continent: The continent of interest
+
+    Returns:
+        The data by country of the continent of interest
+    """
+    invalid_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
+    all_countries = [c for c in pycountry.countries if c.alpha_2 not in invalid_countries]
+    cont_data = {}
+    for country in all_countries:
+        if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
+            iso3 = country.alpha_3
+            cont_data[iso3] = get_pre_alpha_vars(iso3)    
+    return cont_data
 
 
 def get_continent_pre_alpha_vars(
     data: Dict[str, pd.DataFrame],
 ) -> Dict[str, pd.DataFrame]:
-    """Get pre-Alpha proportions for a continent from the 
-    country data for that continent.
+    """Get the overall pre-Alpha proportions for a continent 
+    from the country data for that continent.
+    (Recalculate the proportions because these 
+    have been summed too.)
 
     Args:
         data: Data on variants by country for a continent, 
-            the output of get_sufficient_pre_alpha_vars
+            the output of get_continent_data
 
     Returns:
         The aggregated data for the continent
@@ -578,17 +604,17 @@ def pool_totals(
     return new_data.sort_index()
 
 
-def get_pooled_totals(var_data):
-    group_starts, group_ends = find_increasing_groups(var_data["pre_alpha_prop"])
-    pooled_data = pool_totals(group_starts, group_ends, var_data)
-    return pooled_data
+def get_pooled_totals(
+    data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Combines the two preceding functions
+    to get the totals after pooling for increases in the data.
 
-def get_continent_data(continent):
-    invalid_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
-    all_countries = [c for c in pycountry.countries if c.alpha_2 not in invalid_countries]
-    cont_data = {}
-    for country in all_countries:
-        if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
-            iso3 = country.alpha_3
-            cont_data[iso3] = get_pre_alpha_vars(iso3)    
-    return cont_data
+    Args:
+        var_data: The unadjusted data
+
+    Returns:
+        The adjusted data
+    """
+    group_starts, group_ends = find_increasing_groups(data["pre_alpha_prop"])
+    return pool_totals(group_starts, group_ends, data)
