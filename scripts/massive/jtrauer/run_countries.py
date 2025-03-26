@@ -2,7 +2,7 @@ import json
 import sys
 
 from emu_renewal.inputs import DATA_PATH, ANALYSIS_TYPES
-from emu_renewal.run import run_single_country
+from emu_renewal.run import run_single_country, MobilityException
 
 
 if __name__ == "__main__":
@@ -10,15 +10,18 @@ if __name__ == "__main__":
     all_countries = initial_countries["admissions"] + initial_countries["occupancy"]
     array_task_id = int(sys.argv[2])
     country = all_countries[array_task_id - 1]  # Convert to Python indexing
-    ANALYSIS_TYPES = ["gmob"]
+    ANALYSIS_TYPES = ["no_mob", "weighted_google_1exp", "fb_exp", "weighted_apple_1exp"]
     for mob_analysis_type in ANALYSIS_TYPES:
-        run_single_country(
-            country,
-            7,
-            50,
-            mob_analysis_type,
-            1000,
-            50,
-            sys.argv[1],
-            num_chains=8,
-        )
+        try:
+            run_single_country(
+                country,
+                7,
+                50,
+                mob_analysis_type,
+                1000,
+                50,
+                sys.argv[1],
+                num_chains=8,
+            )
+        except MobilityException as e:
+            pass

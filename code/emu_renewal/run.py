@@ -33,6 +33,10 @@ from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
 
 
+class MobilityException(Exception):
+    pass
+
+
 def find_run_start_time(
     deaths_data,
     pop: float,
@@ -273,7 +277,11 @@ def run_single_country(
         alpha_seed_time, _ = get_alpha_seed_time(prealpha_prop)
         seed_times = [run_start, alpha_seed_time]
 
-    mob_provider = get_mobility_provider(iso3, mob_analysis_type)
+    try:
+        mob_provider = get_mobility_provider(iso3, mob_analysis_type)
+    except Exception as e:
+        msg = f"{mob_analysis_type} mobility not available"
+        raise MobilityException(msg)
     if mob_provider.mob_end:
         end_time = min([end_time, mob_provider.mob_end])
 
