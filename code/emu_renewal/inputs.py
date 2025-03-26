@@ -420,7 +420,7 @@ def get_country_vars(
             dates = pd.to_datetime(raw_data["week"])
             vals = raw_data["cluster_sequences"]
             data[var] = pd.Series(vals, index=dates)
-    return data
+    return data.astype(float)
 
 
 def find_relevant_vars(
