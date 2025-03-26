@@ -2,7 +2,7 @@ import json
 import sys
 
 from emu_renewal.inputs import DATA_PATH, ANALYSIS_TYPES
-from emu_renewal.run import run_single_country, MobilityException
+from emu_renewal.run import run_single_country, MobilityException, log
 
 
 if __name__ == "__main__":
@@ -24,4 +24,4 @@ if __name__ == "__main__":
                 num_chains=8,
             )
         except MobilityException as e:
-            pass
+            log(e)
