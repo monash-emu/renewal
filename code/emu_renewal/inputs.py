@@ -446,6 +446,7 @@ def find_relevant_vars(
 
 
 def get_prealpha_prop(iso3, min_var_samples):
+    """Deprecated - to be removed once notebooks calling it revised"""
     var_data = get_country_vars(iso3)
     var_data = var_data[var_data.sum(axis=1) >= min_var_samples]
 
