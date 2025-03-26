@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import json
 from pathlib import Path
 import pycountry
@@ -7,6 +8,7 @@ from datetime import datetime, timedelta
 import yaml as yml
 from numpyro import distributions as dist
 import pycountry_convert as pc
+from scipy.optimize import curve_fit
 
 
 DATE_FORMAT = "%Y%m%d_%H%M"
@@ -466,8 +468,8 @@ def get_prealpha_prop(iso3, min_var_samples):
 
 def get_pre_alpha_vars(
     country: str,
-    min_samples: int=5, 
-    end_date: datetime=datetime(2021, 6, 30),
+    min_samples: int = 5,
+    end_date: datetime = datetime(2021, 6, 30),
     min_obs=5,
 ) -> pd.DataFrame:
     """Find the number of pre-Alpha variant samples
@@ -478,11 +480,11 @@ def get_pre_alpha_vars(
         country: The country identifier
         min_samples: Minimum number of samples for including a date
         end_date: End date for extracting the data
-        min_obs: Threshold for the number of dates available 
+        min_obs: Threshold for the number of dates available
             before discarding all the data
 
     Returns:
-        Number of pre-Alpha specimens, total specimens and 
+        Number of pre-Alpha specimens, total specimens and
             proportion pre-Alpha by date
     """
     pre_alpha_vars = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
@@ -507,7 +509,7 @@ def get_pre_alpha_vars(
 def get_continent_data(
     continent: str,
 ) -> Dict[str, pd.DataFrame]:
-    """Get the variant data for each country of 
+    """Get the variant data for each country of
     a particular continent, ignoring the (small) pycountry
     countries that don't have a continent.
 
@@ -523,20 +525,20 @@ def get_continent_data(
     for country in all_countries:
         if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
             iso3 = country.alpha_3
-            cont_data[iso3] = get_pre_alpha_vars(iso3)    
+            cont_data[iso3] = get_pre_alpha_vars(iso3)
     return cont_data
 
 
 def get_continent_pre_alpha_vars(
     data: Dict[str, pd.DataFrame],
 ) -> Dict[str, pd.DataFrame]:
-    """Get the overall pre-Alpha proportions for a continent 
+    """Get the overall pre-Alpha proportions for a continent
     from the country data for that continent.
-    (Recalculate the proportions because these 
+    (Recalculate the proportions because these
     have been summed too.)
 
     Args:
-        data: Data on variants by country for a continent, 
+        data: Data on variants by country for a continent,
             the output of get_continent_data
 
     Returns:
@@ -594,7 +596,7 @@ def pool_totals(
     period_sums = pd.DataFrame(columns=["pre_alpha", "totals", "pre_alpha_prop"])
     indexes_to_remove = []
     for limits in zip(starts, ends):
-        period = data.loc[limits[0]: limits[1]]
+        period = data.loc[limits[0] : limits[1]]
         average_date = period.index.mean()
         period_sums.loc[average_date] = period.sum()
         indexes_to_remove += list(period.index)
@@ -630,3 +632,22 @@ def get_var_target(country):
         cont_data = get_continent_data(continent)
         country_vars = get_continent_pre_alpha_vars(cont_data)
         return get_pooled_totals(country_vars)["pre_alpha_prop"]
+
+
+def cosine_function(t, start, end):
+    period = end - start
+    curve = lambda x: 0.5 * np.cos((x - start) * np.pi / period) + 0.5
+    in_range = abs(t - start - period / 2.0) < period / 2.0
+    conditions = [t <= start, in_range, start + period <= t]
+    functions = [lambda x: 1.0, curve, lambda x: 0.0]
+    return np.piecewise(t, conditions, functions)
+
+
+def get_alpha_seed_time(var_prop):
+    num_index = [t.timestamp() for t in var_prop.index]
+    params, _ = curve_fit(cosine_function, num_index, var_prop, p0=[num_index[0], num_index[-1]])
+    dt_ref_date = datetime(1970, 1, 1)
+    date_num = params[0]
+    date = (dt_ref_date + timedelta(seconds=date_num)).date()
+    round_date = datetime.combine(date, datetime.min.time())
+    return round_date, params

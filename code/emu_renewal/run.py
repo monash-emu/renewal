@@ -19,10 +19,10 @@ from emu_renewal.inputs import (
     get_google_mobility,
     get_apple_mobility,
     get_fb_mobility,
-    get_prealpha_prop,
     get_filtered_seroprev,
     get_country_hosps,
     get_var_target,
+    get_alpha_seed_time,
 )
 from emu_renewal.targets import StandardDispTarget
 from emu_renewal.process import CosineMultiCurve
@@ -270,7 +270,8 @@ def run_single_country(
     else:
         vars = ["eu", "alpha"]
         seed_times = find_variant_seeds(0.5, prealpha_prop, run_start)
-        seed_times = [run_start] + seed_times
+        alpha_seed_time, _ = get_alpha_seed_time(prealpha_prop)
+        seed_times = [run_start, alpha_seed_time]
 
     mob_provider = get_mobility_provider(iso3, mob_analysis_type)
     if mob_provider.mob_end:
