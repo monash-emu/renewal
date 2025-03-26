@@ -74,13 +74,7 @@ VAR_NAMES = [
     "24I.Omicron",
 ]
 
-ANALYSIS_TYPES = [
-    "no_mob",
-    "google_nonresi_linear",
-    "google_nonresi_square",
-    "fb_linear",
-    "fb_square",
-]
+ANALYSIS_TYPES = ["no_mob", "weighted_google_1exp", "fb_exp", "weighted_apple_1exp"]
 
 
 def get_indicator_series_from_who_data(

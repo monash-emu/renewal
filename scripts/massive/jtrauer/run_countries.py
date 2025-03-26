@@ -6,22 +6,13 @@ from emu_renewal.run import run_single_country, MobilityException, log
 
 
 if __name__ == "__main__":
-    initial_countries = json.load(open(DATA_PATH / f"config/countries.json", "r"))
-    all_countries = initial_countries["admissions"] + initial_countries["occupancy"]
+    countries = json.load(open(DATA_PATH / f"config/countries.json", "r"))
+    all_countries = countries["admissions"] + countries["occupancy"]
+    task_name = sys.argv[1]
     array_task_id = int(sys.argv[2])
-    country = all_countries[array_task_id - 1]  # Convert to Python indexing
-    ANALYSIS_TYPES = ["no_mob", "weighted_google_1exp", "fb_exp", "weighted_apple_1exp"]
-    for mob_analysis_type in ANALYSIS_TYPES:
+    c = all_countries[array_task_id - 1]  # Convert to Python indexing
+    for mob_type in ANALYSIS_TYPES:
         try:
-            run_single_country(
-                country,
-                7,
-                50,
-                mob_analysis_type,
-                1000,
-                50,
-                sys.argv[1],
-                num_chains=8,
-            )
+            run_single_country(c, 7, 50, mob_type, 1000, 50, task_name, num_chains=8)
         except MobilityException as e:
             log(e)
