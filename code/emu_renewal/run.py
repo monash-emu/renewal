@@ -55,7 +55,11 @@ def find_run_start_time(
         The date that the threshold is reached
     """
     per_capita_deaths = deaths_data / pop
-    return per_capita_deaths.index[per_capita_deaths.gt(threshold)].min()
+    start = per_capita_deaths.index[per_capita_deaths.gt(threshold)].min()
+    if pd.isna(start):
+        return datetime(2020, 6, 1)
+    else:
+        return start
 
 
 def find_run_end_time(
@@ -73,7 +77,10 @@ def find_run_end_time(
     Returns:
         The date at which the threshold is reached
     """
-    return vacc_data[vacc_data.gt(cov_threshold * 100)].idxmin()
+    if vacc_data.empty:
+        return datetime(2021, 6, 1)
+    else:
+        return vacc_data[vacc_data.gt(cov_threshold * 100)].idxmin()
 
 
 def collate_targets(
