@@ -77,10 +77,11 @@ def find_run_end_time(
     Returns:
         The date at which the threshold is reached
     """
-    if vacc_data.empty:
+    cov_thres_perc = cov_threshold * 100
+    if vacc_data.empty or vacc_data.max() < cov_thres_perc:
         return datetime(2021, 6, 1)
     else:
-        return vacc_data[vacc_data.gt(cov_threshold * 100)].idxmin()
+        return vacc_data[vacc_data.gt(cov_thres_perc)].idxmin()
 
 
 def collate_targets(
