@@ -41,6 +41,7 @@ def find_run_start_time(
     deaths_data,
     pop: float,
     threshold: float,
+    default_start_time: datetime = datetime(2020, 6, 1),
 ) -> datetime:
     """Determine the time that the model should start running from.
     Calculated as the time until the per capita death rate reaches the
@@ -50,14 +51,15 @@ def find_run_start_time(
         deaths_data: Deaths time series for the country considered
         pop: Population size
         death_start_threshold: How many deaths to reach
+        latest_start_time: Default start time if deaths don't reach the threshold
 
     Returns:
         The date that the threshold is reached
     """
     per_capita_deaths = deaths_data / pop
     start = per_capita_deaths.index[per_capita_deaths.gt(threshold)].min()
-    if pd.isna(start):
-        return datetime(2020, 6, 1)
+    if pd.isna(start) or start > default_start_time:
+        return default_start_time
     else:
         return start
 
@@ -65,6 +67,7 @@ def find_run_start_time(
 def find_run_end_time(
     vacc_data: pd.Series,
     cov_threshold: float,
+    default_end_time: datetime = datetime(2021, 6, 1),
 ) -> datetime:
     """Find the time that the analysis should finish.
     Calculated as the time that the population vaccination coverage
@@ -79,7 +82,7 @@ def find_run_end_time(
     """
     cov_thres_perc = cov_threshold * 100
     if vacc_data.empty or vacc_data.max() < cov_thres_perc:
-        return datetime(2021, 6, 1)
+        return default_end_time
     else:
         return vacc_data[vacc_data.gt(cov_thres_perc)].idxmin()
 
