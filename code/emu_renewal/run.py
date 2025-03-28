@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import pycountry
 import pycountry_convert as pc
+import logging
 from numpyro import distributions as dist
 from numpyro import infer
 from jax import random
@@ -8,6 +9,7 @@ from typing import Dict
 import pandas as pd
 import numpy as np
 import sys
+from pathlib import Path
 
 from emu_renewal.inputs import (
     DATE_FORMAT,
@@ -166,9 +168,22 @@ def find_variant_seeds(val, prealpha_prop, start_time):
     return [alpha_seed_start]
 
 
-def log(log_str: str):
-    print(log_str)
-    sys.stdout.flush()
+def get_logger(log_file: Path = None):
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    root_logger = logging.getLogger()
+
+    if log_file:
+        file_handler = logging.FileHandler(log_file, mode="w")
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+    root_logger.addHandler(stream_handler)
+
+    root_logger.setLevel(logging.INFO)
+
+    return root_logger
 
 
 def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.MobilityProvider:
@@ -250,13 +265,16 @@ def run_single_country(
     seed_duration: int = 10,
     num_chains=4,
     prog_bar=False,
+    logger=None,
 ):
-    log(f"\n________________________\nRunning job at {analysis_name}")
+    logger = logger or logging.getLogger()
+
+    logger.info(f"\n________________________\nRunning job at {analysis_name}")
     iso3 = pycountry.countries.lookup(country).alpha_3
     iso2 = pycountry.countries.lookup(iso3).alpha_2
     continent = pc.country_alpha2_to_continent_code(iso2)
-    log(f"Country: {iso3}")
-    log(f"Mobility approach: {mob_analysis_type}")
+    logger.info(f"Country: {iso3}")
+    logger.info(f"Mobility approach: {mob_analysis_type}")
     pop = get_worldbank_national_pop(iso3)
     vacc_data = get_country_vacc_data(iso3)
     end_time = find_run_end_time(vacc_data, most_extreme_prop)
@@ -280,10 +298,10 @@ def run_single_country(
         end_time,
     )
     run_start = data_start - timedelta(run_data_delay)
-    log(
+    logger.info(
         f"Running from {run_start.strftime(DATE_FORMAT)} with data starting from {data_start.strftime(DATE_FORMAT)}"
     )
-    log(f"Running to {end_time.strftime(DATE_FORMAT)}")
+    logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
     if continent == "AF":
         vars = ["eu"]
         seed_times = [run_start]
@@ -334,5 +352,6 @@ def run_single_country(
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
     storage_path = BASE_PATH / "outputs" / analysis_name / country / mob_analysis_type
     storage_path.mkdir(parents=True, exist_ok=True)
-    log(f"Writing to: {storage_path}")
+    logger.info(f"Writing to: {storage_path}")
     store_outputs(storage_path, model, calib, mcmc)
+    logger.info(f"Completed {analysis_name}/{country}/{mob_analysis_type}")
