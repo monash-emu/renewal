@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import numpyro
 from numpyro import distributions as dist
+from warnings import warn
 
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.utils import custom_init
@@ -36,15 +37,22 @@ class StandardCalib:
         analysis_indices = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
         self.targets = targets
         self.common_indices = {}
+
+        self.active_targets = []
+
         for ind in targets.keys():
             self.targets[ind].set_key(ind)
             ind_data = targets[ind].data
             common_dates_idx = ind_data.index.intersection(analysis_indices)
-            self.targets[ind].set_calibration_data(jnp.array(ind_data.loc[common_dates_idx]))
-            common_abs_indices = np.array(
-                self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int)
-            )
-            self.common_indices[ind] = common_abs_indices - self.epi_model.model_times[0]
+            if len(common_dates_idx) == 0:
+                warn(f"Model dates exclude all data for target {ind}, disabling target")
+            else:
+                self.targets[ind].set_calibration_data(jnp.array(ind_data.loc[common_dates_idx]))
+                common_abs_indices = np.array(
+                    self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int)
+                )
+                self.common_indices[ind] = common_abs_indices - self.epi_model.model_times[0]
+                self.active_targets.append(ind)
 
         self.params = params
         # Compile transformed dists first to avoid memory leaks from
@@ -87,7 +95,7 @@ class StandardCalib:
         """
         params = self.sample_calib_params() | self.fixed_params
         result = self.epi_model.renewal_func(**params)
-        for ind in self.targets.keys():
+        for ind in self.active_targets:
             self.add_factor(result, ind, params)
 
     def sample_calib_params(self):
