@@ -108,9 +108,9 @@ def find_run_end_time(
 
 
 def collate_targets(
-    cases_target: pd.Series,
-    deaths_target: pd.Series,
-    hosp_target: pd.Series,
+    cases_data: pd.Series,
+    deaths_data: pd.Series,
+    hosp_data: pd.Series,
     hosp_output_name: str,
     seroprev_target: pd.Series,
     ext_prop: float,
@@ -125,18 +125,18 @@ def collate_targets(
     Returns:
         All targets, either four or five, depending on whether there are seroprevalence estimates
     """
-    pre_test_scaleup = cases_target.index > CASES_START
-    case_mask = (start < cases_target.index) & (cases_target.index < end) & pre_test_scaleup
-    select_cases = cases_target.loc[case_mask]
+    pre_test_scaleup = cases_data.index > CASES_START
+    case_mask = (start < cases_data.index) & (cases_data.index < end) & pre_test_scaleup
+    cases_targ = cases_data.loc[case_mask]
 
-    death_mask = (start < deaths_target.index) & (deaths_target.index < end)
-    select_deaths = deaths_target.loc[death_mask]
+    death_mask = (start < deaths_data.index) & (deaths_data.index < end)
+    select_deaths = deaths_data.loc[death_mask]
 
-    if hosp_target is None:
+    if hosp_data is None:
         hosp_target_dict = {}
     else:
-        hosp_mask = (start < hosp_target.index) & (hosp_target.index < end)
-        select_hosps = hosp_target.loc[hosp_mask]
+        hosp_mask = (start < hosp_data.index) & (hosp_data.index < end)
+        select_hosps = hosp_data.loc[hosp_mask]
         if select_hosps.empty:
             hosp_target_dict = {}
         else:
@@ -157,11 +157,10 @@ def collate_targets(
     else:
         var_target_dict = {}
 
+    cases_targ = StandardDispTarget(cases_targ, weight=20.0 * len(cases_targ) / len(select_deaths))
     all_targets = (
         {
-            "weekly_cases": StandardDispTarget(
-                select_cases, weight=20.0 * len(select_cases) / len(select_deaths)
-            ),
+            "weekly_cases": cases_targ,
             "weekly_deaths": StandardDispTarget(select_deaths, weight=20.0),
         }
         | seroprev_target_dict
