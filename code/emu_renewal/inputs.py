@@ -294,7 +294,9 @@ def get_worldbank_national_pop(
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
     dtype = {"2020 [YR2020]": float}
     col = "Country Code"
-    data = pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype)[f"{year} [YR{year}]"].dropna()
+    data = pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype)[
+        f"{year} [YR{year}]"
+    ].dropna()
     return data[iso3]
 
 
@@ -511,6 +513,14 @@ def get_pre_alpha_vars(
         return out_df
 
 
+def get_aust_omicron_vars(min_samples=5, min_prop=0.03):
+    var_data = get_country_vars("AUS")
+    var_data = var_data[var_data.sum(axis=1) >= min_samples]
+    props = var_data.div(var_data.sum(axis=1), axis=0)
+    ba2_prop = props["21L.Omicron"]
+    return ba2_prop[ba2_prop > min_prop]
+
+
 def get_continent_data(
     continent: str,
 ) -> Dict[str, pd.DataFrame]:
@@ -631,7 +641,9 @@ def get_var_target(country):
     country_vars = get_pre_alpha_vars(country)
     index_iso2 = pycountry.countries.lookup(country).alpha_2
     continent = pc.country_alpha2_to_continent_code(index_iso2)
-    if country_vars is not None:
+    if continent == "OC":
+        return get_aust_omicron_vars()
+    elif country_vars is not None:
         return get_pooled_totals(country_vars)["pre_alpha_prop"]
     elif continent != "AF":
         cont_data = get_continent_data(continent)
