@@ -135,15 +135,14 @@ def collate_targets(
     if hosp_target is None:
         hosp_target_dict = {}
     else:
-        hosp_mask = (start < hosp_target.index) & (hosp_target.index < end) & (hosp_target > 0.0)
+        hosp_mask = (start < hosp_target.index) & (hosp_target.index < end)
         select_hosps = hosp_target.loc[hosp_mask]
         if select_hosps.empty:
             hosp_target_dict = {}
         else:
             hosp_weight = 20.0 * len(select_hosps) / len(select_deaths)
-            hosp_target_dict = {
-                hosp_output_name: StandardDispTarget(select_hosps, weight=hosp_weight)
-            }
+            hosp_targ = StandardDispTarget(select_hosps, weight=hosp_weight)
+            hosp_target_dict = {hosp_output_name: hosp_targ}
 
     seroprev_mask = (ext_prop < seroprev_target) & (seroprev_target < 1.0 - ext_prop)
     seroprev_target = seroprev_target[seroprev_mask]
