@@ -274,10 +274,11 @@ def get_standard_priors() -> Dict[str, dist.Distribution]:
 
 def get_worldbank_national_pop(
     iso3: str,
+    year: int,
 ) -> float:
     """Read population data downloaded from the World Bank
     at https://databank.worldbank.org/source/population-estimates-and-projections#
-    on 28th January 2025 and return population size in 2020
+    on 1st April 2025 and return population size in 2020
     for country of interest.
 
     Args:
@@ -286,10 +287,10 @@ def get_worldbank_national_pop(
     Returns:
         Population data by country ISO3 code
     """
-    path = DATA_PATH / "population/6f450edc-f8ef-4d8c-bb2b-dbb1864d88c8_Data.csv"
+    path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
     dtype = {"2020 [YR2020]": float}
     col = "Country Code"
-    data = pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype)["2020 [YR2020]"].dropna()
+    data = pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype)[f"{year} [YR{year}]"].dropna()
     return data[iso3]
 
 

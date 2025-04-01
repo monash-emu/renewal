@@ -275,7 +275,8 @@ def run_single_country(
     continent = pc.country_alpha2_to_continent_code(iso2)
     logger.info(f"Country: {iso3}")
     logger.info(f"Mobility approach: {mob_analysis_type}")
-    pop = get_worldbank_national_pop(iso3)
+    pop_year = 2022 if iso3 == "AUS" else 2020
+    pop = get_worldbank_national_pop(iso3, pop_year)
     vacc_data = get_country_vacc_data(iso3)
     end_time = find_run_end_time(vacc_data, most_extreme_prop)
 
