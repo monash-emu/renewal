@@ -14,6 +14,8 @@ from pathlib import Path
 from emu_renewal.inputs import (
     DATE_FORMAT,
     BASE_PATH,
+    AUST_END,
+    OTHER_DEFAULT_END,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -69,22 +71,30 @@ def find_run_start_time(
 def find_run_end_time(
     vacc_data: pd.Series,
     cov_threshold: float,
-    default_end_time: datetime = datetime(2021, 6, 1),
+    continent: str,
 ) -> datetime:
     """Find the time that the analysis should finish.
     Calculated as the time that the population vaccination coverage
-    passes the requested threshold.
+    passes the requested threshold for all countries but Australia,
+    provided that the vaccination coverage does reach this
+    value by the 1st of June 2021.
+    Otherwise return the end date for Google mobility data
+    for Australia (12th of October 2022), 
+    or return the 1st of June 2021 for other countries.
 
     Args:
         vacc_data: The vaccination data for the country considered
         cov_threshold: The threshold
+        continent: Two-character code for the continent of the analysis country
 
     Returns:
-        The date at which the threshold is reached
+        The date at which to end the analysis period
     """
     cov_thres_perc = cov_threshold * 100
-    if vacc_data.empty or vacc_data.max() < cov_thres_perc:
-        return default_end_time
+    if continent == "OC":
+        return AUST_END
+    elif vacc_data.empty or vacc_data.max() < cov_thres_perc:
+        return OTHER_DEFAULT_END
     else:
         return vacc_data[vacc_data.gt(cov_thres_perc)].idxmin()
 
@@ -275,7 +285,7 @@ def run_single_country(
     continent = pc.country_alpha2_to_continent_code(iso2)
     logger.info(f"Country: {iso3}")
     logger.info(f"Mobility approach: {mob_analysis_type}")
-    pop_year = 2022 if iso3 == "AUS" else 2020
+    pop_year = 2022 if continent == "OC" else 2020
     pop = get_worldbank_national_pop(iso3, pop_year)
     vacc_data = get_country_vacc_data(iso3)
     end_time = find_run_end_time(vacc_data, most_extreme_prop)
