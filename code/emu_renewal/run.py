@@ -45,7 +45,7 @@ def find_run_start_time(
     deaths_data,
     pop: float,
     threshold: float,
-    default_start_time: datetime = datetime(2020, 6, 1),
+    default_start_time: datetime=datetime(2020, 6, 1),
 ) -> datetime:
     """Determine the time that the model should start running from.
     Calculated as the time until the per capita death rate reaches the
@@ -66,6 +66,13 @@ def find_run_start_time(
         return default_start_time
     else:
         return start
+
+
+def find_aust_start_times(vacc_data):
+    norm_vacc_data = (vacc_data / vacc_data.iloc[-1])
+    start_time = norm_vacc_data[norm_vacc_data.gt(0.9)].idxmin()
+    data_start_time = norm_vacc_data[norm_vacc_data.gt(0.9)].idxmin()
+    return start_time, data_start_time
 
 
 def find_run_end_time(
@@ -109,6 +116,7 @@ def collate_targets(
     prealpha_prop: pd.Series,
     start: pd.Series,
     end: pd.Series,
+    continent: str,
 ) -> Dict[str, StandardDispTarget]:
     """Collate the targets gathered in the previous function
     into the appropriate structure for the calibration algorithm.
@@ -116,16 +124,11 @@ def collate_targets(
     Returns:
         All targets, either four or five, depending on whether there are seroprevalence estimates
     """
-    # Ignore initial cases before testing scaled up
-    case_mask = (
-        (start < cases_target.index)
-        & (cases_target.index < end)
-        & (cases_target > 0.0)
-        & (cases_target.index > datetime(2020, 6, 1))
-    )
+    pre_test_scaleup = cases_target.index > datetime(2020, 6, 1)
+    case_mask = (start < cases_target.index) & (cases_target.index < end) & pre_test_scaleup
     select_cases = cases_target.loc[case_mask]
 
-    death_mask = (start < deaths_target.index) & (deaths_target.index < end) & (deaths_target > 0.0)
+    death_mask = (start < deaths_target.index) & (deaths_target.index < end)
     select_deaths = deaths_target.loc[death_mask]
 
     if hosp_target is None:
@@ -147,7 +150,7 @@ def collate_targets(
         & (seroprev_target > 0.0)
     )
     seroprev_target = seroprev_target[seroprev_mask]
-    if seroprev_target.empty:
+    if seroprev_target.empty or continent == "OC":
         seroprev_target_dict = {}
     else:
         seroprev_target_dict = {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
@@ -288,7 +291,7 @@ def run_single_country(
     pop_year = 2022 if continent == "OC" else 2020
     pop = get_worldbank_national_pop(iso3, pop_year)
     vacc_data = get_country_vacc_data(iso3)
-    end_time = find_run_end_time(vacc_data, most_extreme_prop)
+    end_time = find_run_end_time(vacc_data, most_extreme_prop, continent)
 
     cases_data = get_indicator_series_from_who_data("New_cases", country)
     deaths_data = get_indicator_series_from_who_data("New_deaths", country)
@@ -307,6 +310,7 @@ def run_single_country(
         prealpha_prop,
         data_start,
         end_time,
+        continent,
     )
     run_start = data_start - timedelta(run_data_delay)
     logger.info(
