@@ -16,6 +16,7 @@ from emu_renewal.inputs import (
     BASE_PATH,
     AUST_END,
     OTHER_DEFAULT_END,
+    CASES_START,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -45,7 +46,7 @@ def find_run_start_time(
     deaths_data,
     pop: float,
     threshold: float,
-    default_start_time: datetime=datetime(2020, 6, 1),
+    default_start_time: datetime = datetime(2020, 6, 1),
 ) -> datetime:
     """Determine the time that the model should start running from.
     Calculated as the time until the per capita death rate reaches the
@@ -69,7 +70,7 @@ def find_run_start_time(
 
 
 def find_aust_start_times(vacc_data):
-    norm_vacc_data = (vacc_data / vacc_data.iloc[-1])
+    norm_vacc_data = vacc_data / vacc_data.iloc[-1]
     start_time = norm_vacc_data[norm_vacc_data.gt(0.9)].idxmin()
     data_start_time = norm_vacc_data[norm_vacc_data.gt(0.9)].idxmin()
     return start_time, data_start_time
@@ -86,7 +87,7 @@ def find_run_end_time(
     provided that the vaccination coverage does reach this
     value by the 1st of June 2021.
     Otherwise return the end date for Google mobility data
-    for Australia (12th of October 2022), 
+    for Australia (12th of October 2022),
     or return the 1st of June 2021 for other countries.
 
     Args:
@@ -110,12 +111,12 @@ def collate_targets(
     cases_target: pd.Series,
     deaths_target: pd.Series,
     hosp_target: pd.Series,
-    hosp_output_name: pd.Series,
+    hosp_output_name: str,
     seroprev_target: pd.Series,
-    most_extreme_prop: pd.Series,
+    ext_prop: float,
     prealpha_prop: pd.Series,
-    start: pd.Series,
-    end: pd.Series,
+    start: datetime,
+    end: datetime,
     continent: str,
 ) -> Dict[str, StandardDispTarget]:
     """Collate the targets gathered in the previous function
@@ -124,7 +125,7 @@ def collate_targets(
     Returns:
         All targets, either four or five, depending on whether there are seroprevalence estimates
     """
-    pre_test_scaleup = cases_target.index > datetime(2020, 6, 1)
+    pre_test_scaleup = cases_target.index > CASES_START
     case_mask = (start < cases_target.index) & (cases_target.index < end) & pre_test_scaleup
     select_cases = cases_target.loc[case_mask]
 
@@ -144,11 +145,7 @@ def collate_targets(
                 hosp_output_name: StandardDispTarget(select_hosps, weight=hosp_weight)
             }
 
-    seroprev_mask = (
-        (most_extreme_prop < seroprev_target)
-        & (seroprev_target < 1.0 - most_extreme_prop)
-        & (seroprev_target > 0.0)
-    )
+    seroprev_mask = (ext_prop < seroprev_target) & (seroprev_target < 1.0 - ext_prop)
     seroprev_target = seroprev_target[seroprev_mask]
     if seroprev_target.empty or continent == "OC":
         seroprev_target_dict = {}
@@ -156,7 +153,7 @@ def collate_targets(
         seroprev_target_dict = {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
 
     if prealpha_prop is not None:
-        var_mask = (most_extreme_prop < prealpha_prop) & (prealpha_prop < 1.0 - most_extreme_prop)
+        var_mask = (ext_prop < prealpha_prop) & (prealpha_prop < 1.0 - ext_prop)
         var_target_dict = {"prop_eu": StandardDispTarget(prealpha_prop[var_mask], weight=20.0)}
     else:
         var_target_dict = {}

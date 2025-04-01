@@ -78,6 +78,7 @@ ANALYSIS_TYPES = ["no_mob", "weighted_google_1exp", "fb_exp", "weighted_apple_1e
 
 AUST_END = datetime(2022, 10, 12)
 OTHER_DEFAULT_END = datetime(2021, 6, 1)
+CASES_START = datetime(2020, 6, 1)
 
 
 def get_indicator_series_from_who_data(
