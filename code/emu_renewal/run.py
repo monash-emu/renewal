@@ -43,7 +43,7 @@ class MobilityException(Exception):
 
 
 def find_run_start_time(
-    deaths_data,
+    deaths_data: pd.Series,
     pop: float,
     threshold: float,
     default_start_time: datetime = datetime(2020, 6, 1),
@@ -79,32 +79,32 @@ def find_aust_start_times(vacc_data):
 def find_run_end_time(
     vacc_data: pd.Series,
     cov_threshold: float,
-    continent: str,
+    iso3: str,
 ) -> datetime:
     """Find the time that the analysis should finish.
     Calculated as the time that the population vaccination coverage
     passes the requested threshold for all countries but Australia,
     provided that the vaccination coverage does reach this
-    value by the 1st of June 2021.
-    Otherwise return the end date for Google mobility data
-    for Australia (12th of October 2022),
-    or return the 1st of June 2021 for other countries.
+    value by the 1st of June 2021. Otherwise return the end date 
+    for Google mobility data for Australia, 
+    or return a default value for other countries.
 
     Args:
         vacc_data: The vaccination data for the country considered
         cov_threshold: The threshold
-        continent: Two-character code for the continent of the analysis country
+        iso3: The country being considered
 
     Returns:
         The date at which to end the analysis period
     """
-    cov_thres_perc = cov_threshold * 100
-    if continent == "OC":
-        return AUST_END
-    elif vacc_data.empty or vacc_data.max() < cov_thres_perc:
+    cov_thresh_perc = cov_threshold * 100
+    if iso3 == "AUS":
+        mob = get_google_mobility(iso3)
+        return mob.index[-1].date()
+    elif vacc_data.empty or vacc_data.max() < cov_thresh_perc:
         return OTHER_DEFAULT_END
     else:
-        return vacc_data[vacc_data.gt(cov_thres_perc)].idxmin()
+        return vacc_data[vacc_data.gt(cov_thresh_perc)].idxmin()
 
 
 def collate_targets(
@@ -279,7 +279,7 @@ def run_single_country(
 
     logger.info(f"\n________________________\nRunning job at {analysis_name}")
     iso3 = pycountry.countries.lookup(country).alpha_3
-    iso2 = pycountry.countries.lookup(iso3).alpha_2
+    iso2 = pycountry.countries.lookup(country).alpha_2
     continent = pc.country_alpha2_to_continent_code(iso2)
     logger.info(f"Country: {iso3}")
     logger.info(f"Mobility approach: {mob_analysis_type}")
@@ -308,9 +308,9 @@ def run_single_country(
         continent,
     )
     run_start = data_start - timedelta(run_data_delay)
-    logger.info(
-        f"Running from {run_start.strftime(DATE_FORMAT)} with data starting from {data_start.strftime(DATE_FORMAT)}"
-    )
+    start_str = run_start.strftime(DATE_FORMAT)
+    end_str = data_start.strftime(DATE_FORMAT)
+    logger.info(f"Running from {start_str} with data starting from {end_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
     if continent == "AF":
         vars = ["eu"]
