@@ -247,10 +247,12 @@ def get_filtered_seroprev(
     all_filt = time_filt & country_filt & nat_filt & type_filt & unity_filt & n_filt
     filtered_data = data.loc[all_filt, "serum_pos_prevalence"]
     if filtered_data.index.has_duplicates:
-        # This is a quick way to drop two of three observations for Mexico that were
-        # on the same date - keeping the first survey, which was was by far the largest
+        # Drops 2 of 3 results for Mexico on the same date (keeping the first and largest)
         filtered_data = filtered_data[[not i for i in filtered_data.index.duplicated()]]
-    return filtered_data
+    if country == "AUS":
+        return {}
+    else:
+        return filtered_data
 
 
 def get_standard_priors() -> Dict[str, dist.Distribution]:

@@ -49,7 +49,7 @@ def find_run_start_time(
     threshold: float,
     iso3: str,
 ) -> datetime:
-    """Determine the time that the model should start running from.
+    """Determine the time that the analysis should start comparing to data from.
     Calculated as the time until the per capita death rate reaches the
     specified threshold for most countries, unless they never reach
     that threshold or don't reach it by the default time.
