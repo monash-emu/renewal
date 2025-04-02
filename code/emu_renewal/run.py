@@ -14,9 +14,9 @@ from pathlib import Path
 from emu_renewal.inputs import (
     DATE_FORMAT,
     BASE_PATH,
-    AUST_END,
     OTHER_DEFAULT_END,
     CASES_START,
+    DEFAULT_START_TIME,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -44,36 +44,35 @@ class MobilityException(Exception):
 
 def find_run_start_time(
     deaths_data: pd.Series,
+    vacc_data: pd.Series,
     pop: float,
     threshold: float,
-    default_start_time: datetime = datetime(2020, 6, 1),
+    iso3: str,
 ) -> datetime:
     """Determine the time that the model should start running from.
     Calculated as the time until the per capita death rate reaches the
-    specified threshold.
+    specified threshold for most countries, unless they never reach
+    that threshold or don't reach it by the default time.
 
     Args:
         deaths_data: Deaths time series for the country considered
+        vacc_data: Two-dose vaccination coverage data
         pop: Population size
-        death_start_threshold: How many deaths to reach
-        latest_start_time: Default start time if deaths don't reach the threshold
+        threshold: How many deaths to reach
 
     Returns:
-        The date that the threshold is reached
+        The date to start the analysis
     """
     per_capita_deaths = deaths_data / pop
     start = per_capita_deaths.index[per_capita_deaths.gt(threshold)].min()
-    if pd.isna(start) or start > default_start_time:
-        return default_start_time
+    if iso3 == "AUS":
+        aust_vacc_prop_to_start = 0.9
+        norm_vacc_data = vacc_data / vacc_data.iloc[-1]
+        return norm_vacc_data[norm_vacc_data.gt(aust_vacc_prop_to_start)].idxmin()
+    elif pd.isna(start) or start > DEFAULT_START_TIME:
+        return DEFAULT_START_TIME
     else:
         return start
-
-
-def find_aust_start_times(vacc_data):
-    norm_vacc_data = vacc_data / vacc_data.iloc[-1]
-    start_time = norm_vacc_data[norm_vacc_data.gt(0.9)].idxmin()
-    data_start_time = norm_vacc_data[norm_vacc_data.gt(0.9)].idxmin()
-    return start_time, data_start_time
 
 
 def find_run_end_time(
@@ -290,8 +289,8 @@ def run_single_country(
 
     cases_data = get_indicator_series_from_who_data("New_cases", country)
     deaths_data = get_indicator_series_from_who_data("New_deaths", country)
-    data_start = find_run_start_time(deaths_data, pop, deaths_start_threshold)
-    hosp_target, hosp_out_name = get_country_hosps(country, data_start, end_time)
+    data_start = find_run_start_time(deaths_data, vacc_data, pop, deaths_start_threshold)
+    hosp_target, hosp_out_name = get_country_hosps(country, data_start, end_time, iso3)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
     prealpha_prop = get_var_target(iso3)
 
