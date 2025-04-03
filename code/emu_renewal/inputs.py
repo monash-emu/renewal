@@ -129,17 +129,17 @@ def get_country_hosps(country, start, end):
     occup = get_hosp_series_from_owid_data("Daily hospital occupancy", country)
     filt_occup = occup[(start < occup.index) & (occup.index < end)]
     icu_admits = get_hosp_series_from_owid_data("Weekly new ICU admissions", country)
-    # filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
+    filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
     icu_occup = get_hosp_series_from_owid_data("Daily ICU occupancy", country)
-    # filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
+    filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
     if not filt_admits.empty:
-        return filt_admits[::7], "admissions"
+        return filt_admits, "admits"
     elif not filt_occup.empty:
-        return filt_occup[::7], "occupancy"
-    # elif not filt_icu_admits.empty:
-    #     return filt_icu_admits[::7], "icu_admits"
-    # elif not filt_icu_occup.empty:
-    #     return filt_icu_occup[::7], "icu_occup"
+        return filt_occup, "occup"
+    elif not filt_icu_admits.empty:
+        return filt_icu_admits, "icu_admits"
+    elif not filt_icu_occup.empty:
+        return filt_icu_occup, "icu_occup"
     else:
         return None, ""
 
@@ -670,3 +670,27 @@ def get_alpha_seed_time(var_prop):
     date = (dt_ref_date + timedelta(seconds=date_num)).date()
     round_date = datetime.combine(date, datetime.min.time())
     return round_date, params
+
+
+def find_null_data(data):
+    return [c for c, d in data.items() if d.size == 0 or d.max() == 0.0]
+
+
+def find_neg_data(data):
+    return [c for c, d in data.items() if d.min() < 0.0]
+
+
+def has_change_repeated(data, n_repeats, threshold=1e-10):
+    repeat_change = (data.diff().diff().abs() < threshold) & (data > 0.0)
+    is_repeat = repeat_change.astype(int)
+    multirepeat = is_repeat.rolling(n_repeats).sum()
+    return (multirepeat == float(n_repeats)).any()
+
+
+def has_outlier(data):
+    if len(data) > 1:
+        largest, second = data.nlargest(2)
+        return second == 0.0 or largest / second > 2.0
+    else:
+        return False
+    

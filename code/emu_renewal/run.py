@@ -268,7 +268,7 @@ def run_single_country(
     run_data_delay,
     analysis_name,
     most_extreme_prop: float = 0.05,
-    deaths_start_threshold: float = 2e-6,
+    death_start_threshold: float = 2e-6,
     seed_duration: int = 10,
     num_chains=4,
     prog_bar=False,
@@ -287,18 +287,18 @@ def run_single_country(
     vacc_data = get_country_vacc_data(iso3)
     end_time = find_run_end_time(vacc_data, most_extreme_prop, continent)
 
-    cases_data = get_indicator_series_from_who_data("New_cases", country)
-    deaths_data = get_indicator_series_from_who_data("New_deaths", country)
-    data_start = find_run_start_time(deaths_data, vacc_data, pop, deaths_start_threshold)
-    hosp_target, hosp_out_name = get_country_hosps(country, data_start, end_time, iso3)
+    case_data = get_indicator_series_from_who_data("New_cases", country)
+    death_data = get_indicator_series_from_who_data("New_deaths", country)
+    data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold)
+    hosp_target, hosp_out_type = get_country_hosps(country, data_start, end_time, iso3)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
     prealpha_prop = get_var_target(iso3)
 
     targets = collate_targets(
-        cases_data,
-        deaths_data,
+        case_data,
+        death_data,
         hosp_target,
-        hosp_out_name,
+        hosp_out_type,
         seroprev_target,
         most_extreme_prop,
         prealpha_prop,
