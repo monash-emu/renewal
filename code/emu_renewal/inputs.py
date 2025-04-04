@@ -220,7 +220,7 @@ def get_all_seroprev(
 
 
 def get_filtered_seroprev(
-    country: str,
+    iso3: str,
     start: datetime,
     end: datetime,
 ) -> pd.Series:
@@ -229,7 +229,7 @@ def get_filtered_seroprev(
     enough data for including in the calibration targets.
 
     Args:
-        country: Name of the country of interest
+        iso3: Code for the country of interest
         start: Start date of analysis
         end: End date of analysis
 
@@ -237,7 +237,7 @@ def get_filtered_seroprev(
         Filtered data to use as target
     """
     data = get_all_seroprev()
-    country = pycountry.countries.lookup(country).name
+    country = pycountry.countries.lookup(iso3).name
     country_filt = data["country"] == country
     time_filt = (start < data.index) & (data.index < end)
     nat_filt = data["estimate_grade"] == "National"
@@ -249,7 +249,7 @@ def get_filtered_seroprev(
     if filtered_data.index.has_duplicates:
         # Drops 2 of 3 results for Mexico on the same date (keeping the first and largest)
         filtered_data = filtered_data[[not i for i in filtered_data.index.duplicated()]]
-    if country == "AUS":
+    if iso3 == "AUS":
         return {}
     else:
         return filtered_data
@@ -693,4 +693,3 @@ def has_outlier(data):
         return second == 0.0 or largest / second > 2.0
     else:
         return False
-    

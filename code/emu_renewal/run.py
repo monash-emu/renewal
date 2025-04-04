@@ -84,8 +84,8 @@ def find_run_end_time(
     Calculated as the time that the population vaccination coverage
     passes the requested threshold for all countries but Australia,
     provided that the vaccination coverage does reach this
-    value by the 1st of June 2021. Otherwise return the end date 
-    for Google mobility data for Australia, 
+    value by the 1st of June 2021. Otherwise return the end date
+    for Google mobility data for Australia,
     or return a default value for other countries.
 
     Args:
@@ -289,7 +289,7 @@ def run_single_country(
 
     case_data = get_indicator_series_from_who_data("New_cases", country)
     death_data = get_indicator_series_from_who_data("New_deaths", country)
-    data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold)
+    data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(country, data_start, end_time, iso3)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
     prealpha_prop = get_var_target(iso3)
