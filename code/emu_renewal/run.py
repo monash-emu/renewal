@@ -150,7 +150,9 @@ def collate_targets(
     else:
         seroprev_target_dict = {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
 
-    if prealpha_prop is not None:
+    if continent == "OC":
+        var_target_dict = {"prop_alpha": StandardDispTarget(prealpha_prop, weight=20.0)}
+    elif prealpha_prop is not None:
         var_mask = (ext_prop < prealpha_prop) & (prealpha_prop < 1.0 - ext_prop)
         var_target_dict = {"prop_eu": StandardDispTarget(prealpha_prop[var_mask], weight=20.0)}
     else:
@@ -313,7 +315,7 @@ def run_single_country(
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
     if continent == "OC":
         vars = ["eu", "alpha", "ba5"]
-        seed_times = [run_start, datetime(2021, 1, 1), datetime(2021, 5, 1)]
+        seed_times = [run_start, datetime(2022, 1, 1), datetime(2022, 5, 1)]
     elif continent == "AF":
         vars = ["eu"]
         seed_times = [run_start]
