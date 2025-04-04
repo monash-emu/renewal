@@ -315,14 +315,19 @@ def run_single_country(
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
     if continent == "OC":
         vars = ["eu", "alpha", "ba5"]
-        seed_times = [run_start, datetime(2022, 1, 1), datetime(2022, 5, 1)]
+        data = targets["prop_alpha"].data
+        to_ba2_data = 1.0 - data[data.index <= data.idxmax()]
+        to_ba5_data = data[data.idxmax() <= data.index]
+        ba2_seed_time = get_alpha_seed_time(to_ba2_data)
+        ba5_seed_time = get_alpha_seed_time(to_ba5_data)
+        seed_times = [run_start, ba2_seed_time, ba5_seed_time]
     elif continent == "AF":
         vars = ["eu"]
         seed_times = [run_start]
     else:
         vars = ["eu", "alpha"]
         seed_times = find_variant_seeds(0.5, prealpha_prop, run_start)
-        alpha_seed_time, _ = get_alpha_seed_time(prealpha_prop)
+        alpha_seed_time = get_alpha_seed_time(prealpha_prop)
         seed_times = [run_start, alpha_seed_time]
 
     try:

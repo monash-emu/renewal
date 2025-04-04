@@ -669,7 +669,7 @@ def get_alpha_seed_time(var_prop):
     date_num = params[0]
     date = (dt_ref_date + timedelta(seconds=date_num)).date()
     round_date = datetime.combine(date, datetime.min.time())
-    return round_date, params
+    return round_date
 
 
 def find_null_data(data):
