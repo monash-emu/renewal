@@ -312,9 +312,9 @@ def run_single_country(
     logger.info(f"Running from {start_str} with data starting from {end_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
     if continent == "OC":
-        vars = ["ba1", "ba2", "ba5"]
+        vars = ["eu", "alpha", "ba5"]
         seed_times = [run_start, datetime(2021, 1, 1), datetime(2021, 5, 1)]
-    if continent == "AF":
+    elif continent == "AF":
         vars = ["eu"]
         seed_times = [run_start]
     else:

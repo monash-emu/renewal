@@ -206,7 +206,11 @@ class MultiStrainModel:
         start_pops = jnp.zeros(self.strain_map.shape[1])  # Starting susceptible distribution
         start_pops = start_pops.at[0].set(start_pop)
         rel_infect = jnp.ones(self.n_strains)
-        rel_infect = rel_infect.at[1].set(alpha_relinfect)
+        ba5_relinfect = 1.2
+        if self.n_strains > 0:
+            rel_infect = rel_infect.at[1].set(alpha_relinfect)
+        if self.n_strains > 2:
+            rel_infect = rel_infect.at[2].set(ba5_relinfect)
 
         # Cross immunity if previously infected with a different strain, otherwise zero (complete immunity) if infected with that strain
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)

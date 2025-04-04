@@ -85,17 +85,16 @@ def plot_post_prior_comparison(
 
 def plot_imm_props(
     spaghetti: pd.DataFrame,
-    n_strains: int,
 ) -> go.Figure:
     """Plot susceptible population proportions from randomly selected run.
 
     Args:
         spaghetti: Spaghetti
-        n_strains: Number of modelled strains
 
     Returns:
         Figure
     """
+    n_strains = len([i for i in set(spaghetti.columns.get_level_values(0)) if "prop_" in i])
     spagh = spaghetti[[f"sus_{i}" for i in range(2**n_strains)]]
     spagh.columns = spagh.columns.swaplevel()
     runs = list(set(spagh.columns.get_level_values(0)))
