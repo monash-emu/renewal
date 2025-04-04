@@ -99,7 +99,7 @@ def find_run_end_time(
     cov_thresh_perc = cov_threshold * 100
     if iso3 == "AUS":
         mob = get_google_mobility(iso3)
-        return mob.index[-1].date()
+        return mob.index[-1].to_pydatetime()
     elif vacc_data.empty or vacc_data.max() < cov_thresh_perc:
         return OTHER_DEFAULT_END
     else:
@@ -290,7 +290,7 @@ def run_single_country(
     case_data = get_indicator_series_from_who_data("New_cases", country)
     death_data = get_indicator_series_from_who_data("New_deaths", country)
     data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
-    hosp_target, hosp_out_type = get_country_hosps(country, data_start, end_time, iso3)
+    hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
     prealpha_prop = get_var_target(iso3)
 

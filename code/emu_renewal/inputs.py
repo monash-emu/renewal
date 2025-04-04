@@ -250,7 +250,7 @@ def get_filtered_seroprev(
         # Drops 2 of 3 results for Mexico on the same date (keeping the first and largest)
         filtered_data = filtered_data[[not i for i in filtered_data.index.duplicated()]]
     if iso3 == "AUS":
-        return {}
+        return pd.Series([])
     else:
         return filtered_data
 
