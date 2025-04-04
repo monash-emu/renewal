@@ -210,43 +210,33 @@ class MultiStrainModel:
 
         # Cross immunity if previously infected with a different strain, otherwise zero (complete immunity) if infected with that strain
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
-        suscept_levels = suscept_levels.at[:, 0].set(
-            1.0
-        )  # Complete susceptibility if never infected before
+        # Complete susceptibility if never infected before
+        suscept_levels = suscept_levels.at[:, 0].set(1.0)
 
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = mobility[t - self.start]  # Mobility data (scalar)
-            past_inc = state.incidence.at[:, 0].set(
-                state.incidence[:, 0] + self.seed_array[:, t + self.init_length]
-            )  # Incidence history (array of shape n_strains X window_len)
-            contributions = (densities * past_inc).sum(
-                axis=1
-            )  # Incidence convolved with generation (vector of length n_strains)
-            target_inf_rates = (
-                contributions * proc_val * mob_val * rel_infect / self.pop
-            )  # Infection rate (vector of length n_strains)
-            actual_inf_rate = 1.0 - jnp.exp(
-                -target_inf_rates
-            )  # Ceiling in case of very high incidence rates within a given day (vector of length n_strains)
-            effect_suscepts = (
-                suscept_levels * state.suscept
-            )  # Effective susceptibles (array of shape n_strains X 2**n_strains)
-            actual_inc = (
-                effect_suscepts * actual_inf_rate[:, jnp.newaxis]
-            )  # Apply infection rates across susceptible categories (array of shape n_strains X 2**n_strains)
+            # Incidence history (array of shape n_strains X window_len)
+            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + self.seed_array[:, t + self.init_length])  
+            # Incidence convolved with generation (vector of length n_strains)
+            contributions = (densities * past_inc).sum(axis=1)
+            # Infection rate (vector of length n_strains)
+            target_inf_rates = contributions * proc_val * mob_val * rel_infect / self.pop
+            # Ceiling in case of very high incidence rates within a given day (vector of length n_strains)
+            actual_inf_rate = 1.0 - jnp.exp( -target_inf_rates)  
+            # Effective susceptibles (array of shape n_strains X 2**n_strains)
+            effect_suscepts = suscept_levels * state.suscept
+            # Apply infection rates across susceptible categories (array of shape n_strains X 2**n_strains)
+            actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
             suscept = state.suscept  # Population distribution (vector of length 2**n_strains)
             for s in range(self.n_strains):  # Move susceptibles to recovered categories
                 suscept += actual_inc[s] @ self.trans_mats[s]
             strain_inc = actual_inc.sum(axis=1)  # Incidence by strain (vector of length n_strains)
-            inc = jnp.concat(
-                [strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1
-            )  # Move up (array of shape n_strains X window_len)
-            strain_out = {
-                strain: strain_inc[i_strain] for i_strain, strain in enumerate(self.strains)
-            }
+            # Move up (array of shape n_strains X window_len)
+            inc = jnp.concat([strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1)
+            strain_out = {s: strain_inc[i_strain] for i_strain, s in enumerate(self.strains)}
             suscept_out = {f"sus_{i}": suscept[i] for i in range(self.strain_map.shape[1])}
             return MultistrainState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
 
@@ -334,13 +324,10 @@ class MultiStrainModel:
         for s in range(self.n_strains):
             seed_rate = first_seed_rate if s == 0 else other_seed_rate
             strain_start = int(self.epoch.dti_to_index(self.seed_times[s])) + self.init_length
-            self.seed_array = self.seed_array.at[
-                s, strain_start : strain_start + self.seed_duration
-            ].set(seed_rate)
+            strain_end = strain_start + self.seed_duration
+            self.seed_array = self.seed_array.at[s, strain_start : strain_end].set(seed_rate)  
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
-        outputs = self.renew(
-            gen_mean, gen_sd, proc, rt_init, cross_immunity, alpha_relinfect, **kwargs
-        )
+        outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, alpha_relinfect, **kwargs)
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
         outputs["inc"] = full_inc[self.init_length :]
@@ -370,9 +357,7 @@ class MultiStrainModel:
         outputs["icu_occupancy"] = icu_occupancy[self.init_length :]
 
         outputs["seropos"] = (self.pop - outputs["sus_0"]) / self.pop
-        strain_props = {
-            f"prop_{strain}": outputs[strain] / outputs["inc"] for strain in self.strains
-        }
+        strain_props = {f"prop_{s}": outputs[s] / outputs["inc"] for s in self.strains}
         return outputs | strain_props
 
     def get_output_from_inc(

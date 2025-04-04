@@ -135,7 +135,7 @@ def get_country_hosps(country, start, end):
     if not filt_admits.empty:
         return filt_admits, "admits"
     elif not filt_occup.empty:
-        return filt_occup, "occup"
+        return filt_occup, "occupancy"
     elif not filt_icu_admits.empty:
         return filt_icu_admits, "icu_admits"
     elif not filt_icu_occup.empty:

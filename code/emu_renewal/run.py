@@ -311,6 +311,9 @@ def run_single_country(
     end_str = data_start.strftime(DATE_FORMAT)
     logger.info(f"Running from {start_str} with data starting from {end_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
+    if continent == "OC":
+        vars = ["ba1", "ba2", "ba5"]
+        seed_times = [run_start, datetime(2021, 1, 1), datetime(2021, 5, 1)]
     if continent == "AF":
         vars = ["eu"]
         seed_times = [run_start]
@@ -342,7 +345,7 @@ def run_single_country(
         GammaDens(),
         GammaDens(),
         vars,
-        "eu",
+        vars[0],
         seed_times,
         mob_provider,
         seed_duration,
