@@ -113,7 +113,7 @@ def collate_targets(
     hosp_output_name: str,
     seroprev_target: pd.Series,
     ext_prop: float,
-    prealpha_prop: pd.Series,
+    calib_var_prop: pd.Series,
     start: datetime,
     end: datetime,
     continent: str,
@@ -124,57 +124,53 @@ def collate_targets(
     Returns:
         All targets, either four or five, depending on whether there are seroprevalence estimates
     """
+
+    # Deaths
+    death_mask = (start < deaths_data.index) & (deaths_data.index < end)
+    select_deaths = deaths_data.loc[death_mask]
+    deaths_targ = StandardDispTarget(select_deaths, weight=20.0)
+
+    # Cases
     pre_test_scaleup = cases_data.index > CASES_START
     case_mask = (start < cases_data.index) & (cases_data.index < end) & pre_test_scaleup
     cases_targ = cases_data.loc[case_mask]
+    case_weight = 20.0 * len(cases_targ) / len(select_deaths)
+    cases_targ = StandardDispTarget(cases_targ, weight=case_weight)
 
-    death_mask = (start < deaths_data.index) & (deaths_data.index < end)
-    select_deaths = deaths_data.loc[death_mask]
-
+    # Hospitalisations
     if hosp_data is None:
-        hosp_target_dict = {}
+        hosp_targ_dict = {}
     else:
         hosp_mask = (start < hosp_data.index) & (hosp_data.index < end)
         select_hosps = hosp_data.loc[hosp_mask]
         if select_hosps.empty:
-            hosp_target_dict = {}
+            hosp_targ_dict = {}
         else:
             hosp_weight = 20.0 * len(select_hosps) / len(select_deaths)
             hosp_targ = StandardDispTarget(select_hosps, weight=hosp_weight)
-            hosp_target_dict = {hosp_output_name: hosp_targ}
+            hosp_targ_dict = {hosp_output_name: hosp_targ}
 
+    # Seroprevalence
     seroprev_mask = (ext_prop < seroprev_target) & (seroprev_target < 1.0 - ext_prop)
     seroprev_target = seroprev_target[seroprev_mask]
     if seroprev_target.empty or continent == "OC":
-        seroprev_target_dict = {}
+        seroprev_targ_dict = {}
     else:
-        seroprev_target_dict = {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
+        seroprev_targ = StandardDispTarget(seroprev_target, weight=10.0)
+        seroprev_targ_dict = {"seropos": seroprev_targ}
 
+    # Variant proportion
     if continent == "OC":
-        var_target_dict = {"prop_ba2": StandardDispTarget(prealpha_prop, weight=20.0)}
-    elif prealpha_prop is not None:
-        var_mask = (ext_prop < prealpha_prop) & (prealpha_prop < 1.0 - ext_prop)
-        var_target_dict = {"prop_eu": StandardDispTarget(prealpha_prop[var_mask], weight=20.0)}
+        var_targ_dict = {"prop_ba2": StandardDispTarget(calib_var_prop, weight=20.0)}
+    elif calib_var_prop is not None:
+        var_mask = (ext_prop < calib_var_prop) & (calib_var_prop < 1.0 - ext_prop)
+        var_targ_dict = {"prop_eu": StandardDispTarget(calib_var_prop[var_mask], weight=20.0)}
     else:
-        var_target_dict = {}
+        var_targ_dict = {}
 
-    cases_targ = StandardDispTarget(cases_targ, weight=20.0 * len(cases_targ) / len(select_deaths))
-    all_targets = (
-        {
-            "weekly_cases": cases_targ,
-            "weekly_deaths": StandardDispTarget(select_deaths, weight=20.0),
-        }
-        | seroprev_target_dict
-        | hosp_target_dict
-        | var_target_dict
-    )
-    return all_targets
-
-
-def find_variant_seeds(val, prealpha_prop, start_time):
-    before_prop_time = (prealpha_prop - val).abs().idxmin() - timedelta(80)
-    alpha_seed_start = max([before_prop_time, start_time])
-    return [alpha_seed_start]
+    # Collate together
+    core_targs = {"weekly_cases": cases_targ, "weekly_deaths": deaths_targ}
+    return core_targs | seroprev_targ_dict | hosp_targ_dict | var_targ_dict
 
 
 def get_logger(log_file: Path = None):
@@ -197,7 +193,10 @@ def get_logger(log_file: Path = None):
 
 def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.MobilityProvider:
 
-    if mob_analysis_type == "weighted_google_1exp":
+    if mob_analysis_type == "no_mob":
+        return mobility.NoMobilityProvider()
+
+    elif mob_analysis_type == "weighted_google_1exp":
         mob = get_google_mobility(iso3)
         nseries = len(mob.columns)
         priors = {
@@ -205,19 +204,6 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
             "mob_exp": dist.Uniform(0.0, 2.0),
         }
         return mobility.WeightedExpMobilityProvider(mob, priors)
-
-    elif mob_analysis_type == "weighted_google_multiexp":
-        mob = get_google_mobility(iso3)
-        nseries = len(mob.columns)
-        priors = {
-            "mob_weights": dist.Uniform(np.zeros(nseries), np.ones(nseries)),
-            "mob_exp": dist.Uniform(np.repeat(0.0, nseries), np.repeat(2.0, nseries)),
-        }
-        return mobility.WeightedMultiExpMobilityProvider(mob, priors)
-
-    elif mob_analysis_type == "fb_linear":
-        mob = get_fb_mobility(iso3)
-        return mobility.SingleSeriesMobilityProvider(mob)
 
     elif mob_analysis_type == "fb_exp":
         mob = get_fb_mobility(iso3)
@@ -233,30 +219,6 @@ def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.Mobilit
         }
         return mobility.WeightedExpMobilityProvider(mob, priors)
 
-    elif mob_analysis_type == "weighted_apple_multiexp":
-        mob = get_apple_mobility(iso3)
-        nseries = len(mob.columns)
-        priors = {
-            "mob_weights": dist.Uniform(np.zeros(nseries), np.ones(nseries)),
-            "mob_exp": dist.Uniform(np.repeat(0.0, nseries), np.repeat(2.0, nseries)),
-        }
-        return mobility.WeightedMultiExpMobilityProvider(mob, priors)
-
-    elif mob_analysis_type == "all_source_multiexp":
-        apple_mob = get_apple_mobility(iso3)
-        fb_mob = get_fb_mobility(iso3)
-        g_mob = get_google_mobility(iso3)
-        all_df = pd.concat([apple_mob, fb_mob, g_mob], axis=1).bfill().ffill()
-        nseries = len(all_df.columns)
-        priors = {
-            "mob_weights": dist.Uniform(np.zeros(nseries), np.ones(nseries)),
-            "mob_exp": dist.Uniform(np.repeat(0.0, nseries), np.repeat(2.0, nseries)),
-        }
-        return mobility.WeightedMultiExpMobilityProvider(all_df, priors)
-
-    elif mob_analysis_type == "no_mob":
-        return mobility.NoMobilityProvider()
-
     else:
         raise Exception(f"No provider available for analysis type {mob_analysis_type}")
 
@@ -266,18 +228,19 @@ def run_single_country(
     proc_update_freq,
     init_duration,
     mob_analysis_type,
-    iterations,
+    n_iters,
     run_data_delay,
     analysis_name,
     most_extreme_prop: float = 0.05,
     death_start_threshold: float = 2e-6,
     seed_duration: int = 10,
-    num_chains=4,
+    n_chains=4,
     prog_bar=False,
     logger=None,
 ):
-    logger = logger or logging.getLogger()
 
+    # Preliminaries
+    logger = logger or logging.getLogger()
     logger.info(f"\n________________________\nRunning job at {analysis_name}")
     iso3 = pycountry.countries.lookup(country).alpha_3
     iso2 = pycountry.countries.lookup(country).alpha_2
@@ -289,13 +252,13 @@ def run_single_country(
     vacc_data = get_country_vacc_data(iso3)
     end_time = find_run_end_time(vacc_data, most_extreme_prop, iso3)
 
+    # Targets
     case_data = get_indicator_series_from_who_data("New_cases", country)
     death_data = get_indicator_series_from_who_data("New_deaths", country)
     data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
     prealpha_prop = get_var_target(iso3)
-
     targets = collate_targets(
         case_data,
         death_data,
@@ -326,10 +289,10 @@ def run_single_country(
         seed_times = [run_start]
     else:
         vars = ["eu", "alpha"]
-        seed_times = find_variant_seeds(0.5, prealpha_prop, run_start)
         alpha_seed_time = get_alpha_seed_time(prealpha_prop)
         seed_times = [run_start, alpha_seed_time]
 
+    # Mobility
     try:
         mob_provider = get_mobility_provider(iso3, mob_analysis_type)
     except Exception as e:
@@ -338,8 +301,7 @@ def run_single_country(
     if mob_provider.mob_end:
         end_time = min([end_time, mob_provider.mob_end])
 
-    priors = get_standard_priors() | mob_provider.get_priors()
-
+    # Model construction
     model = MultiStrainModel(
         pop,
         run_start,
@@ -357,18 +319,16 @@ def run_single_country(
         mob_provider,
         seed_duration,
     )
+
+    # Calibration
+    priors = get_standard_priors() | mob_provider.get_priors()
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
-    kernel = infer.NUTS(
-        calib.calibration, dense_mass=True, init_strategy=calib.custom_init(radius=0.1)
-    )
-    mcmc = infer.MCMC(
-        kernel,
-        num_chains=num_chains,
-        num_samples=iterations,
-        num_warmup=iterations,
-        progress_bar=prog_bar,
-    )
+    init = calib.custom_init(radius=0.1)
+    kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
+    mcmc = infer.MCMC(kernel, num_chains=n_chains, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar)
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
+
+    # Outputs
     storage_path = BASE_PATH / "outputs" / analysis_name / country / mob_analysis_type
     storage_path.mkdir(parents=True, exist_ok=True)
     logger.info(f"Writing to: {storage_path}")
