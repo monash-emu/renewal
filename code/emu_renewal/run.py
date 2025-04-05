@@ -151,7 +151,7 @@ def collate_targets(
         seroprev_target_dict = {"seropos": StandardDispTarget(seroprev_target, weight=10.0)}
 
     if continent == "OC":
-        var_target_dict = {"prop_alpha": StandardDispTarget(prealpha_prop, weight=20.0)}
+        var_target_dict = {"prop_ba2": StandardDispTarget(prealpha_prop, weight=20.0)}
     elif prealpha_prop is not None:
         var_mask = (ext_prop < prealpha_prop) & (prealpha_prop < 1.0 - ext_prop)
         var_target_dict = {"prop_eu": StandardDispTarget(prealpha_prop[var_mask], weight=20.0)}
@@ -314,8 +314,8 @@ def run_single_country(
     logger.info(f"Running from {start_str} with data starting from {end_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
     if continent == "OC":
-        vars = ["eu", "alpha", "ba5"]
-        data = targets["prop_alpha"].data
+        vars = ["ba1", "ba2", "ba5"]
+        data = targets["prop_ba2"].data
         to_ba2_data = 1.0 - data[data.index <= data.idxmax()]
         to_ba5_data = data[data.idxmax() <= data.index]
         ba2_seed_time = get_alpha_seed_time(to_ba2_data)
