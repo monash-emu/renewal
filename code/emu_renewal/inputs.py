@@ -125,7 +125,25 @@ def get_hosp_series_from_owid_data(
     return data.loc[data["indicator"] == indicator, "value"]
 
 
-def get_country_hosps(country, start, end):
+def get_country_hosps(
+    country: str,
+    start: datetime,
+    end: datetime,
+) -> Tuple[Union[pd.Series, None], str]:
+    """Get a single hospitalisation target for a specified country,
+    hierarchically choosing the preferred target,
+    or returning None and empty string if nothing available.
+
+    Args:
+        country: Country identifier
+        start: Data comparison start time
+        end: Analysis end time
+
+    Returns:
+        Tuple of two elements:
+            - The calibration data for comparison
+            - The name of the indicator for comparison
+    """
     admits = get_hosp_series_from_owid_data("Weekly new hospital admissions", country)
     filt_admits = admits[(start < admits.index) & (admits.index < end)]
     occup = get_hosp_series_from_owid_data("Daily hospital occupancy", country)
