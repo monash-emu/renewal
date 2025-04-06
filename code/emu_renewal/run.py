@@ -321,7 +321,7 @@ def run_single_country(
     )
 
     # Calibration
-    priors = get_standard_priors() | mob_provider.get_priors()
+    priors = get_standard_priors(len(vars)) | mob_provider.get_priors()
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
     init = calib.custom_init(radius=0.1)
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)

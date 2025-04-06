@@ -1,4 +1,5 @@
 import pandas as pd
+from jax import numpy as jnp
 import numpy as np
 import json
 from pathlib import Path
@@ -256,7 +257,7 @@ def get_filtered_seroprev(
         return filtered_data
 
 
-def get_standard_priors() -> Dict[str, dist.Distribution]:
+def get_standard_priors(n_strains) -> Dict[str, dist.Distribution]:
     """Load the priors from the yml and combine with
     standard hard-coded priors.
 
@@ -273,10 +274,11 @@ def get_standard_priors() -> Dict[str, dist.Distribution]:
         "alpha_relinfect": dist.TruncatedNormal(1.25, 0.1, low=1.0, high=1.5),
         "rt_init": dist.Normal(0.0, 0.5),
         "shared_dispersion": dist.HalfNormal(0.5),
-        "first_seed_rate": dist.Uniform(1.0, 100.0),
-        "other_seed_rate": dist.Uniform(1.0, 100.0),
+        # "first_seed_rate": dist.Uniform(1.0, 100.0),
+        # "other_seed_rate": dist.Uniform(1.0, 100.0),
     }
-    return duration_priors | beta_priors | other_priors
+    seed_priors = {"seed_rates": dist.Uniform(jnp.repeat(1.0, n_strains), jnp.repeat(100.0, n_strains))}
+    return duration_priors | beta_priors | other_priors | seed_priors
 
 
 def get_worldbank_national_pop(

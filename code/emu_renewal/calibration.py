@@ -1,6 +1,5 @@
 from jax import numpy as jnp
 import numpy as np
-import pandas as pd
 import numpyro
 from numpyro import distributions as dist
 from warnings import warn
