@@ -3,7 +3,7 @@ import numpy as np
 import json
 from pathlib import Path
 import pycountry
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 from datetime import datetime, timedelta
 import yaml as yml
 from numpyro import distributions as dist
@@ -79,6 +79,7 @@ ANALYSIS_TYPES = ["no_mob", "weighted_google_1exp", "fb_exp", "weighted_apple_1e
 OTHER_DEFAULT_END = datetime(2021, 6, 1)
 CASES_START = datetime(2020, 6, 1)
 DEFAULT_START_TIME = datetime(2020, 6, 1)
+DT_REF_DATE = datetime(1970, 1, 1)
 
 
 def get_indicator_series_from_who_data(
@@ -476,7 +477,7 @@ def get_prealpha_prop(iso3, min_var_samples):
 
 
 def get_pre_alpha_vars(
-    country: str,
+    iso3: str,
     min_samples: int = 5,
     end_date: datetime = datetime(2021, 6, 30),
     min_obs=5,
@@ -497,7 +498,7 @@ def get_pre_alpha_vars(
             proportion pre-Alpha by date
     """
     pre_alpha_vars = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
-    var_data = get_country_vars(country)
+    var_data = get_country_vars(iso3)
     var_data = var_data[var_data.index < end_date]
     var_data = var_data[var_data.sum(axis=1) >= min_samples]
     avail_pre_alpha = [c for c in pre_alpha_vars if c in var_data.columns]
@@ -639,10 +640,26 @@ def get_pooled_totals(
     return pool_totals(group_starts, group_ends, data)
 
 
-def get_var_target(country):
-    country_vars = get_pre_alpha_vars(country)
-    index_iso2 = pycountry.countries.lookup(country).alpha_2
+def get_var_target(
+    iso3: str,
+) -> Union[pd.Series, None]:
+    """Get the variant target data depending on whether
+    it is available for that country and the continent 
+    that the country is in. Australia/Oceania has its
+    own approach; Africa is unavailable for any country;
+    otherwise return country's data; if unavailable, 
+    return the pooled estimate for the continent.
+
+    Args:
+        iso3: The country identifier
+
+    Returns:
+        The data for fitting, or None if Africa
+    """
+    index_iso2 = pycountry.countries.lookup(iso3).alpha_2
     continent = pc.country_alpha2_to_continent_code(index_iso2)
+
+    country_vars = get_pre_alpha_vars(iso3)
     if continent == "OC":
         return get_aust_omicron_vars()
     elif country_vars is not None:
@@ -662,14 +679,11 @@ def cosine_function(t, start, end):
     return np.piecewise(t, conditions, functions)
 
 
-def get_alpha_seed_time(var_prop):
+def get_cosine_intercept(var_prop):
     num_index = [t.timestamp() for t in var_prop.index]
     params, _ = curve_fit(cosine_function, num_index, var_prop, p0=[num_index[0], num_index[-1]])
-    dt_ref_date = datetime(1970, 1, 1)
-    date_num = params[0]
-    date = (dt_ref_date + timedelta(seconds=date_num)).date()
-    round_date = datetime.combine(date, datetime.min.time())
-    return round_date
+    date = (DT_REF_DATE + timedelta(seconds=params[0])).date()
+    return datetime.combine(date, datetime.min.time())
 
 
 def find_null_data(data):
