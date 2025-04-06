@@ -274,7 +274,6 @@ def get_standard_priors(n_strains) -> Dict[str, dist.Distribution]:
     }
     beta_priors = {k: dist.Beta(v["alpha"], v["beta"]) for k, v in loaded_priors["beta"].items()}
     other_priors = {
-        # "alpha_relinfect": dist.TruncatedNormal(1.25, 0.1, low=1.0, high=1.5),
         "rt_init": dist.Normal(0.0, 0.5),
         "shared_dispersion": dist.HalfNormal(0.5),
     }

@@ -281,8 +281,8 @@ def run_single_country(
         data = targets["prop_ba2"].data
         to_ba2_data = 1.0 - data[data.index <= data.idxmax()]
         to_ba5_data = data[data.idxmax() <= data.index]
-        ba2_seed_time = get_cosine_intercept(to_ba2_data)
-        ba5_seed_time = get_cosine_intercept(to_ba5_data)
+        ba2_seed_time = get_cosine_intercept(to_ba2_data) - timedelta(10)
+        ba5_seed_time = get_cosine_intercept(to_ba5_data) - timedelta(10)
         seed_times = [run_start, ba2_seed_time, ba5_seed_time]
     elif continent == "AF":
         vars = ["eu"]

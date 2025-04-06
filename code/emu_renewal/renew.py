@@ -314,7 +314,6 @@ class MultiStrainModel:
         icu_stay_sd: float,
         icu_ar: float,
         cross_immunity: float,
-        # alpha_relinfect: float,
         seed_rates: List[float],
         relinfect: List[float],
         **kwargs,
