@@ -276,20 +276,21 @@ def run_single_country(
     end_str = data_start.strftime(DATE_FORMAT)
     logger.info(f"Running from {start_str} with data starting from {end_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
+    offset = 10
     if continent == "OC":
-        vars = ["ba1", "ba2", "ba5"]
+        var_names = ["ba1", "ba2", "ba5"]
         data = targets["prop_ba2"].data
         to_ba2_data = 1.0 - data[data.index <= data.idxmax()]
         to_ba5_data = data[data.idxmax() <= data.index]
-        ba2_seed_time = get_cosine_intercept(to_ba2_data) - timedelta(10)
-        ba5_seed_time = get_cosine_intercept(to_ba5_data) - timedelta(10)
+        ba2_seed_time = get_cosine_intercept(to_ba2_data, offset)
+        ba5_seed_time = get_cosine_intercept(to_ba5_data, offset)
         seed_times = [run_start, ba2_seed_time, ba5_seed_time]
     elif continent == "AF":
-        vars = ["eu"]
+        var_names = ["eu"]
         seed_times = [run_start]
     else:
-        vars = ["eu", "alpha"]
-        alpha_seed_time = get_cosine_intercept(prealpha_prop)
+        var_names = ["eu", "alpha"]
+        alpha_seed_time = get_cosine_intercept(prealpha_prop, offset)
         seed_times = [run_start, alpha_seed_time]
 
     # Mobility
@@ -313,19 +314,21 @@ def run_single_country(
         init_duration,
         GammaDens(),
         GammaDens(),
-        vars,
-        vars[0],
+        var_names,
+        var_names[0],
         seed_times,
         mob_provider,
         seed_duration,
     )
 
     # Calibration
-    priors = get_standard_priors(len(vars)) | mob_provider.get_priors()
+    priors = get_standard_priors(len(var_names)) | mob_provider.get_priors()
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
     init = calib.custom_init(radius=0.1)
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
-    mcmc = infer.MCMC(kernel, num_chains=n_chains, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar)
+    mcmc = infer.MCMC(
+        kernel, num_chains=n_chains, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar
+    )
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
 
     # Outputs

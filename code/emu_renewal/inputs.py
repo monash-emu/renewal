@@ -682,11 +682,11 @@ def cosine_function(t, start, end):
     return np.piecewise(t, conditions, functions)
 
 
-def get_cosine_intercept(var_prop):
+def get_cosine_intercept(var_prop, offset):
     num_index = [t.timestamp() for t in var_prop.index]
     params, _ = curve_fit(cosine_function, num_index, var_prop, p0=[num_index[0], num_index[-1]])
     date = (DT_REF_DATE + timedelta(seconds=params[0])).date()
-    return datetime.combine(date, datetime.min.time())
+    return datetime.combine(date, datetime.min.time()) - timedelta(offset)
 
 
 def find_null_data(data):
