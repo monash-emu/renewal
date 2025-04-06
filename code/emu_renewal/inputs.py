@@ -139,9 +139,9 @@ def get_country_hosps(country, start, end):
     elif not filt_occup.empty:
         return filt_occup, "occupancy"
     elif not filt_icu_admits.empty:
-        return filt_icu_admits, "icu_admits"
+        return filt_icu_admits, "icu_weekly_admissions"
     elif not filt_icu_occup.empty:
-        return filt_icu_occup, "icu_occup"
+        return filt_icu_occup, "icu_occupancy"
     else:
         return None, ""
 
@@ -277,8 +277,12 @@ def get_standard_priors(n_strains) -> Dict[str, dist.Distribution]:
         "rt_init": dist.Normal(0.0, 0.5),
         "shared_dispersion": dist.HalfNormal(0.5),
     }
-    seed_priors = {"seed_rates": dist.Uniform(jnp.repeat(1.0, n_strains), jnp.repeat(100.0, n_strains))}
-    relinfect_priors = {"relinfect": dist.TruncatedNormal(jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5)}
+    seed_priors = {
+        "seed_rates": dist.Uniform(jnp.repeat(1.0, n_strains), jnp.repeat(100.0, n_strains))
+    }
+    relinfect_priors = {
+        "relinfect": dist.TruncatedNormal(jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5)
+    }
     return duration_priors | beta_priors | other_priors | seed_priors | relinfect_priors
 
 
@@ -647,10 +651,10 @@ def get_var_target(
     iso3: str,
 ) -> Union[pd.Series, None]:
     """Get the variant target data depending on whether
-    it is available for that country and the continent 
+    it is available for that country and the continent
     that the country is in. Australia/Oceania has its
     own approach; Africa is unavailable for any country;
-    otherwise return country's data; if unavailable, 
+    otherwise return country's data; if unavailable,
     return the pooled estimate for the continent.
 
     Args:
