@@ -261,6 +261,9 @@ def get_standard_priors(n_strains) -> Dict[str, dist.Distribution]:
     """Load the priors from the yml and combine with
     standard hard-coded priors.
 
+    Args:
+        n_strains: The number of strains implemented
+
     Returns:
         The prior distributions
     """
@@ -271,14 +274,13 @@ def get_standard_priors(n_strains) -> Dict[str, dist.Distribution]:
     }
     beta_priors = {k: dist.Beta(v["alpha"], v["beta"]) for k, v in loaded_priors["beta"].items()}
     other_priors = {
-        "alpha_relinfect": dist.TruncatedNormal(1.25, 0.1, low=1.0, high=1.5),
+        # "alpha_relinfect": dist.TruncatedNormal(1.25, 0.1, low=1.0, high=1.5),
         "rt_init": dist.Normal(0.0, 0.5),
         "shared_dispersion": dist.HalfNormal(0.5),
-        # "first_seed_rate": dist.Uniform(1.0, 100.0),
-        # "other_seed_rate": dist.Uniform(1.0, 100.0),
     }
     seed_priors = {"seed_rates": dist.Uniform(jnp.repeat(1.0, n_strains), jnp.repeat(100.0, n_strains))}
-    return duration_priors | beta_priors | other_priors | seed_priors
+    relinfect_priors = {"relinfect": dist.TruncatedNormal(jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5)}
+    return duration_priors | beta_priors | other_priors | seed_priors | relinfect_priors
 
 
 def get_worldbank_national_pop(
