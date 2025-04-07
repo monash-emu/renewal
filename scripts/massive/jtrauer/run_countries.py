@@ -19,7 +19,7 @@ if __name__ == "__main__":
     for mob_type in ANALYSIS_TYPES:
         try:
             run_single_country(
-                c, 7, 50, mob_type, 1000, 50, task_name, num_chains=8, logger=logger
+                c, 7, 50, mob_type, 1000, 50, task_name, n_chains=8, logger=logger
             )
         except MobilityException as e:
             logger.warning(e)
