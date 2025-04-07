@@ -153,7 +153,7 @@ def get_country_hosps(
     icu_occup = get_hosp_series_from_owid_data("Daily ICU occupancy", country)
     filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
     if not filt_admits.empty:
-        return filt_admits, "admits"
+        return filt_admits, "admissions"
     elif not filt_occup.empty:
         return filt_occup, "occupancy"
     elif not filt_icu_admits.empty:
