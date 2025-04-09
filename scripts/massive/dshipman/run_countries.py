@@ -1,32 +1,33 @@
 import json
 import sys
 
-from emu_renewal.inputs import DATA_PATH
-from emu_renewal.run import run_single_country
+from emu_renewal.inputs import DATA_PATH, ANALYSIS_TYPES, BASE_PATH
+from emu_renewal.run import (
+    run_single_country,
+    MobilityException,
+    get_logger,
+    jax_config_cpu_only,
+)
 
 
 if __name__ == "__main__":
-    initial_countries = json.load(open(DATA_PATH / f"config/countries.json", "r"))
-    all_countries = initial_countries["admissions"] + initial_countries["occupancy"]
-    array_task_id = int(sys.argv[2])
-    country = all_countries[array_task_id - 1]  # Convert to Python indexing
-    hosp_out, hosp_out_name = (
-        ("Daily hospital occupancy", "occupancy")
-        if country in initial_countries["occupancy"]
-        else ("Weekly new hospital admissions", "admissions")
-    )
-    ANALYSIS_TYPES = ["all_source_multiexp", "no_mob"]
 
-    for mob_analysis_type in ANALYSIS_TYPES:
-        run_single_country(
-            country,
-            7,
-            50,
-            mob_analysis_type,
-            1000,
-            hosp_out,
-            hosp_out_name,
-            50,
-            sys.argv[1],
-            num_chains=8,
-        )
+    jax_config_cpu_only()
+
+    countries = json.load(open(DATA_PATH / f"config/included.json", "r"))
+    task_name = sys.argv[1]
+    array_task_id = int(sys.argv[2])
+    c = countries[array_task_id - 1]  # Convert to Python indexing
+
+    country_path = BASE_PATH / "outputs" / task_name / c
+    country_path.mkdir(parents=True, exist_ok=True)
+
+    logger = get_logger(country_path / "run.log")
+
+    for mob_type in ANALYSIS_TYPES:
+        try:
+            run_single_country(
+                c, 7, 50, mob_type, 1000, 50, task_name, n_chains=8, logger=logger
+            )
+        except MobilityException as e:
+            logger.warning(e)

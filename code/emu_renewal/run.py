@@ -337,3 +337,9 @@ def run_single_country(
     logger.info(f"Writing to: {storage_path}")
     store_outputs(storage_path, model, calib, mcmc)
     logger.info(f"Completed {analysis_name}/{country}/{mob_analysis_type}")
+
+
+def jax_config_cpu_only():
+    import jax
+
+    jax.config.update("jax_platform_name", "cpu")

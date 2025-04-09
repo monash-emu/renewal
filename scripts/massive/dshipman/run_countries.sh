@@ -5,7 +5,7 @@
 #SBATCH --account=sh30
 
 # The maximum allowed time for a job to run
-#SBATCH --time=02:00:00
+#SBATCH --time=03:00:00
 
 # 
 #SBATCH --ntasks=1
@@ -27,7 +27,7 @@
 # e.g. --array=1-4
 # will result in 4 jobs, receiving 1,2,3,4 respectively
 
-#SBATCH --array=1-16
+#SBATCH --array=1-90
 
 # The path to your renewal repo
 cd /projects/sh30/users/dshipman/renewal/renewal
