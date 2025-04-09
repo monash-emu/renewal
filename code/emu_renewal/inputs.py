@@ -155,11 +155,13 @@ def get_country_hosps(
     if not filt_admits.empty:
         return filt_admits, "weekly_admissions"
     elif not filt_occup.empty:
-        return filt_occup, "occupancy"
+        weekly_occup = filt_occup.rolling(7).mean()[::7]
+        return weekly_occup, "occupancy"
     elif not filt_icu_admits.empty:
         return filt_icu_admits, "icu_weekly_admissions"
     elif not filt_icu_occup.empty:
-        return filt_icu_occup, "icu_occupancy"
+        weekly_icu_occup = filt_icu_occup.rolling(7).mean()[::7]
+        return weekly_icu_occup, "icu_occupancy"
     else:
         return None, ""
 
