@@ -612,6 +612,8 @@ def find_increasing_groups(
     """
     inc_elements = (data.diff() > 0.0).astype(int)
     group_limits = inc_elements.diff().shift(-1).fillna(0.0)
+    if inc_elements.iloc[-1] == 1:
+        group_limits.iloc[-1] = -1.0
     starts = group_limits[group_limits == 1.0].index
     ends = group_limits[group_limits == -1.0].index
     return starts, ends
