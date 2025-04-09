@@ -294,13 +294,22 @@ def get_standard_priors(n_strains, hosp_out_type) -> Dict[str, dist.Distribution
         for k, v in loaded_priors["durations"].items()
     }
 
+    universal_durations = [
+        "gen_mean",
+        "gen_sd",
+        "report_mean",
+        "report_sd",
+        "death_mean",
+        "death_sd",
+    ]
     relevant_duration_priors = {
         "weekly_admissions": ["admit_mean", "admit_sd"],
         "occupancy": ["admit_mean", "admit_sd", "stay_mean", "stay_sd"],
         "icu_admissions": ["icu_admit_mean", "icu_admit_sd"],
         "icu_occupancy": ["icu_admit_mean", "icu_admit_sd", "icu_stay_mean", "icu_stay_sd"],
+        "": [],
     }
-    relevant_dur_priors = relevant_duration_priors[hosp_out_type]
+    relevant_dur_priors = relevant_duration_priors[hosp_out_type] + universal_durations
     relevant_dur_priors = {k: v for k, v in duration_priors.items() if k in relevant_dur_priors}
     irrelvant_dur_priors = {k: 1.0 for k in duration_priors if k not in relevant_dur_priors}
 
@@ -314,14 +323,21 @@ def get_standard_priors(n_strains, hosp_out_type) -> Dict[str, dist.Distribution
     seed_low_lim = jnp.repeat(1.0, n_strains)
     seed_up_lim = jnp.repeat(100.0, n_strains)
     seed_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
-    
+
     if n_strains > 1:
         infect_dist = dist.TruncatedNormal(jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5)
     else:
         infect_dist = None
     relinfect_priors = {"relinfect": infect_dist}
-    
-    return relevant_dur_priors | irrelvant_dur_priors | beta_priors | other_priors | seed_priors | relinfect_priors
+
+    return (
+        relevant_dur_priors
+        | irrelvant_dur_priors
+        | beta_priors
+        | other_priors
+        | seed_priors
+        | relinfect_priors
+    )
 
 
 def get_worldbank_national_pop(
