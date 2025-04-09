@@ -60,27 +60,54 @@ def plot_post_prior_comparison(
     req_grid=None,
     req_size=None,
 ) -> plt.figure:
-    """Plot comparison of model posterior outputs against priors.
-
-    Args:
-        idata: Arviz inference data from calibration
-        req_vars: User-requested variables to plot
-        priors: Numpyro prior objects
-        req_grid: Requested subplot dimensions
-
-    Returns:
-        The figure object
-    """
+    req_size = [10, 40]
+    n_rows = int(np.ceil(len(priors) / 2))
+    req_size = [n_rows, 2]
     grid = req_grid if req_grid else [1, len(req_vars)]
     size = req_size if req_size else None
-    plot = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=size)
-    for i_ax, ax in enumerate(plot.ravel()):
+    fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=[10, 40])
+    for i_ax, ax in enumerate(fig.ravel()):
         ax_limits = ax.get_xlim()
-        x_vals = np.linspace(*ax_limits, 50)
-        y_vals = np.exp(priors[req_vars[i_ax]].log_prob(x_vals))
-        y_vals *= ax.get_ylim()[1] / max(y_vals)
-        ax.fill_between(x_vals, y_vals, color="k", alpha=0.2, linewidth=2)
-    return plot
+        param = ax.title.get_text().split("\n")[0]
+        if param:
+            x_vals = np.linspace(*ax_limits, 50)
+            distri = priors[param]
+            if len(distri.batch_shape) == 0:
+                y_vals = np.exp(distri.log_prob(x_vals))
+            else:
+                y_vals = np.exp(distri.log_prob(x_vals[:, None])[:, 0])
+            y_vals *= ax.get_ylim()[1] / max(y_vals)
+            ax.fill_between(x_vals, y_vals, color="k", alpha=0.2, linewidth=2)
+    return ax.figure.tight_layout()
+
+
+# def plot_post_prior_comparison(
+#     idata: az.InferenceData,
+#     req_vars: list[str],
+#     priors: list[dist.Distribution],
+#     req_grid=None,
+#     req_size=None,
+# ) -> plt.figure:
+#     req_vars = epi_params
+#     req_size = [10, 40]
+#     n_rows = int(np.ceil(len(priors) / 2))
+#     req_size = [n_rows, 2]
+#     grid = req_grid if req_grid else [1, len(req_vars)]
+#     size = req_size if req_size else None
+#     fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=[10, 40])
+#     for i_ax, ax in enumerate(fig.ravel()):
+#         ax_limits = ax.get_xlim()
+#         param = ax.title.get_text().split("\n")[0]
+#         if param:
+#             x_vals = np.linspace(*ax_limits, 50)
+#             distri = priors[param]
+#             if len(distri.batch_shape) == 0:
+#                 y_vals = np.exp(distri.log_prob(x_vals))
+#             else:
+#                 y_vals = np.exp(distri.log_prob(x_vals[:, None])[:, 0])
+#             y_vals *= ax.get_ylim()[1] / max(y_vals)
+#             ax.fill_between(x_vals, y_vals, color="k", alpha=0.2, linewidth=2)
+#     return ax.figure.tight_layout()
 
 
 def plot_imm_props(
