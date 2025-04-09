@@ -153,7 +153,7 @@ def get_country_hosps(
     icu_occup = get_hosp_series_from_owid_data("Daily ICU occupancy", country)
     filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
     if not filt_admits.empty:
-        return filt_admits, "admissions"
+        return filt_admits, "weekly_admissions"
     elif not filt_occup.empty:
         return filt_occup, "occupancy"
     elif not filt_icu_admits.empty:
@@ -275,7 +275,7 @@ def get_filtered_seroprev(
         return filtered_data
 
 
-def get_standard_priors(n_strains) -> Dict[str, dist.Distribution]:
+def get_standard_priors(n_strains, hosp_out_type) -> Dict[str, dist.Distribution]:
     """Load the priors from the yml and combine with
     standard hard-coded priors.
 
@@ -291,6 +291,16 @@ def get_standard_priors(n_strains) -> Dict[str, dist.Distribution]:
         k: dist.TruncatedNormal(v["mean"], v["sd"], low=1.0, high=v["mean"] * 2.5)
         for k, v in loaded_priors["durations"].items()
     }
+
+    relevant_duration_priors = {
+        "weekly_admissions": ["admit_mean", "admit_sd"],
+        "occupancy": ["admit_mean", "admit_sd", "stay_mean", "stay_sd"],
+        "icu_admissions": ["icu_admit_mean", "icu_admit_sd"],
+        "icu_occupancy": ["icu_admit_mean", "icu_admit_sd", "icu_stay_mean", "icu_stay_sd"],
+    }
+    relevant_dur_priors = relevant_duration_priors[hosp_out_type]
+    relevant_dur_priors = {k: v for k, v in duration_priors.items() if k in relevant_dur_priors}
+    irrelvant_dur_priors = {k: 1.0 for k in duration_priors if k not in relevant_dur_priors}
 
     beta_priors = {k: dist.Beta(v["alpha"], v["beta"]) for k, v in loaded_priors["beta"].items()}
 
@@ -309,7 +319,7 @@ def get_standard_priors(n_strains) -> Dict[str, dist.Distribution]:
         infect_dist = None
     relinfect_priors = {"relinfect": infect_dist}
     
-    return duration_priors | beta_priors | other_priors | seed_priors | relinfect_priors
+    return relevant_dur_priors | irrelvant_dur_priors | beta_priors | other_priors | seed_priors | relinfect_priors
 
 
 def get_worldbank_national_pop(
