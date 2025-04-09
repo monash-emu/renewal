@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from typing import NamedTuple
 from warnings import warn
 
@@ -205,7 +205,10 @@ class MultiStrainModel:
         start_pop = self.pop - jnp.sum(init_inc)  # Starting susceptible population
         start_pops = jnp.zeros(self.strain_map.shape[1])  # Starting susceptible distribution
         start_pops = start_pops.at[0].set(start_pop)
-        rel_infect = jnp.concat([jnp.array([1.0]), rel_infect])
+        if rel_infect is not None:
+            rel_infect = jnp.concat([jnp.array([1.0]), rel_infect])
+        else:
+            rel_infect = 1.0
 
         # Cross immunity if previously infected with a different strain, otherwise zero (complete immunity) if infected with that strain
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
@@ -218,13 +221,15 @@ class MultiStrainModel:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = mobility[t - self.start]  # Mobility data (scalar)
             # Incidence history (array of shape n_strains X window_len)
-            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + self.seed_array[:, t + self.init_length])  
+            past_inc = state.incidence.at[:, 0].set(
+                state.incidence[:, 0] + self.seed_array[:, t + self.init_length]
+            )
             # Incidence convolved with generation (vector of length n_strains)
             contributions = (densities * past_inc).sum(axis=1)
             # Infection rate (vector of length n_strains)
             target_inf_rates = contributions * proc_val * mob_val * rel_infect / self.pop
             # Ceiling in case of very high incidence rates within a given day (vector of length n_strains)
-            actual_inf_rate = 1.0 - jnp.exp( -target_inf_rates)  
+            actual_inf_rate = 1.0 - jnp.exp(-target_inf_rates)
             # Effective susceptibles (array of shape n_strains X 2**n_strains)
             effect_suscepts = suscept_levels * state.suscept
             # Apply infection rates across susceptible categories (array of shape n_strains X 2**n_strains)
@@ -315,7 +320,7 @@ class MultiStrainModel:
         icu_ar: float,
         cross_immunity: float,
         seed_rates: List[float],
-        relinfect: List[float],
+        relinfect: Optional[List[float]],
         **kwargs,
     ) -> ModelResult:
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
@@ -323,7 +328,7 @@ class MultiStrainModel:
             seed_rate = seed_rates[s]
             strain_start = int(self.epoch.dti_to_index(self.seed_times[s])) + self.init_length
             strain_end = strain_start + self.seed_duration
-            self.seed_array = self.seed_array.at[s, strain_start : strain_end].set(seed_rate)  
+            self.seed_array = self.seed_array.at[s, strain_start:strain_end].set(seed_rate)
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
         outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, relinfect, **kwargs)
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])

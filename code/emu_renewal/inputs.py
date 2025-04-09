@@ -286,21 +286,29 @@ def get_standard_priors(n_strains) -> Dict[str, dist.Distribution]:
         The prior distributions
     """
     loaded_priors = yml.safe_load(open(DATA_PATH / "config/priors.yml", "r"))
+
     duration_priors = {
         k: dist.TruncatedNormal(v["mean"], v["sd"], low=1.0, high=v["mean"] * 2.5)
         for k, v in loaded_priors["durations"].items()
     }
+
     beta_priors = {k: dist.Beta(v["alpha"], v["beta"]) for k, v in loaded_priors["beta"].items()}
+
     other_priors = {
         "rt_init": dist.Normal(0.0, 0.5),
         "shared_dispersion": dist.HalfNormal(0.5),
     }
-    seed_priors = {
-        "seed_rates": dist.Uniform(jnp.repeat(1.0, n_strains), jnp.repeat(100.0, n_strains))
-    }
-    relinfect_priors = {
-        "relinfect": dist.TruncatedNormal(jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5)
-    }
+
+    seed_low_lim = jnp.repeat(1.0, n_strains)
+    seed_up_lim = jnp.repeat(100.0, n_strains)
+    seed_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
+    
+    if n_strains > 1:
+        infect_dist = dist.TruncatedNormal(jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5)
+    else:
+        infect_dist = None
+    relinfect_priors = {"relinfect": infect_dist}
+    
     return duration_priors | beta_priors | other_priors | seed_priors | relinfect_priors
 
 
