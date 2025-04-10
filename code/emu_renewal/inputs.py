@@ -314,14 +314,19 @@ def get_standard_priors(n_strains, hosp_out_type) -> Dict[str, dist.Distribution
     irrelvant_dur_priors = {k: 1.0 for k in duration_priors if k not in relevant_dur_priors}
 
     beta_priors = {k: dist.Beta(v["alpha"], v["beta"]) for k, v in loaded_priors["beta"].items()}
+    if "icu_" not in hosp_out_type:
+        beta_priors["icu_ar"] = 1.0
+    if hosp_out_type == "":
+        beta_priors["har"] = 1.0
+        beta_priors["icu_ar"] = 1.0
 
     other_priors = {
         "rt_init": dist.Normal(0.0, 0.5),
         "shared_dispersion": dist.HalfNormal(0.5),
     }
 
-    seed_low_lim = jnp.repeat(1.0, n_strains)
-    seed_up_lim = jnp.repeat(100.0, n_strains)
+    seed_low_lim = jnp.repeat(10.0, n_strains)
+    seed_up_lim = jnp.repeat(200.0, n_strains)
     seed_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
 
     if n_strains > 1:
