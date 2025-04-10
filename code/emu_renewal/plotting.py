@@ -12,6 +12,7 @@ from numpyro import distributions as dist
 from matplotlib import pyplot as plt
 import pycountry
 from os import listdir as ls
+import os
 
 from emu_renewal.inputs import get_google_mobility, get_apple_mobility
 from emu_renewal.calibration import StandardCalib
@@ -209,13 +210,12 @@ def plot_proc_comparison(
     for c, country in enumerate(countries):
         c_ax = flat_axes[c]
         c_ax.set_title(pycountry.countries.lookup(country).name)
-        analyses = ls(path / country)
+        analyses = [i[1] for i in os.walk(path / country)][0]
         for a, analysis in enumerate(analyses):
             quants = procs[country][analysis].quantile([0.05, 0.5, 0.95], axis=1).T
             c_ax.plot(quants.index, quants[0.5], color=colours[a], label=analysis, linewidth=2.0)
             c_ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.2, color=colours[a])
-        if c == 0:
-            c_ax.legend()
+        c_ax.legend()
         plt.setp(c_ax.xaxis.get_majorticklabels(), rotation=70)
         if c_ax.get_subplotspec().rowspan.stop != n_rows:
             c_ax.set_xticklabels([])

@@ -10,6 +10,7 @@ import arviz as az
 import pickle
 from numpyro import infer
 from os import listdir as ls
+import os
 
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
@@ -243,7 +244,7 @@ def get_country_procs(
     for c in countries:
         country_path = path / c
         c_procs = []
-        analyses = ls(country_path)
+        analyses = [i[1] for i in os.walk(country_path)][0]
         for a in analyses:
             c_procs.append(pd.read_hdf(country_path / a / "spaghetti.h5")["process"])
         procs[c] = pd.concat(c_procs, keys=analyses, axis=1)
