@@ -57,6 +57,7 @@ def plot_post_prior_comparison(
     idata: az.InferenceData,
     req_vars: List[str],
     priors: List[dist.Distribution],
+    iso3: str,
     req_grid=None,
     req_size=None,
 ) -> plt.figure:
@@ -73,6 +74,7 @@ def plot_post_prior_comparison(
     Returns:
         The figure
     """
+    country = pycountry.countries.lookup(iso3).name
     grid = req_grid if req_grid else [1, len(req_vars)]
     size = req_size if req_size else None
     fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=size)
@@ -88,6 +90,7 @@ def plot_post_prior_comparison(
                 y_vals = np.exp(distri.log_prob(x_vals[:, None])[:, 0])
             y_vals *= ax.get_ylim()[1] / max(y_vals)
             ax.fill_between(x_vals, y_vals, color="k", alpha=0.2, linewidth=2)
+    ax.figure.suptitle(country, fontsize=30, y=1.0)
     return ax.figure.tight_layout()
 
 
