@@ -273,7 +273,9 @@ def plot_kde_comparison(
         filename: Filename stem for saving
         alpha: Depth of the shading of the patches
     """
-    kde_fig, axes = plt.subplots(4, 4, figsize=[10, 10])
+    n_cols = 4
+    n_rows = int(np.ceil(len(data) / n_cols))
+    kde_fig, axes = plt.subplots(n_rows, n_cols, figsize=[10, 10])
     kde_fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
     for c, (country, c_likes) in enumerate(data.items()):
@@ -283,8 +285,6 @@ def plot_kde_comparison(
         sns.kdeplot(c_likes, fill=True, ax=c_ax, palette=colours, alpha=alpha)
         c_ax.set_yticks([])
         c_ax.set_ylabel("")
-        if c != 0:
-            flat_axes[c].get_legend().remove()
     kde_fig.tight_layout()
     kde_fig.savefig(f"{filename}_fig.svg")
 
