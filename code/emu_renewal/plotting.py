@@ -211,8 +211,9 @@ def plot_proc_comparison(
     }
     colour_map = dict(zip(label_map.keys(), colours[:len(label_map)]))
 
-    n_rows = 6
-    proc_fig, axes = plt.subplots(n_rows, 4, figsize=[10, 10])
+    n_cols = 4
+    n_rows = int(np.ceil(len(countries) / n_cols))
+    proc_fig, axes = plt.subplots(n_rows, n_cols, figsize=[10, 10])
     proc_fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
     for c, country in enumerate(countries):
