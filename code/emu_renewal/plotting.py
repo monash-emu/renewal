@@ -203,7 +203,15 @@ def plot_proc_comparison(
         title: Title to go above the whole figure
         path: Path to the analyses
     """
-    n_rows = 4
+    label_map = {
+        "no_mob": "none",
+        "weighted_google_1exp": "g",
+        "fb_exp": "fb",
+        "weighted_apple_1exp": "a",
+    }
+    colour_map = dict(zip(label_map.keys(), colours[:len(label_map)]))
+
+    n_rows = 6
     proc_fig, axes = plt.subplots(n_rows, 4, figsize=[10, 10])
     proc_fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
@@ -213,7 +221,7 @@ def plot_proc_comparison(
         analyses = [i[1] for i in os.walk(path / country)][0]
         for a, analysis in enumerate(analyses):
             quants = procs[country][analysis].quantile([0.05, 0.5, 0.95], axis=1).T
-            c_ax.plot(quants.index, quants[0.5], color=colours[a], label=analysis, linewidth=2.0)
+            c_ax.plot(quants.index, quants[0.5], color=colour_map[analysis], label=label_map[analysis], linewidth=2.0)
             c_ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.2, color=colours[a])
         c_ax.legend()
         plt.setp(c_ax.xaxis.get_majorticklabels(), rotation=70)

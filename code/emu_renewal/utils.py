@@ -5,7 +5,8 @@ import itertools
 import numpy as np
 from numpyro import infer
 from jax import numpy as jnp
-
+import pycountry
+import pycountry_convert as pc
 
 def format_date_for_str(
     date: datetime,
@@ -184,3 +185,13 @@ def melt_df_except_first_level(
     """
     cols = set(df.columns.get_level_values(0))
     return pd.concat([df[c].melt()["value"] for c in cols], axis=1, keys=cols)
+
+
+def group_countries_by_continent(countries):
+    continents = ["AF", "EU", "AS", "SA", "NA"]
+    cont_map = {cont: [] for cont in continents}
+    for c in countries:
+        iso2 = pycountry.countries.lookup(c).alpha_2
+        continent = pc.country_alpha2_to_continent_code(iso2)
+        cont_map[continent].append(c)
+    return cont_map
