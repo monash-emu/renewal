@@ -143,7 +143,6 @@ def plot_progress_priors(priors, xmax, leg=True):
 
 def plot_multianalysis_fit(
     country: str,
-    analyses: List[str],
     targets: Dict[str, pd.Series],
     spaghs: Dict[str, pd.DataFrame],
 ) -> plt.Figure:
@@ -152,7 +151,6 @@ def plot_multianalysis_fit(
 
     Args:
         country: Name of the country
-        analyses: The analyses that were run
         targets: The calibration targets
         spaghs: The spaghettis
 
@@ -163,11 +161,10 @@ def plot_multianalysis_fit(
     warnings.filterwarnings("ignore", message=msg)
     pd.options.plotting.backend = "matplotlib"
     n_targs = len(targets)
-    n_analyses = len(analyses)
-    fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 15], sharex=True, sharey="row")
+    fig, axes = plt.subplots(n_targs, len(spaghs), figsize=[12, 15], sharex=True, sharey="row")
     country_name = pycountry.countries.lookup(country).name
     fig.suptitle(country_name, fontsize=18, y=1.0)
-    for a, analysis in enumerate(analyses):
+    for a, analysis in enumerate(spaghs):
         a_spaghs = spaghs[analysis]
         for o, out in enumerate(targets):
             ax = axes[o, a]
