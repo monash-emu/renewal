@@ -163,7 +163,7 @@ def plot_multianalysis_fit(
     n_targs = len(targets)
     fig, axes = plt.subplots(n_targs, len(spaghs), figsize=[12, 15], sharex=True, sharey="row")
     country_name = pycountry.countries.lookup(country).name
-    fig.suptitle(country_name, fontsize=18, y=1.0)
+    fig.suptitle(country_name, fontsize=30, y=1.0)
     for a, analysis in enumerate(spaghs):
         a_spaghs = spaghs[analysis]
         for o, out in enumerate(targets):
@@ -174,9 +174,9 @@ def plot_multianalysis_fit(
             ax.plot(target.index, target, linewidth=0.0, marker=".")
             plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
             if o == 0:
-                ax.set_title(analysis, fontsize=10)
+                ax.set_title(analysis, fontsize=22)
             if a == 0:
-                ax.set_ylabel(out, fontsize=10)
+                ax.set_ylabel(out, fontsize=18)
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)
     return fig
