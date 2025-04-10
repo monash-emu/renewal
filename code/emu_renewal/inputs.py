@@ -155,12 +155,12 @@ def get_country_hosps(
     if not filt_admits.empty:
         return filt_admits, "weekly_admissions"
     elif not filt_occup.empty:
-        weekly_occup = filt_occup.rolling(7).mean()[::7]
+        weekly_occup = filt_occup.rolling(7).mean()[::7].dropna()
         return weekly_occup, "occupancy"
     elif not filt_icu_admits.empty:
         return filt_icu_admits, "icu_weekly_admissions"
     elif not filt_icu_occup.empty:
-        weekly_icu_occup = filt_icu_occup.rolling(7).mean()[::7]
+        weekly_icu_occup = filt_icu_occup.rolling(7).mean()[::7].dropna()
         return weekly_icu_occup, "icu_occupancy"
     else:
         return None, ""
@@ -742,8 +742,8 @@ def cosine_function(t, start, end):
     return np.piecewise(t, conditions, functions)
 
 
-def get_cosine_intercept(var_prop, offset):
-    num_index = [t.timestamp() for t in var_prop.index]
+def get_cosine_intercept(var_prop, offset, init_offset=0):
+    num_index = [t.timestamp() - init_offset for t in var_prop.index]
     params, _ = curve_fit(cosine_function, num_index, var_prop, p0=[num_index[0], num_index[-1]])
     date = (DT_REF_DATE + timedelta(seconds=params[0])).date()
     return datetime.combine(date, datetime.min.time()) - timedelta(offset)

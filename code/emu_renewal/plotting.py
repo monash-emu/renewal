@@ -73,9 +73,6 @@ def plot_post_prior_comparison(
     Returns:
         The figure
     """
-    req_size = [10, 40]
-    n_rows = int(np.ceil(len(priors) / 2))
-    req_size = [n_rows, 2]
     grid = req_grid if req_grid else [1, len(req_vars)]
     size = req_size if req_size else None
     fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=size)
