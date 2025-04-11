@@ -1,9 +1,7 @@
 import pandas as pd
 from datetime import datetime
-from functools import partial
 import itertools
 import numpy as np
-from numpyro import infer
 from jax import numpy as jnp
 import pycountry
 import pycountry_convert as pc
@@ -115,29 +113,6 @@ def adjust_summary_cols(summary):
     summary = summary.drop(["mcse_mean", "mcse_sd"], axis=1)
     summary.columns = summary.columns.str.capitalize()
     return summary
-
-
-def custom_init(site=None, radius=2.0, n_proc=0):
-    """
-    Initialize a numpyro MCMC run, returning 0.0 for "proc" (random process values),
-    otherwise defaulting to init_to_uniform(radius)
-
-    """
-    if site is None:
-        return partial(custom_init, radius=radius, n_proc=n_proc)
-
-    if (
-        site["type"] == "sample"
-        and not site["is_observed"]
-        and not site["fn"].support.is_discrete
-    ):
-        if site["value"] is not None:
-            return site["value"]
-        else:
-            if site["name"] == "proc":
-                return jnp.zeros(n_proc)
-            else:
-                return infer.init_to_uniform(site, radius)
 
 
 def get_combs(n_cats: int) -> np.ndarray:
