@@ -191,34 +191,34 @@ def get_var_country_data(
 
 
 def process_raw_google_mobility(
-    country: str,
+    iso3: str,
 ) -> pd.DataFrame:
     """Load raw Google mobility data and process for storing.
 
     Args:
-        country: Name of country of interest
+        iso3: Country identifier
 
     Returns:
         The data
     """
     years = range(2020, 2023)
-    iso2 = pycountry.countries.lookup(country).alpha_2
-    data_files = [
-        pd.read_csv(RAW_MOB_PATH / f"{y}_{iso2}_Region_Mobility_Report.csv", index_col="date")
-        for y in years
-    ]
+    iso2 = pycountry.countries.lookup(iso3).alpha_2
+    file_end = f"_{iso2}_Region_Mobility_Report.csv"
+    data_files = [pd.read_csv(RAW_MOB_PATH / (str(y) + file_end), index_col="date") for y in years]
     all_data = pd.concat(data_files)
     all_data.index = pd.to_datetime(all_data.index)
-    nat_data = all_data.loc[
-        pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])
-    ]  # The rows at the national level
-    nat_data = nat_data[
-        [c for c in nat_data.columns if "change_from_baseline" in c]
-    ]  # The mobility columns
-    nat_data = nat_data.rename(
-        lambda c: c.replace("_percent_change_from_baseline", ""), axis=1
-    )  # Simplify column naming
-    nat_data = 1.0 + nat_data / 100.0  # Convert from percentage reduction to ratio
+
+    # The rows at the national level
+    nat_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]
+    
+    # The mobility columns
+    nat_data = nat_data[[c for c in nat_data.columns if "change_from_baseline" in c]]
+    
+    # Simplify column naming
+    nat_data = nat_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)
+    
+    # Convert from percentage reduction to ratio
+    nat_data = 1.0 + nat_data / 100.0  
     return nat_data.sort_index()
 
 
