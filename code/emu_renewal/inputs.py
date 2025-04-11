@@ -248,12 +248,15 @@ def get_filtered_seroprev(
     start: datetime,
     end: datetime,
 ) -> pd.Series:
-    """Filter the SeroTracker data according
-    to our choices about what constitutes good
-    enough data for including in the calibration targets.
+    """Filter the SeroTracker data according to our choices 
+    about what constitutes good enough data 
+    for including in the calibration targets.
+    Don't use seroprevalence for Australia,
+    because it had reached high levels
+    by the time of analysis.
 
     Args:
-        iso3: Code for the country of interest
+        iso3: Country identifier
         start: Start date of analysis
         end: End date of analysis
 
@@ -270,33 +273,38 @@ def get_filtered_seroprev(
     n_filt = data["denominator_value"] > 599
     all_filt = time_filt & country_filt & nat_filt & type_filt & unity_filt & n_filt
     filtered_data = data.loc[all_filt, "serum_pos_prevalence"]
-    if filtered_data.index.has_duplicates:
-        # Drops 2 of 3 results for Mexico on the same date (keeping the first and largest)
-        filtered_data = filtered_data[[not i for i in filtered_data.index.duplicated()]]
     if iso3 == "AUS":
         return pd.Series([])
+    elif filtered_data.index.has_duplicates:
+        # Drops 2 of 3 estimates for Mexico on the same date (keeping the first and largest)
+        return filtered_data[[not i for i in filtered_data.index.duplicated()]]
     else:
         return filtered_data
 
 
-def get_standard_priors(n_strains, hosp_out_type) -> Dict[str, dist.Distribution]:
+def get_standard_priors(
+    n_strains: int,
+    hosp_out_type: str,
+) -> Dict[str, dist.Distribution]:
     """Load the priors from the yml and combine with
     standard hard-coded priors.
 
     Args:
         n_strains: The number of strains implemented
+        hosp_out_type: The hospital-related indicator name
+            Must be one of the keys to relevant_duration_priors below
 
     Returns:
         The prior distributions
     """
     loaded_priors = yml.safe_load(open(DATA_PATH / "config/priors.yml", "r"))
 
+    # Durations
     duration_priors = {
         k: dist.TruncatedNormal(v["mean"], v["sd"], low=1.0, high=v["mean"] * 2.5)
         for k, v in loaded_priors["durations"].items()
     }
-
-    universal_durations = [
+    universal_prior_names = [
         "gen_mean",
         "gen_sd",
         "report_mean",
@@ -304,17 +312,18 @@ def get_standard_priors(n_strains, hosp_out_type) -> Dict[str, dist.Distribution
         "death_mean",
         "death_sd",
     ]
-    relevant_duration_priors = {
+    rel_durations_dict = {
         "weekly_admissions": ["admit_mean", "admit_sd"],
         "occupancy": ["admit_mean", "admit_sd", "stay_mean", "stay_sd"],
         "icu_admissions": ["icu_admit_mean", "icu_admit_sd"],
         "icu_occupancy": ["icu_admit_mean", "icu_admit_sd", "icu_stay_mean", "icu_stay_sd"],
         "": [],
     }
-    relevant_dur_priors = relevant_duration_priors[hosp_out_type] + universal_durations
-    relevant_dur_priors = {k: v for k, v in duration_priors.items() if k in relevant_dur_priors}
-    irrelvant_dur_priors = {k: 1.0 for k in duration_priors if k not in relevant_dur_priors}
+    duration_prior_names = rel_durations_dict[hosp_out_type] + universal_prior_names
+    rel_dur_priors = {k: v for k, v in duration_priors.items() if k in duration_prior_names}
+    irrel_dur_priors = {k: 1.0 for k in duration_priors if k not in rel_dur_priors}
 
+    # Proportions
     beta_priors = {k: dist.Beta(v["alpha"], v["beta"]) for k, v in loaded_priors["beta"].items()}
     if "icu_" not in hosp_out_type:
         beta_priors["icu_ar"] = 1.0
@@ -322,29 +331,20 @@ def get_standard_priors(n_strains, hosp_out_type) -> Dict[str, dist.Distribution
         beta_priors["har"] = 1.0
         beta_priors["icu_ar"] = 1.0
 
-    other_priors = {
+    # Variant-related
+    seed_low_lim = jnp.repeat(10.0, n_strains)
+    seed_up_lim = jnp.repeat(200.0, n_strains)
+    seed_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
+    infect_dist = dist.TruncatedNormal(jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5) if n_strains > 1 else None
+    infect_priors = {"relinfect": infect_dist}
+
+    # Miscellaneous
+    misc_priors = {
         "rt_init": dist.Normal(0.0, 0.5),
         "shared_dispersion": dist.HalfNormal(0.5),
     }
 
-    seed_low_lim = jnp.repeat(10.0, n_strains)
-    seed_up_lim = jnp.repeat(200.0, n_strains)
-    seed_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
-
-    if n_strains > 1:
-        infect_dist = dist.TruncatedNormal(jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5)
-    else:
-        infect_dist = None
-    relinfect_priors = {"relinfect": infect_dist}
-
-    return (
-        relevant_dur_priors
-        | irrelvant_dur_priors
-        | beta_priors
-        | other_priors
-        | seed_priors
-        | relinfect_priors
-    )
+    return rel_dur_priors | irrel_dur_priors | beta_priors | misc_priors | seed_priors | infect_priors
 
 
 def get_worldbank_national_pop(
@@ -357,18 +357,16 @@ def get_worldbank_national_pop(
     for country of interest.
 
     Args:
-        iso3: ISO3 code for country
+        iso3: Country identifier
 
     Returns:
-        Population data by country ISO3 code
+        Population data by country ISO3 code    
     """
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
     dtype = {"2020 [YR2020]": float}
     col = "Country Code"
-    data = pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype)[
-        f"{year} [YR{year}]"
-    ].dropna()
-    return data[iso3]
+    year_str = f"{year} [YR{year}]"
+    return pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype).loc[iso3, year_str]
 
 
 def get_undesa_national_pop(iso3: str) -> float:
