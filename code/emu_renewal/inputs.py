@@ -369,67 +369,65 @@ def get_worldbank_national_pop(
     return pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype).loc[iso3, year_str]
 
 
-def get_undesa_national_pop(iso3: str) -> float:
-    """Get UN-DESA population estimate for a single country, for 2020
-
-    Sourced from
-    https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/EXCEL_FILES/2_Population/WPP2024_POP_F01_1_POPULATION_SINGLE_AGE_BOTH_SEXES.xlsx
+def get_apple_mobility(
+    iso3: str,
+) -> pd.DataFrame:
+    """Get all fields of the Apple mobility data.
 
     Args:
-        iso3: ISO3 country code
+        iso3: Country identifier
 
     Returns:
-        2020 UNDESA population total for country
+        The data
     """
-    csv_path = DATA_PATH / "population/undesa_pops_2020.csv"
-    data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
-    return data.loc[iso3, "population"]
-
-
-def get_apple_mobility(iso3: str) -> pd.DataFrame:
-    all_data = pd.read_csv(
-        DATA_PATH / "mobility/apple-mobility-test_apple_latest_apple-mobility-trends-report.csv",
-        low_memory=False,
-    )
+    filename = "mobility/apple-mobility-test_apple_latest_apple-mobility-trends-report.csv"
+    all_data = pd.read_csv(DATA_PATH / filename, low_memory=False)
     national_data = all_data.loc[all_data["country"].isnull()]
-    national_data.index = pd.MultiIndex.from_arrays(
-        [national_data["region"], national_data["transportation_type"]]
-    )
+    region_row = national_data["region"]
+    type_row = national_data["transportation_type"]
+    national_data.index = pd.MultiIndex.from_arrays([region_row, type_row])
     national_data = national_data.iloc[:, 6:].T
     national_data.index = pd.to_datetime(national_data.index)
-
     countries = national_data.columns.levels[0]
     crename_map = {
         "Republic of Korea": "South Korea",
         "Russia": "Russian Federation",
         "Turkey": "Türkiye",
     }
-    reverse_lookup = {
-        pycountry.countries.lookup(crename_map.get(c) or c).alpha_3: c for c in countries
-    }
-
+    reverse_lookup = {pycountry.countries.lookup(crename_map.get(c) or c).alpha_3: c for c in countries}
     country_df = national_data[reverse_lookup[iso3]].interpolate()
     country_df /= 100.0
     return country_df.rolling(7, center=True).mean().dropna()
 
 
 def get_google_mobility(
-    iso3,
+    iso3: str,
 ) -> pd.DataFrame:
-    """Get all the Google mobility fields.
+    """Get all fields of the Google mobility data.
 
     Args:
         iso3: Country identifier
 
     Returns:
-        The mobility data
+        The data
     """
-    g_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_gmob_data.csv", index_col=0)
+    filename = f"mobility/{iso3}_gmob_data.csv"
+    g_mob = pd.read_csv(DATA_PATH / filename, index_col=0)
     g_mob.index = pd.to_datetime(g_mob.index)
     return g_mob.rolling(7, center=True).mean().dropna()
 
 
-def get_fb_mobility(iso3):
+def get_fb_mobility(
+    iso3,
+) -> pd.Series:
+    """Get the single field of the Facebook mobility data.
+
+    Args:
+        iso3: _description_
+
+    Returns:
+        _description_
+    """
     fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_fbmob_data.csv", index_col=0)["0"]
     fb_mob.index = pd.to_datetime(fb_mob.index)
     return 1.0 + fb_mob.rolling(7, center=True).mean().dropna()
