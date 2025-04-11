@@ -2,9 +2,9 @@ import pandas as pd
 from datetime import datetime
 import itertools
 import numpy as np
-from jax import numpy as jnp
 import pycountry
 import pycountry_convert as pc
+
 
 def format_date_for_str(
     date: datetime,

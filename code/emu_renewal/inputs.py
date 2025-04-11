@@ -85,42 +85,41 @@ DT_REF_DATE = datetime(1970, 1, 1)
 
 def get_indicator_series_from_who_data(
     indicator: str,
-    country: str,
+    iso3: str,
 ) -> pd.Series:
     """Get WHO estimates for single indicator from the original raw data.
 
     Args:
         indicator: Name of the indicator
-        country: Name of the country
+        iso3: Country identifier
 
     Returns:
         The data
     """
     who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
-    select_data = who_data.loc[
-        who_data["Country_code"] == pycountry.countries.lookup(country).alpha_2
-    ]
+    iso2 = pycountry.countries.lookup(iso3).alpha_2
+    select_data = who_data.loc[who_data["Country_code"] == iso2]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format=TEXT_DATE_FORMAT)
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
 
-def get_hosp_series_from_owid_data(
+def get_owid_hosp_series(
     indicator: str,
-    country: str,
+    iso3: str,
 ) -> pd.Series:
     """Get OWID hospitalisation-related estimates for single indicator
     from the original raw data.
 
     Args:
         indicator: Name of the indicator
-        country: Country name or code
+        iso3: Country identifier
 
     Returns:
         The data
     """
     hosp = pd.read_csv(DATA_PATH / "owid/owid_hosp.csv", index_col="date")
     hosp.index = pd.to_datetime(hosp.index)
-    iso3 = pycountry.countries.lookup(country).alpha_3
+    iso3 = pycountry.countries.lookup(iso3).alpha_3
     data = hosp[hosp["iso_code"] == iso3]
     return data.loc[data["indicator"] == indicator, "value"]
 
@@ -130,9 +129,12 @@ def get_country_hosps(
     start: datetime,
     end: datetime,
 ) -> Tuple[Union[pd.Series, None], str]:
-    """Get a single hospitalisation target for a specified country,
+    """Get only one hospitalisation target for a specified country,
     hierarchically choosing the preferred target,
     or returning None and empty string if nothing available.
+    The "best" indicator is chosen hierarchically,
+    such that a hospital indicator beats a ICU indicator
+    and daily admissions beat occupancy.
 
     Args:
         country: Country identifier
@@ -144,13 +146,13 @@ def get_country_hosps(
             - The calibration data for comparison
             - The name of the indicator for comparison
     """
-    admits = get_hosp_series_from_owid_data("Weekly new hospital admissions", country)
+    admits = get_owid_hosp_series("Weekly new hospital admissions", country)
     filt_admits = admits[(start < admits.index) & (admits.index < end)]
-    occup = get_hosp_series_from_owid_data("Daily hospital occupancy", country)
+    occup = get_owid_hosp_series("Daily hospital occupancy", country)
     filt_occup = occup[(start < occup.index) & (occup.index < end)]
-    icu_admits = get_hosp_series_from_owid_data("Weekly new ICU admissions", country)
+    icu_admits = get_owid_hosp_series("Weekly new ICU admissions", country)
     filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
-    icu_occup = get_hosp_series_from_owid_data("Daily ICU occupancy", country)
+    icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
     filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
     if not filt_admits.empty:
         return filt_admits, "weekly_admissions"
@@ -180,7 +182,7 @@ def get_var_country_data(
     Returns:
         The data
     """
-    offic_countries = ["CZE"]  # Countries needing official name for Nextclade data
+    offic_countries = ["CZE"]  # Country needing official name for Nextclade data
     pycountry_obj = pycountry.countries.lookup(country)
     country_name = pycountry_obj.official_name if country in offic_countries else pycountry_obj.name
     data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[country_name]
