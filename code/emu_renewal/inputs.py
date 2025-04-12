@@ -76,7 +76,7 @@ VAR_NAMES = [
     "24I.Omicron",
 ]
 
-ANALYSIS_TYPES = ["no_mob", "weighted_google_1exp", "fb_exp", "weighted_apple_1exp"]
+ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_mob", "a_mob"]
 
 OTHER_DEFAULT_END = datetime(2021, 6, 1)
 CASES_START = datetime(2020, 6, 1)

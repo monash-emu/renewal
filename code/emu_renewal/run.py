@@ -214,7 +214,7 @@ def get_mobility_provider(
         mob = get_fb_mobility(iso3)
     elif mob_type == "a_mob":
         mob = get_apple_mobility(iso3)
-    n_domains = len(mob.columns)
+    n_domains = len(mob.columns) if isinstance(mob, pd.DataFrame) else None
     smoothed_mob = mob.rolling(7, center=True).mean().dropna()
 
     # Priors

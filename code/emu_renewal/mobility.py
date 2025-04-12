@@ -14,7 +14,7 @@ class MobilityProvider:
 
     def reconcile_times(self, start: datetime, end: datetime):
         """Do any appropriate slicing/extension required based on the supplied
-        (model) start and end times.  Called once at start of calibration.
+        (model) start and end times. Called once at start of calibration.
         Any further calls into the MobilityProvider will use index times rather
         than datetimes, where start=0
 
@@ -67,18 +67,16 @@ class WeightedExpMobilityProvider(MobilityProvider):
         if start < self.mobility_df.index[0]:
             extend_mob_start = (self.mobility_df.index[0] - start).days
             warn(f"Mobility series starts later than model, extending by {extend_mob_start} days")
-            extension = jnp.repeat(
-                self.mobility_df.iloc[0].to_numpy()[:, None], extend_mob_start, 1
-            ).T
+            start_vals = self.mobility_df.iloc[0].to_numpy()[:, None]
+            extension = jnp.repeat(start_vals, extend_mob_start, 1).T
             mob_array = jnp.concat([extension, self.mobility_df.to_numpy()])
         else:
             mob_array = jnp.array(self.mobility_df.loc[start:])
         if end > self.mobility_df.index[-1]:
             extend_mob_end = (end - self.mobility_df.index[-1]).days
             warn(f"Mobility series ends earlier than model, extending by {extend_mob_end} days")
-            extension = jnp.repeat(
-                self.mobility_df.iloc[-1].to_numpy()[:, None], extend_mob_end, 1
-            ).T
+            end_vals = self.mobility_df.iloc[-1].to_numpy()[:, None]
+            extension = jnp.repeat(end_vals, extend_mob_end, 1).T
             mob_array = jnp.concat([mob_array, extension])
 
         self.mobility_arr = mob_array
@@ -122,20 +120,17 @@ class SingleSeriesMobilityProvider(MobilityProvider):
         if start < self.mobility_series.index[0]:
             extend_mob_start = (self.mobility_series.index[0] - start).days
             warn(f"Mobility series starts later than model, extending by {extend_mob_start} days")
-            mob_array = jnp.concat(
-                [
-                    jnp.repeat(self.mobility_series.iloc[0], extend_mob_start),
-                    jnp.array(self.mobility_series),
-                ]
-            )
+            start_val = self.mobility_series.iloc[0]
+            extension = jnp.repeat(start_val, extend_mob_start)
+            mob_array = jnp.concat([extension, jnp.array(self.mobility_series)])
         else:
             mob_array = jnp.array(self.mobility_series.loc[start:])
         if end > self.mobility_series.index[-1]:
             extend_mob_end = (end - self.mobility_series.index[-1]).days
             warn(f"Mobility series ends earlier than model, extending by {extend_mob_end} days")
-            mob_array = jnp.concat(
-                [mob_array, jnp.repeat(self.mobility_series.iloc[-1], extend_mob_end)]
-            )
+            end_val = self.mobility_series.iloc[-1]
+            extension = jnp.repeat(end_val, extend_mob_end)
+            mob_array = jnp.concat([mob_array, extension])
 
         self.mobility_arr = mob_array
 
@@ -161,4 +156,4 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         return self.priors
 
     def get_parameterised_mobility(self, mob_exp, **kwargs) -> Array:
-        return self.mobility_arr**mob_exp
+        return self.mobility_arr ** mob_exp
