@@ -205,9 +205,9 @@ def plot_proc_comparison(
     """
     label_map = {
         "no_mob": "none",
-        "weighted_google_1exp": "g",
-        "fb_exp": "fb",
-        "weighted_apple_1exp": "a",
+        "g_mob": "g",
+        "fb_mob": "fb",
+        "a_mob": "a",
     }
     colour_map = dict(zip(label_map.keys(), colours[:len(label_map)]))
 

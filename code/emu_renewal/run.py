@@ -191,36 +191,46 @@ def get_logger(log_file: Path = None):
     return root_logger
 
 
-def get_mobility_provider(iso3: str, mob_analysis_type: str) -> mobility.MobilityProvider:
+def get_mobility_provider(
+    iso3: str, 
+    mob_type: str,
+) -> mobility.MobilityProvider:
+    """Get the appropriate mobility provider object.
 
-    if mob_analysis_type == "no_mob":
-        return mobility.NoMobilityProvider()
+    Args:
+        iso3: Country identifier
+        mob_type: Mobility approach
 
-    elif mob_analysis_type == "weighted_google_1exp":
+    Returns:
+        The mobility provider
+    """
+
+    # Data processing
+    if mob_type == "no_mob":
+        mob = pd.Series([])
+    elif mob_type == "g_mob":
         mob = get_google_mobility(iso3)
-        nseries = len(mob.columns)
-        priors = {
-            "mob_weights": dist.Uniform(np.zeros(nseries), np.ones(nseries)),
-            "mob_exp": dist.Uniform(0.0, 2.0),
-        }
-        return mobility.WeightedExpMobilityProvider(mob, priors)
-
-    elif mob_analysis_type == "fb_exp":
+    elif mob_type == "fb_mob":
         mob = get_fb_mobility(iso3)
-        priors = {"mob_exp": dist.Uniform(0.0, 2.0)}
-        return mobility.SingleSeriesExpMobilityProvider(mob, priors)
-
-    elif mob_analysis_type == "weighted_apple_1exp":
+    elif mob_type == "a_mob":
         mob = get_apple_mobility(iso3)
-        nseries = len(mob.columns)
-        priors = {
-            "mob_weights": dist.Uniform(np.zeros(nseries), np.ones(nseries)),
-            "mob_exp": dist.Uniform(0.0, 2.0),
-        }
-        return mobility.WeightedExpMobilityProvider(mob, priors)
+    n_domains = len(mob.columns)
+    smoothed_mob = mob.rolling(7, center=True).mean().dropna()
 
+    # Priors
+    exp_prior = {"mob_exp": dist.Uniform(0.0, 2.0)}
+    if mob_type == "no_mob":
+        return mobility.NoMobilityProvider()
+    elif mob_type == "g_mob":
+        weight_prior = {"mob_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
+        return mobility.WeightedExpMobilityProvider(smoothed_mob, weight_prior | exp_prior)
+    elif mob_type == "fb_mob":
+        return mobility.SingleSeriesExpMobilityProvider(smoothed_mob, exp_prior)
+    elif mob_type == "a_mob":
+        weight_prior = {"mob_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
+        return mobility.WeightedExpMobilityProvider(smoothed_mob, weight_prior | exp_prior)
     else:
-        raise Exception(f"No provider available for analysis type {mob_analysis_type}")
+        raise Exception(f"No provider available for analysis type {mob_type}")
 
 
 def run_single_country(

@@ -370,6 +370,40 @@ def get_worldbank_national_pop(
     return pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype).loc[iso3, year_str]
 
 
+def get_google_mobility(
+    iso3: str,
+) -> pd.DataFrame:
+    """Get all fields of the Google mobility data.
+
+    Args:
+        iso3: Country identifier
+
+    Returns:
+        The data
+    """
+    filename = f"mobility/{iso3}_gmob_data.csv"
+    g_mob = pd.read_csv(DATA_PATH / filename, index_col=0)
+    g_mob.index = pd.to_datetime(g_mob.index)
+    return g_mob
+
+
+def get_fb_mobility(
+    iso3,
+) -> pd.Series:
+    """Get the single field of the Facebook mobility data.
+
+    Args:
+        iso3: Country identifier
+
+    Returns:
+        The data
+    """
+    filename = f"mobility/{iso3}_fbmob_data.csv"
+    fb_mob = pd.read_csv(DATA_PATH / filename, index_col=0)["0"]
+    fb_mob.index = pd.to_datetime(fb_mob.index)
+    return 1.0 + fb_mob
+
+
 def get_apple_mobility(
     iso3: str,
 ) -> pd.DataFrame:
@@ -398,40 +432,7 @@ def get_apple_mobility(
     reverse_lookup = {pycountry.countries.lookup(crename_map.get(c) or c).alpha_3: c for c in countries}
     country_df = national_data[reverse_lookup[iso3]].interpolate()
     country_df /= 100.0
-    return country_df.rolling(7, center=True).mean().dropna()
-
-
-def get_google_mobility(
-    iso3: str,
-) -> pd.DataFrame:
-    """Get all fields of the Google mobility data.
-
-    Args:
-        iso3: Country identifier
-
-    Returns:
-        The data
-    """
-    filename = f"mobility/{iso3}_gmob_data.csv"
-    g_mob = pd.read_csv(DATA_PATH / filename, index_col=0)
-    g_mob.index = pd.to_datetime(g_mob.index)
-    return g_mob.rolling(7, center=True).mean().dropna()
-
-
-def get_fb_mobility(
-    iso3,
-) -> pd.Series:
-    """Get the single field of the Facebook mobility data.
-
-    Args:
-        iso3: _description_
-
-    Returns:
-        _description_
-    """
-    fb_mob = pd.read_csv(DATA_PATH / f"mobility/{iso3}_fbmob_data.csv", index_col=0)["0"]
-    fb_mob.index = pd.to_datetime(fb_mob.index)
-    return 1.0 + fb_mob.rolling(7, center=True).mean().dropna()
+    return country_df
 
 
 def get_country_vacc_data(
