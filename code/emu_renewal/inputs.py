@@ -1,3 +1,4 @@
+from typing import Union
 import pandas as pd
 from jax import numpy as jnp
 import numpy as np
@@ -438,35 +439,32 @@ def get_country_vacc_data(
 ) -> pd.DataFrame:
     """Get the initial course cumulative vaccination coverage
     data for a specific country.
-    *** No full dose vaccination coverage data available from OWID.
     Have substituted Germany for Switzerland because these two
     countries had almost identical profiles of vaccine doses
     administered per person in the early phases of the roll-out.
 
     Args:
-        iso3: ISO3 code for country
+        iso3: Country identifier
 
     Returns:
         The data
     """
     if iso3 == "KOR":
-        country_name = pycountry.countries.lookup(iso3).common_name
+        country = pycountry.countries.lookup(iso3).common_name
     elif iso3 == "CHE":
-        country_name = pycountry.countries.lookup("DEU").name
+        country = pycountry.countries.lookup("DEU").name
     else:
-        country_name = pycountry.countries.lookup(iso3).name
-    owid_vacc_filename = (
-        "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv"
-    )
-    data = pd.read_csv(DATA_PATH / owid_vacc_filename, index_col="Day")
+        country = pycountry.countries.lookup(iso3).name
+    filename = "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv"
+    data = pd.read_csv(DATA_PATH / filename, index_col="Day")
     data.index = pd.to_datetime(data.index)
     col_name = "People fully vaccinated (cumulative, per hundred)"
-    return data.loc[data["Entity"] == country_name, col_name]
+    return data.loc[data["Entity"] == country, col_name]
 
 
 def get_all_var_data() -> dict:
-    """Get all the downloaded NextClade data
-    for all strains listed in VAR_MAP.
+    """Get the downloaded NextClade data
+    for all strains listed in VAR_NAMES.
 
     Returns:
         Data in raw form
@@ -488,14 +486,14 @@ def get_country_vars(
     if iso3 == "CZE":
         country = pycountry.countries.lookup(iso3).official_name
     elif iso3 == "USA":
-        country = pycountry.countries.lookup(iso3).alpha_3
+        country = iso3
     else:
         country = pycountry.countries.lookup(iso3).name
     data = pd.DataFrame()
     for var in VAR_NAMES:
-        all_var_data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")
-        if country in all_var_data:
-            raw_data = all_var_data[country]
+        var_data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")
+        if country in var_data:
+            raw_data = var_data[country]
             dates = pd.to_datetime(raw_data["week"])
             vals = raw_data["cluster_sequences"]
             data[var] = pd.Series(vals, index=dates)
@@ -509,9 +507,10 @@ def find_relevant_vars(
 ) -> List[str]:
     """Find the variants that have a significant number of
     sequences before a particular date.
+    Not used by analysis code.
 
     Args:
-        data: The full country-specific data (returned by get_country_vars)
+        data: The full country data (returned by get_country_vars)
         threshold_seqs: The number of sequences to consider the variant relevant
 
     Returns:
@@ -542,16 +541,16 @@ def get_prealpha_prop(iso3, min_var_samples):
 
 def get_pre_alpha_vars(
     iso3: str,
-    min_samples: int = 5,
-    end_date: datetime = datetime(2021, 6, 30),
+    min_samples: int=5,
+    end_date: datetime=datetime(2021, 6, 30),
     min_obs=5,
-) -> pd.DataFrame:
+) -> Union[pd.DataFrame, None]:
     """Find the number of pre-Alpha variant samples
     and the total number of specimens, discarding
     data if zero or 100% pre-Alpha specimens.
 
     Args:
-        country: The country identifier
+        iso3: The country identifier
         min_samples: Minimum number of samples for including a date
         end_date: End date for extracting the data
         min_obs: Threshold for the number of dates available
@@ -559,7 +558,7 @@ def get_pre_alpha_vars(
 
     Returns:
         Number of pre-Alpha specimens, total specimens and
-            proportion pre-Alpha by date
+            proportion pre-Alpha by date - where available
     """
     pre_alpha_vars = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
     var_data = get_country_vars(iso3)
@@ -580,7 +579,19 @@ def get_pre_alpha_vars(
         return out_df
 
 
-def get_aust_omicron_vars(min_samples=5, min_prop=0.03):
+def get_aust_ba2_prop(
+    min_samples=5, 
+    min_prop=0.03,
+) -> pd.Series:
+    """Get the proportion BA.2 for Australia
+
+    Args:
+        min_samples: Minimum number of samples for inclusion of a date
+        min_prop: Minimum proportion positive for inclusion
+
+    Returns:
+        The data
+    """
     var_data = get_country_vars("AUS")
     var_data = var_data[var_data.sum(axis=1) >= min_samples]
     props = var_data.div(var_data.sum(axis=1), axis=0)
@@ -593,7 +604,7 @@ def get_continent_data(
 ) -> Dict[str, pd.DataFrame]:
     """Get the variant data for each country of
     a particular continent, ignoring the (small) pycountry
-    countries that don't have a continent.
+    countries that don't have an associated continent.
 
     Args:
         continent: The continent of interest
@@ -601,10 +612,10 @@ def get_continent_data(
     Returns:
         The data by country of the continent of interest
     """
-    invalid_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
-    all_countries = [c for c in pycountry.countries if c.alpha_2 not in invalid_countries]
+    no_continent_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
+    countries = [c for c in pycountry.countries if c.alpha_2 not in no_continent_countries]
     cont_data = {}
-    for country in all_countries:
+    for country in countries:
         if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
             iso3 = country.alpha_3
             cont_data[iso3] = get_pre_alpha_vars(iso3)
@@ -678,14 +689,18 @@ def pool_totals(
         The adjusted data
     """
     period_sums = pd.DataFrame(columns=["pre_alpha", "totals", "pre_alpha_prop"])
-    indexes_to_remove = []
+    idx_to_remove = []
     for limits in zip(starts, ends):
-        period = data.loc[limits[0] : limits[1]]
+        period = data.loc[limits[0]: limits[1]]
         average_date = period.index.mean()
         period_sums.loc[average_date] = period.sum()
-        indexes_to_remove += list(period.index)
-    new_data = pd.concat([period_sums, data.drop(index=indexes_to_remove)])
+        idx_to_remove += list(period.index)
+    new_data = pd.concat([period_sums, data.drop(index=idx_to_remove)])
+
+    # Redo proportion calculations, which will now be wrong
     new_data["pre_alpha_prop"] = new_data["pre_alpha"] / new_data["totals"]
+
+    # Make sure indexes fall on the start of a date
     new_data.index = new_data.index.round("D")
     return new_data.sort_index()
 
@@ -697,7 +712,7 @@ def get_pooled_totals(
     to get the totals after pooling for increases in the data.
 
     Args:
-        var_data: The unadjusted data
+        data: The unadjusted data
 
     Returns:
         The adjusted data
@@ -711,10 +726,13 @@ def get_var_target(
 ) -> Union[pd.Series, None]:
     """Get the variant target data depending on whether
     it is available for that country and the continent
-    that the country is in. Australia/Oceania has its
-    own approach; Africa is unavailable for any country;
-    otherwise return country's data; if unavailable,
-    return the pooled estimate for the continent.
+    that the country is in.
+    Hierarchically:
+        1. Australia/Oceania has its own approach
+        2. Africa is unavailable for any country
+        3. Country's own data if available
+        4. If country data unavailable and not 1. or 2.,
+            return the pooled estimate for the continent
 
     Args:
         iso3: The country identifier
@@ -722,12 +740,12 @@ def get_var_target(
     Returns:
         The data for fitting, or None if Africa
     """
-    index_iso2 = pycountry.countries.lookup(iso3).alpha_2
-    continent = pc.country_alpha2_to_continent_code(index_iso2)
+    iso2 = pycountry.countries.lookup(iso3).alpha_2
+    continent = pc.country_alpha2_to_continent_code(iso2)
 
     country_vars = get_pre_alpha_vars(iso3)
     if continent == "OC":
-        return get_aust_omicron_vars()
+        return get_aust_ba2_prop()
     elif country_vars is not None:
         return get_pooled_totals(country_vars)["pre_alpha_prop"]
     elif continent != "AF":
@@ -736,7 +754,26 @@ def get_var_target(
         return get_pooled_totals(country_vars)["pre_alpha_prop"]
 
 
-def cosine_function(t, start, end):
+def get_cos_link_func(
+    t: float,
+    start: float,
+    end: float,
+) -> np.ndarray:
+    """Get the value of a function that links a
+    constant function of value one and a 
+    constant function of value zero with a 
+    scaled, translated cosine function 
+    that joins the interval between the 
+    two constant functions with a smooth curve.
+
+    Args:
+        t: The value of the independent variable to evaluate at
+        start: The value of the first constant
+        end: The value of the last constant
+
+    Returns:
+        The value of the piecewise function
+    """
     period = end - start
     curve = lambda x: 0.5 * np.cos((x - start) * np.pi / period) + 0.5
     in_range = abs(t - start - period / 2.0) < period / 2.0
@@ -745,9 +782,23 @@ def cosine_function(t, start, end):
     return np.piecewise(t, conditions, functions)
 
 
-def get_cosine_intercept(var_prop, offset, init_offset=0):
-    num_index = [t.timestamp() - init_offset for t in var_prop.index]
-    params, _ = curve_fit(cosine_function, num_index, var_prop, p0=[num_index[0], num_index[-1]])
+def get_cosine_intercept(
+    var_prop: pd.Series,
+    offset: float,
+) -> datetime:
+    """Find the point at which the fitted 
+    cosine link function (from get_cost_link_fun) 
+    starts to decline from its starting value of one.
+
+    Args:
+        var_prop: The variant proportion data
+        offset: How much to move the fitted value earlier in time
+
+    Returns:
+        The date to use for seeding the variant
+    """
+    num_index = pd.to_numeric(var_prop.index) / 1e9
+    params, _ = curve_fit(get_cos_link_func, num_index, var_prop, p0=[num_index[0], num_index[-1]])
     date = (DT_REF_DATE + timedelta(seconds=params[0])).date()
     return datetime.combine(date, datetime.min.time()) - timedelta(offset)
 
