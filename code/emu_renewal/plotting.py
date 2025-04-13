@@ -79,7 +79,7 @@ def plot_post_prior_comparison(
     grid = req_grid if req_grid else [1, len(req_vars)]
     size = req_size if req_size else None
     fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=size)
-    for i_ax, ax in enumerate(fig.ravel()):
+    for ax in fig.ravel():
         ax_limits = ax.get_xlim()
         param = ax.title.get_text().split("\n")[0]
         if param:
@@ -107,21 +107,31 @@ def plot_imm_props(
         Figure
     """
     n_strains = len([i for i in set(spaghetti.columns.get_level_values(0)) if "prop_" in i])
-    spagh = spaghetti[[f"sus_{i}" for i in range(2**n_strains)]]
+    spagh = spaghetti[[f"sus_{i}" for i in range(2 ** n_strains)]]
     spagh.columns = spagh.columns.swaplevel()
     runs = list(set(spagh.columns.get_level_values(0)))
     return spagh[choice(runs)].plot.area()
 
 
-def plot_beta_priors(all_priors):
-    beta_priors = {
-        v["param_name"]: dist.Beta(v["alpha"], v["beta"]) for v in all_priors["beta"].values()
-    }
+def plot_beta_priors(
+    priors,
+) -> plt.figure:
+    """Plot the beta-distributed priors.
+
+    Args:
+        priors: The raw priors dictionary
+
+    Returns:
+        The plot
+    """
+    beta_vals = priors["beta"].values()
+    beta_priors = {v["param_name"]: dist.Beta(v["alpha"], v["beta"]) for v in beta_vals}
     fig, axes = plt.subplots(2, 2)
+    flat_axes = axes.ravel()
     for i, dist_name, distri in [[i, d[0], d[1]] for i, d in enumerate(beta_priors.items())]:
         upper_lim = distri.icdf(0.999) if distri.icdf(0.999) < 0.3 else 1.0
         x_vals = np.linspace(0.0, upper_lim, 100)
-        ax = axes.ravel()[i]
+        ax = flat_axes[i]
         ax.plot(x_vals, np.exp(distri.log_prob(x_vals)))
         ax.set_title(dist_name, size=12)
         ax.set_yticks([])

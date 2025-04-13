@@ -26,8 +26,8 @@ TARGET_KEY = "target_"
 def run_for_spaghetti(
     calib: StandardCalib,
     params: SampleIterator,
-) -> pd.DataFrame:
-    """Run parameters through the model to get outputs.
+) -> Dict[str, pd.DataFrame]:
+    """Run parameters through the model to get epidemiological outputs.
 
     Args:
         calib: The calibration object, which includes the model
@@ -57,7 +57,8 @@ def run_for_spaghetti(
 def get_spagh_df_from_dict(
     spagh_dict: dict[str, pd.DataFrame],
 ) -> pd.DataFrame:
-    """Process the dictionaries produced by run_for_spaghetti into dataframe format.
+    """Process the dictionaries produced 
+    by run_for_spaghetti into dataframe format.
 
     Args:
         spagh_dict: The output of run_for_spaghetti
@@ -112,8 +113,7 @@ def get_table_df_from_priors_dict(
     priors_df = priors_df.set_index("param_name")
     priors_df.index.name = None
     priors_df.columns = priors_df.columns.str.capitalize()
-    priors_df = priors_df.rename(columns={"Sd": "SD"})
-    return priors_df
+    return priors_df.rename(columns={"Sd": "SD"})
 
 
 def get_gitinfo() -> dict[str, str]:
@@ -148,7 +148,7 @@ def store_outputs(
     likelihood = 0.0 - likelihood
     likelihood.to_hdf(out_dir / "likelihood.h5", key="likelihood")
 
-    ll_chain_mean = likelihood.mean(axis=0)
+    ll_chain_mean = likelihood.mean()
     max_diff = likelihood[ll_chain_mean.idxmax()].std()
 
     bad_idx_table = (ll_chain_mean.max() - ll_chain_mean) > max_diff
@@ -163,9 +163,8 @@ def store_outputs(
     sample_params = esamp.xarray_to_sampleiterator(idata_sampled)
     spaghetti = get_spagh_df_from_dict(run_for_spaghetti(calib, sample_params))
     spaghetti.to_hdf(out_dir / "spaghetti.h5", key="spaghetti")
-    updates = pd.DataFrame(
-        sample_params.components["proc"], columns=model.epoch.index_to_dti(model.x_proc_vals)
-    ).T
+    update_idx = model.epoch.index_to_dti(model.x_proc_vals)
+    updates = pd.DataFrame(sample_params.components["proc"], columns=update_idx).T
     updates.to_hdf(out_dir / "updates.h5", key="updates")
 
     pickle.dump(calib.sampled_params, open(out_dir / "priors.pkl", "wb"))
@@ -242,11 +241,11 @@ def get_country_procs(
     """
     procs = {}
     for c in countries:
-        country_path = path / c
+        c_path = path / c
         c_procs = []
-        analyses = [i[1] for i in os.walk(country_path)][0]
+        analyses = [i[1] for i in os.walk(c_path)][0]
         for a in analyses:
-            c_procs.append(pd.read_hdf(country_path / a / "spaghetti.h5")["process"])
+            c_procs.append(pd.read_hdf(c_path / a / "spaghetti.h5")["process"])
         procs[c] = pd.concat(c_procs, keys=analyses, axis=1)
     return procs
 
@@ -254,7 +253,6 @@ def get_country_procs(
 def get_param_vals_by_analysis(
     param_name: str,
     country_path: Path,
-    analyses_to_drop: List[str]=[],
 ) -> pd.DataFrame:
     """Get dataframe of accepted parameter values
     by analysis for a particular parameter and country.
@@ -262,14 +260,12 @@ def get_param_vals_by_analysis(
     Args:
         param_name: Name of the parameter
         country_path: Location of the country analyses
-        analyses_to_drop: Analyses to exclude
 
     Returns:
         The posterior estimates
     """
     param_df = []
     analyses = [i[1] for i in os.walk(country_path)][0]
-    analyses = [a for a in analyses if a not in analyses_to_drop]
     for a in analyses:
         idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
         param_df.append(idata.posterior[param_name].to_series())

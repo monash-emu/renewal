@@ -1,9 +1,12 @@
+from typing import List, Dict
 import pandas as pd
 from datetime import datetime
 import itertools
 import numpy as np
 import pycountry
 import pycountry_convert as pc
+
+from emu_renewal.renew import MultiStrainModel
 
 
 def format_date_for_str(
@@ -44,7 +47,7 @@ def round_sigfig(
 
 def get_proc_period_from_index(
     idx: int, 
-    model,
+    model: MultiStrainModel,
 ) -> str:
     """Get markdown-formatted string for date of
     variable process period from its index number.
@@ -76,7 +79,7 @@ map_dict = {
 
 
 def get_adjust_idata_index(
-    model,
+    model: MultiStrainModel,
 ) -> callable:
     """Get function to adjust the dataframe index
     containing the model parameters.
@@ -162,7 +165,18 @@ def melt_df_except_first_level(
     return pd.concat([df[c].melt()["value"] for c in cols], axis=1, keys=cols)
 
 
-def group_countries_by_continent(countries):
+def group_countries_by_continent(
+    countries: List[str],
+) -> Dict[str, str]:
+    """Group requested countries according to 
+    the continent they are located in.
+
+    Args:
+        countries: The countries to group
+
+    Returns:
+        The grouping
+    """
     continents = ["AF", "EU", "AS", "SA", "NA"]
     cont_map = {cont: [] for cont in continents}
     for c in countries:
