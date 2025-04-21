@@ -6,7 +6,7 @@ import numpy as np
 import pycountry
 import pycountry_convert as pc
 
-from emu_renewal.renew import MultiStrainModel
+# from emu_renewal.renew import MultiStrainModel
 
 
 def format_date_for_str(
@@ -47,7 +47,7 @@ def round_sigfig(
 
 def get_proc_period_from_index(
     idx: int, 
-    model: MultiStrainModel,
+    model,
 ) -> str:
     """Get markdown-formatted string for date of
     variable process period from its index number.
@@ -79,7 +79,7 @@ map_dict = {
 
 
 def get_adjust_idata_index(
-    model: MultiStrainModel,
+    model,
 ) -> callable:
     """Get function to adjust the dataframe index
     containing the model parameters.
