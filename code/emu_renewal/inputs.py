@@ -137,7 +137,9 @@ def get_country_hosps(
     such that a hospital indicator beats a ICU indicator
     and daily admissions beat occupancy.
     Croatia admissions from OWID is reported weekly,
-    so no need to apply rolling average.
+    so no need to apply rolling average
+    (even though it is weekly data, it is reported
+    each day for most countries).
     Japan and Bulgaria occupancy from OWID is reported weekly,
     so no need to apply rolling average.
 
