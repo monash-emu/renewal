@@ -156,12 +156,14 @@ def get_country_hosps(
     icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
     filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
     if not filt_admits.empty:
-        return filt_admits, "weekly_admissions"
+        weekly_admits = filt_admits.rolling(7).mean()[::7].dropna()
+        return weekly_admits, "weekly_admissions"
     elif not filt_occup.empty:
         weekly_occup = filt_occup.rolling(7).mean()[::7].dropna()
         return weekly_occup, "occupancy"
     elif not filt_icu_admits.empty:
-        return filt_icu_admits, "icu_weekly_admissions"
+        weekly_icu_admits = filt_icu_admits.rolling(7).mean()[::7].dropna()
+        return weekly_icu_admits, "icu_weekly_admissions"
     elif not filt_icu_occup.empty:
         weekly_icu_occup = filt_icu_occup.rolling(7).mean()[::7].dropna()
         return weekly_icu_occup, "icu_occupancy"
