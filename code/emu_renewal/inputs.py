@@ -218,15 +218,15 @@ def process_raw_google_mobility(
 
     # The rows at the national level
     nat_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]
-    
+
     # The mobility columns
     nat_data = nat_data[[c for c in nat_data.columns if "change_from_baseline" in c]]
-    
+
     # Simplify column naming
     nat_data = nat_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)
-    
+
     # Convert from percentage reduction to ratio
-    nat_data = 1.0 + nat_data / 100.0  
+    nat_data = 1.0 + nat_data / 100.0
     return nat_data.sort_index()
 
 
@@ -256,8 +256,8 @@ def get_filtered_seroprev(
     start: datetime,
     end: datetime,
 ) -> pd.Series:
-    """Filter the SeroTracker data according to our choices 
-    about what constitutes good enough data 
+    """Filter the SeroTracker data according to our choices
+    about what constitutes good enough data
     for including in the calibration targets.
     Don't use seroprevalence for Australia,
     because it had reached high levels
@@ -328,11 +328,15 @@ def get_standard_priors(
         "": [],
     }
     duration_prior_names = rel_durations_dict[hosp_out_type] + universal_prior_names
-    rel_dur_priors = {k: v for k, v in duration_priors.items() if k in duration_prior_names}
-    irrel_dur_priors = {k: 1.0 for k in duration_priors if k not in rel_dur_priors}
+    rel_durs = {k: v for k, v in duration_priors.items() if k in duration_prior_names}
+    irrel_durs = {k: 1.0 for k in duration_priors if k not in rel_durs}
 
     # Proportions
-    beta_priors = {k: dist.Beta(v["alpha"], v["beta"]) for k, v in loaded_priors["beta"].items()}
+    beta_priors = {
+        k: dist.Beta(v["alpha"], v["beta"])
+        for k, v in loaded_priors["beta"].items()
+        if k != "cross_immunity"
+    }
     if "icu_" not in hosp_out_type:
         beta_priors["icu_ar"] = 1.0
     if hosp_out_type == "":
@@ -343,8 +347,17 @@ def get_standard_priors(
     seed_low_lim = jnp.repeat(10.0, n_strains)
     seed_up_lim = jnp.repeat(200.0, n_strains)
     seed_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
-    infect_dist = dist.TruncatedNormal(jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5) if n_strains > 1 else None
-    infect_priors = {"relinfect": infect_dist}
+    infect_dist_prior = dist.TruncatedNormal(
+        jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5
+    )
+    infect_dist = infect_dist_prior if n_strains > 1 else None
+    inf_priors = {"relinfect": infect_dist}
+    cross_imm = loaded_priors["beta"]["cross_immunity"]
+    cross_prior = (
+        {"cross_immunity": dist.Beta(cross_imm["alpha"], cross_imm["beta"])}
+        if n_strains > 0
+        else {}
+    )
 
     # Miscellaneous
     misc_priors = {
@@ -352,7 +365,9 @@ def get_standard_priors(
         "shared_dispersion": dist.HalfNormal(0.5),
     }
 
-    return rel_dur_priors | irrel_dur_priors | beta_priors | misc_priors | seed_priors | infect_priors
+    return (
+        rel_durs | irrel_durs | beta_priors | seed_priors | inf_priors | cross_prior | misc_priors
+    )
 
 
 def get_worldbank_national_pop(
@@ -368,7 +383,7 @@ def get_worldbank_national_pop(
         iso3: Country identifier
 
     Returns:
-        Population data by country ISO3 code    
+        Population data by country ISO3 code
     """
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
     dtype = {"2020 [YR2020]": float}
@@ -453,7 +468,9 @@ def get_apple_mobility(
         "Russia": "Russian Federation",
         "Turkey": "Türkiye",
     }
-    reverse_lookup = {pycountry.countries.lookup(crename_map.get(c) or c).alpha_3: c for c in countries}
+    reverse_lookup = {
+        pycountry.countries.lookup(crename_map.get(c) or c).alpha_3: c for c in countries
+    }
     country_df = national_data[reverse_lookup[iso3]].interpolate()
     country_df /= 100.0
     return country_df
@@ -566,8 +583,8 @@ def get_prealpha_prop(iso3, min_var_samples):
 
 def get_pre_alpha_vars(
     iso3: str,
-    min_samples: int=5,
-    end_date: datetime=datetime(2021, 6, 30),
+    min_samples: int = 5,
+    end_date: datetime = datetime(2021, 6, 30),
     min_obs=5,
 ) -> Union[pd.DataFrame, None]:
     """Find the number of pre-Alpha variant samples
@@ -605,7 +622,7 @@ def get_pre_alpha_vars(
 
 
 def get_aust_ba2_prop(
-    min_samples=5, 
+    min_samples=5,
     min_prop=0.03,
 ) -> pd.Series:
     """Get the proportion BA.2 for Australia
@@ -716,7 +733,7 @@ def pool_totals(
     period_sums = pd.DataFrame(columns=["pre_alpha", "totals", "pre_alpha_prop"])
     idx_to_remove = []
     for limits in zip(starts, ends):
-        period = data.loc[limits[0]: limits[1]]
+        period = data.loc[limits[0] : limits[1]]
         average_date = period.index.mean()
         period_sums.loc[average_date] = period.sum()
         idx_to_remove += list(period.index)
@@ -788,10 +805,10 @@ def get_cos_link_func(
     end: float,
 ) -> np.ndarray:
     """Get the value of a function that links a
-    constant function of value one and a 
-    constant function of value zero with a 
-    scaled, translated cosine function 
-    that joins the interval between the 
+    constant function of value one and a
+    constant function of value zero with a
+    scaled, translated cosine function
+    that joins the interval between the
     two constant functions with a smooth curve.
 
     Args:
@@ -814,8 +831,8 @@ def get_cosine_intercept(
     var_prop: pd.Series,
     offset: float,
 ) -> datetime:
-    """Find the point at which the fitted 
-    cosine link function (from get_cost_link_fun) 
+    """Find the point at which the fitted
+    cosine link function (from get_cost_link_fun)
     starts to decline from its starting value of one.
 
     Args:
