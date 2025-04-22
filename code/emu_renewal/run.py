@@ -38,6 +38,11 @@ from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
 
 
+COUNTRY_SEED_OFFSETS = {
+    "USA": 90,
+}
+
+
 class MobilityException(Exception):
     pass
 
@@ -286,21 +291,21 @@ def run_single_country(
     end_str = data_start.strftime(DATE_FORMAT)
     logger.info(f"Running from {start_str} with data starting from {end_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
-    offset = 10
+    seed_offset = COUNTRY_SEED_OFFSETS[iso3] if iso3 in COUNTRY_SEED_OFFSETS else 10
     if continent == "OC":
         var_names = ["ba1", "ba2", "ba5"]
         data = targets["prop_ba2"].data
         to_ba2_data = 1.0 - data[data.index <= data.idxmax()]
         to_ba5_data = data[data.idxmax() <= data.index]
-        ba2_seed_time = get_cosine_intercept(to_ba2_data, offset)
-        ba5_seed_time = get_cosine_intercept(to_ba5_data, offset)
+        ba2_seed_time = get_cosine_intercept(to_ba2_data, seed_offset)
+        ba5_seed_time = get_cosine_intercept(to_ba5_data, seed_offset)
         seed_times = [run_start, ba2_seed_time, ba5_seed_time]
     elif continent == "AF":
         var_names = ["eu"]
         seed_times = [run_start]
     else:
         var_names = ["eu", "alpha"]
-        alpha_seed_time = get_cosine_intercept(prealpha_prop, offset)
+        alpha_seed_time = get_cosine_intercept(prealpha_prop, seed_offset)
         seed_times = [run_start, alpha_seed_time]
 
     # Mobility
