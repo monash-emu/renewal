@@ -78,9 +78,9 @@ VAR_NAMES = [
 
 ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_mob", "a_mob"]
 
-OTHER_DEFAULT_END = datetime(2021, 6, 1)
 CASES_START = datetime(2020, 6, 1)
 DEFAULT_START_TIME = datetime(2020, 6, 1)
+DEFAULT_END_TIME = datetime(2021, 6, 1)
 DT_REF_DATE = datetime(1970, 1, 1)
 
 

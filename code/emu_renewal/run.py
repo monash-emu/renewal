@@ -14,7 +14,7 @@ from pathlib import Path
 from emu_renewal.inputs import (
     DATE_FORMAT,
     BASE_PATH,
-    OTHER_DEFAULT_END,
+    DEFAULT_END_TIME,
     CASES_START,
     DEFAULT_START_TIME,
     get_indicator_series_from_who_data,
@@ -114,9 +114,9 @@ def find_run_end_time(
         mob = get_google_mobility(iso3)
         return mob.index[-1].to_pydatetime()
     elif vacc_data.empty or vacc_data.max() < cov_thresh_perc:
-        return OTHER_DEFAULT_END
+        return DEFAULT_END_TIME
     else:
-        return vacc_data[vacc_data.gt(cov_thresh_perc)].idxmin()
+        return max([DEFAULT_END_TIME, vacc_data[vacc_data.gt(cov_thresh_perc)].idxmin()])
 
 
 def collate_targets(
