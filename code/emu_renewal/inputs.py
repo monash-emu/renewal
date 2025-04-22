@@ -372,6 +372,23 @@ def get_worldbank_national_pop(
     return pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype).loc[iso3, year_str]
 
 
+def get_undesa_national_pop(iso3: str) -> float:
+    """Get UN-DESA population estimate for a single country, for 2020
+
+    Sourced from
+    https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/EXCEL_FILES/2_Population/WPP2024_POP_F01_1_POPULATION_SINGLE_AGE_BOTH_SEXES.xlsx
+
+    Args:
+        iso3: ISO3 country code
+
+    Returns:
+        2020 UNDESA population total for country
+    """
+    csv_path = DATA_PATH / "population/undesa_pops_2020.csv"
+    data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
+    return data.loc[iso3, "population"]
+
+
 def get_google_mobility(
     iso3: str,
 ) -> pd.DataFrame:
@@ -712,6 +729,7 @@ def get_pooled_totals(
     data: pd.DataFrame,
 ) -> pd.DataFrame:
     """Combines the two preceding functions
+
     to get the totals after pooling for increases in the data.
 
     Args:
@@ -720,8 +738,10 @@ def get_pooled_totals(
     Returns:
         The adjusted data
     """
-    group_starts, group_ends = find_increasing_groups(data["pre_alpha_prop"])
-    return pool_totals(group_starts, group_ends, data)
+    while not data["pre_alpha_prop"].is_monotonic_decreasing:
+        group_starts, group_ends = find_increasing_groups(data["pre_alpha_prop"])
+        data = pool_totals(group_starts, group_ends, data)
+    return data
 
 
 def get_var_target(

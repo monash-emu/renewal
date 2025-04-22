@@ -40,6 +40,14 @@ from emu_renewal import mobility
 
 COUNTRY_SEED_OFFSETS = {
     "USA": 90,
+    "BRA": 90,
+    "ROU": 30,
+    "IND": 90,
+    "FRA": 60,
+    "ESP": 90,
+    "FIN": -60,
+    "DEU": 90,
+    "GUY": -30, #
 }
 
 
@@ -121,6 +129,7 @@ def collate_targets(
     calib_var_prop: pd.Series,
     start: datetime,
     end: datetime,
+    iso3: str,
     continent: str,
 ) -> Dict[str, StandardDispTarget]:
     """Collate the targets gathered in the previous function
@@ -158,7 +167,7 @@ def collate_targets(
     # Seroprevalence
     seroprev_mask = (ext_prop < seroprev_target) & (seroprev_target < 1.0 - ext_prop)
     seroprev_target = seroprev_target[seroprev_mask]
-    if seroprev_target.empty or continent == "OC":
+    if seroprev_target.empty or continent == "OC" or iso3 == "PAK":
         seroprev_targ_dict = {}
     else:
         seroprev_targ = StandardDispTarget(seroprev_target, weight=10.0)
@@ -284,6 +293,7 @@ def run_single_country(
         prealpha_prop,
         data_start,
         end_time,
+        iso3,
         continent,
     )
     run_start = data_start - timedelta(run_data_delay)
@@ -306,6 +316,10 @@ def run_single_country(
     else:
         var_names = ["eu", "alpha"]
         alpha_seed_time = get_cosine_intercept(prealpha_prop, seed_offset)
+        if iso3 == "BGR":
+            alpha_seed_time = datetime(2020, 11, 1)
+        elif iso3 == "HRV":
+            alpha_seed_time = datetime(2021, 1, 1)
         seed_times = [run_start, alpha_seed_time]
 
     # Mobility
