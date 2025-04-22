@@ -136,6 +136,8 @@ def get_country_hosps(
     The "best" indicator is chosen hierarchically,
     such that a hospital indicator beats a ICU indicator
     and daily admissions beat occupancy.
+    Croatia admissions from OWID is reported weekly,
+    so no need to apply rolling average.
     Japan and Bulgaria occupancy from OWID is reported weekly,
     so no need to apply rolling average.
 
@@ -157,7 +159,10 @@ def get_country_hosps(
     filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
     icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
     filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
-    if not filt_admits.empty:
+    if not filt_admits.empty and country in ["HRV"]:
+        weekly_admits = filt_admits.dropna()
+        return weekly_admits, "weekly_admissions"
+    elif not filt_admits.empty:
         weekly_admits = filt_admits.rolling(7).mean()[::7].dropna()
         return weekly_admits, "weekly_admissions"
     elif not filt_occup.empty and country in ["JPN", "BGR"]:
@@ -347,26 +352,26 @@ def get_standard_priors(
     seed_low_lim = jnp.repeat(10.0, n_strains)
     seed_up_lim = jnp.repeat(200.0, n_strains)
     seed_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
-    infect_dist_prior = dist.TruncatedNormal(
-        jnp.repeat(1.25, n_strains - 1), 0.1, low=1.0, high=1.5
-    )
+    relinfect_means = jnp.repeat(1.25, n_strains - 1)
+    infect_dist_prior = dist.TruncatedNormal(relinfect_means, 0.1, low=1.0, high=2.0)
     infect_dist = infect_dist_prior if n_strains > 1 else None
     inf_priors = {"relinfect": infect_dist}
-    cross_imm = loaded_priors["beta"]["cross_immunity"]
-    cross_prior = (
-        {"cross_immunity": dist.Beta(cross_imm["alpha"], cross_imm["beta"])}
-        if n_strains > 0
-        else {}
-    )
+    imm = loaded_priors["beta"]["cross_immunity"]
+    imm_prior = {"cross_immunity": dist.Beta(imm["alpha"], imm["beta"])} if n_strains > 0 else {}
 
     # Miscellaneous
-    misc_priors = {
-        "rt_init": dist.Normal(0.0, 0.5),
-        "shared_dispersion": dist.HalfNormal(0.5),
-    }
+    rt_prior = {"rt_init": dist.Normal(0.0, 0.5)}
+    disp_prior = {"shared_dispersion": dist.HalfNormal(0.5)}
 
     return (
-        rel_durs | irrel_durs | beta_priors | seed_priors | inf_priors | cross_prior | misc_priors
+        rel_durs
+        | irrel_durs
+        | beta_priors
+        | seed_priors
+        | inf_priors
+        | imm_prior
+        | rt_prior
+        | disp_prior
     )
 
 
