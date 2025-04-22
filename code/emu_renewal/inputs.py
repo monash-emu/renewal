@@ -136,6 +136,8 @@ def get_country_hosps(
     The "best" indicator is chosen hierarchically,
     such that a hospital indicator beats a ICU indicator
     and daily admissions beat occupancy.
+    Japan and Bulgaria occupancy from OWID is reported weekly,
+    so no need to apply rolling average.
 
     Args:
         country: Country identifier
@@ -158,6 +160,9 @@ def get_country_hosps(
     if not filt_admits.empty:
         weekly_admits = filt_admits.rolling(7).mean()[::7].dropna()
         return weekly_admits, "weekly_admissions"
+    elif not filt_occup.empty and country in ["JPN", "BGR"]:
+        weekly_occup = filt_occup.dropna()
+        return weekly_occup, "occupancy"
     elif not filt_occup.empty:
         weekly_occup = filt_occup.rolling(7).mean()[::7].dropna()
         return weekly_occup, "occupancy"
