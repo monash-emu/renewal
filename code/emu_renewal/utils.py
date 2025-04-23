@@ -11,7 +11,7 @@ import pycountry_convert as pc
 
 def format_date_for_str(
     date: datetime,
-    include_year: bool=True,
+    include_year: bool = True,
 ) -> str:
     """Get a markdown-ready string that could be included in
     paragraph text from a datetime object.
@@ -30,23 +30,22 @@ def format_date_for_str(
         return f"{date.day}<sup>{ordinal}</sup> {date: %B}"
 
 
-def round_sigfig(
-    value: float, 
-    sig_figs: int
-) -> float:
+def round_sigfig(value: float, sig_figs: int) -> float:
     """
-    Round a number to a certain number of significant figures, 
+    Round a number to a certain number of significant figures,
     rather than decimal places.
-    
+
     Args:
         value: Number to round
         sig_figs: Number of significant figures to round to
     """
-    return round(value, -int(np.floor(np.log10(abs(value)))) + sig_figs - 1) if value != 0.0 else 0.0
+    return (
+        round(value, -int(np.floor(np.log10(abs(value)))) + sig_figs - 1) if value != 0.0 else 0.0
+    )
 
 
 def get_proc_period_from_index(
-    idx: int, 
+    idx: int,
     model,
 ) -> str:
     """Get markdown-formatted string for date of
@@ -74,7 +73,7 @@ map_dict = {
     "dispersion_cases": "Cases comparison dispersion",
     "rt_init": "Rt starting value",
     "report_mean": "Reporting time, mean",
-    "report_sd": "Reporting time, standard deviation"
+    "report_sd": "Reporting time, standard deviation",
 }
 
 
@@ -90,14 +89,16 @@ def get_adjust_idata_index(
     Returns:
         The adjuster function
     """
+
     def adjust_idata_index(i):
         if i.startswith("proc["):
-            i_proc = int(i[i.find("[") + 1: i.find("]")])
+            i_proc = int(i[i.find("[") + 1 : i.find("]")])
             return get_proc_period_from_index(i_proc, model)
         elif i in map_dict:
             return map_dict[i]
         else:
             raise ValueError("Parameter not found")
+
     return adjust_idata_index
 
 
@@ -127,7 +128,7 @@ def get_combs(n_cats: int) -> np.ndarray:
         [[False, False], [False, True], [True, False], [True, True]]
 
     Args:
-        n_cats: Number of categories 
+        n_cats: Number of categories
 
     Returns:
         The combinations, with each list element having n_cats entries.
@@ -149,9 +150,7 @@ def get_row_proportions(
     return df.divide(df.sum(axis=1), axis=0).fillna(0.0)
 
 
-def melt_df_except_first_level(
-    df: pd.DataFrame
-) -> pd.DataFrame:
+def melt_df_except_first_level(df: pd.DataFrame) -> pd.DataFrame:
     """Melt (convert to long format)
     a multiindex dataframe retaining the first level.
 
@@ -168,7 +167,7 @@ def melt_df_except_first_level(
 def group_countries_by_continent(
     countries: List[str],
 ) -> Dict[str, str]:
-    """Group requested countries according to 
+    """Group requested countries according to
     the continent they are located in.
 
     Args:
@@ -184,3 +183,21 @@ def group_countries_by_continent(
         continent = pc.country_alpha2_to_continent_code(iso2)
         cont_map[continent].append(c)
     return cont_map
+
+
+def get_col_increases(input_array):
+    col_diffs = np.diff(input_array, axis=0)
+    row1_zeros = np.zeros(input_array.shape[1])
+    diff_array = np.concatenate([[row1_zeros], col_diffs])
+    return diff_array == 1.0
+
+
+def get_reset_array_from_increases(input_array):
+    reset_array = np.zeros_like(input_array)
+    for c in range(input_array.shape[1]):
+        col = input_array[:, c]
+        increases = np.where((col[:-1] == False) & (col[1:] == True))[0]
+        last_increase = increases[-1] + 1 if increases.size > 0 else 0
+        remaining = col.size - last_increase
+        reset_array[:, c] = np.concatenate([np.ones(last_increase), np.zeros(remaining)])
+    return reset_array.astype(bool)

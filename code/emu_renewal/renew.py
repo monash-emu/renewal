@@ -13,7 +13,13 @@ from summer2.utils import Epoch
 
 from emu_renewal.process import sinterp, MultiCurve
 from emu_renewal.distributions import Dens
-from emu_renewal.utils import format_date_for_str, round_sigfig, get_combs
+from emu_renewal.utils import (
+    format_date_for_str,
+    round_sigfig,
+    get_combs,
+    get_col_increases,
+    get_reset_array_from_increases,
+)
 from emu_renewal.mobility import MobilityProvider
 
 
@@ -214,6 +220,9 @@ class MultiStrainModel:
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
         # Complete susceptibility if never infected before
         suscept_levels = suscept_levels.at[:, 0].set(1.0)
+        earlier_strain = get_col_increases(self.strain_map)
+        reset_array = get_reset_array_from_increases(earlier_strain)
+        suscept_levels = suscept_levels * (~reset_array).astype(float)
 
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
