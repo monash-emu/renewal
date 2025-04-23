@@ -167,7 +167,7 @@ def collate_targets(
     # Seroprevalence
     seroprev_mask = (ext_prop < seroprev_target) & (seroprev_target < 1.0 - ext_prop)
     seroprev_target = seroprev_target[seroprev_mask]
-    if seroprev_target.empty or continent == "OC" or iso3 in ["PAK", "ZMB"]:
+    if seroprev_target.empty or continent == "OC" or iso3 in ["PAK", "ZMB", "NGA"]:
         seroprev_targ_dict = {}
     else:
         seroprev_targ = StandardDispTarget(seroprev_target, weight=10.0)
