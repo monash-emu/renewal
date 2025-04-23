@@ -47,7 +47,7 @@ COUNTRY_SEED_OFFSETS = {
     "ESP": 90,
     "FIN": -60,
     "DEU": 90,
-    "GUY": -30, #
+    "GUY": -30,  #
 }
 
 
@@ -167,7 +167,7 @@ def collate_targets(
     # Seroprevalence
     seroprev_mask = (ext_prop < seroprev_target) & (seroprev_target < 1.0 - ext_prop)
     seroprev_target = seroprev_target[seroprev_mask]
-    if seroprev_target.empty or continent == "OC" or iso3 == "PAK":
+    if seroprev_target.empty or continent == "OC" or iso3 in ["PAK", "ZMB"]:
         seroprev_targ_dict = {}
     else:
         seroprev_targ = StandardDispTarget(seroprev_target, weight=10.0)
@@ -206,7 +206,7 @@ def get_logger(log_file: Path = None):
 
 
 def get_mobility_provider(
-    iso3: str, 
+    iso3: str,
     mob_type: str,
 ) -> mobility.MobilityProvider:
     """Get the appropriate mobility provider object.
