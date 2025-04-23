@@ -336,7 +336,7 @@ class MultiStrainModel:
     ) -> ModelResult:
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
         for s in range(self.n_strains):
-            seed_rate = seed_rates[s]
+            seed_rate = seed_rates[s] * self.pop
             strain_start = int(self.epoch.dti_to_index(self.seed_times[s])) + self.init_length
             strain_end = strain_start + self.seed_duration
             self.seed_array = self.seed_array.at[s, strain_start:strain_end].set(seed_rate)

@@ -351,8 +351,8 @@ def get_standard_priors(
         beta_priors["icu_ar"] = 1.0
 
     # Variant-related
-    seed_low_lim = jnp.repeat(10.0, n_strains)
-    seed_up_lim = jnp.repeat(200.0, n_strains)
+    seed_low_lim = jnp.repeat(1e-7, n_strains)
+    seed_up_lim = jnp.repeat(5e-6, n_strains)
     seed_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
     relinfect_means = jnp.repeat(1.25, n_strains - 1)
     infect_dist_prior = dist.TruncatedNormal(relinfect_means, 0.1, low=1.0, high=2.0)
