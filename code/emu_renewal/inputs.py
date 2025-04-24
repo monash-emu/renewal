@@ -580,6 +580,7 @@ def get_specific_var_props(
     """
     data = data[data.index < end_date]
     data = data[data.sum(axis=1) >= min_samples]
+    rel_cols = [c for c in rel_cols if c in data.columns]
     vals = data[rel_cols].sum(axis=1)
     totals = data.sum(axis=1)
     country_df = pd.DataFrame(
@@ -608,8 +609,8 @@ def get_prealpha_vars(iso3: str) -> Union[pd.DataFrame, None]:
             proportion pre-Alpha by date - where available
     """
     var_data = get_country_vars(iso3)
-    pre_alpha_vars = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
-    return get_specific_var_props(var_data, "pre_alpha", pre_alpha_vars, ALPHA_FULL_REPLACE_DATE)
+    prealpha_vars = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
+    return get_specific_var_props(var_data, "prealpha", prealpha_vars, ALPHA_FULL_REPLACE_DATE)
 
 
 def get_delta_vars(iso3: str) -> Union[pd.DataFrame, None]:
@@ -642,7 +643,7 @@ def get_aust_ba2_prop() -> pd.Series:
 
 def get_continent_data(
     continent: str,
-    var: str = "pre_alpha",
+    var: str,
 ) -> Dict[str, pd.DataFrame]:
     """Get the variant data for each country of
     a particular continent, ignoring the (small) pycountry
@@ -657,7 +658,7 @@ def get_continent_data(
     no_continent_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
     countries = [c for c in pycountry.countries if c.alpha_2 not in no_continent_countries]
     cont_data = {}
-    data_func = get_prealpha_vars if var == "pre_alpha" else get_delta_vars
+    data_func = get_prealpha_vars if var == "prealpha" else get_delta_vars
     for country in countries:
         if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
             iso3 = country.alpha_3
@@ -665,9 +666,9 @@ def get_continent_data(
     return cont_data
 
 
-def get_continent_pre_alpha_vars(
+def get_continent_prealpha_vars(
     data: Dict[str, pd.DataFrame],
-    var_name: str = "pre_alpha",
+    var_name: str = "prealpha",
 ) -> Dict[str, pd.DataFrame]:
     """Get the overall pre-Alpha proportions for a continent
     from the country data for that continent.
@@ -732,7 +733,7 @@ def pool_totals(
     Returns:
         The adjusted data
     """
-    period_sums = pd.DataFrame(columns=["pre_alpha", "totals", "pre_alpha_prop"])
+    period_sums = pd.DataFrame(columns=["prealpha", "totals", "prealpha_prop"])
     idx_to_remove = []
     for limits in zip(starts, ends):
         period = data.loc[limits[0] : limits[1]]
@@ -742,7 +743,7 @@ def pool_totals(
     new_data = pd.concat([period_sums, data.drop(index=idx_to_remove)])
 
     # Redo proportion calculations, which will now be wrong
-    new_data["pre_alpha_prop"] = new_data["pre_alpha"] / new_data["totals"]
+    new_data["prealpha_prop"] = new_data["prealpha"] / new_data["totals"]
 
     # Make sure indexes fall on the start of a date
     new_data.index = new_data.index.round("D")
@@ -762,8 +763,8 @@ def get_pooled_totals(
     Returns:
         The adjusted data
     """
-    while not data["pre_alpha_prop"].is_monotonic_decreasing:
-        group_starts, group_ends = find_increasing_groups(data["pre_alpha_prop"])
+    while not data["prealpha_prop"].is_monotonic_decreasing:
+        group_starts, group_ends = find_increasing_groups(data["prealpha_prop"])
         data = pool_totals(group_starts, group_ends, data)
     return data
 
@@ -794,11 +795,11 @@ def get_var_target(
     if continent == "OC":
         return get_aust_ba2_prop()["ba2_prop"]
     elif country_vars is not None:
-        return get_pooled_totals(country_vars)["pre_alpha_prop"]
+        return get_pooled_totals(country_vars)["prealpha_prop"]
     elif continent != "AF":
-        cont_data = get_continent_data(continent)
-        country_vars = get_continent_pre_alpha_vars(cont_data)
-        return get_pooled_totals(country_vars)["pre_alpha_prop"]
+        cont_data = get_continent_data(continent, "prealpha")
+        country_vars = get_continent_prealpha_vars(cont_data)
+        return get_pooled_totals(country_vars)["prealpha_prop"]
 
 
 def get_cos_link_func(

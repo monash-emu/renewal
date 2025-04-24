@@ -315,8 +315,8 @@ def run_single_country(
     elif continent == "AF":
         var_names = ["eu"]
         seed_times = [run_start]
-    elif include_delta:
-        var_names = ["eu", "alpha", "delta"]
+    # elif include_delta:
+    #     var_names = ["eu", "alpha", "delta"]
     else:
         var_names = ["eu", "alpha"]
         alpha_seed_time = get_cosine_intercept(prealpha_prop, seed_offset)
