@@ -184,28 +184,6 @@ def get_country_hosps(
         return None, ""
 
 
-def get_var_country_data(
-    var: str,
-    country: str,
-) -> pd.Series:
-    """Get data for the number of isolates attributable to
-    a particular variant in a particular country.
-
-    Args:
-        var: Nextclade name for the variant
-        country: Name or code for the country of interest
-
-    Returns:
-        The data
-    """
-    offic_countries = ["CZE"]  # Country needing official name for Nextclade data
-    pycountry_obj = pycountry.countries.lookup(country)
-    country_name = pycountry_obj.official_name if country in offic_countries else pycountry_obj.name
-    data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")[country_name]
-    dates = pd.to_datetime(data["week"])
-    return pd.Series(data["cluster_sequences"], index=dates)
-
-
 def process_raw_google_mobility(
     iso3: str,
 ) -> pd.DataFrame:
@@ -573,28 +551,31 @@ def find_relevant_vars(
     return relevant_vars
 
 
-def get_prealpha_prop(iso3, min_var_samples):
-    """Deprecated - to be removed once notebooks calling it revised"""
-    var_data = get_country_vars(iso3)
-    var_data = var_data[var_data.sum(axis=1) >= min_var_samples]
-
-    # Lithuania has no 20A.EU2
-    prealpha_vars = ["20A.EU1"] if iso3 == "LTU" else ["20A.EU1", "20A.EU2"]
-    prealpha_prop = var_data[prealpha_vars].sum(axis=1) / var_data.sum(axis=1)
-
-    # Fluctuations in sample numbers in Portugal
-    if iso3 == "PRT":
-        prealpha_prop = prealpha_prop[prealpha_prop.index > datetime(2021, 1, 1)]
-
-    return prealpha_prop
-
-
-def get_pre_alpha_vars(
-    iso3: str,
+def get_specific_var_props(
+    data, 
+    var_name, 
+    rel_cols, 
+    end_date,
     min_samples: int = 5,
-    end_date: datetime = datetime(2021, 6, 30),
-    min_obs=5,
-) -> Union[pd.DataFrame, None]:
+    min_obs: int = 5,
+):
+    data = data[data.index < end_date]
+    data = data[data.sum(axis=1) >= min_samples]
+    vals = data[rel_cols].sum(axis=1)
+    totals = data.sum(axis=1)
+    country_df = pd.DataFrame(
+        {
+            var_name: vals,
+            "totals": totals,
+            f"{var_name}_prop": vals / totals,
+        }
+    )
+    out_df = country_df[(0.0 < country_df[f"{var_name}_prop"]) & (country_df[f"{var_name}_prop"] < 1.0)]
+    if len(out_df) > min_obs:
+        return out_df
+    
+
+def get_prealpha_vars(iso3: str) -> Union[pd.DataFrame, None]:
     """Find the number of pre-Alpha variant samples
     and the total number of specimens, discarding
     data if zero or 100% pre-Alpha specimens.
@@ -610,46 +591,15 @@ def get_pre_alpha_vars(
         Number of pre-Alpha specimens, total specimens and
             proportion pre-Alpha by date - where available
     """
+    var_data = get_country_vars(iso3)
     pre_alpha_vars = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
-    var_data = get_country_vars(iso3)
-    var_data = var_data[var_data.index < end_date]
-    var_data = var_data[var_data.sum(axis=1) >= min_samples]
-    avail_pre_alpha = [c for c in pre_alpha_vars if c in var_data.columns]
-    pre_alpha_vals = var_data[avail_pre_alpha].sum(axis=1)
-    totals = var_data.sum(axis=1)
-    country_df = pd.DataFrame(
-        {
-            "pre_alpha": pre_alpha_vals,
-            "totals": totals,
-            "pre_alpha_prop": pre_alpha_vals / totals,
-        }
-    )
-    out_df = country_df[(0.0 < country_df["pre_alpha_prop"]) & (country_df["pre_alpha_prop"] < 1.0)]
-    if len(out_df) > min_obs:
-        return out_df
+    return get_specific_var_props(var_data, "pre_alpha", pre_alpha_vars, datetime(2021, 6, 30))
 
 
-def get_delta_vars(
-    iso3: str,
-    min_samples: int = 5,
-    min_obs=5,
-):
-    min_samples = 5
+def get_delta_vars(iso3: str):
     var_data = get_country_vars(iso3)
-    var_data = var_data[var_data.sum(axis=1) >= min_samples]
     delta_cols = [c for c in var_data.columns if "Delta" in c]
-    delta_vals = var_data[delta_cols].sum(axis=1)
-    totals = var_data.sum(axis=1)
-    country_df = pd.DataFrame(
-        {
-            "delta": delta_vals,
-            "totals": totals,
-            "delta_prop": delta_vals / totals,
-        }
-    )
-    out_df = country_df[(0.0 < country_df["delta_prop"]) & (country_df["delta_prop"] < 1.0)]
-    if len(out_df) > min_obs:
-        return out_df
+    return get_specific_var_props(var_data, "delta", delta_cols, datetime(2031, 1, 1))
 
 
 def get_aust_ba2_prop(
@@ -689,7 +639,7 @@ def get_continent_data(
     no_continent_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
     countries = [c for c in pycountry.countries if c.alpha_2 not in no_continent_countries]
     cont_data = {}
-    data_func = get_pre_alpha_vars if var == "pre_alpha" else get_delta_vars
+    data_func = get_prealpha_vars if var == "pre_alpha" else get_delta_vars
     for country in countries:
         if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
             iso3 = country.alpha_3
@@ -822,7 +772,7 @@ def get_var_target(
     iso2 = pycountry.countries.lookup(iso3).alpha_2
     continent = pc.country_alpha2_to_continent_code(iso2)
 
-    country_vars = get_pre_alpha_vars(iso3)
+    country_vars = get_prealpha_vars(iso3)
     if continent == "OC":
         return get_aust_ba2_prop()
     elif country_vars is not None:
