@@ -82,6 +82,7 @@ CASES_START = datetime(2020, 6, 1)
 DEFAULT_START_TIME = datetime(2020, 6, 1)
 DEFAULT_END_TIME = datetime(2021, 6, 1)
 DT_REF_DATE = datetime(1970, 1, 1)
+DELTA_INCLUSION_DATE = datetime(2021, 4, 1)
 
 
 def get_indicator_series_from_who_data(
@@ -628,6 +629,29 @@ def get_pre_alpha_vars(
         return out_df
 
 
+def get_delta_vars(
+    iso3: str,
+    min_samples: int = 5,
+    min_obs=5,
+):
+    min_samples = 5
+    var_data = get_country_vars(iso3)
+    var_data = var_data[var_data.sum(axis=1) >= min_samples]
+    delta_cols = [c for c in var_data.columns if "Delta" in c]
+    delta_vals = var_data[delta_cols].sum(axis=1)
+    totals = var_data.sum(axis=1)
+    country_df = pd.DataFrame(
+        {
+            "delta": delta_vals,
+            "totals": totals,
+            "delta_prop": delta_vals / totals,
+        }
+    )
+    out_df = country_df[(0.0 < country_df["delta_prop"]) & (country_df["delta_prop"] < 1.0)]
+    if len(out_df) > min_obs:
+        return out_df
+
+
 def get_aust_ba2_prop(
     min_samples=5,
     min_prop=0.03,
@@ -650,6 +674,7 @@ def get_aust_ba2_prop(
 
 def get_continent_data(
     continent: str,
+    var: str = "pre_alpha",
 ) -> Dict[str, pd.DataFrame]:
     """Get the variant data for each country of
     a particular continent, ignoring the (small) pycountry
@@ -664,15 +689,17 @@ def get_continent_data(
     no_continent_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
     countries = [c for c in pycountry.countries if c.alpha_2 not in no_continent_countries]
     cont_data = {}
+    data_func = get_pre_alpha_vars if var == "pre_alpha" else get_delta_vars
     for country in countries:
         if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
             iso3 = country.alpha_3
-            cont_data[iso3] = get_pre_alpha_vars(iso3)
+            cont_data[iso3] = data_func(iso3)
     return cont_data
 
 
 def get_continent_pre_alpha_vars(
     data: Dict[str, pd.DataFrame],
+    var_name: str = "pre_alpha",
 ) -> Dict[str, pd.DataFrame]:
     """Get the overall pre-Alpha proportions for a continent
     from the country data for that continent.
@@ -690,7 +717,7 @@ def get_continent_pre_alpha_vars(
     for d in data.values():
         if d is not None:
             cont_data = cont_data.add(d, fill_value=0.0)
-    cont_data["pre_alpha_prop"] = cont_data["pre_alpha"] / cont_data["totals"]
+    cont_data[f"{var_name}_prop"] = cont_data[var_name] / cont_data["totals"]
     return cont_data
 
 

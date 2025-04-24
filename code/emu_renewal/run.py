@@ -17,6 +17,7 @@ from emu_renewal.inputs import (
     DEFAULT_END_TIME,
     CASES_START,
     DEFAULT_START_TIME,
+    DELTA_INCLUSION_DATE,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -282,6 +283,7 @@ def run_single_country(
     data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
+    include_delta = end_time > DELTA_INCLUSION_DATE
     prealpha_prop = get_var_target(iso3)
     targets = collate_targets(
         case_data,
@@ -313,6 +315,8 @@ def run_single_country(
     elif continent == "AF":
         var_names = ["eu"]
         seed_times = [run_start]
+    elif include_delta:
+        var_names = ["eu", "alpha", "delta"]
     else:
         var_names = ["eu", "alpha"]
         alpha_seed_time = get_cosine_intercept(prealpha_prop, seed_offset)
