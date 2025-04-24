@@ -83,6 +83,8 @@ DEFAULT_START_TIME = datetime(2020, 6, 1)
 DEFAULT_END_TIME = datetime(2021, 6, 1)
 DT_REF_DATE = datetime(1970, 1, 1)
 DELTA_INCLUSION_DATE = datetime(2021, 4, 1)
+POST_SIM_DATE = datetime(2100, 1, 1)
+ALPHA_FULL_REPLACE_DATE = datetime(2021, 6, 30)
 
 
 def get_indicator_series_from_who_data(
@@ -552,13 +554,30 @@ def find_relevant_vars(
 
 
 def get_specific_var_props(
-    data, 
-    var_name, 
-    rel_cols, 
-    end_date,
+    data: pd.DataFrame,
+    var_name: str,
+    rel_cols: List[str],
+    end_date: datetime,
     min_samples: int = 5,
     min_obs: int = 5,
-):
+    min_prop: float = 0.0,
+) -> Union[pd.DataFrame, None]:
+    """Get the total number and proportion
+    of sequences attributable to a particular variant.
+
+    Args:
+        data: The country variant data
+        var_name: Our name for the variant of interest
+        rel_cols: The names of the relevant columns for the variant
+        end_date: A date after which data are discarded
+        min_samples: Minimum number of dates needed to use the data
+        min_obs: Minimum number of sequences at a date for inclusion in data
+        min_prop: Minimum proportion attributable to the variant
+            or to other non-index variants for inclusion
+
+    Returns:
+        The data for the variant of interest
+    """
     data = data[data.index < end_date]
     data = data[data.sum(axis=1) >= min_samples]
     vals = data[rel_cols].sum(axis=1)
@@ -570,56 +589,55 @@ def get_specific_var_props(
             f"{var_name}_prop": vals / totals,
         }
     )
-    out_df = country_df[(0.0 < country_df[f"{var_name}_prop"]) & (country_df[f"{var_name}_prop"] < 1.0)]
+    above_min_prop = min_prop < country_df[f"{var_name}_prop"]
+    below_max_prop = country_df[f"{var_name}_prop"] < 1.0 - min_prop
+    out_df = country_df[above_min_prop & below_max_prop]
     if len(out_df) > min_obs:
         return out_df
     
 
 def get_prealpha_vars(iso3: str) -> Union[pd.DataFrame, None]:
-    """Find the number of pre-Alpha variant samples
-    and the total number of specimens, discarding
-    data if zero or 100% pre-Alpha specimens.
+    """Find the proportion of variant sequences
+    attributable to strains preceding Alpha.
 
     Args:
         iso3: The country identifier
-        min_samples: Minimum number of samples for including a date
-        end_date: End date for extracting the data
-        min_obs: Threshold for the number of dates available
-            before discarding all the data
 
     Returns:
-        Number of pre-Alpha specimens, total specimens and
+        Data for the number of pre-Alpha specimens, total specimens and
             proportion pre-Alpha by date - where available
     """
     var_data = get_country_vars(iso3)
     pre_alpha_vars = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
-    return get_specific_var_props(var_data, "pre_alpha", pre_alpha_vars, datetime(2021, 6, 30))
+    return get_specific_var_props(var_data, "pre_alpha", pre_alpha_vars, ALPHA_FULL_REPLACE_DATE)
 
 
-def get_delta_vars(iso3: str):
-    var_data = get_country_vars(iso3)
-    delta_cols = [c for c in var_data.columns if "Delta" in c]
-    return get_specific_var_props(var_data, "delta", delta_cols, datetime(2031, 1, 1))
-
-
-def get_aust_ba2_prop(
-    min_samples=5,
-    min_prop=0.03,
-) -> pd.Series:
-    """Get the proportion BA.2 for Australia
+def get_delta_vars(iso3: str) -> Union[pd.DataFrame, None]:
+    """Find the proportion of variant sequences
+    attributable to Delta strains.
 
     Args:
-        min_samples: Minimum number of samples for inclusion of a date
-        min_prop: Minimum proportion positive for inclusion
+        iso3: The country identifier
 
     Returns:
-        The data
+        Data for the number of Delta specimens, total specimens and
+            proportion Delta by date - where available
+    """
+    var_data = get_country_vars(iso3)
+    delta_cols = [c for c in var_data.columns if "Delta" in c]
+    return get_specific_var_props(var_data, "delta", delta_cols, POST_SIM_DATE)
+
+
+def get_aust_ba2_prop() -> pd.Series:
+    """Get the proportion BA.2 for Australia.
+
+    Returns:
+        Data for the number of BA.2 specimens, total specimens and
+            proportion Delta by date
     """
     var_data = get_country_vars("AUS")
-    var_data = var_data[var_data.sum(axis=1) >= min_samples]
-    props = var_data.div(var_data.sum(axis=1), axis=0)
-    ba2_prop = props["21L.Omicron"]
-    return ba2_prop[ba2_prop > min_prop]
+    ba2_cols = ["21L.Omicron"]
+    return get_specific_var_props(var_data, "ba2", ba2_cols, POST_SIM_DATE, min_prop=0.03)
 
 
 def get_continent_data(
@@ -774,7 +792,7 @@ def get_var_target(
 
     country_vars = get_prealpha_vars(iso3)
     if continent == "OC":
-        return get_aust_ba2_prop()
+        return get_aust_ba2_prop()["ba2_prop"]
     elif country_vars is not None:
         return get_pooled_totals(country_vars)["pre_alpha_prop"]
     elif continent != "AF":
