@@ -472,6 +472,9 @@ def get_country_vacc_data(
     Have substituted Germany for Switzerland because these two
     countries had almost identical profiles of vaccine doses
     administered per person in the early phases of the roll-out.
+    Substitute Germany for Ireland based on almost identical
+    profiles, but late start for fully-vaccinated data in Ireland.
+
 
     Args:
         iso3: Country identifier
@@ -481,8 +484,10 @@ def get_country_vacc_data(
     """
     if iso3 == "KOR":
         country = pycountry.countries.lookup(iso3).common_name
-    elif iso3 == "CHE":
+    elif iso3 in ["CHE", "IRL"]:
         country = pycountry.countries.lookup("DEU").name
+    elif iso3 == "QAT":
+        country = "GBR"
     else:
         country = pycountry.countries.lookup(iso3).name
     filename = "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv"
