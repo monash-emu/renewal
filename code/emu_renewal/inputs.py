@@ -776,6 +776,7 @@ def get_pooled_totals(
 
 def get_var_target(
     iso3: str,
+    end_time: datetime,
 ) -> Union[pd.Series, None]:
     """Get the variant target data depending on whether
     it is available for that country and the continent
@@ -789,6 +790,7 @@ def get_var_target(
 
     Args:
         iso3: The country identifier
+        end_time: Simulation end time
 
     Returns:
         The data for fitting, or None if Africa
@@ -796,15 +798,18 @@ def get_var_target(
     iso2 = pycountry.countries.lookup(iso3).alpha_2
     continent = pc.country_alpha2_to_continent_code(iso2)
 
-    country_vars = get_prealpha_vars(iso3)
+    prealpha_vars = get_prealpha_vars(iso3)
+    if datetime > DELTA_INCLUSION_DATE:
+        delta_vars = get_delta_vars(iso3)
+
     if continent == "OC":
         return get_aust_ba2_prop()["ba2_prop"]
-    elif country_vars is not None:
-        return get_pooled_totals(country_vars)["prealpha_prop"]
+    elif prealpha_vars is not None:
+        return get_pooled_totals(prealpha_vars)["prealpha_prop"]
     elif continent != "AF":
         cont_data = get_continent_data(continent, "prealpha")
-        country_vars = get_continent_prealpha_vars(cont_data)
-        return get_pooled_totals(country_vars)["prealpha_prop"]
+        prealpha_vars = get_continent_prealpha_vars(cont_data)
+        return get_pooled_totals(prealpha_vars)["prealpha_prop"]
 
 
 def get_cos_link_func(

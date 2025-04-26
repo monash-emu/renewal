@@ -284,7 +284,7 @@ def run_single_country(
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
     include_delta = end_time > DELTA_INCLUSION_DATE
-    prealpha_prop = get_var_target(iso3)
+    prealpha_prop = get_var_target(iso3, end_time)
     targets = collate_targets(
         case_data,
         death_data,
