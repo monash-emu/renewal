@@ -83,6 +83,8 @@ DEFAULT_START_TIME = datetime(2020, 6, 1)
 DEFAULT_END_TIME = datetime(2021, 6, 1)
 DT_REF_DATE = datetime(1970, 1, 1)
 DELTA_INCLUSION_DATE = datetime(2021, 4, 1)
+DELTA_PERIOD_START = datetime(2021, 2, 1)
+DELTA_PERIOD_END = datetime(2021, 9 , 1)
 POST_SIM_DATE = datetime(2100, 1, 1)
 ALPHA_FULL_REPLACE_DATE = datetime(2021, 6, 30)
 
@@ -820,6 +822,17 @@ def get_var_target(
         cont_data = get_continent_data(continent, "prealpha")
         prealpha_vars = get_continent_vars(cont_data)
         return get_pooled_totals(prealpha_vars)["prealpha_prop"]
+
+
+def get_delta_target(var_data, continent, end_time):
+    if continent != "OC" and end_time > DELTA_INCLUSION_DATE:
+        delta_data = extract_specific_var(var_data, "delta")
+        if delta_data is None:
+            cont_data = get_continent_data(continent, "delta")
+            delta_data = get_continent_vars(cont_data, "delta")
+        filt_data = delta_data[(DELTA_PERIOD_START < delta_data.index) & (delta_data.index < DELTA_PERIOD_END)]
+        pooled_data = get_dec_pooled_totals(filt_data, "delta")
+        return pooled_data["delta_prop"]
 
 
 def get_cos_link_func(
