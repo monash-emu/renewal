@@ -30,6 +30,7 @@ from emu_renewal.inputs import (
     get_var_target,
     get_cosine_intercept,
     get_country_vars,
+    get_alpha_target,
     get_delta_target,
 )
 from emu_renewal.targets import StandardDispTarget
@@ -134,6 +135,7 @@ def collate_targets(
     end: datetime,
     iso3: str,
     continent: str,
+    alpha_targ: Union[pd.Series, None],
     delta_targ: Union[pd.Series, None],
 ) -> Dict[str, StandardDispTarget]:
     """Collate the targets gathered in the previous function
@@ -185,7 +187,13 @@ def collate_targets(
         var_targ_dict = {"prop_eu": StandardDispTarget(calib_var_prop[var_mask], weight=20.0)}
     else:
         var_targ_dict = {}
-    
+
+    # Alpha proportion
+    if alpha_targ is None:
+        alpha_targ_dict = {}
+    else:
+        alpha_targ_dict = {"prop_alpha": StandardDispTarget(alpha_targ, weight=20.0)}    
+
     # Delta proportion
     if delta_targ is None:
         delta_targ_dict = {}
@@ -194,7 +202,7 @@ def collate_targets(
 
     # Collate together
     core_targs = {"weekly_cases": cases_targ, "weekly_deaths": deaths_targ}
-    return core_targs | seroprev_targ_dict | hosp_targ_dict | var_targ_dict | delta_targ_dict
+    return core_targs | seroprev_targ_dict | hosp_targ_dict | var_targ_dict | alpha_targ_dict | delta_targ_dict
 
 
 def get_logger(log_file: Path = None):
@@ -292,8 +300,9 @@ def run_single_country(
     data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
-    prealpha_prop = get_var_target(iso3, end_time)
     var_data = get_country_vars(iso3)
+    prealpha_prop = get_var_target(var_data, iso3, end_time)
+    alpha_targ = get_alpha_target(var_data, continent)
     delta_targ = get_delta_target(var_data, continent, end_time)
     targets = collate_targets(
         case_data,
@@ -307,6 +316,7 @@ def run_single_country(
         end_time,
         iso3,
         continent,
+        alpha_targ,
         delta_targ,
     )
     run_start = data_start - timedelta(run_data_delay)

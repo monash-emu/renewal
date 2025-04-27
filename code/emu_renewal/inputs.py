@@ -82,6 +82,8 @@ CASES_START = datetime(2020, 6, 1)
 DEFAULT_START_TIME = datetime(2020, 6, 1)
 DEFAULT_END_TIME = datetime(2021, 6, 1)
 DT_REF_DATE = datetime(1970, 1, 1)
+ALPHA_PERIOD_START = datetime(2020, 1, 1)
+ALPHA_PERIOD_END = datetime(2021, 6, 1)
 DELTA_INCLUSION_DATE = datetime(2021, 4, 1)
 DELTA_PERIOD_START = datetime(2021, 2, 1)
 DELTA_PERIOD_END = datetime(2021, 9 , 1)
@@ -596,13 +598,16 @@ def extract_specific_var(
         Data for the number of pre-Alpha specimens, total specimens and
             proportion pre-Alpha by date - where available
     """
+    prealpha_cols = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
+    alpha_cols = [c for c in var_data.columns if c not in prealpha_cols]
+    delta_cols = [c for c in var_data.columns if "Delta" in c]
     rel_cols = {
-        "prealpha": ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"],
-        "delta": [c for c in var_data.columns if "Delta" in c],
+        "alpha": alpha_cols,
+        "delta": delta_cols,
         "ba2": ["21L.Omicron"],
     }
     end_dates = {
-        "prealpha": ALPHA_FULL_REPLACE_DATE,
+        "alpha": ALPHA_FULL_REPLACE_DATE,
         "delta": POST_SIM_DATE,
         "ba2": POST_SIM_DATE,
     }
@@ -786,6 +791,7 @@ def get_dec_pooled_totals(
 
 
 def get_var_target(
+    var_data: pd.DataFrame,
     iso3: str,
     end_time: datetime,
 ) -> Union[pd.Series, None]:
@@ -809,10 +815,7 @@ def get_var_target(
     iso2 = pycountry.countries.lookup(iso3).alpha_2
     continent = pc.country_alpha2_to_continent_code(iso2)
 
-    var_data = get_country_vars(iso3)
     prealpha_vars = extract_specific_var(var_data, "prealpha")
-    if datetime > DELTA_INCLUSION_DATE:
-        delta_vars = extract_specific_var(var_data, "delta")
 
     if continent == "OC":
         return extract_specific_var(var_data, "ba2")["ba2_prop"]
@@ -824,14 +827,25 @@ def get_var_target(
         return get_pooled_totals(prealpha_vars)["prealpha_prop"]
 
 
+def get_alpha_target(var_data, continent):
+    if continent not in ["OC", "AF"]:
+        alpha_data = extract_specific_var(var_data, "alpha")
+        if alpha_data is None:
+            cont_data = get_continent_data(continent, "alpha")
+            alpha_data = get_continent_vars(cont_data, "alpha")
+        period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < ALPHA_PERIOD_END)
+        pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
+        return pooled_data["alpha_prop"]
+
+
 def get_delta_target(var_data, continent, end_time):
     if continent != "OC" and end_time > DELTA_INCLUSION_DATE:
         delta_data = extract_specific_var(var_data, "delta")
         if delta_data is None:
             cont_data = get_continent_data(continent, "delta")
             delta_data = get_continent_vars(cont_data, "delta")
-        filt_data = delta_data[(DELTA_PERIOD_START < delta_data.index) & (delta_data.index < DELTA_PERIOD_END)]
-        pooled_data = get_dec_pooled_totals(filt_data, "delta")
+        period_mask = (DELTA_PERIOD_START < delta_data.index) & (delta_data.index < DELTA_PERIOD_END)
+        pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
         return pooled_data["delta_prop"]
 
 
