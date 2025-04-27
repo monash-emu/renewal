@@ -87,6 +87,10 @@ ALPHA_PERIOD_END = datetime(2021, 6, 1)
 DELTA_INCLUSION_DATE = datetime(2021, 4, 1)
 DELTA_PERIOD_START = datetime(2021, 2, 1)
 DELTA_PERIOD_END = datetime(2021, 9 , 1)
+BA2_PERIOD_START = datetime(2022, 1, 1)
+BA2_PERIOD_END = datetime(2022, 4, 15)
+BA5_PERIOD_START = datetime(2022, 4, 1)
+BA5_PERIOD_END = datetime(2022, 9, 1)
 POST_SIM_DATE = datetime(2100, 1, 1)
 ALPHA_FULL_REPLACE_DATE = datetime(2021, 6, 30)
 
@@ -601,15 +605,19 @@ def extract_specific_var(
     prealpha_cols = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
     alpha_cols = [c for c in var_data.columns if c not in prealpha_cols]
     delta_cols = [c for c in var_data.columns if "Delta" in c]
+    ba2_col = ["21L.Omicron"]
+    ba5_cols = [c for c in var_data.columns if c not in ba2_col]
     rel_cols = {
         "alpha": alpha_cols,
         "delta": delta_cols,
-        "ba2": ["21L.Omicron"],
+        "ba2": ba2_col,
+        "ba5": ba5_cols,
     }
     end_dates = {
         "alpha": ALPHA_FULL_REPLACE_DATE,
         "delta": POST_SIM_DATE,
         "ba2": POST_SIM_DATE,
+        "ba5": POST_SIM_DATE,
     }
     return get_specific_var_props(var_data, var_name, rel_cols[var_name], end_dates[var_name])
 
@@ -847,6 +855,22 @@ def get_delta_target(var_data, continent, end_time):
         period_mask = (DELTA_PERIOD_START < delta_data.index) & (delta_data.index < DELTA_PERIOD_END)
         pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
         return pooled_data["delta_prop"]
+
+
+def get_ba2_target(var_data, continent):
+    if continent == "OC":
+        ba2_data = extract_specific_var(var_data, "ba2")
+        period_mask = (BA2_PERIOD_START < ba2_data.index) & (ba2_data.index < BA2_PERIOD_END)
+        filt_data = ba2_data[period_mask]
+        return filt_data["ba2_prop"]
+
+
+def get_ba5_target(var_data, continent):
+    if continent == "OC":
+        ba5_data = extract_specific_var(var_data, "ba5")
+        period_mask = (BA5_PERIOD_START < ba5_data.index) & (ba5_data.index < BA5_PERIOD_END)
+        filt_data = ba5_data[period_mask]
+        return filt_data["ba5_prop"]
 
 
 def get_cos_link_func(
