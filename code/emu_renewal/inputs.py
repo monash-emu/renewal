@@ -652,7 +652,7 @@ def get_continent_data(
         var_data = get_country_vars(country.alpha_3)
         if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
             iso3 = country.alpha_3
-            cont_data[iso3] = extract_specific_var(var_data, "prealpha")
+            cont_data[iso3] = extract_specific_var(var_data, var)
     return cont_data
 
 
