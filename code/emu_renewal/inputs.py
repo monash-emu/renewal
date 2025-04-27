@@ -602,34 +602,32 @@ def get_specific_var_props(
         return out_df
     
 
-def get_prealpha_vars(iso3: str) -> Union[pd.DataFrame, None]:
+def get_prealpha_vars(var_data: pd.DataFrame) -> Union[pd.DataFrame, None]:
     """Find the proportion of variant sequences
     attributable to strains preceding Alpha.
 
     Args:
-        iso3: The country identifier
+        var_data: All the raw variant data
 
     Returns:
         Data for the number of pre-Alpha specimens, total specimens and
             proportion pre-Alpha by date - where available
     """
-    var_data = get_country_vars(iso3)
     prealpha_vars = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
     return get_specific_var_props(var_data, "prealpha", prealpha_vars, ALPHA_FULL_REPLACE_DATE)
 
 
-def get_delta_vars(iso3: str) -> Union[pd.DataFrame, None]:
+def get_delta_vars(var_data: pd.DataFrame) -> Union[pd.DataFrame, None]:
     """Find the proportion of variant sequences
     attributable to Delta strains.
 
     Args:
-        iso3: The country identifier
+        var_data: All the raw variant data
 
     Returns:
         Data for the number of Delta specimens, total specimens and
             proportion Delta by date - where available
     """
-    var_data = get_country_vars(iso3)
     delta_cols = [c for c in var_data.columns if "Delta" in c]
     return get_specific_var_props(var_data, "delta", delta_cols, POST_SIM_DATE)
 
@@ -666,9 +664,10 @@ def get_continent_data(
     cont_data = {}
     data_func = get_prealpha_vars if var == "prealpha" else get_delta_vars
     for country in countries:
+        var_data = get_country_vars(country.alpha_3)
         if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
             iso3 = country.alpha_3
-            cont_data[iso3] = data_func(iso3)
+            cont_data[iso3] = data_func(var_data)
     return cont_data
 
 
@@ -845,7 +844,8 @@ def get_var_target(
     iso2 = pycountry.countries.lookup(iso3).alpha_2
     continent = pc.country_alpha2_to_continent_code(iso2)
 
-    prealpha_vars = get_prealpha_vars(iso3)
+    var_data = get_country_vars(iso3)
+    prealpha_vars = get_prealpha_vars(var_data)
     if datetime > DELTA_INCLUSION_DATE:
         delta_vars = get_delta_vars(iso3)
 
