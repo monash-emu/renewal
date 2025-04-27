@@ -656,6 +656,7 @@ def get_continent_data(
 
     Args:
         continent: The continent of interest
+        var: The variant of interest
 
     Returns:
         The data by country of the continent of interest
