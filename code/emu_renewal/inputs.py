@@ -602,46 +602,32 @@ def get_specific_var_props(
         return out_df
     
 
-def get_prealpha_vars(var_data: pd.DataFrame) -> Union[pd.DataFrame, None]:
+def extract_specific_var(
+    var_data: pd.DataFrame,
+    var_name: str,
+) -> Union[pd.DataFrame, None]:
     """Find the proportion of variant sequences
-    attributable to strains preceding Alpha.
+    attributable to a specific variant type.
 
     Args:
         var_data: All the raw variant data
+        var_name: The name of the variant of interest
 
     Returns:
         Data for the number of pre-Alpha specimens, total specimens and
             proportion pre-Alpha by date - where available
     """
-    prealpha_vars = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
-    return get_specific_var_props(var_data, "prealpha", prealpha_vars, ALPHA_FULL_REPLACE_DATE)
-
-
-def get_delta_vars(var_data: pd.DataFrame) -> Union[pd.DataFrame, None]:
-    """Find the proportion of variant sequences
-    attributable to Delta strains.
-
-    Args:
-        var_data: All the raw variant data
-
-    Returns:
-        Data for the number of Delta specimens, total specimens and
-            proportion Delta by date - where available
-    """
-    delta_cols = [c for c in var_data.columns if "Delta" in c]
-    return get_specific_var_props(var_data, "delta", delta_cols, POST_SIM_DATE)
-
-
-def get_aust_ba2_prop() -> pd.Series:
-    """Get the proportion BA.2 for Australia.
-
-    Returns:
-        Data for the number of BA.2 specimens, total specimens and
-            proportion Delta by date
-    """
-    var_data = get_country_vars("AUS")
-    ba2_cols = ["21L.Omicron"]
-    return get_specific_var_props(var_data, "ba2", ba2_cols, POST_SIM_DATE, min_prop=0.03)
+    rel_cols = {
+        "prealpha": ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"],
+        "delta": [c for c in var_data.columns if "Delta" in c],
+        "ba2": ["21L.Omicron"],
+    }
+    end_dates = {
+        "prealpha": ALPHA_FULL_REPLACE_DATE,
+        "delta": POST_SIM_DATE,
+        "ba2": POST_SIM_DATE,
+    }
+    return get_specific_var_props(var_data, var_name, rel_cols[var_name], end_dates[var_name])
 
 
 def get_continent_data(
@@ -662,12 +648,11 @@ def get_continent_data(
     no_continent_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
     countries = [c for c in pycountry.countries if c.alpha_2 not in no_continent_countries]
     cont_data = {}
-    data_func = get_prealpha_vars if var == "prealpha" else get_delta_vars
     for country in countries:
         var_data = get_country_vars(country.alpha_3)
         if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
             iso3 = country.alpha_3
-            cont_data[iso3] = data_func(var_data)
+            cont_data[iso3] = extract_specific_var(var_data, "prealpha")
     return cont_data
 
 
@@ -845,12 +830,12 @@ def get_var_target(
     continent = pc.country_alpha2_to_continent_code(iso2)
 
     var_data = get_country_vars(iso3)
-    prealpha_vars = get_prealpha_vars(var_data)
+    prealpha_vars = extract_specific_var(var_data, "prealpha")
     if datetime > DELTA_INCLUSION_DATE:
-        delta_vars = get_delta_vars(iso3)
+        delta_vars = extract_specific_var(var_data, "delta")
 
     if continent == "OC":
-        return get_aust_ba2_prop()["ba2_prop"]
+        return extract_specific_var(var_data, "ba2")["ba2_prop"]
     elif prealpha_vars is not None:
         return get_pooled_totals(prealpha_vars)["prealpha_prop"]
     elif continent != "AF":
