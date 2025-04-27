@@ -32,6 +32,8 @@ from emu_renewal.inputs import (
     get_country_vars,
     get_alpha_target,
     get_delta_target,
+    get_ba2_target, 
+    get_ba5_target,
 )
 from emu_renewal.targets import StandardDispTarget
 from emu_renewal.process import CosineMultiCurve
@@ -137,6 +139,8 @@ def collate_targets(
     continent: str,
     alpha_targ: Union[pd.Series, None],
     delta_targ: Union[pd.Series, None],
+    ba2_targ: Union[pd.Series, None],
+    ba5_targ: Union[pd.Series, None],
 ) -> Dict[str, StandardDispTarget]:
     """Collate the targets gathered in the previous function
     into the appropriate structure for the calibration algorithm.
@@ -200,9 +204,21 @@ def collate_targets(
     else:
         delta_targ_dict = {"prop_delta": StandardDispTarget(delta_targ, weight=20.0)}    
 
+    # BA.2 proportion
+    if ba2_targ is None:
+        ba2_targ_dict = {}
+    else:
+        ba2_targ_dict = {"prop_ba2": StandardDispTarget(ba2_targ, weight=20.0)}    
+
+    # BA.5 proportion
+    if ba5_targ is None:
+        ba5_targ_dict = {}
+    else:
+        ba5_targ_dict = {"prop_ba5": StandardDispTarget(ba5_targ, weight=20.0)}    
+
     # Collate together
     core_targs = {"weekly_cases": cases_targ, "weekly_deaths": deaths_targ}
-    return core_targs | seroprev_targ_dict | hosp_targ_dict | var_targ_dict | alpha_targ_dict | delta_targ_dict
+    return core_targs | seroprev_targ_dict | hosp_targ_dict | var_targ_dict | alpha_targ_dict | delta_targ_dict | ba2_targ_dict | ba5_targ_dict
 
 
 def get_logger(log_file: Path = None):
@@ -304,6 +320,8 @@ def run_single_country(
     prealpha_prop = get_var_target(var_data, iso3, end_time)
     alpha_targ = get_alpha_target(var_data, continent)
     delta_targ = get_delta_target(var_data, continent, end_time)
+    ba2_targ = get_ba2_target(var_data, continent)
+    ba5_targ = get_ba5_target(var_data, continent)
     targets = collate_targets(
         case_data,
         death_data,
@@ -318,6 +336,8 @@ def run_single_country(
         continent,
         alpha_targ,
         delta_targ,
+        ba2_targ, 
+        ba5_targ,
     )
     run_start = data_start - timedelta(run_data_delay)
     start_str = run_start.strftime(DATE_FORMAT)
