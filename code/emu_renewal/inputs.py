@@ -719,10 +719,35 @@ def find_increasing_groups(
     return starts, ends
 
 
+def find_decreasing_groups(
+    data: pd.Series,
+) -> Tuple[pd.DatetimeIndex]:
+    """Find the indexes at which a series
+    (which is supposed to be generally increasing)
+    is decreasing.
+
+    Args:
+        data: The data
+
+    Returns:
+        Two lists of indexes with the same length
+            representing the starts and the ends of the
+            decreasing sections of the series
+    """
+    dec_elements = (data.diff() < 0.0).astype(int)
+    group_limits = dec_elements.diff().shift(-1).fillna(0.0)
+    if dec_elements.iloc[-1] == 1:
+        group_limits.iloc[-1] = -1.0
+    starts = group_limits[group_limits == 1.0].index
+    ends = group_limits[group_limits == -1.0].index
+    return starts, ends
+
+
 def pool_totals(
     starts: pd.DatetimeIndex,
     ends: pd.DatetimeIndex,
     data: pd.DataFrame,
+    var_name: str = "prealpha",
 ) -> pd.DataFrame:
     """Replace periods of the pre-Alpha data
     that are increasing over time with averages
@@ -738,7 +763,7 @@ def pool_totals(
     Returns:
         The adjusted data
     """
-    period_sums = pd.DataFrame(columns=["prealpha", "totals", "prealpha_prop"])
+    period_sums = pd.DataFrame(columns=[var_name, "totals", f"{var_name}_prop"])
     idx_to_remove = []
     for limits in zip(starts, ends):
         period = data.loc[limits[0] : limits[1]]
@@ -748,15 +773,16 @@ def pool_totals(
     new_data = pd.concat([period_sums, data.drop(index=idx_to_remove)])
 
     # Redo proportion calculations, which will now be wrong
-    new_data["prealpha_prop"] = new_data["prealpha"] / new_data["totals"]
+    new_data[f"{var_name}_prop"] = new_data[var_name] / new_data["totals"]
 
-    # Make sure indexes fall on the start of a date
+    # Make sure indices fall on the start of a date
     new_data.index = new_data.index.round("D")
     return new_data.sort_index()
 
 
 def get_pooled_totals(
     data: pd.DataFrame,
+    var_name: str = "prealpha",
 ) -> pd.DataFrame:
     """Combines the two preceding functions
 
@@ -768,9 +794,29 @@ def get_pooled_totals(
     Returns:
         The adjusted data
     """
-    while not data["prealpha_prop"].is_monotonic_decreasing:
-        group_starts, group_ends = find_increasing_groups(data["prealpha_prop"])
-        data = pool_totals(group_starts, group_ends, data)
+    while not data[f"{var_name}_prop"].is_monotonic_decreasing:
+        group_starts, group_ends = find_increasing_groups(data[f"{var_name}_prop"])
+        data = pool_totals(group_starts, group_ends, data, var_name)
+    return data
+
+
+def get_dec_pooled_totals(
+    data: pd.DataFrame,
+    var_name: str = "prealpha",
+) -> pd.DataFrame:
+    """Combines the two preceding functions
+
+    to get the totals after pooling for increases in the data.
+
+    Args:
+        data: The unadjusted data
+
+    Returns:
+        The adjusted data
+    """
+    while not data[f"{var_name}_prop"].is_monotonic_increasing:
+        group_starts, group_ends = find_decreasing_groups(data[f"{var_name}_prop"])
+        data = pool_totals(group_starts, group_ends, data, var_name)
     return data
 
 
