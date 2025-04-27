@@ -535,29 +535,6 @@ def get_country_vars(
     return data.astype(float)
 
 
-def find_relevant_vars(
-    data: pd.DataFrame,
-    date_cutoff: datetime,
-    threshold_seqs: int,
-) -> List[str]:
-    """Find the variants that have a significant number of
-    sequences before a particular date.
-    Not used by analysis code.
-
-    Args:
-        data: The full country data (returned by get_country_vars)
-        threshold_seqs: The number of sequences to consider the variant relevant
-
-    Returns:
-        The names of the relevant variants
-    """
-    relevant_vars = []
-    for var in data:
-        if data.loc[data.index < date_cutoff, var].sum() > threshold_seqs:
-            relevant_vars.append(var)
-    return relevant_vars
-
-
 def get_specific_var_props(
     data: pd.DataFrame,
     var_name: str,
@@ -656,11 +633,11 @@ def get_continent_data(
     return cont_data
 
 
-def get_continent_prealpha_vars(
+def get_continent_vars(
     data: Dict[str, pd.DataFrame],
     var_name: str = "prealpha",
 ) -> Dict[str, pd.DataFrame]:
-    """Get the overall pre-Alpha proportions for a continent
+    """Get the overall variant proportions for a continent
     from the country data for that continent.
     (Recalculate the proportions because these
     have been summed too.)
@@ -668,6 +645,7 @@ def get_continent_prealpha_vars(
     Args:
         data: Data on variants by country for a continent,
             the output of get_continent_data
+        var_name: The variant of interest
 
     Returns:
         The aggregated data for the continent
@@ -840,7 +818,7 @@ def get_var_target(
         return get_pooled_totals(prealpha_vars)["prealpha_prop"]
     elif continent != "AF":
         cont_data = get_continent_data(continent, "prealpha")
-        prealpha_vars = get_continent_prealpha_vars(cont_data)
+        prealpha_vars = get_continent_vars(cont_data)
         return get_pooled_totals(prealpha_vars)["prealpha_prop"]
 
 
