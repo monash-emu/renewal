@@ -27,7 +27,6 @@ from emu_renewal.inputs import (
     get_fb_mobility,
     get_filtered_seroprev,
     get_country_hosps,
-    get_var_target,
     get_cosine_intercept,
     get_country_vars,
     get_alpha_target,
@@ -132,7 +131,6 @@ def collate_targets(
     hosp_output_name: str,
     seroprev_target: pd.Series,
     ext_prop: float,
-    calib_var_prop: pd.Series,
     start: datetime,
     end: datetime,
     iso3: str,
@@ -183,15 +181,6 @@ def collate_targets(
         seroprev_targ = StandardDispTarget(seroprev_target, weight=10.0)
         seroprev_targ_dict = {"seropos": seroprev_targ}
 
-    # Variant proportion
-    if continent == "OC":
-        var_targ_dict = {"prop_ba2": StandardDispTarget(calib_var_prop, weight=20.0)}
-    elif calib_var_prop is not None:
-        var_mask = (ext_prop < calib_var_prop) & (calib_var_prop < 1.0 - ext_prop)
-        var_targ_dict = {"prop_eu": StandardDispTarget(calib_var_prop[var_mask], weight=20.0)}
-    else:
-        var_targ_dict = {}
-
     # Alpha proportion
     if alpha_targ is None:
         alpha_targ_dict = {}
@@ -218,7 +207,7 @@ def collate_targets(
 
     # Collate together
     core_targs = {"weekly_cases": cases_targ, "weekly_deaths": deaths_targ}
-    return core_targs | seroprev_targ_dict | hosp_targ_dict | var_targ_dict | alpha_targ_dict | delta_targ_dict | ba2_targ_dict | ba5_targ_dict
+    return core_targs | seroprev_targ_dict | hosp_targ_dict | alpha_targ_dict | delta_targ_dict | ba2_targ_dict | ba5_targ_dict
 
 
 def get_logger(log_file: Path = None):
@@ -317,7 +306,6 @@ def run_single_country(
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
     var_data = get_country_vars(iso3)
-    prealpha_prop = get_var_target(var_data, iso3, end_time)
     alpha_targ = get_alpha_target(var_data, continent)
     delta_targ = get_delta_target(var_data, continent, end_time)
     ba2_targ = get_ba2_target(var_data, continent)
@@ -329,7 +317,6 @@ def run_single_country(
         hosp_out_type,
         seroprev_target,
         most_extreme_prop,
-        prealpha_prop,
         data_start,
         end_time,
         iso3,
@@ -345,27 +332,30 @@ def run_single_country(
     logger.info(f"Running from {start_str} with data starting from {end_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
     seed_offset = COUNTRY_SEED_OFFSETS[iso3] if iso3 in COUNTRY_SEED_OFFSETS else 10
-    if continent == "OC":
-        var_names = ["ba1", "ba2", "ba5"]
-        data = targets["prop_ba2"].data
-        to_ba2_data = 1.0 - data[data.index <= data.idxmax()]
-        to_ba5_data = data[data.idxmax() <= data.index]
-        ba2_seed_time = get_cosine_intercept(to_ba2_data, seed_offset)
-        ba5_seed_time = get_cosine_intercept(to_ba5_data, seed_offset)
-        seed_times = [run_start, ba2_seed_time, ba5_seed_time]
-    elif continent == "AF":
-        var_names = ["eu"]
-        seed_times = [run_start]
-    # elif include_delta:
-    #     var_names = ["eu", "alpha", "delta"]
-    else:
-        var_names = ["eu", "alpha"]
-        alpha_seed_time = get_cosine_intercept(prealpha_prop, seed_offset)
-        if iso3 == "BGR":
-            alpha_seed_time = datetime(2020, 11, 1)
-        elif iso3 == "HRV":
-            alpha_seed_time = datetime(2021, 1, 1)
-        seed_times = [run_start, alpha_seed_time]
+    # if continent == "OC":
+    #     var_names = ["ba1", "ba2", "ba5"]
+    #     data = targets["prop_ba2"].data
+    #     to_ba2_data = 1.0 - data[data.index <= data.idxmax()]
+    #     to_ba5_data = data[data.idxmax() <= data.index]
+    #     ba2_seed_time = get_cosine_intercept(to_ba2_data, seed_offset)
+    #     ba5_seed_time = get_cosine_intercept(to_ba5_data, seed_offset)
+    #     seed_times = [run_start, ba2_seed_time, ba5_seed_time]
+    # else:
+    var_names = ["eu"]
+    seed_times = [run_start]
+    if alpha_targ is not None:
+        var_names.append("alpha")
+        alpha_seed_time = get_cosine_intercept(alpha_targ, seed_offset)
+        seed_times.append(alpha_seed_time)
+
+    # else:
+    #     var_names = ["eu", "alpha"]
+    #     alpha_seed_time = get_cosine_intercept(prealpha_prop, seed_offset)
+    #     if iso3 == "BGR":
+    #         alpha_seed_time = datetime(2020, 11, 1)
+    #     elif iso3 == "HRV":
+    #         alpha_seed_time = datetime(2021, 1, 1)
+    #     seed_times = [run_start, alpha_seed_time]
 
     # Mobility
     try:

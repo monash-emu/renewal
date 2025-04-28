@@ -84,7 +84,7 @@ DEFAULT_END_TIME = datetime(2021, 6, 1)
 DT_REF_DATE = datetime(1970, 1, 1)
 ALPHA_PERIOD_START = datetime(2020, 1, 1)
 ALPHA_PERIOD_END = datetime(2021, 6, 1)
-DELTA_INCLUSION_DATE = datetime(2021, 4, 1)
+DELTA_INCLUSION_DATE = datetime(2021, 5, 1)
 DELTA_PERIOD_START = datetime(2021, 2, 1)
 DELTA_PERIOD_END = datetime(2021, 9 , 1)
 BA2_PERIOD_START = datetime(2022, 1, 1)
@@ -798,43 +798,6 @@ def get_dec_pooled_totals(
     return data
 
 
-def get_var_target(
-    var_data: pd.DataFrame,
-    iso3: str,
-    end_time: datetime,
-) -> Union[pd.Series, None]:
-    """Get the variant target data depending on whether
-    it is available for that country and the continent
-    that the country is in.
-    Hierarchically:
-        1. Australia/Oceania has its own approach
-        2. Africa is unavailable for any country
-        3. Country's own data if available
-        4. If country data unavailable and not 1. or 2.,
-            return the pooled estimate for the continent
-
-    Args:
-        iso3: The country identifier
-        end_time: Simulation end time
-
-    Returns:
-        The data for fitting, or None if Africa
-    """
-    iso2 = pycountry.countries.lookup(iso3).alpha_2
-    continent = pc.country_alpha2_to_continent_code(iso2)
-
-    prealpha_vars = extract_specific_var(var_data, "prealpha")
-
-    if continent == "OC":
-        return extract_specific_var(var_data, "ba2")["ba2_prop"]
-    elif prealpha_vars is not None:
-        return get_pooled_totals(prealpha_vars)["prealpha_prop"]
-    elif continent != "AF":
-        cont_data = get_continent_data(continent, "prealpha")
-        prealpha_vars = get_continent_vars(cont_data)
-        return get_pooled_totals(prealpha_vars)["prealpha_prop"]
-
-
 def get_alpha_target(var_data, continent):
     if continent not in ["OC", "AF"]:
         alpha_data = extract_specific_var(var_data, "alpha")
@@ -852,7 +815,9 @@ def get_delta_target(var_data, continent, end_time):
         if delta_data is None:
             cont_data = get_continent_data(continent, "delta")
             delta_data = get_continent_vars(cont_data, "delta")
-        period_mask = (DELTA_PERIOD_START < delta_data.index) & (delta_data.index < DELTA_PERIOD_END)
+        period_mask = (DELTA_PERIOD_START < delta_data.index) & \
+            (delta_data.index < DELTA_PERIOD_END) & \
+            (delta_data.index < end_time)
         pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
         return pooled_data["delta_prop"]
 
@@ -894,7 +859,7 @@ def get_cos_link_func(
         The value of the piecewise function
     """
     period = end - start
-    curve = lambda x: 0.5 * np.cos((x - start) * np.pi / period) + 0.5
+    curve = lambda x: 0.5 - 0.5 * np.cos((x - start) * np.pi / period)
     in_range = abs(t - start - period / 2.0) < period / 2.0
     conditions = [t <= start, in_range, start + period <= t]
     functions = [lambda x: 1.0, curve, lambda x: 0.0]
