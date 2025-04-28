@@ -798,13 +798,15 @@ def get_dec_pooled_totals(
     return data
 
 
-def get_alpha_target(var_data, continent):
+def get_alpha_target(var_data, continent, end_time):
     if continent not in ["OC", "AF"]:
         alpha_data = extract_specific_var(var_data, "alpha")
         if alpha_data is None:
             cont_data = get_continent_data(continent, "alpha")
             alpha_data = get_continent_vars(cont_data, "alpha")
-        period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < ALPHA_PERIOD_END)
+        period_mask = (ALPHA_PERIOD_START < alpha_data.index) & \
+            (alpha_data.index < ALPHA_PERIOD_END) & \
+            (alpha_data.index < end_time)
         pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
         return pooled_data["alpha_prop"]
 

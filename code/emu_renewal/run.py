@@ -306,7 +306,7 @@ def run_single_country(
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
     var_data = get_country_vars(iso3)
-    alpha_targ = get_alpha_target(var_data, continent)
+    alpha_targ = get_alpha_target(var_data, continent, end_time)
     delta_targ = get_delta_target(var_data, continent, end_time)
     ba2_targ = get_ba2_target(var_data, continent)
     ba5_targ = get_ba5_target(var_data, continent)
