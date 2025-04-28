@@ -18,6 +18,7 @@ from emu_renewal.inputs import (
     DEFAULT_END_TIME,
     CASES_START,
     DEFAULT_START_TIME,
+    MIN_DELTA_PROP,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -188,7 +189,7 @@ def collate_targets(
         alpha_targ_dict = {"prop_alpha": StandardDispTarget(alpha_targ, weight=20.0)}    
 
     # Delta proportion
-    if delta_targ is None:
+    if delta_targ is None or max(delta_targ) < MIN_DELTA_PROP:
         delta_targ_dict = {}
     else:
         delta_targ_dict = {"prop_delta": StandardDispTarget(delta_targ, weight=20.0)}    
@@ -347,7 +348,7 @@ def run_single_country(
         var_names.append("alpha")
         alpha_seed_time = get_cosine_intercept(alpha_targ, 10)
         seed_times.append(alpha_seed_time)
-    if delta_targ is not None:
+    if delta_targ is not None and max(delta_targ) > MIN_DELTA_PROP:
         var_names.append("delta")
         delta_seed_time = get_cosine_intercept(delta_targ, 10)
         seed_times.append(delta_seed_time)
