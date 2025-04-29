@@ -32,7 +32,7 @@ from emu_renewal.inputs import (
     get_country_vars,
     get_alpha_target,
     get_delta_target,
-    get_ba2_target, 
+    get_ba2_target,
     get_ba5_target,
 )
 from emu_renewal.targets import StandardDispTarget
@@ -78,6 +78,7 @@ def find_run_start_time(
         vacc_data: Two-dose vaccination coverage data
         pop: Population size
         threshold: How many deaths to reach
+        iso3: The country identifier
 
     Returns:
         The date to start the analysis
@@ -103,14 +104,14 @@ def find_run_end_time(
     Calculated as the time that the population vaccination coverage
     passes the requested threshold for all countries but Australia,
     provided that the vaccination coverage does reach this
-    value by the 1st of June 2021. Otherwise return the end date
+    value by the default end time. Otherwise return the end date
     for Google mobility data for Australia,
     or return a default value for other countries.
 
     Args:
         vacc_data: The vaccination data for the country considered
         cov_threshold: The threshold
-        iso3: The country being considered
+        iso3: The country identifier
 
     Returns:
         The date at which to end the analysis period
@@ -186,29 +187,37 @@ def collate_targets(
     if alpha_targ is None:
         alpha_targ_dict = {}
     else:
-        alpha_targ_dict = {"prop_alpha": StandardDispTarget(alpha_targ, weight=20.0)}    
+        alpha_targ_dict = {"prop_alpha": StandardDispTarget(alpha_targ, weight=20.0)}
 
     # Delta proportion
     if delta_targ is None or max(delta_targ) < MIN_DELTA_PROP:
         delta_targ_dict = {}
     else:
-        delta_targ_dict = {"prop_delta": StandardDispTarget(delta_targ, weight=20.0)}    
+        delta_targ_dict = {"prop_delta": StandardDispTarget(delta_targ, weight=20.0)}
 
     # BA.2 proportion
     if ba2_targ is None:
         ba2_targ_dict = {}
     else:
-        ba2_targ_dict = {"prop_ba2": StandardDispTarget(ba2_targ, weight=20.0)}    
+        ba2_targ_dict = {"prop_ba2": StandardDispTarget(ba2_targ, weight=20.0)}
 
     # BA.5 proportion
     if ba5_targ is None:
         ba5_targ_dict = {}
     else:
-        ba5_targ_dict = {"prop_ba5": StandardDispTarget(ba5_targ, weight=20.0)}    
+        ba5_targ_dict = {"prop_ba5": StandardDispTarget(ba5_targ, weight=20.0)}
 
     # Collate together
     core_targs = {"weekly_cases": cases_targ, "weekly_deaths": deaths_targ}
-    return core_targs | seroprev_targ_dict | hosp_targ_dict | alpha_targ_dict | delta_targ_dict | ba2_targ_dict | ba5_targ_dict
+    return (
+        core_targs
+        | seroprev_targ_dict
+        | hosp_targ_dict
+        | alpha_targ_dict
+        | delta_targ_dict
+        | ba2_targ_dict
+        | ba5_targ_dict
+    )
 
 
 def get_logger(log_file: Path = None):
@@ -324,7 +333,7 @@ def run_single_country(
         continent,
         alpha_targ,
         delta_targ,
-        ba2_targ, 
+        ba2_targ,
         ba5_targ,
     )
     run_start = data_start - timedelta(run_data_delay)

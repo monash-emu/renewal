@@ -86,7 +86,7 @@ ALPHA_PERIOD_START = datetime(2020, 1, 1)
 ALPHA_PERIOD_END = datetime(2021, 2, 15)
 DELTA_INCLUSION_DATE = datetime(2021, 5, 1)
 DELTA_PERIOD_START = datetime(2021, 2, 15)
-DELTA_PERIOD_END = datetime(2021, 9 , 1)
+DELTA_PERIOD_END = datetime(2021, 9, 1)
 MIN_DELTA_PROP = 0.05
 BA2_PERIOD_START = datetime(2022, 1, 1)
 BA2_PERIOD_END = datetime(2022, 4, 15)
@@ -173,7 +173,7 @@ def get_country_hosps(
     filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
     icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
     filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
-    if not filt_admits.empty and country in ["HRV"]:
+    if not filt_admits.empty and country in ["HRV", "ZAF"]:
         weekly_admits = filt_admits.dropna()
         return weekly_admits, "weekly_admissions"
     elif not filt_admits.empty:
@@ -586,7 +586,7 @@ def get_specific_var_props(
     out_df = country_df[above_min_prop & below_max_prop]
     if len(out_df) > min_obs:
         return out_df
-    
+
 
 def extract_specific_var(
     var_data: pd.DataFrame,
@@ -805,9 +805,11 @@ def get_alpha_target(var_data, continent, end_time):
         if alpha_data is None:
             cont_data = get_continent_data(continent, "alpha")
             alpha_data = get_continent_vars(cont_data, "alpha")
-        period_mask = (ALPHA_PERIOD_START < alpha_data.index) & \
-            (alpha_data.index < ALPHA_PERIOD_END) & \
-            (alpha_data.index < end_time)
+        period_mask = (
+            (ALPHA_PERIOD_START < alpha_data.index)
+            & (alpha_data.index < ALPHA_PERIOD_END)
+            & (alpha_data.index < end_time)
+        )
         pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
         return pooled_data["alpha_prop"]
 
@@ -818,9 +820,11 @@ def get_delta_target(var_data, continent, end_time):
         if delta_data is None:
             cont_data = get_continent_data(continent, "delta")
             delta_data = get_continent_vars(cont_data, "delta")
-        period_mask = (DELTA_PERIOD_START < delta_data.index) & \
-            (delta_data.index < DELTA_PERIOD_END) & \
-            (delta_data.index < end_time)
+        period_mask = (
+            (DELTA_PERIOD_START < delta_data.index)
+            & (delta_data.index < DELTA_PERIOD_END)
+            & (delta_data.index < end_time)
+        )
         pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
         return pooled_data["delta_prop"]
 
