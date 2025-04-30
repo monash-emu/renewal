@@ -55,6 +55,7 @@ COUNTRY_SEED_OFFSETS = {
     "FIN": -60,
     "DEU": 90,
     "GUY": -30,  #
+    "LBN": 60,
 }
 
 
