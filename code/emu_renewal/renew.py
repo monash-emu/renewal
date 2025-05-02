@@ -232,19 +232,20 @@ class MultiStrainModel:
         strain_starts = []
         for s in range(self.n_strains):
             strain_starts.append(int(self.epoch.dti_to_index(self.seed_times[s])))
-        print(strain_starts)
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = mobility[t - self.start]  # Mobility data (scalar)
             # Incidence history (array of shape n_strains X window_len)
             analysis_time = t + self.init_length
-            # # seed_val = self.seed_array[:, analysis_time]
             seed_vals = jnp.array([0.0] * self.n_strains)
             for s in range(self.n_strains):
-                time_from_seed = analysis_time - strain_starts[s]
-                is_seeding = 0 < time_from_seed < self.seed_duration
-                is_seeding_multiplier = int(is_seeding)
+                time_from_seed_start = analysis_time - strain_starts[s]
+                time_from_seed_end = analysis_time - (strain_starts[s] + self.seed_duration)
+                past_start = jnp.min(jnp.array([jnp.max(jnp.array([0.0, time_from_seed_start])), 1.0]))
+                past_end = jnp.min(jnp.array([jnp.max(jnp.array([0.0, time_from_seed_end])), 1.0]))
+                before_end = 1.0 - past_end
+                is_seeding_multiplier = past_start * before_end
                 seed_rate = seed_rates[s] * self.pop
                 seed_vals = seed_vals.at[s].set(is_seeding_multiplier * seed_rate)
             past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed_vals)
