@@ -355,6 +355,7 @@ def run_single_country(
     logger.info(f"Running from {start_str} with data starting from {end_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
     seed_offset = COUNTRY_SEED_OFFSETS[iso3] if iso3 in COUNTRY_SEED_OFFSETS else 10
+    seed_offset = 50
     # if continent == "OC":
     #     var_names = ["ba1", "ba2", "ba5"]
     #     data = targets["prop_ba2"].data
