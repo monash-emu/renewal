@@ -800,11 +800,16 @@ def get_dec_pooled_totals(
     return data
 
 
+def get_var_target(var_data, continent, var_name):
+    data = extract_specific_var(var_data, var_name)
+    if data is None:
+        cont_data = get_continent_data(continent, var_name)
+        data = get_continent_vars(cont_data, var_name)
+    return data
+
+
 def get_alpha_target(var_data, continent, end_time, delta_targ):
-    alpha_data = extract_specific_var(var_data, "alpha")
-    if alpha_data is None:
-        cont_data = get_continent_data(continent, "alpha")
-        alpha_data = get_continent_vars(cont_data, "alpha")
+    alpha_data = get_var_target(var_data, continent, "alpha")
     end_alpha_time = end_time if delta_targ is None else min([ALPHA_DELTA_TRANSITION, end_time])
     period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < end_alpha_time)
     pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
@@ -812,10 +817,7 @@ def get_alpha_target(var_data, continent, end_time, delta_targ):
 
 
 def get_delta_target(var_data, continent, end_time):
-    delta_data = extract_specific_var(var_data, "delta")
-    if delta_data is None:
-        cont_data = get_continent_data(continent, "delta")
-        delta_data = get_continent_vars(cont_data, "delta")
+    delta_data = get_var_target(var_data, continent, end_time)
     end_delta_time = min([DELTA_PERIOD_END, end_time])
     period_mask = (ALPHA_DELTA_TRANSITION < delta_data.index) & (delta_data.index < end_delta_time)
     pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
