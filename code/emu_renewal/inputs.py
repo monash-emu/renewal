@@ -804,8 +804,9 @@ def get_var_target(var_data, continent, var_name):
     data = extract_specific_var(var_data, var_name)
     if data is None:
         cont_data = get_continent_data(continent, var_name)
-        data = get_continent_vars(cont_data, var_name)
-    return data
+        return get_continent_vars(cont_data, var_name)
+    else:
+        return data
 
 
 def get_alpha_target(var_data, continent, end_time, delta_targ):
