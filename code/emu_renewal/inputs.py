@@ -83,7 +83,7 @@ DEFAULT_START_TIME = datetime(2020, 6, 1)
 DEFAULT_END_TIME = datetime(2021, 12, 1)
 DT_REF_DATE = datetime(1970, 1, 1)
 ALPHA_PERIOD_START = datetime(2020, 1, 1)
-ALPHA_DELTA_TRANSITION = datetime(2021, 2, 15)
+ALPHA_DELTA_TRANSITION = datetime(2021, 4, 15)
 DELTA_INCLUSION_DATE = datetime(2021, 5, 1)
 DELTA_PERIOD_END = datetime(2021, 9, 1)
 MIN_DELTA_PROP = 0.05
@@ -818,7 +818,7 @@ def get_alpha_target(var_data, continent, end_time, delta_targ):
 
 
 def get_delta_target(var_data, continent, end_time):
-    delta_data = get_var_target(var_data, continent, end_time)
+    delta_data = get_var_target(var_data, continent, "delta")
     end_delta_time = min([DELTA_PERIOD_END, end_time])
     period_mask = (ALPHA_DELTA_TRANSITION < delta_data.index) & (delta_data.index < end_delta_time)
     pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
