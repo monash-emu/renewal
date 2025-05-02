@@ -240,8 +240,10 @@ class MultiStrainModel:
             analysis_time = t + self.init_length
             seed_vals = jnp.array([0.0] * self.n_strains)
             for s in range(self.n_strains):
-                time_from_seed_start = analysis_time - strain_starts[s]
-                time_from_seed_end = analysis_time - (strain_starts[s] + self.seed_duration)
+                seed_start = strain_starts[s]
+                seed_end = seed_start + self.seed_duration
+                time_from_seed_start = analysis_time - seed_start
+                time_from_seed_end = analysis_time - seed_end
                 past_start = jnp.min(jnp.array([jnp.max(jnp.array([0.0, time_from_seed_start])), 1.0]))
                 past_end = jnp.min(jnp.array([jnp.max(jnp.array([0.0, time_from_seed_end])), 1.0]))
                 before_end = 1.0 - past_end
