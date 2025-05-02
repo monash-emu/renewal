@@ -194,7 +194,7 @@ def collate_targets(
         alpha_targ_dict = {"prop_alpha": StandardDispTarget(alpha_targ, weight=20.0)}
 
     # Delta proportion
-    if delta_targ is None or max(delta_targ) < MIN_DELTA_PROP:
+    if delta_targ is None or delta_targ.empty or max(delta_targ) < MIN_DELTA_PROP:
         delta_targ_dict = {}
     else:
         delta_targ_dict = {"prop_delta": StandardDispTarget(delta_targ, weight=20.0)}
@@ -369,7 +369,7 @@ def run_single_country(
         var_names.append("alpha")
         alpha_seed_time = get_cosine_intercept(alpha_targ, seed_offset)
         seed_times.append(alpha_seed_time)
-    if delta_targ is not None and max(delta_targ) > MIN_DELTA_PROP:
+    if delta_targ is not None and not delta_targ.empty and max(delta_targ) > MIN_DELTA_PROP:
         var_names.append("delta")
         delta_seed_time = get_cosine_intercept(delta_targ, seed_offset)
         seed_times.append(delta_seed_time)

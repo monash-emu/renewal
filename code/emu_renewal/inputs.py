@@ -644,7 +644,6 @@ def get_continent_data(
     cont_data = {}
     for country in countries:
         if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
-            print(country)
             var_data = get_country_vars(country.alpha_3)
             iso3 = country.alpha_3
             cont_data[iso3] = extract_specific_var(var_data, var)
