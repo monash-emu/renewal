@@ -166,7 +166,7 @@ def get_country_hosps(
             - The name of the indicator for comparison
     """
     admits = get_owid_hosp_series("Weekly new hospital admissions", country)
-    filt_admits = admits[(start < admits.index) & (admits.index < end)]
+    filt_admits = admits[(start < admits.index) & (admits.index < end) & (admits > 0.0)]
     occup = get_owid_hosp_series("Daily hospital occupancy", country)
     filt_occup = occup[(start < occup.index) & (occup.index < end)]
     icu_admits = get_owid_hosp_series("Weekly new ICU admissions", country)
