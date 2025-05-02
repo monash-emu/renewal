@@ -206,7 +206,6 @@ def collate_targets(
         ba2_targ_dict = {"prop_ba2": StandardDispTarget(ba2_targ, weight=20.0)}
 
     # BA.5 proportion
-    print(ba5_targ)
     if ba5_targ is None:
         ba5_targ_dict = {}
     else:
