@@ -19,6 +19,7 @@ from emu_renewal.inputs import (
     CASES_START,
     DEFAULT_START_TIME,
     MIN_DELTA_PROP,
+    DELTA_INCLUSION_DATE,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -54,8 +55,9 @@ COUNTRY_SEED_OFFSETS = {
     "ESP": 90,
     "FIN": -60,
     "DEU": 90,
-    "GUY": -30,  #
+    "GUY": -30,
     "LBN": 60,
+    "SVN": 60,
 }
 
 
@@ -318,8 +320,8 @@ def run_single_country(
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev_target = get_filtered_seroprev(country, data_start, end_time)
     var_data = get_country_vars(iso3)
-    alpha_targ = get_alpha_target(var_data, continent, end_time)
-    delta_targ = get_delta_target(var_data, continent, end_time)
+    alpha_targ = None if continent not in ["OC", "AF"] else get_alpha_target(var_data, continent, end_time)
+    delta_targ = None if continent == "OC" or end_time > DELTA_INCLUSION_DATE else get_delta_target(var_data, continent, end_time)
     ba2_targ = get_ba2_target(var_data, continent)
     ba5_targ = get_ba5_target(var_data, continent)
     targets = collate_targets(

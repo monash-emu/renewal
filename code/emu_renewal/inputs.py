@@ -802,33 +802,31 @@ def get_dec_pooled_totals(
 
 
 def get_alpha_target(var_data, continent, end_time):
-    if continent not in ["OC", "AF"]:
-        alpha_data = extract_specific_var(var_data, "alpha")
-        if alpha_data is None:
-            cont_data = get_continent_data(continent, "alpha")
-            alpha_data = get_continent_vars(cont_data, "alpha")
-        period_mask = (
-            (ALPHA_PERIOD_START < alpha_data.index)
-            & (alpha_data.index < ALPHA_PERIOD_END)
-            & (alpha_data.index < end_time)
-        )
-        pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
-        return pooled_data["alpha_prop"]
+    alpha_data = extract_specific_var(var_data, "alpha")
+    if alpha_data is None:
+        cont_data = get_continent_data(continent, "alpha")
+        alpha_data = get_continent_vars(cont_data, "alpha")
+    period_mask = (
+        (ALPHA_PERIOD_START < alpha_data.index)
+        & (alpha_data.index < ALPHA_PERIOD_END)
+        & (alpha_data.index < end_time)
+    )
+    pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
+    return pooled_data["alpha_prop"]
 
 
 def get_delta_target(var_data, continent, end_time):
-    if continent != "OC" and end_time > DELTA_INCLUSION_DATE:
-        delta_data = extract_specific_var(var_data, "delta")
-        if delta_data is None:
-            cont_data = get_continent_data(continent, "delta")
-            delta_data = get_continent_vars(cont_data, "delta")
-        period_mask = (
-            (DELTA_PERIOD_START < delta_data.index)
-            & (delta_data.index < DELTA_PERIOD_END)
-            & (delta_data.index < end_time)
-        )
-        pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
-        return pooled_data["delta_prop"]
+    delta_data = extract_specific_var(var_data, "delta")
+    if delta_data is None:
+        cont_data = get_continent_data(continent, "delta")
+        delta_data = get_continent_vars(cont_data, "delta")
+    period_mask = (
+        (DELTA_PERIOD_START < delta_data.index)
+        & (delta_data.index < DELTA_PERIOD_END)
+        & (delta_data.index < end_time)
+    )
+    pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
+    return pooled_data["delta_prop"]
 
 
 def get_ba2_target(var_data, continent):
