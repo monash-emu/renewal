@@ -643,8 +643,9 @@ def get_continent_data(
     countries = [c for c in pycountry.countries if c.alpha_2 not in no_continent_countries]
     cont_data = {}
     for country in countries:
-        var_data = get_country_vars(country.alpha_3)
         if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
+            print(country)
+            var_data = get_country_vars(country.alpha_3)
             iso3 = country.alpha_3
             cont_data[iso3] = extract_specific_var(var_data, var)
     return cont_data
