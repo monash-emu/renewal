@@ -48,7 +48,7 @@ from emu_renewal import mobility
 COUNTRY_SEED_OFFSETS = {
     "USA": 90,
     "ZAF": 60,
-    "BRA": 90,
+    "BRA": 60,
     "ROU": 30,
     "IND": 90,
     "FRA": 60,
@@ -206,6 +206,7 @@ def collate_targets(
         ba2_targ_dict = {"prop_ba2": StandardDispTarget(ba2_targ, weight=20.0)}
 
     # BA.5 proportion
+    print(ba5_targ)
     if ba5_targ is None:
         ba5_targ_dict = {}
     else:
@@ -322,13 +323,13 @@ def run_single_country(
     var_data = get_country_vars(iso3)
     delta_targ = (
         None
-        if continent == "OC" or end_time > DELTA_INCLUSION_DATE
-        else get_delta_target(var_data, continent, end_time)
+        if continent == "OC" or end_time < DELTA_INCLUSION_DATE
+        else get_delta_target(var_data, iso3, continent, end_time)
     )
     alpha_targ = (
         None
         if continent in ["OC", "AF"]
-        else get_alpha_target(var_data, continent, end_time, delta_targ)
+        else get_alpha_target(var_data, iso3, continent, end_time, delta_targ)
     )
     ba2_targ = get_ba2_target(var_data, continent)
     ba5_targ = get_ba5_target(var_data, continent)
