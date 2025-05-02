@@ -238,7 +238,7 @@ class MultiStrainModel:
             mob_val = mobility[t - self.start]  # Mobility data (scalar)
             # Incidence history (array of shape n_strains X window_len)
             analysis_time = t + self.init_length
-            seed_vals = jnp.array([0.0] * self.n_strains)
+            seed_vals = jnp.zeros(self.n_strains)
             for s in range(self.n_strains):
                 seed_start = strain_starts[s]
                 seed_end = seed_start + self.seed_duration
@@ -247,9 +247,9 @@ class MultiStrainModel:
                 past_start = jnp.min(jnp.array([jnp.max(jnp.array([0.0, time_from_seed_start])), 1.0]))
                 past_end = jnp.min(jnp.array([jnp.max(jnp.array([0.0, time_from_seed_end])), 1.0]))
                 before_end = 1.0 - past_end
-                is_seeding_multiplier = past_start * before_end
+                is_seeding = past_start * before_end
                 seed_rate = seed_rates[s] * self.pop
-                seed_vals = seed_vals.at[s].set(is_seeding_multiplier * seed_rate)
+                seed_vals = seed_vals.at[s].set(is_seeding * seed_rate)
             past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed_vals)
             # Incidence convolved with generation (vector of length n_strains)
             contributions = (densities * past_inc).sum(axis=1)
