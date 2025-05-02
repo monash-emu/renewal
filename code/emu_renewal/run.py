@@ -46,6 +46,7 @@ from emu_renewal import mobility
 
 COUNTRY_SEED_OFFSETS = {
     "USA": 90,
+    "ZAF": 60,
     "BRA": 90,
     "ROU": 30,
     "IND": 90,
@@ -54,6 +55,7 @@ COUNTRY_SEED_OFFSETS = {
     "FIN": -60,
     "DEU": 90,
     "GUY": -30,  #
+    "LBN": 60,
 }
 
 
@@ -355,11 +357,11 @@ def run_single_country(
     seed_times = [run_start]
     if alpha_targ is not None:
         var_names.append("alpha")
-        alpha_seed_time = get_cosine_intercept(alpha_targ, 10)
+        alpha_seed_time = get_cosine_intercept(alpha_targ, seed_offset)
         seed_times.append(alpha_seed_time)
     if delta_targ is not None and max(delta_targ) > MIN_DELTA_PROP:
         var_names.append("delta")
-        delta_seed_time = get_cosine_intercept(delta_targ, 10)
+        delta_seed_time = get_cosine_intercept(delta_targ, seed_offset)
         seed_times.append(delta_seed_time)
 
     # else:
