@@ -83,9 +83,8 @@ DEFAULT_START_TIME = datetime(2020, 6, 1)
 DEFAULT_END_TIME = datetime(2021, 12, 1)
 DT_REF_DATE = datetime(1970, 1, 1)
 ALPHA_PERIOD_START = datetime(2020, 1, 1)
-ALPHA_PERIOD_END = datetime(2021, 2, 15)
+ALPHA_DELTA_TRANSITION = datetime(2021, 2, 15)
 DELTA_INCLUSION_DATE = datetime(2021, 5, 1)
-DELTA_PERIOD_START = datetime(2021, 2, 15)
 DELTA_PERIOD_END = datetime(2021, 9, 1)
 MIN_DELTA_PROP = 0.05
 BA2_PERIOD_START = datetime(2022, 1, 1)
@@ -801,16 +800,13 @@ def get_dec_pooled_totals(
     return data
 
 
-def get_alpha_target(var_data, continent, end_time):
+def get_alpha_target(var_data, continent, end_time, delta_targ):
     alpha_data = extract_specific_var(var_data, "alpha")
     if alpha_data is None:
         cont_data = get_continent_data(continent, "alpha")
         alpha_data = get_continent_vars(cont_data, "alpha")
-    period_mask = (
-        (ALPHA_PERIOD_START < alpha_data.index)
-        & (alpha_data.index < ALPHA_PERIOD_END)
-        & (alpha_data.index < end_time)
-    )
+    end_alpha_time = end_time if delta_targ is None else min([ALPHA_DELTA_TRANSITION, end_time])
+    period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < end_alpha_time)
     pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
     return pooled_data["alpha_prop"]
 
@@ -820,11 +816,8 @@ def get_delta_target(var_data, continent, end_time):
     if delta_data is None:
         cont_data = get_continent_data(continent, "delta")
         delta_data = get_continent_vars(cont_data, "delta")
-    period_mask = (
-        (DELTA_PERIOD_START < delta_data.index)
-        & (delta_data.index < DELTA_PERIOD_END)
-        & (delta_data.index < end_time)
-    )
+    end_delta_time = min([DELTA_PERIOD_END, end_time])
+    period_mask = (ALPHA_DELTA_TRANSITION < delta_data.index) & (delta_data.index < end_delta_time)
     pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
     return pooled_data["delta_prop"]
 
