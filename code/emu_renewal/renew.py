@@ -228,7 +228,6 @@ class MultiStrainModel:
 
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
-
         strain_starts = []
         for s in range(self.n_strains):
             strain_starts.append(int(self.epoch.dti_to_index(self.seed_times[s])))
@@ -237,7 +236,7 @@ class MultiStrainModel:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = mobility[t - self.start]  # Mobility data (scalar)
             # Incidence history (array of shape n_strains X window_len)
-            analysis_time = t + self.init_length
+            analysis_time = t + 1
             seed_vals = jnp.zeros(self.n_strains)
             for s in range(self.n_strains):
                 seed_start = strain_starts[s]
