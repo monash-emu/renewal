@@ -86,6 +86,10 @@ def get_trans_mats(dests: np.ndarray):
     return trans_mats
 
 
+def is_val_nonneg(val):
+    return jnp.min(jnp.array([jnp.sign(val) + 1.0, 1.0]))
+
+
 class MultistrainState(NamedTuple):
     incidence: jnp.array
     suscept: jnp.array
@@ -243,12 +247,10 @@ class MultiStrainModel:
             for s in range(self.n_strains):
                 time_from_seed_start = t - strain_starts[s]
                 time_from_seed_end = t - seed_ends[s]
-                past_start = jnp.min(jnp.array([jnp.sign(time_from_seed_start) + 1.0, 1.0]))
-                past_end = jnp.min(jnp.array([jnp.sign(time_from_seed_end) + 1.0, 1.0]))
-                before_end = 1.0 - past_end
-                is_seeding = past_start * before_end
+                past_start = is_val_nonneg(time_from_seed_start)
+                before_end = 1.0 - is_val_nonneg(time_from_seed_end)
                 seed_rate = seed_rates[s] * self.pop
-                seed_vals = seed_vals.at[s].set(is_seeding * seed_rate)
+                seed_vals = seed_vals.at[s].set(past_start * before_end * seed_rate)
             past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed_vals)
             # Incidence convolved with generation (vector of length n_strains)
             contributions = (densities * past_inc).sum(axis=1)
