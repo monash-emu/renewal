@@ -232,25 +232,19 @@ class MultiStrainModel:
 
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
-        strain_starts = []
-        seed_ends = []
-        for s in range(self.n_strains):
-            seed_start = int(self.epoch.dti_to_index(self.seed_times[s]))
-            strain_starts.append(seed_start)
-            seed_ends.append(strain_starts[s] + self.seed_duration)
-        
+        half_dur = self.seed_duration / 2.0
+        # Not sure why this has to have one subtracted
+        seed_peaks = jnp.array([self.epoch.dti_to_index(s) - 1 for s in self.seed_times]) + half_dur
+
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = mobility[t - self.start]  # Mobility data (scalar)
             # Incidence history (array of shape n_strains X window_len)
-            seed_vals = jnp.zeros(self.n_strains)
-            for s in range(self.n_strains):
-                time_from_seed_start = t - strain_starts[s]
-                time_from_seed_end = t - seed_ends[s]
-                past_start = is_val_nonneg(time_from_seed_start)
-                before_end = 1.0 - is_val_nonneg(time_from_seed_end)
-                seed_rate = seed_rates[s] * self.pop
-                seed_vals = seed_vals.at[s].set(past_start * before_end * seed_rate)
+
+            rel_seed_vals = 1.0 - abs(t - seed_peaks) / half_dur
+            zeroed_vals = jnp.where(rel_seed_vals > 0.0, rel_seed_vals, 0.0)
+            seed_vals = jnp.multiply(zeroed_vals, seed_rates * self.pop)
+
             past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed_vals)
             # Incidence convolved with generation (vector of length n_strains)
             contributions = (densities * past_inc).sum(axis=1)
@@ -352,11 +346,6 @@ class MultiStrainModel:
         **kwargs,
     ) -> ModelResult:
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
-        # for s in range(self.n_strains):
-        #     seed_rate = seed_rates[s] * self.pop
-        #     strain_start = int(self.epoch.dti_to_index(self.seed_times[s])) + self.init_length
-        #     strain_end = strain_start + self.seed_duration
-        #     self.seed_array = self.seed_array.at[s, strain_start:strain_end].set(seed_rate)
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
         outputs = self.renew(gen_mean, gen_sd, proc, rt_init, cross_immunity, relinfect, seed_rates, **kwargs)
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
