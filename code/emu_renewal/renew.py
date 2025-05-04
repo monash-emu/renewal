@@ -6,7 +6,6 @@ from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
 from datetime import datetime
 import numpy as np
-import pandas as pd
 import copy
 
 from summer2.utils import Epoch
@@ -86,8 +85,10 @@ def get_trans_mats(dests: np.ndarray):
     return trans_mats
 
 
-def is_val_nonneg(val):
-    return jnp.min(jnp.array([jnp.sign(val) + 1.0, 1.0]))
+def get_triangular_vals(t, peak_times, seed_rates, side_width):
+    rel_seed_vals = 1.0 - abs(t - peak_times) / side_width
+    zeroed_seed_vals = jnp.where(rel_seed_vals > 0.0, rel_seed_vals, 0.0)
+    return jnp.multiply(zeroed_seed_vals, seed_rates)
 
 
 class MultistrainState(NamedTuple):
@@ -241,9 +242,7 @@ class MultiStrainModel:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = mobility[t - self.start]  # Mobility data (scalar)
             # Incidence history (array of shape n_strains X window_len)
-            rel_seed_vals = 1.0 - abs(t - seed_peaks) / half_dur
-            zeroed_seed_vals = jnp.where(rel_seed_vals > 0.0, rel_seed_vals, 0.0)
-            seed_vals = jnp.multiply(zeroed_seed_vals, seed_rates * self.pop)
+            seed_vals = get_triangular_vals(t, seed_peaks, seed_rates * self.pop, half_dur)
             past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed_vals)
             # Incidence convolved with generation (vector of length n_strains)
             contributions = (densities * past_inc).sum(axis=1)
