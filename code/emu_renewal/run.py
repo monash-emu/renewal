@@ -365,7 +365,7 @@ def run_single_country(
     #     seed_times = [run_start, ba2_seed_time, ba5_seed_time]
     # else:
     var_names = ["eu"]
-    seed_times = [run_start]
+    seed_times = []
     if alpha_targ is not None:
         var_names.append("alpha")
         alpha_seed_time = get_cosine_intercept(alpha_targ, seed_offset)

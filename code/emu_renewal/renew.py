@@ -233,18 +233,17 @@ class MultiStrainModel:
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
         half_dur = self.seed_duration / 2.0
-        # Not sure why this has to have one subtracted
-        seed_peaks = jnp.array([self.epoch.dti_to_index(s) - 1 for s in self.seed_times]) + half_dur
+        # Not sure why this has to be minus one
+        seed_starts = [-1.0] + [self.epoch.dti_to_index(s) for s in self.seed_times]
+        seed_peaks = jnp.array(seed_starts) + half_dur
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = mobility[t - self.start]  # Mobility data (scalar)
             # Incidence history (array of shape n_strains X window_len)
-
             rel_seed_vals = 1.0 - abs(t - seed_peaks) / half_dur
-            zeroed_vals = jnp.where(rel_seed_vals > 0.0, rel_seed_vals, 0.0)
-            seed_vals = jnp.multiply(zeroed_vals, seed_rates * self.pop)
-
+            zeroed_seed_vals = jnp.where(rel_seed_vals > 0.0, rel_seed_vals, 0.0)
+            seed_vals = jnp.multiply(zeroed_seed_vals, seed_rates * self.pop)
             past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed_vals)
             # Incidence convolved with generation (vector of length n_strains)
             contributions = (densities * past_inc).sum(axis=1)
