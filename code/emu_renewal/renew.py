@@ -85,10 +85,30 @@ def get_trans_mats(dests: np.ndarray):
     return trans_mats
 
 
-def get_triangular_vals(t, peak_times, seed_rates, side_width):
-    rel_seed_vals = 1.0 - abs(t - peak_times) / side_width
-    zeroed_seed_vals = jnp.where(rel_seed_vals > 0.0, rel_seed_vals, 0.0)
-    return jnp.multiply(zeroed_seed_vals, seed_rates)
+def get_triangular_vals(
+    time: float,
+    peak_times: np.array, 
+    peak_heights: np.array,
+    side_width: float,
+) -> np.array:
+    """Get the values of a set of triangular functions
+    at a common time point. The functions are all
+    triangular peaked pulses that are zeroed out
+    where they fall below zero and have common widths,
+    but differnt midpoints and heights.
+
+    Args:
+        time: Time at which to
+        peak_times: The time at which each function peaks
+        peak_heights: The peak value that the function reaches at this point
+        side_width: The distance from the midpoint to the zero value for all functions
+
+    Returns:
+        The values of each of the functions at time t
+    """
+    rel_peak_vals = 1.0 - abs(time - peak_times) / side_width
+    zeroed_vals = jnp.where(rel_peak_vals > 0.0, rel_peak_vals, 0.0)
+    return jnp.multiply(zeroed_vals, peak_heights)
 
 
 class MultistrainState(NamedTuple):
