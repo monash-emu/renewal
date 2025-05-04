@@ -95,12 +95,12 @@ def get_triangular_vals(
     at a common time point. The functions are all
     triangular peaked pulses that are zeroed out
     where they fall below zero and have common widths,
-    but differnt midpoints and heights.
+    but different midpoints and heights.
 
     Args:
-        time: Time at which to
+        time: Time at which to evaluate the functions
         peak_times: The time at which each function peaks
-        peak_heights: The peak value that the function reaches at this point
+        peak_heights: The peak value that each function reaches at its peak
         side_width: The distance from the midpoint to the zero value for all functions
 
     Returns:
