@@ -348,7 +348,9 @@ def get_standard_priors(
     # Variant-related
     seed_low_lim = jnp.repeat(1e-7, n_strains)
     seed_up_lim = jnp.repeat(5e-6, n_strains)
-    seed_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
+    seed_rate_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
+    seed_offsets_dist = dist.Uniform(jnp.repeat(4.0, n_strains - 1), jnp.repeat(60.0, n_strains - 1))
+    seed_offsets_priors = {"seed_offsets": seed_offsets_dist} if n_strains > 1 else None
     relinfect_means = jnp.repeat(1.25, n_strains - 1)
     infect_dist_prior = dist.TruncatedNormal(relinfect_means, 0.1, low=1.0, high=2.0)
     infect_dist = infect_dist_prior if n_strains > 1 else None
@@ -364,11 +366,12 @@ def get_standard_priors(
         rel_durs
         | irrel_durs
         | beta_priors
-        | seed_priors
+        | seed_rate_priors
         | inf_priors
         | imm_prior
         | rt_prior
         | disp_prior
+        | seed_offsets_priors
     )
 
 

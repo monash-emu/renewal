@@ -368,11 +368,11 @@ def run_single_country(
     seed_times = []
     if alpha_targ is not None:
         var_names.append("alpha")
-        alpha_seed_time = get_cosine_intercept(alpha_targ, seed_offset)
+        alpha_seed_time = alpha_targ.index[0]
         seed_times.append(alpha_seed_time)
     if delta_targ is not None and not delta_targ.empty and max(delta_targ) > MIN_DELTA_PROP:
         var_names.append("delta")
-        delta_seed_time = get_cosine_intercept(delta_targ, seed_offset)
+        delta_seed_time = delta_targ.index[0]
         seed_times.append(delta_seed_time)
 
     # else:
