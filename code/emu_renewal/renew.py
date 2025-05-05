@@ -1,6 +1,5 @@
 from typing import List, Optional
 from typing import NamedTuple
-from warnings import warn
 
 from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
