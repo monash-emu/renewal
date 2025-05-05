@@ -83,10 +83,10 @@ DEFAULT_START_TIME = datetime(2020, 6, 1)
 DEFAULT_END_TIME = datetime(2021, 12, 1)
 DT_REF_DATE = datetime(1970, 1, 1)
 ALPHA_PERIOD_START = datetime(2020, 1, 1)
-ALPHA_DELTA_TRANS = datetime(2021, 4, 15)
+ALPHA_DELTA_TRANS = datetime(2021, 3, 1)
 ALPHA_DELTA_EXCEPT = {
-    "IDN": datetime(2021, 2, 1),
-    "OMN": datetime(2021, 2, 20),
+    # "IDN": datetime(2021, 2, 1),
+    # "OMN": datetime(2021, 2, 20),
 }
 DELTA_INCLUSION_DATE = datetime(2021, 5, 1)
 DELTA_PERIOD_END = datetime(2021, 9, 1)
@@ -349,7 +349,9 @@ def get_standard_priors(
     seed_low_lim = jnp.repeat(1e-7, n_strains)
     seed_up_lim = jnp.repeat(5e-6, n_strains)
     seed_rate_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
-    seed_offsets_dist = dist.Uniform(jnp.repeat(4.0, n_strains - 1), jnp.repeat(60.0, n_strains - 1))
+    seed_offsets_dist = dist.Uniform(
+        jnp.repeat(4.0, n_strains - 1), jnp.repeat(90.0, n_strains - 1)
+    )
     seed_offsets_priors = {"seed_offsets": seed_offsets_dist} if n_strains > 1 else None
     relinfect_means = jnp.repeat(1.25, n_strains - 1)
     infect_dist_prior = dist.TruncatedNormal(relinfect_means, 0.1, low=1.0, high=2.0)
