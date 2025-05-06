@@ -62,7 +62,7 @@ class WeightedTransformTarget(TransformTarget):
     def set_calibration_data(self, data):
         super().set_calibration_data(data)
         if self.weight is None:
-            self.weight = float(len(self.calibration_data)) 
+            self.weight = float(len(self.calibration_data))
 
 
 class UnivariateDispersionTarget(WeightedTransformTarget):
@@ -72,7 +72,7 @@ class UnivariateDispersionTarget(WeightedTransformTarget):
         dist: DistributionMeta,
         dispersion: str,
         transform: Transform = None,
-        weight: float = None
+        weight: float = None,
     ):
         """Create a Target with any distribution, which is parameterised by
         the modelled data and parameters to the dispersion distribution.
@@ -107,3 +107,8 @@ class StandardDispTarget(UnivariateDispersionTarget):
 
     def __init__(self, data, dispersion: str = "shared_dispersion", weight: float = None):
         super().__init__(data, dist.Normal, dispersion, jnp.log, weight)
+
+
+class StandardPropTarget(UnivariateDispersionTarget):
+    def __init__(self, data, dispersion: str = "prop_shared_disp", weight: float = None):
+        super().__init__(data, dist.Normal, dispersion, weight)

@@ -36,7 +36,7 @@ from emu_renewal.inputs import (
     get_ba2_target,
     get_ba5_target,
 )
-from emu_renewal.targets import StandardDispTarget
+from emu_renewal.targets import StandardDispTarget, StandardPropTarget
 from emu_renewal.process import CosineMultiCurve
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.distributions import GammaDens
@@ -184,32 +184,32 @@ def collate_targets(
     if seroprev_target.empty or continent == "OC" or iso3 in ["PAK", "ZMB", "NGA"]:
         seroprev_targ_dict = {}
     else:
-        seroprev_targ = StandardDispTarget(seroprev_target, weight=10.0)
+        seroprev_targ = StandardPropTarget(seroprev_target, weight=10.0)
         seroprev_targ_dict = {"seropos": seroprev_targ}
 
     # Alpha proportion
     if alpha_targ is None:
         alpha_targ_dict = {}
     else:
-        alpha_targ_dict = {"prop_alpha": StandardDispTarget(alpha_targ, weight=20.0)}
+        alpha_targ_dict = {"prop_alpha": StandardPropTarget(alpha_targ, weight=20.0)}
 
     # Delta proportion
     if delta_targ is None or delta_targ.empty or max(delta_targ) < MIN_DELTA_PROP:
         delta_targ_dict = {}
     else:
-        delta_targ_dict = {"prop_delta": StandardDispTarget(delta_targ, weight=20.0)}
+        delta_targ_dict = {"prop_delta": StandardPropTarget(delta_targ, weight=20.0)}
 
     # BA.2 proportion
     if ba2_targ is None:
         ba2_targ_dict = {}
     else:
-        ba2_targ_dict = {"prop_ba2": StandardDispTarget(ba2_targ, weight=20.0)}
+        ba2_targ_dict = {"prop_ba2": StandardPropTarget(ba2_targ, weight=20.0)}
 
     # BA.5 proportion
     if ba5_targ is None:
         ba5_targ_dict = {}
     else:
-        ba5_targ_dict = {"prop_ba5": StandardDispTarget(ba5_targ, weight=20.0)}
+        ba5_targ_dict = {"prop_ba5": StandardPropTarget(ba5_targ, weight=20.0)}
 
     # Collate together
     core_targs = {"weekly_cases": cases_targ, "weekly_deaths": deaths_targ}
