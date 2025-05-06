@@ -185,7 +185,7 @@ def collate_targets(
     if seroprev_target.empty or continent == "OC" or iso3 in ["PAK", "ZMB", "NGA"]:
         seroprev_targ_dict = {}
     else:
-        seroprev_targ = StandardPropTarget(seroprev_target, weight=5.0)
+        seroprev_targ = StandardPropTarget(seroprev_target, weight=2.5)
         seroprev_targ_dict = {"seropos": seroprev_targ}
 
     # Alpha proportion
