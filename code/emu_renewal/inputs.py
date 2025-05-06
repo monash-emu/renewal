@@ -364,7 +364,7 @@ def get_standard_priors(
     # Miscellaneous
     rt_prior = {"rt_init": dist.Normal(0.0, 0.5)}
     disp_prior = {"shared_dispersion": dist.HalfNormal(0.5)}
-    prop_disp_prior = {"prop_shared_dispersion": dist.HalfNormal(0.5)}
+    prop_disp_prior = {"prop_shared_disp": dist.HalfNormal(0.5)}
 
     return (
         rel_durs

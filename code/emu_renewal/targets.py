@@ -89,7 +89,7 @@ class UnivariateDispersionTarget(WeightedTransformTarget):
         self.data = data
         self.dist = dist
         self.dispersion = dispersion
-        self.transform = transform
+        self.transform_func = transform
         self.key: str = None
         self.calibration_data: Array = None
 
@@ -111,4 +111,4 @@ class StandardDispTarget(UnivariateDispersionTarget):
 
 class StandardPropTarget(UnivariateDispersionTarget):
     def __init__(self, data, dispersion: str = "prop_shared_disp", weight: float = None):
-        super().__init__(data, dist.Normal, dispersion, weight)
+        super().__init__(data, dist.Normal, dispersion, None, weight)
