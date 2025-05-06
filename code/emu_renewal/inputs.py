@@ -352,7 +352,8 @@ def get_standard_priors(
     seed_offsets_dist = dist.Uniform(
         jnp.repeat(4.0, n_strains - 1), jnp.repeat(90.0, n_strains - 1)
     )
-    seed_offsets_priors = {"seed_offsets": seed_offsets_dist} if n_strains > 1 else None
+    seed_offsets_priors = seed_offsets_dist if n_strains > 1 else None
+    seed_priors = {"seed_offsets": seed_offsets_priors}
     relinfect_means = jnp.repeat(1.25, n_strains - 1)
     infect_dist_prior = dist.TruncatedNormal(relinfect_means, 0.1, low=1.0, high=2.0)
     infect_dist = infect_dist_prior if n_strains > 1 else None
@@ -373,7 +374,7 @@ def get_standard_priors(
         | imm_prior
         | rt_prior
         | disp_prior
-        | seed_offsets_priors
+        | seed_priors
     )
 
 

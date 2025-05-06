@@ -258,7 +258,9 @@ class MultiStrainModel:
         # Not sure why this has to be minus one
         var_data_starts = [self.epoch.dti_to_index(s) for s in self.var_times]
         var_starts = jnp.array([-1.0] + var_data_starts)
-        offsets = jnp.concat([jnp.array([0.0]), seed_offsets])
+        first_strain_offset = jnp.array([0.0])
+        other_offsets = jnp.zeros(0) if seed_offsets is None else seed_offsets
+        offsets = jnp.concat([first_strain_offset, other_offsets])
         seed_abs_rates = seed_rates * self.pop
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
