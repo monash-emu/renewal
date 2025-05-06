@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import sys
 from pathlib import Path
+import git
 
 from emu_renewal.inputs import (
     DATE_FORMAT,
@@ -308,6 +309,8 @@ def run_single_country(
     continent = pc.country_alpha2_to_continent_code(iso2)
     logger.info(f"Country: {iso3}")
     logger.info(f"Mobility approach: {mob_analysis_type}")
+    repo = git.Repo(search_parent_directories=True)
+    logger.info(f"Git commit hash: {repo.head.object.hexsha}")
     pop_year = 2022 if continent == "OC" else 2020
     pop = get_worldbank_national_pop(iso3, pop_year)
     vacc_data = get_country_vacc_data(iso3)
