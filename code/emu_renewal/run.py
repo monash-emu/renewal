@@ -30,12 +30,12 @@ from emu_renewal.inputs import (
     get_fb_mobility,
     get_filtered_seroprev,
     get_country_hosps,
-    get_cosine_intercept,
     get_country_vars,
     get_alpha_target,
     get_delta_target,
     get_ba2_target,
     get_ba5_target,
+    get_seroprev_pooled_totals,
 )
 from emu_renewal.targets import StandardDispTarget, StandardPropTarget
 from emu_renewal.process import CosineMultiCurve
@@ -321,7 +321,8 @@ def run_single_country(
     death_data = get_indicator_series_from_who_data("New_deaths", country)
     data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
-    seroprev_target = get_filtered_seroprev(country, data_start, end_time)
+    seroprev_data = get_filtered_seroprev(country, data_start, end_time)
+    seroprev_target = get_seroprev_pooled_totals(seroprev_data)
     var_data = get_country_vars(iso3)
     delta_targ = (
         None

@@ -98,6 +98,8 @@ BA5_PERIOD_END = datetime(2022, 9, 1)
 POST_SIM_DATE = datetime(2100, 1, 1)
 ALPHA_FULL_REPLACE_DATE = datetime(2021, 6, 30)
 
+PREV_KEY = "serum_pos_prevalence"
+
 
 def get_indicator_series_from_who_data(
     indicator: str,
@@ -273,6 +275,8 @@ def get_filtered_seroprev(
     Returns:
         Filtered data to use as target
     """
+    if iso3 == "AUS":
+        return pd.Series([])
     data = get_all_seroprev()
     country = pycountry.countries.lookup(iso3).name
     country_filt = data["country"] == country
@@ -282,14 +286,9 @@ def get_filtered_seroprev(
     unity_filt = data["is_unity_aligned"] == "Unity-Aligned"
     n_filt = data["denominator_value"] > 599
     all_filt = time_filt & country_filt & nat_filt & type_filt & unity_filt & n_filt
-    filtered_data = data.loc[all_filt, "serum_pos_prevalence"]
-    if iso3 == "AUS":
-        return pd.Series([])
-    elif filtered_data.index.has_duplicates:
-        # Drops 2 of 3 estimates for Mexico on the same date (keeping the first and largest)
-        return filtered_data[[not i for i in filtered_data.index.duplicated()]]
-    else:
-        return filtered_data
+    filt_data = data[all_filt]
+    # Drop 2 of 3 estimates for Mexico on the same date (keeping the first and largest)
+    return filt_data[[not i for i in filt_data.index.duplicated()]]
 
 
 def get_standard_priors(
@@ -772,6 +771,23 @@ def pool_totals(
     return new_data.sort_index()
 
 
+def pool_seroprev_totals(starts, ends, data):
+    period_sums = pd.DataFrame()
+    idx_to_remove = []
+    for start, end in zip(starts, ends):
+        period = data.loc[start:end]
+        average_date = period.index.mean()
+        prevs = period[PREV_KEY]
+        denoms = period["denominator_value"]
+        total_denoms = denoms.sum()
+        new_prev = (prevs * denoms).sum() / total_denoms
+        period_sums.loc[average_date, PREV_KEY] = new_prev
+        period_sums.loc[average_date, "denominator_value"] = total_denoms
+        idx_to_remove += list(period.index)
+    new_data = pd.concat([period_sums, data.drop(index=idx_to_remove)])
+    return new_data.sort_index()
+
+
 def get_pooled_totals(
     data: pd.DataFrame,
     var_name: str = "prealpha",
@@ -787,9 +803,16 @@ def get_pooled_totals(
         The adjusted data
     """
     while not data[f"{var_name}_prop"].is_monotonic_decreasing:
-        group_starts, group_ends = find_increasing_groups(data[f"{var_name}_prop"])
-        data = pool_totals(group_starts, group_ends, data, var_name)
+        starts, ends = find_increasing_groups(data[f"{var_name}_prop"])
+        data = pool_totals(starts, ends, data, var_name)
     return data
+
+
+def get_seroprev_pooled_totals(data):
+    while not data[PREV_KEY].is_monotonic_increasing:
+        starts, ends = find_decreasing_groups(data[PREV_KEY])
+        data = pool_seroprev_totals(starts, ends, data)
+    return data[PREV_KEY]
 
 
 def get_dec_pooled_totals(
