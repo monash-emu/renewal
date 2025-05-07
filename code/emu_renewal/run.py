@@ -308,8 +308,8 @@ def run_single_country(
     death_data = get_indicator_series_from_who_data("New_deaths", country)
     data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
-    seroprev_data = get_filtered_seroprev(country, data_start, end_time)
-    seroprev_target = get_seroprev_pooled_totals(seroprev_data)
+    seroprev = get_filtered_seroprev(country, data_start, end_time)
+    seroprev_target = seroprev if seroprev.empty else get_seroprev_pooled_totals(seroprev)
     var_data = get_country_vars(iso3)
     delta_targ = (
         None
