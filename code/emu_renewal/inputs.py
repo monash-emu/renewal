@@ -178,7 +178,7 @@ def get_country_hosps(
     filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
     icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
     filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
-    already_weekly_admit_countries = ["HRV", "ZAF", "IRL", "GRC", "SVN"]
+    already_weekly_admit_countries = ["HRV", "ZAF", "IRL", "GRC", "SVN", "NOR"]
     already_weekly_occup_countries = ["JPN", "BGR"]
     if not filt_admits.empty and country in already_weekly_admit_countries:
         weekly_admits = filt_admits.dropna()
@@ -345,8 +345,8 @@ def get_standard_priors(
         beta_priors["icu_ar"] = 1.0
 
     # Variant-related
-    seed_low_lim = jnp.repeat(1e-7, n_strains)
-    seed_up_lim = jnp.repeat(5e-6, n_strains)
+    seed_low_lim = jnp.repeat(jnp.log(1e-7), n_strains)
+    seed_up_lim = jnp.repeat(jnp.log(5e-6), n_strains)
     seed_rate_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
     seed_offsets_dist = dist.Uniform(
         jnp.repeat(4.0, n_strains - 1), jnp.repeat(90.0, n_strains - 1)
@@ -948,3 +948,16 @@ def has_outlier(data):
         return second == 0.0 or largest / second > 2.0
     else:
         return False
+
+
+def get_income_group(iso3):
+    """https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755
+
+    Args:
+        iso3: Country identifier
+
+    Returns:
+        World Bank income classification
+    """
+    data = pd.read_excel(DATA_PATH / "income/CLASS.xlsx", index_col="Code")
+    return data.loc[iso3, "Income group"]
