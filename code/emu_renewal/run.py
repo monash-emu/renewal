@@ -310,7 +310,10 @@ def run_single_country(
     logger.info(f"Country: {iso3}")
     logger.info(f"Mobility approach: {mob_analysis_type}")
     repo = git.Repo(search_parent_directories=True)
-    logger.info(f"Git commit hash: {repo.head.object.hexsha}")
+    repo_head = repo.head
+    logger.info(f"Git commit hash: {repo_head.object.hexsha}")
+    msg = repo.head.reference.commit.message
+    logger.info(f"Commit message: {msg}")
     pop_year = 2022 if continent == "OC" else 2020
     pop = get_worldbank_national_pop(iso3, pop_year)
     vacc_data = get_country_vacc_data(iso3)
