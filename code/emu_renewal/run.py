@@ -46,22 +46,6 @@ from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
 
 
-COUNTRY_SEED_OFFSETS = {
-    "USA": 90,
-    "ZAF": 60,
-    "BRA": 60,
-    "ROU": 30,
-    "IND": 90,
-    "FRA": 60,
-    "ESP": 90,
-    "FIN": -60,
-    "DEU": 90,
-    "GUY": -30,
-    "LBN": 60,
-    "SVN": 60,
-}
-
-
 class MobilityException(Exception):
     pass
 
@@ -360,8 +344,6 @@ def run_single_country(
     end_str = data_start.strftime(DATE_FORMAT)
     logger.info(f"Running from {start_str} with data starting from {end_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
-    seed_offset = COUNTRY_SEED_OFFSETS[iso3] if iso3 in COUNTRY_SEED_OFFSETS else 10
-    seed_offset = 50
     # if continent == "OC":
     #     var_names = ["ba1", "ba2", "ba5"]
     #     data = targets["prop_ba2"].data
@@ -381,15 +363,6 @@ def run_single_country(
         var_names.append("delta")
         delta_seed_time = delta_targ.index[0]
         seed_times.append(delta_seed_time)
-
-    # else:
-    #     var_names = ["eu", "alpha"]
-    #     alpha_seed_time = get_cosine_intercept(prealpha_prop, seed_offset)
-    #     if iso3 == "BGR":
-    #         alpha_seed_time = datetime(2020, 11, 1)
-    #     elif iso3 == "HRV":
-    #         alpha_seed_time = datetime(2021, 1, 1)
-    #     seed_times = [run_start, alpha_seed_time]
 
     # Mobility
     try:

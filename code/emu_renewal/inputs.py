@@ -84,10 +84,6 @@ DEFAULT_END_TIME = datetime(2021, 12, 1)
 DT_REF_DATE = datetime(1970, 1, 1)
 ALPHA_PERIOD_START = datetime(2020, 1, 1)
 ALPHA_DELTA_TRANS = datetime(2021, 3, 1)
-ALPHA_DELTA_EXCEPT = {
-    # "IDN": datetime(2021, 2, 1),
-    # "OMN": datetime(2021, 2, 20),
-}
 DELTA_INCLUSION_DATE = datetime(2021, 5, 1)
 DELTA_PERIOD_END = datetime(2021, 9, 1)
 MIN_DELTA_PROP = 0.05
@@ -846,8 +842,7 @@ def get_var_target(var_data, continent, var_name):
 
 def get_alpha_target(var_data, iso3, continent, end_time, delta_targ):
     alpha_data = get_var_target(var_data, continent, "alpha")
-    ad_trans = ALPHA_DELTA_EXCEPT[iso3] if iso3 in ALPHA_DELTA_EXCEPT else ALPHA_DELTA_TRANS
-    end_alpha_time = end_time if delta_targ is None else min([ad_trans, end_time])
+    end_alpha_time = end_time if delta_targ is None else min([ALPHA_DELTA_TRANS, end_time])
     period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < end_alpha_time)
     pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
     return pooled_data["alpha_prop"]
@@ -855,9 +850,8 @@ def get_alpha_target(var_data, iso3, continent, end_time, delta_targ):
 
 def get_delta_target(var_data, iso3, continent, end_time):
     delta_data = get_var_target(var_data, continent, "delta")
-    ad_trans = ALPHA_DELTA_EXCEPT[iso3] if iso3 in ALPHA_DELTA_EXCEPT else ALPHA_DELTA_TRANS
     end_delta_time = min([DELTA_PERIOD_END, end_time])
-    period_mask = (ad_trans < delta_data.index) & (delta_data.index < end_delta_time)
+    period_mask = (ALPHA_DELTA_TRANS < delta_data.index) & (delta_data.index < end_delta_time)
     pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
     return pooled_data["delta_prop"]
 
@@ -876,55 +870,6 @@ def get_ba5_target(var_data, continent):
         period_mask = (BA5_PERIOD_START < ba5_data.index) & (ba5_data.index < BA5_PERIOD_END)
         filt_data = ba5_data[period_mask]
         return filt_data["ba5_prop"]
-
-
-def get_cos_link_func(
-    t: float,
-    start: float,
-    end: float,
-) -> np.ndarray:
-    """Get the value of a function that links a
-    constant function of value one and a
-    constant function of value zero with a
-    scaled, translated cosine function
-    that joins the interval between the
-    two constant functions with a smooth curve.
-
-    Args:
-        t: The value of the independent variable to evaluate at
-        start: The value of the first constant
-        end: The value of the last constant
-
-    Returns:
-        The value of the piecewise function
-    """
-    period = end - start
-    curve = lambda x: 0.5 - 0.5 * np.cos((x - start) * np.pi / period)
-    in_range = abs(t - start - period / 2.0) < period / 2.0
-    conditions = [t <= start, in_range, start + period <= t]
-    functions = [lambda x: 1.0, curve, lambda x: 0.0]
-    return np.piecewise(t, conditions, functions)
-
-
-def get_cosine_intercept(
-    var_prop: pd.Series,
-    offset: float,
-) -> datetime:
-    """Find the point at which the fitted
-    cosine link function (from get_cost_link_fun)
-    starts to decline from its starting value of one.
-
-    Args:
-        var_prop: The variant proportion data
-        offset: How much to move the fitted value earlier in time
-
-    Returns:
-        The date to use for seeding the variant
-    """
-    num_index = pd.to_numeric(var_prop.index) / 1e9
-    params, _ = curve_fit(get_cos_link_func, num_index, var_prop, p0=[num_index[0], num_index[-1]])
-    date = (DT_REF_DATE + timedelta(seconds=params[0])).date()
-    return datetime.combine(date, datetime.min.time()) - timedelta(offset)
 
 
 def find_null_data(data):
