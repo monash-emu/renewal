@@ -289,6 +289,7 @@ def get_filtered_seroprev(
 def get_standard_priors(
     n_strains: int,
     hosp_out_type: str,
+    iso3: str,
 ) -> Dict[str, dist.Distribution]:
     """Load the priors from the yml and combine with
     standard hard-coded priors.
@@ -328,10 +329,18 @@ def get_standard_priors(
     irrel_durs = {k: 1.0 for k in duration_priors if k not in rel_durs}
 
     # Proportions from summary statistics
+    income = get_income_group(iso3)
+    adjusters = {
+        "Low income": 0.4,
+        "Lower middle income": 0.6,
+        "Upper middle income": 0.8,
+        "High income": 1.0,
+    }
+    adjuster = adjusters[income]
     beta_from_sum = loaded_priors["beta_from_summary"]
     beta_from_sum_dists = {}
     for k, v in beta_from_sum.items():
-        a, b = get_beta_params_from_mean_var(v["mean"], v["std"])
+        a, b = get_beta_params_from_mean_var(v["mean"] * adjuster, v["std"] ** 2.0)
         beta_from_sum_dists[k] = dist.Beta(a, b)
     if hosp_out_type == "":
         beta_from_sum_dists["har"] = 1.0
@@ -373,7 +382,7 @@ def get_standard_priors(
         rel_durs
         | irrel_durs
         | beta_priors
-        | beta_from_sum
+        | beta_from_sum_dists
         | seed_rate_priors
         | inf_priors
         | imm_prior
