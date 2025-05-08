@@ -327,6 +327,15 @@ def get_standard_priors(
     rel_durs = {k: v for k, v in duration_priors.items() if k in duration_prior_names}
     irrel_durs = {k: 1.0 for k in duration_priors if k not in rel_durs}
 
+    # Proportions from summary statistics
+    beta_from_sum = loaded_priors["beta_from_summary"]
+    beta_from_sum_dists = {}
+    for k, v in beta_from_sum.items():
+        a, b = get_beta_params_from_mean_var(v["mean"], v["std"])
+        beta_from_sum_dists[k] = dist.Beta(a, b)
+    if hosp_out_type == "":
+        beta_from_sum_dists["har"] = 1.0
+
     # Proportions
     beta_priors = {
         k: dist.Beta(v["alpha"], v["beta"])
@@ -364,6 +373,7 @@ def get_standard_priors(
         rel_durs
         | irrel_durs
         | beta_priors
+        | beta_from_sum
         | seed_rate_priors
         | inf_priors
         | imm_prior
