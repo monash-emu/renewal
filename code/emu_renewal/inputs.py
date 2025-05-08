@@ -1,7 +1,6 @@
 from typing import Union
 import pandas as pd
 from jax import numpy as jnp
-import numpy as np
 import json
 from pathlib import Path
 import pycountry
@@ -10,7 +9,7 @@ from datetime import datetime, timedelta
 import yaml as yml
 from numpyro import distributions as dist
 import pycountry_convert as pc
-from scipy.optimize import curve_fit
+from emu_renewal.utils import get_beta_params_from_mean_var
 
 
 DATE_FORMAT = "%Y%m%d_%H%M"
