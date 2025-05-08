@@ -331,9 +331,9 @@ def get_standard_priors(
     # Proportions from summary statistics
     income = get_income_group(iso3)
     adjusters = {
-        "Low income": 0.4,
-        "Lower middle income": 0.6,
-        "Upper middle income": 0.8,
+        "Low income": 0.25,
+        "Lower middle income": 0.5,
+        "Upper middle income": 0.75,
         "High income": 1.0,
     }
     adjuster = 0.4 if iso3 == "VEN" else adjusters[income]
