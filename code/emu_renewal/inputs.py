@@ -336,7 +336,7 @@ def get_standard_priors(
         "Upper middle income": 0.8,
         "High income": 1.0,
     }
-    adjuster = adjusters[income]
+    adjuster = 0.4 if iso3 == "VEN" else adjusters[income]
     beta_from_sum = loaded_priors["beta_from_summary"]
     beta_from_sum_dists = {}
     for k, v in beta_from_sum.items():
