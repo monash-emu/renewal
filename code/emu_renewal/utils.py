@@ -201,3 +201,9 @@ def get_reset_array_from_increases(input_array):
         remaining = col.size - last_increase
         reset_array[:, c] = np.concatenate([np.ones(last_increase), np.zeros(remaining)])
     return reset_array.astype(bool)
+
+
+def get_beta_params_from_mean_var(mu, var):
+    a = mu * (mu * (1.0 - mu) / var - 1.0)
+    b = (1.0 - mu) * (mu * (1.0 - mu) / var - 1.0)
+    return a, b
