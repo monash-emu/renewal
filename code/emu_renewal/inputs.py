@@ -331,9 +331,9 @@ def get_standard_priors(
     # Proportions from summary statistics
     income = get_income_group(iso3)
     adjusters = {
-        "Low income": 0.25,
-        "Lower middle income": 0.5,
-        "Upper middle income": 0.75,
+        "Low income": 0.4,
+        "Lower middle income": 0.6,
+        "Upper middle income": 0.8,
         "High income": 1.0,
     }
     adjuster = 0.4 if iso3 == "VEN" else adjusters[income]
@@ -858,7 +858,7 @@ def get_var_target(var_data, continent, var_name):
         return data
 
 
-def get_alpha_target(var_data, iso3, continent, end_time, delta_targ):
+def get_alpha_target(var_data, continent, end_time, delta_targ):
     alpha_data = get_var_target(var_data, continent, "alpha")
     end_alpha_time = end_time if delta_targ is None else min([ALPHA_DELTA_TRANS, end_time])
     period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < end_alpha_time)
@@ -866,7 +866,7 @@ def get_alpha_target(var_data, iso3, continent, end_time, delta_targ):
     return pooled_data["alpha_prop"]
 
 
-def get_delta_target(var_data, iso3, continent, end_time):
+def get_delta_target(var_data, continent, end_time):
     delta_data = get_var_target(var_data, continent, "delta")
     end_delta_time = min([DELTA_PERIOD_END, end_time])
     period_mask = (ALPHA_DELTA_TRANS < delta_data.index) & (delta_data.index < end_delta_time)

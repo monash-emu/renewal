@@ -314,12 +314,12 @@ def run_single_country(
     delta_targ = (
         None
         if continent == "OC" or end_time < DELTA_INCLUSION_DATE
-        else get_delta_target(var_data, iso3, continent, end_time)
+        else get_delta_target(var_data, continent, end_time)
     )
     alpha_targ = (
         None
         if continent in ["OC", "AF"]
-        else get_alpha_target(var_data, iso3, continent, end_time, delta_targ)
+        else get_alpha_target(var_data, continent, end_time, delta_targ)
     )
     ba2_targ = get_ba2_target(var_data, continent)
     ba5_targ = get_ba5_target(var_data, continent)
