@@ -367,8 +367,8 @@ def get_standard_priors(
     )
     seed_offsets_priors = seed_offsets_dist if n_strains > 1 else None
     seed_priors = {"seed_offsets": seed_offsets_priors}
-    relinfect_means = jnp.repeat(1.25, n_strains - 1)
-    infect_dist_prior = dist.TruncatedNormal(relinfect_means, 0.1, low=1.0, high=2.0)
+    relinfect_means = jnp.repeat(1.4, n_strains - 1)
+    infect_dist_prior = dist.TruncatedNormal(relinfect_means, 0.2, low=1.0, high=2.0)
     infect_dist = infect_dist_prior if n_strains > 1 else None
     inf_priors = {"relinfect": infect_dist}
     imm = loaded_priors["beta"]["cross_immunity"]
