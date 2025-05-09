@@ -862,7 +862,7 @@ def get_var_target(var_data, continent, var_name):
 def get_alpha_target(var_data, iso3, continent, end_time, delta_targ):
     alpha_data = get_var_target(var_data, continent, "alpha")
     alpha_delta_trans = ALPHA_DELTA_TRANS_EARLY if iso3 in ["AFG", "IND"] else ALPHA_DELTA_TRANS
-    end_alpha_time = end_time if delta_targ is None else min([ALPHA_DELTA_TRANS, end_time])
+    end_alpha_time = end_time if delta_targ is None else min([alpha_delta_trans, end_time])
     period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < end_alpha_time)
     pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
     return pooled_data["alpha_prop"]
@@ -872,7 +872,7 @@ def get_delta_target(var_data, iso3, continent, end_time):
     delta_data = get_var_target(var_data, continent, "delta")
     end_delta_time = min([DELTA_PERIOD_END, end_time])
     alpha_delta_trans = ALPHA_DELTA_TRANS_EARLY if iso3 in ["AFG", "IND"] else ALPHA_DELTA_TRANS
-    period_mask = (ALPHA_DELTA_TRANS < delta_data.index) & (delta_data.index < end_delta_time)
+    period_mask = (alpha_delta_trans < delta_data.index) & (delta_data.index < end_delta_time)
     pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
     return pooled_data["delta_prop"]
 
