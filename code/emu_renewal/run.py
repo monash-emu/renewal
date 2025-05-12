@@ -170,7 +170,7 @@ def collate_targets(
         seroprev_targ_dict = {}
     else:
         seroprev_targ = UnivariateDispersionTarget(
-            seroprev_target, dist.Normal, "seroprev_disp", weight=4.0
+            seroprev_target, dist.Normal, "seroprev_disp", weight=10.0
         )
         # seroprev_targ = StandardPropTarget(seroprev_target, weight=2.5)
         seroprev_targ_dict = {"seropos": seroprev_targ}
