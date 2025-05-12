@@ -37,7 +37,7 @@ from emu_renewal.inputs import (
     get_ba5_target,
     get_seroprev_pooled_totals,
 )
-from emu_renewal.targets import StandardDispTarget, StandardPropTarget
+from emu_renewal.targets import StandardDispTarget, StandardPropTarget, UnivariateDispersionTarget
 from emu_renewal.process import CosineMultiCurve
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.distributions import GammaDens
@@ -169,6 +169,7 @@ def collate_targets(
     if seroprev_target.empty or continent == "OC" or iso3 in ["PAK", "ZMB", "NGA"]:
         seroprev_targ_dict = {}
     else:
+        # seroprev_targ = UnivariateDispersionTarget(seroprev_target, "seroprev_disp", weight=2.5)
         seroprev_targ = StandardPropTarget(seroprev_target, weight=2.5)
         seroprev_targ_dict = {"seropos": seroprev_targ}
 
@@ -182,7 +183,9 @@ def collate_targets(
     if delta_targ is None or delta_targ.empty or max(delta_targ) < MIN_DELTA_PROP:
         delta_targ_dict = {}
     else:
-        delta_targ_dict = {"prop_delta": StandardPropTarget(delta_targ, weight=5.0)}
+        # Need extra weight for Delta target if emergence is right at end of simulation
+        delta_weight = 40.0 if (end - delta_targ.index[0]).days < 90 else 5.0
+        delta_targ_dict = {"prop_delta": StandardPropTarget(delta_targ, weight=delta_weight)}
 
     # BA.2 proportion
     if ba2_targ is None:
