@@ -378,7 +378,7 @@ def get_standard_priors(
     rt_prior = {"rt_init": dist.Normal(0.0, 0.5)}
     disp_prior = {"shared_dispersion": dist.HalfNormal(0.5)}
     prop_disp_prior = {"prop_shared_disp": dist.HalfNormal(0.5)}
-    seroprev_disp = {"seroprev_disp": 0.1}
+    seroprev_disp = {"seroprev_disp": 0.2}
 
     return (
         rel_durs
