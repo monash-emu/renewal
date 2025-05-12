@@ -37,7 +37,7 @@ from emu_renewal.inputs import (
     get_ba5_target,
     get_seroprev_pooled_totals,
 )
-from emu_renewal.targets import StandardDispTarget, StandardPropTarget
+from emu_renewal.targets import StandardDispTarget, StandardPropTarget, UnivariateDispersionTarget
 from emu_renewal.process import CosineMultiCurve
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.distributions import GammaDens
@@ -169,7 +169,8 @@ def collate_targets(
     if seroprev_target.empty or continent == "OC" or iso3 in ["PAK", "ZMB", "NGA"]:
         seroprev_targ_dict = {}
     else:
-        seroprev_targ = StandardPropTarget(seroprev_target, weight=2.5)
+        seroprev_targ = UnivariateDispersionTarget(seroprev_targ, dist.Normal, "seroprev_disp", weight=4.0)
+        # seroprev_targ = StandardPropTarget(seroprev_target, weight=2.5)
         seroprev_targ_dict = {"seropos": seroprev_targ}
 
     # Alpha proportion
