@@ -349,15 +349,6 @@ def run_single_country(
     end_str = data_start.strftime(DATE_FORMAT)
     logger.info(f"Running from {start_str} with data starting from {end_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
-    # if continent == "OC":
-    #     var_names = ["ba1", "ba2", "ba5"]
-    #     data = targets["prop_ba2"].data
-    #     to_ba2_data = 1.0 - data[data.index <= data.idxmax()]
-    #     to_ba5_data = data[data.idxmax() <= data.index]
-    #     ba2_seed_time = get_cosine_intercept(to_ba2_data, seed_offset)
-    #     ba5_seed_time = get_cosine_intercept(to_ba5_data, seed_offset)
-    #     seed_times = [run_start, ba2_seed_time, ba5_seed_time]
-    # else:
     var_names = ["eu"]
     seed_times = []
     if alpha_targ is not None:
@@ -368,6 +359,11 @@ def run_single_country(
         var_names.append("delta")
         delta_seed_time = delta_targ.index[0]
         seed_times.append(delta_seed_time)
+    if continent == "OC":
+        var_names = ["ba1", "ba2", "ba5"]
+        ba2_seed_time = ba2_targ.index[0]
+        ba5_seed_time = ba5_targ.index[0]
+        seed_times = [ba2_seed_time, ba5_seed_time]
 
     # Mobility
     try:
