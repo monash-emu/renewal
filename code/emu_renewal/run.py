@@ -311,9 +311,9 @@ def run_single_country(
     seroprev = get_filtered_seroprev(country, data_start, end_time)
     seroprev_target = seroprev if seroprev.empty else get_seroprev_pooled_totals(seroprev)
 
-    # Unable to get good fit to Bangladesh seroprevalence
-    if iso3 in ["BGD", "CAN"]:
-        seroprev_target = pd.Series([])
+    # # Unable to get good fit to Bangladesh seroprevalence
+    # if iso3 in ["BGD", "CAN"]:
+    #     seroprev_target = pd.Series([])
 
     var_data = get_country_vars(iso3)
     delta_targ = (

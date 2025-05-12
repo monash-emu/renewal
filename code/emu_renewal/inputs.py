@@ -80,10 +80,10 @@ ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_mob", "a_mob"]
 CASES_START = datetime(2020, 6, 1)
 DEFAULT_START_TIME = datetime(2020, 6, 1)
 DEFAULT_END_TIME = datetime(2021, 12, 1)
-DT_REF_DATE = datetime(1970, 1, 1)
 ALPHA_PERIOD_START = datetime(2020, 1, 1)
 ALPHA_DELTA_TRANS = datetime(2021, 3, 1)
 ALPHA_DELTA_TRANS_EARLY = datetime(2021, 2, 1)
+EARLY_TRANS_COUNTRIES = ["AFG", "IND"]
 DELTA_INCLUSION_DATE = datetime(2021, 5, 1)
 DELTA_PERIOD_END = datetime(2021, 9, 1)
 MIN_DELTA_PROP = 0.05
@@ -93,6 +93,8 @@ BA5_PERIOD_START = datetime(2022, 4, 1)
 BA5_PERIOD_END = datetime(2022, 9, 1)
 POST_SIM_DATE = datetime(2100, 1, 1)
 ALPHA_FULL_REPLACE_DATE = datetime(2021, 6, 30)
+ALREADY_WEEKLY_ADMIT_COUNTRIES = ["HRV", "ZAF", "IRL", "GRC", "SVN", "NOR"]
+ALREADY_WEEKLY_OCCUP_COUNTRIES = ["JPN", "BGR"]
 
 PREV_KEY = "serum_pos_prevalence"
 
@@ -174,15 +176,13 @@ def get_country_hosps(
     filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
     icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
     filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
-    already_weekly_admit_countries = ["HRV", "ZAF", "IRL", "GRC", "SVN", "NOR"]
-    already_weekly_occup_countries = ["JPN", "BGR"]
-    if not filt_admits.empty and country in already_weekly_admit_countries:
+    if not filt_admits.empty and country in ALREADY_WEEKLY_ADMIT_COUNTRIES:
         weekly_admits = filt_admits.dropna()
         return weekly_admits, "weekly_admissions"
     elif not filt_admits.empty:
         weekly_admits = filt_admits.rolling(7).mean()[::7].dropna()
         return weekly_admits, "weekly_admissions"
-    elif not filt_occup.empty and country in already_weekly_occup_countries:
+    elif not filt_occup.empty and country in ALREADY_WEEKLY_OCCUP_COUNTRIES:
         weekly_occup = filt_occup.dropna()
         return weekly_occup, "occupancy"
     elif not filt_occup.empty:
@@ -861,7 +861,7 @@ def get_var_target(var_data, continent, var_name):
 
 def get_alpha_target(var_data, iso3, continent, end_time, delta_targ):
     alpha_data = get_var_target(var_data, continent, "alpha")
-    alpha_delta_trans = ALPHA_DELTA_TRANS_EARLY if iso3 in ["AFG", "IND"] else ALPHA_DELTA_TRANS
+    alpha_delta_trans = ALPHA_DELTA_TRANS_EARLY if iso3 in EARLY_TRANS_COUNTRIES else ALPHA_DELTA_TRANS
     end_alpha_time = end_time if delta_targ is None else min([alpha_delta_trans, end_time])
     period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < end_alpha_time)
     pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
@@ -871,7 +871,7 @@ def get_alpha_target(var_data, iso3, continent, end_time, delta_targ):
 def get_delta_target(var_data, iso3, continent, end_time):
     delta_data = get_var_target(var_data, continent, "delta")
     end_delta_time = min([DELTA_PERIOD_END, end_time])
-    alpha_delta_trans = ALPHA_DELTA_TRANS_EARLY if iso3 in ["AFG", "IND"] else ALPHA_DELTA_TRANS
+    alpha_delta_trans = ALPHA_DELTA_TRANS_EARLY if iso3 in EARLY_TRANS_COUNTRIES else ALPHA_DELTA_TRANS
     period_mask = (alpha_delta_trans < delta_data.index) & (delta_data.index < end_delta_time)
     pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
     return pooled_data["delta_prop"]
