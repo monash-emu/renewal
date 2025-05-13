@@ -311,7 +311,7 @@ def run_single_country(
     # Targets
     case_data = get_indicator_series_from_who_data("New_cases", country)
     death_data = get_indicator_series_from_who_data("New_deaths", country)
-    death_data = death_data[death_data > 0.0]
+    # death_data = death_data[death_data > 0.0]
     data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev = get_filtered_seroprev(country, data_start, end_time)
