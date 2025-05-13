@@ -170,13 +170,13 @@ def collate_targets(
         seroprev_targ_dict = {}
     else:
         seroprev_targ = UnivariateDispersionTarget(
-            seroprev_target, dist.Normal, "seroprev_disp", weight=15.0
+            seroprev_target, dist.Normal, "seroprev_disp", weight=5.0
         )
         # seroprev_targ = StandardPropTarget(seroprev_target, weight=2.5)
         seroprev_targ_dict = {"seropos": seroprev_targ}
 
     # Alpha proportion
-    var_weight = 2.5
+    var_weight = 5.0
     if alpha_targ is None:
         alpha_targ_dict = {}
     else:
@@ -187,7 +187,7 @@ def collate_targets(
         delta_targ_dict = {}
     else:
         # Need extra weight for Delta target if emergence is right at end of simulation
-        delta_weight = 40.0 if (end - delta_targ.index[0]).days < 90 else var_weight
+        delta_weight = 20.0 if (end - delta_targ.index[0]).days < 90 else var_weight
         delta_targ_dict = {"prop_delta": StandardPropTarget(delta_targ, weight=delta_weight)}
 
     # BA.2 proportion
@@ -311,6 +311,7 @@ def run_single_country(
 
     # Targets
     case_data = get_indicator_series_from_who_data("New_cases", country)
+    case_data = case_data[case_data > 0.0]
     death_data = get_indicator_series_from_who_data("New_deaths", country)
     death_data = death_data[death_data > 0.0]
     data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
