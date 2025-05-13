@@ -176,7 +176,7 @@ def collate_targets(
         seroprev_targ_dict = {"seropos": seroprev_targ}
 
     # Alpha proportion
-    var_weight = 4.0
+    var_weight = 2.5
     if alpha_targ is None:
         alpha_targ_dict = {}
     else:
