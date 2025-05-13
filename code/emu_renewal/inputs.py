@@ -82,8 +82,12 @@ DEFAULT_START_TIME = datetime(2020, 6, 1)
 DEFAULT_END_TIME = datetime(2021, 12, 1)
 ALPHA_PERIOD_START = datetime(2020, 1, 1)
 ALPHA_DELTA_TRANS = datetime(2021, 3, 1)
-ALPHA_DELTA_TRANS_EARLY = datetime(2021, 2, 1)
-EARLY_TRANS_COUNTRIES = ["AFG", "IND"]
+ALPHA_DELTA_EXCEPTS = {
+    "AFG": datetime(2021, 2, 1),
+    "IND": datetime(2021, 2, 1),
+    "NPL": datetime(2021, 2, 1),
+    "HND": datetime(2021, 4, 15),
+}
 DELTA_INCLUSION_DATE = datetime(2021, 5, 1)
 DELTA_PERIOD_END = datetime(2021, 9, 1)
 MIN_DELTA_PROP = 0.05
@@ -864,7 +868,7 @@ def get_var_target(var_data, continent, var_name):
 def get_alpha_target(var_data, iso3, continent, end_time, delta_targ):
     alpha_data = get_var_target(var_data, continent, "alpha")
     alpha_delta_trans = (
-        ALPHA_DELTA_TRANS_EARLY if iso3 in EARLY_TRANS_COUNTRIES else ALPHA_DELTA_TRANS
+        ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
     )
     end_alpha_time = end_time if delta_targ is None else min([alpha_delta_trans, end_time])
     period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < end_alpha_time)
@@ -876,7 +880,7 @@ def get_delta_target(var_data, iso3, continent, end_time):
     delta_data = get_var_target(var_data, continent, "delta")
     end_delta_time = min([DELTA_PERIOD_END, end_time])
     alpha_delta_trans = (
-        ALPHA_DELTA_TRANS_EARLY if iso3 in EARLY_TRANS_COUNTRIES else ALPHA_DELTA_TRANS
+        ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
     )
     period_mask = (alpha_delta_trans < delta_data.index) & (delta_data.index < end_delta_time)
     pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")

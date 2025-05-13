@@ -176,30 +176,31 @@ def collate_targets(
         seroprev_targ_dict = {"seropos": seroprev_targ}
 
     # Alpha proportion
+    var_weight = 4.0
     if alpha_targ is None:
         alpha_targ_dict = {}
     else:
-        alpha_targ_dict = {"prop_alpha": StandardPropTarget(alpha_targ, weight=5.0)}
+        alpha_targ_dict = {"prop_alpha": StandardPropTarget(alpha_targ, weight=var_weight)}
 
     # Delta proportion
     if delta_targ is None or delta_targ.empty or max(delta_targ) < MIN_DELTA_PROP:
         delta_targ_dict = {}
     else:
         # Need extra weight for Delta target if emergence is right at end of simulation
-        delta_weight = 40.0 if (end - delta_targ.index[0]).days < 90 else 5.0
+        delta_weight = 40.0 if (end - delta_targ.index[0]).days < 90 else var_weight
         delta_targ_dict = {"prop_delta": StandardPropTarget(delta_targ, weight=delta_weight)}
 
     # BA.2 proportion
     if ba2_targ is None:
         ba2_targ_dict = {}
     else:
-        ba2_targ_dict = {"prop_ba2": StandardPropTarget(ba2_targ, weight=5.0)}
+        ba2_targ_dict = {"prop_ba2": StandardPropTarget(ba2_targ, weight=var_weight)}
 
     # BA.5 proportion
     if ba5_targ is None:
         ba5_targ_dict = {}
     else:
-        ba5_targ_dict = {"prop_ba5": StandardPropTarget(ba5_targ, weight=5.0)}
+        ba5_targ_dict = {"prop_ba5": StandardPropTarget(ba5_targ, weight=var_weight)}
 
     # Collate together
     core_targs = {"weekly_cases": cases_targ, "weekly_deaths": deaths_targ}
@@ -377,6 +378,7 @@ def run_single_country(
         end_time = min([end_time, mob_provider.mob_end])
 
     # Model construction
+    vacc_effect = continent == "OC"
     model = MultiStrainModel(
         pop,
         run_start,
@@ -393,6 +395,7 @@ def run_single_country(
         seed_times,
         mob_provider,
         seed_duration,
+        vacc_effect=vacc_effect,
     )
 
     # Calibration

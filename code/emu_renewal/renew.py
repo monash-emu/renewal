@@ -134,6 +134,7 @@ class MultiStrainModel:
         seed_times: List[datetime],
         mobility: MobilityProvider,
         seed_duration: int,
+        vacc_effect: bool = False,
     ):
         """Construct the object for running the renewal process.
 
@@ -164,6 +165,7 @@ class MultiStrainModel:
         self.seed_duration = seed_duration
         self.discharge_dens = discharge_dens
         self.init_length = init_length
+        self.vacc_effect = vacc_effect
 
         # Times
         self.epoch = Epoch(start)
@@ -392,12 +394,18 @@ class MultiStrainModel:
         weekly_cases = self.get_period_output_from_daily(cases, 7)
         outputs["weekly_cases"] = weekly_cases[self.init_length :]
 
-        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
+        vacc_death_protect = 0.8 if self.vacc_effect else 0.0
+        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr) * (
+            1.0 - vacc_death_protect
+        )
         outputs["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
         outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
 
-        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
+        vacc_hosp_protect = 0.6 if self.vacc_effect else 0.0
+        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har) * (
+            1.0 - vacc_hosp_protect
+        )
         outputs["admissions"] = admissions[self.init_length :]
         weekly_admissions = self.get_period_output_from_daily(admissions, 7)
         outputs["weekly_admissions"] = weekly_admissions[self.init_length :]
