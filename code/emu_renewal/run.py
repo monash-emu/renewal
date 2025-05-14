@@ -318,8 +318,11 @@ def run_single_country(
     data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev = get_filtered_seroprev(country, data_start, end_time)
-    seroprev_target = seroprev if seroprev.empty else get_seroprev_pooled_totals(seroprev)
-    seroprev_target = seroprev_target[seroprev_target.index > data_start + timedelta(183)]
+    if seroprev.empty:
+        seroprev_target = seroprev
+    else:
+        seroprev_target = get_seroprev_pooled_totals(seroprev)
+        seroprev_target = seroprev_target[seroprev_target.index > data_start + timedelta(183)]
 
     var_data = get_country_vars(iso3)
     delta_targ = (
