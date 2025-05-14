@@ -89,6 +89,7 @@ ALPHA_DELTA_EXCEPTS = {
     "IDN": datetime(2021, 2, 1),
     "SAU": datetime(2021, 2, 1),
     "HND": datetime(2021, 4, 15),
+    "OMN": datetime(2021, 2, 1),
 }
 DELTA_INCLUSION_DATE = datetime(2021, 5, 1)
 DELTA_PERIOD_END = datetime(2021, 9, 1)
@@ -384,7 +385,7 @@ def get_standard_priors(
     rt_prior = {"rt_init": dist.Normal(0.0, 0.5)}
     disp_prior = {"shared_dispersion": dist.HalfNormal(0.5)}
     prop_disp_prior = {"prop_shared_disp": 0.05}
-    seroprev_disp = {"seroprev_disp": 0.2}
+    seroprev_disp = {"seroprev_disp": 0.25}
 
     return (
         rel_durs
