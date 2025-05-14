@@ -86,6 +86,7 @@ ALPHA_DELTA_EXCEPTS = {
     "AFG": datetime(2021, 2, 1),
     "IND": datetime(2021, 2, 1),
     "NPL": datetime(2021, 2, 1),
+    "IDN": datetime(2021, 2, 1),
     "SAU": datetime(2021, 2, 1),
     "HND": datetime(2021, 4, 15),
 }
