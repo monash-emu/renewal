@@ -91,6 +91,7 @@ ALPHA_DELTA_EXCEPTS = {
     "OMN": datetime(2021, 2, 1),
     "KWT": datetime(2021, 2, 1),
     "KOR": datetime(2021, 2, 1),
+    "MYS": datetime(2021, 2, 1),
     "HND": datetime(2021, 4, 15),
     "PRI": datetime(2021, 4, 15),
 }
