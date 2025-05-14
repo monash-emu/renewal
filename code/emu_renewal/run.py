@@ -319,7 +319,7 @@ def run_single_country(
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     seroprev = get_filtered_seroprev(country, data_start, end_time)
     seroprev_target = seroprev if seroprev.empty else get_seroprev_pooled_totals(seroprev)
-    seroprev_target = seroprev_target[seroprev_target.index > data_start + timedelta(120)]
+    seroprev_target = seroprev_target[seroprev_target.index > data_start + timedelta(183)]
 
     var_data = get_country_vars(iso3)
     delta_targ = (
