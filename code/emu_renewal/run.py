@@ -187,7 +187,7 @@ def collate_targets(
         delta_targ_dict = {}
     else:
         # Need extra weight for Delta target if emergence is right at end of simulation
-        delta_weight = 20.0 if (end - delta_targ.index[0]).days < 90 else var_weight
+        delta_weight = 25.0 if (end - delta_targ.index[0]).days < 120 else var_weight
         delta_targ_dict = {"prop_delta": StandardPropTarget(delta_targ, weight=delta_weight)}
 
     # BA.2 proportion
