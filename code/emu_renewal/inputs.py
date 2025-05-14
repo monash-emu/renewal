@@ -85,13 +85,14 @@ ALPHA_DELTA_TRANS = datetime(2021, 3, 1)
 ALPHA_DELTA_EXCEPTS = {
     "AFG": datetime(2021, 2, 1),
     "IND": datetime(2021, 2, 1),
-    "NPL": datetime(2021, 2, 1),
+    "NPL": datetime(2020, 12, 1),
     "IDN": datetime(2021, 2, 1),
     "SAU": datetime(2021, 2, 1),
     "OMN": datetime(2021, 2, 1),
     "KWT": datetime(2021, 2, 1),
     "KOR": datetime(2021, 2, 1),
     "HND": datetime(2021, 4, 15),
+    "PRI": datetime(2021, 4, 15),
 }
 DELTA_INCLUSION_DATE = datetime(2021, 5, 1)
 DELTA_PERIOD_END = datetime(2021, 9, 1)
