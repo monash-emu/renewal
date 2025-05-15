@@ -14,7 +14,7 @@ import pycountry
 from os import listdir as ls
 import os
 
-from emu_renewal.inputs import get_google_mobility, get_apple_mobility
+from emu_renewal.inputs import get_google_mobility, get_apple_mobility, ANALYSIS_TYPES
 from emu_renewal.calibration import StandardCalib
 
 
@@ -107,7 +107,7 @@ def plot_imm_props(
         Figure
     """
     n_strains = len([i for i in set(spaghetti.columns.get_level_values(0)) if "prop_" in i])
-    spagh = spaghetti[[f"sus_{i}" for i in range(2 ** n_strains)]]
+    spagh = spaghetti[[f"sus_{i}" for i in range(2**n_strains)]]
     spagh.columns = spagh.columns.swaplevel()
     runs = list(set(spagh.columns.get_level_values(0)))
     return spagh[choice(runs)].plot.area()
@@ -178,7 +178,8 @@ def plot_multianalysis_fit(
     fig, axes = plt.subplots(n_targs, len(spaghs), figsize=[12, 15], sharex=True, sharey="row")
     country_name = pycountry.countries.lookup(country).name
     fig.suptitle(country_name, fontsize=30, y=1.0)
-    for a, analysis in enumerate(spaghs):
+    ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
+    for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
         for o, out in enumerate(targets):
             ax = axes[o, a]
@@ -219,7 +220,7 @@ def plot_proc_comparison(
         "fb_mob": "fb",
         "a_mob": "a",
     }
-    colour_map = dict(zip(label_map.keys(), colours[:len(label_map)]))
+    colour_map = dict(zip(label_map.keys(), colours[: len(label_map)]))
 
     n_cols = 4
     n_rows = int(np.ceil(len(countries) / n_cols))
@@ -232,7 +233,13 @@ def plot_proc_comparison(
         analyses = [i[1] for i in os.walk(path / country)][0]
         for a, analysis in enumerate(analyses):
             quants = procs[country][analysis].quantile([0.05, 0.5, 0.95], axis=1).T
-            c_ax.plot(quants.index, quants[0.5], color=colour_map[analysis], label=label_map[analysis], linewidth=2.0)
+            c_ax.plot(
+                quants.index,
+                quants[0.5],
+                color=colour_map[analysis],
+                label=label_map[analysis],
+                linewidth=2.0,
+            )
             c_ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.2, color=colours[a])
         c_ax.legend()
         plt.setp(c_ax.xaxis.get_majorticklabels(), rotation=70)
