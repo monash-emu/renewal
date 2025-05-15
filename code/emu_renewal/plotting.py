@@ -216,6 +216,11 @@ def plot_multianalysis_fit(
                 ax.set_title(ANALYSIS_NAMES[analysis], fontsize=15)
             if a == 0:
                 ax.set_ylabel(TARGET_TYPES[out], fontsize=15)
+            ymax = ax.get_ylim()[1]
+            targ_max = max(targets[out]) * 1.5
+            if ymax > targ_max and out != "seropos" and "prop_" not in out:
+                ylim = min([ymax, targ_max])
+                ax.set_ylim(-ylim * 0.05, ylim)
     fig.tight_layout()
     return fig.subplots_adjust(wspace=0.05)
 
