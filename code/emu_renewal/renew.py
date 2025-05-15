@@ -135,7 +135,6 @@ class MultiStrainModel:
         mobility: MobilityProvider,
         seed_duration: int,
         vacc_effect: bool = False,
-        africa_reporting: bool = False,
     ):
         """Construct the object for running the renewal process.
 
@@ -167,7 +166,6 @@ class MultiStrainModel:
         self.discharge_dens = discharge_dens
         self.init_length = init_length
         self.vacc_effect = vacc_effect
-        self.africa_reporting = africa_reporting
 
         # Times
         self.epoch = Epoch(start)
@@ -387,31 +385,26 @@ class MultiStrainModel:
             seed_offsets,
             **kwargs,
         )
-        africa_mult = 0.04 if self.africa_reporting else 1.0
         strain_inc = jnp.array([outputs[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
         outputs["inc"] = full_inc[self.init_length :]
 
-        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr) * africa_mult
+        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
         outputs["cases"] = cases[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, 7)
         outputs["weekly_cases"] = weekly_cases[self.init_length :]
 
         vacc_death_protect = 0.8 if self.vacc_effect else 0.0
-        deaths = (
-            self.get_output_from_inc(full_inc, death_mean, death_sd, ifr)
-            * (1.0 - vacc_death_protect)
-            * africa_mult
+        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr) * (
+            1.0 - vacc_death_protect
         )
         outputs["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
         outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
 
         vacc_hosp_protect = 0.6 if self.vacc_effect else 0.0
-        admissions = (
-            self.get_output_from_inc(full_inc, admit_mean, admit_sd, har)
-            * (1.0 - vacc_hosp_protect)
-            * africa_mult
+        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har) * (
+            1.0 - vacc_hosp_protect
         )
         outputs["admissions"] = admissions[self.init_length :]
         weekly_admissions = self.get_period_output_from_daily(admissions, 7)

@@ -318,7 +318,10 @@ def run_single_country(
     death_data[death_data == 0.0] = 0.5
     data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
-    seroprev = get_filtered_seroprev(country, data_start, end_time)
+    income = get_income_group(iso3)
+    africa_reporting = continent == "AF" and income in ["Lower middle income", "Low income"]
+
+    seroprev = get_filtered_seroprev(country, data_start, end_time, africa_reporting)
     if seroprev.empty:
         seroprev_target = seroprev
     else:
@@ -386,8 +389,6 @@ def run_single_country(
 
     # Model construction
     vacc_effect = continent == "OC"
-    income = get_income_group(iso3)
-    africa_reporting = continent == "AF" and income in ["Lower middle income", "Low income"]
     model = MultiStrainModel(
         pop,
         run_start,
@@ -405,7 +406,6 @@ def run_single_country(
         mob_provider,
         seed_duration,
         vacc_effect=vacc_effect,
-        africa_reporting=africa_reporting,
     )
 
     # Calibration

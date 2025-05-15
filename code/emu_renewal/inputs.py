@@ -266,6 +266,7 @@ def get_filtered_seroprev(
     iso3: str,
     start: datetime,
     end: datetime,
+    africa_lic: bool = False,
 ) -> pd.Series:
     """Filter the SeroTracker data according to our choices
     about what constitutes good enough data
@@ -282,7 +283,7 @@ def get_filtered_seroprev(
     Returns:
         Filtered data to use as target
     """
-    if iso3 == "AUS":
+    if iso3 == "AUS" or africa_lic:
         return pd.Series([])
     data = get_all_seroprev()
     country = pycountry.countries.lookup(iso3).name
