@@ -18,6 +18,14 @@ from emu_renewal.inputs import get_google_mobility, get_apple_mobility, ANALYSIS
 from emu_renewal.calibration import StandardCalib
 
 
+ANALYSIS_NAMES = {
+    "no_mob": "no mobility",
+    "g_mob": "Google mobility",
+    "fb_mob": "Facebook mobility",
+    "a_mob": "Apple mobility",
+}
+
+
 def plot_spaghetti_calib_comparison(
     spaghetti: pd.DataFrame,
     calib_data: StandardCalib,
@@ -189,7 +197,7 @@ def plot_multianalysis_fit(
             ax.plot(target.index, target, linewidth=0.0, marker=".")
             plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
             if o == 0:
-                ax.set_title(analysis, fontsize=22)
+                ax.set_title(ANALYSIS_NAMES[analysis], fontsize=15)
             if a == 0:
                 ax.set_ylabel(out, fontsize=18)
     fig.tight_layout()
