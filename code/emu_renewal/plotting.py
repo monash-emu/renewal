@@ -33,6 +33,8 @@ TARGET_TYPES = {
     "icu_occupancy": "ICU occupancy",
     "prop_alpha": "proportion Alpha",
     "prop_delta": "proportion Delta",
+    "prop_ba2": "proportion BA.2",
+    "prop_ba5": "proportion BA.5",
     "seropos": "seroprevalence",
 }
 
@@ -194,11 +196,13 @@ def plot_multianalysis_fit(
     warnings.filterwarnings("ignore", message=msg)
     pd.options.plotting.backend = "matplotlib"
     n_targs = len(targets)
-    fig, axes = plt.subplots(n_targs, len(spaghs), figsize=[12, 15], sharex=True, sharey="row")
-    country_name = pycountry.countries.lookup(country).name
-    fig.suptitle(country_name, fontsize=30, y=1.0)
     ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
+    width = 1.0 + len(ordered_analyses) * 3.5
+    height = 2.0 + n_targs * 3.5
+    fig, axes = plt.subplots(n_targs, len(spaghs), figsize=[width, height], sharex=True, sharey="row")
+    country_name = pycountry.countries.lookup(country).name
+    fig.suptitle(country_name, fontsize=30, y=1.0)
     for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
         for o, out in enumerate(ordered_targets):
