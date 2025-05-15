@@ -36,6 +36,7 @@ from emu_renewal.inputs import (
     get_ba2_target,
     get_ba5_target,
     get_seroprev_pooled_totals,
+    get_income_group,
 )
 from emu_renewal.targets import StandardDispTarget, StandardPropTarget, UnivariateDispersionTarget
 from emu_renewal.process import CosineMultiCurve
@@ -385,6 +386,8 @@ def run_single_country(
 
     # Model construction
     vacc_effect = continent == "OC"
+    income = get_income_group(iso3)
+    africa_reporting = continent == "AF" and income in ["Lower middle income", "Low income"]
     model = MultiStrainModel(
         pop,
         run_start,
@@ -402,6 +405,7 @@ def run_single_country(
         mob_provider,
         seed_duration,
         vacc_effect=vacc_effect,
+        africa_reporting=africa_reporting,
     )
 
     # Calibration
