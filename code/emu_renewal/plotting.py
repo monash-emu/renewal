@@ -24,6 +24,17 @@ ANALYSIS_NAMES = {
     "fb_mob": "Facebook mobility",
     "a_mob": "Apple mobility",
 }
+TARGET_TYPES = {
+    "weekly_cases": "weekly cases",
+    "weekly_deaths": "weekly deaths",
+    "weekly_admissions": "weekly admissions",
+    "occupancy": "hospital occupancy",
+    "icu_weekly_admissions": "ICU weekly admissions",
+    "icu_occupancy": "ICU occupancy",
+    "prop_alpha": "proportion Alpha",
+    "prop_delta": "proportion Delta",
+    "seropos": "seroprevalence",
+}
 
 
 def plot_spaghetti_calib_comparison(
@@ -187,9 +198,10 @@ def plot_multianalysis_fit(
     country_name = pycountry.countries.lookup(country).name
     fig.suptitle(country_name, fontsize=30, y=1.0)
     ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
+    ordered_targets = [t for t in TARGET_TYPES if t in targets]
     for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
-        for o, out in enumerate(targets):
+        for o, out in enumerate(ordered_targets):
             ax = axes[o, a]
             o_spagh = a_spaghs[out]
             o_spagh.plot(ax=ax, legend=False, color="black", linewidth=0.15)
@@ -199,7 +211,7 @@ def plot_multianalysis_fit(
             if o == 0:
                 ax.set_title(ANALYSIS_NAMES[analysis], fontsize=15)
             if a == 0:
-                ax.set_ylabel(out, fontsize=18)
+                ax.set_ylabel(TARGET_TYPES[out], fontsize=15)
     fig.tight_layout()
     fig.subplots_adjust(wspace=0.05)
     return fig
