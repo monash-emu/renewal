@@ -195,20 +195,20 @@ def plot_multianalysis_fit(
     msg = ".*axis already has a converter set*"
     warnings.filterwarnings("ignore", message=msg)
     pd.options.plotting.backend = "matplotlib"
+    n_analyses = len(spaghs)
     n_targs = len(targets)
     ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
-    width = 1.0 + len(ordered_analyses) * 3.5
+    width = 1.0 + n_analyses * 3.5
     height = 2.0 + n_targs * 3.5
-    fig, axes = plt.subplots(n_targs, len(spaghs), figsize=[width, height], sharex=True, sharey="row")
+    fig, axes = plt.subplots(n_targs, n_analyses, figsize=[width, height], sharex=True, sharey="row")
     country_name = pycountry.countries.lookup(country).name
     fig.suptitle(country_name, fontsize=30, y=1.0)
     for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
         for o, out in enumerate(ordered_targets):
             ax = axes[o, a]
-            o_spagh = a_spaghs[out]
-            o_spagh.plot(ax=ax, legend=False, color="black", linewidth=0.15)
+            a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.15)
             target = targets[out]
             ax.plot(target.index, target, linewidth=0.0, marker=".")
             plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
@@ -217,8 +217,7 @@ def plot_multianalysis_fit(
             if a == 0:
                 ax.set_ylabel(TARGET_TYPES[out], fontsize=15)
     fig.tight_layout()
-    fig.subplots_adjust(wspace=0.05)
-    return fig
+    return fig.subplots_adjust(wspace=0.05)
 
 
 def plot_proc_comparison(
