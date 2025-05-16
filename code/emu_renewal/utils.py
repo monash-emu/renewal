@@ -224,3 +224,15 @@ def get_param_dim(
     """
     dims = idata.posterior[param].shape[2:]
     return dims[0] if dims else 1
+
+
+def get_countries_by_continent(countries):
+    result = {}
+    for c in countries:
+        iso2 = pycountry.countries.lookup(c).alpha_2
+        cont = pc.country_alpha2_to_continent_code(iso2)
+        if cont in result:
+            result[cont].append(c)
+        else:
+            result[cont] = [c]
+    return result

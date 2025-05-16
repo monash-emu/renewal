@@ -192,7 +192,7 @@ def plot_progress_priors(priors, xmax, leg=True):
 
 
 def plot_multianalysis_fit(
-    country: str,
+    iso3: str,
     targets: Dict[str, pd.Series],
     spaghs: Dict[str, pd.DataFrame],
 ) -> plt.Figure:
@@ -207,6 +207,7 @@ def plot_multianalysis_fit(
     Returns:
         The figure
     """
+    country = pycountry.countries.lookup(iso3).name
     msg = ".*axis already has a converter set*"
     warnings.filterwarnings("ignore", message=msg)
     pd.options.plotting.backend = "matplotlib"
@@ -219,8 +220,7 @@ def plot_multianalysis_fit(
     fig, axes = plt.subplots(
         n_targs, n_analyses, figsize=[width, height], sharex=True, sharey="row"
     )
-    country_name = pycountry.countries.lookup(country).name
-    fig.suptitle(country_name, fontsize=30, y=1.0)
+    fig.suptitle(f"Fit to data, {country}", fontsize=20, y=1.0)
     for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
         for o, out in enumerate(ordered_targets):
@@ -239,7 +239,9 @@ def plot_multianalysis_fit(
                 ylim = min([ymax, targ_max])
                 ax.set_ylim(-ylim * 0.05, ylim)
     fig.tight_layout()
-    return fig.subplots_adjust(wspace=0.05)
+    fig.subplots_adjust(wspace=0.05)
+    plt.close()
+    return fig
 
 
 def plot_proc_comparison(
@@ -486,7 +488,7 @@ def plot_prior_multipost(
     """
 
     # Preparation
-    country_name = pycountry.countries.lookup(iso3).name
+    country = pycountry.countries.lookup(iso3).name
     idata = idatas["no_mob"]
     prior_info = get_flat_priors()
     params = [p for p in prior_info if "proc" not in p and p in idata.posterior]
@@ -497,7 +499,7 @@ def plot_prior_multipost(
 
     # Plotting
     fig, ax = plt.subplots(n_rows, n_cols, figsize=[width, height])
-    fig.suptitle(country_name, fontsize=30, y=1.0)
+    fig.suptitle(f"Prior posterior comparison, {country}", fontsize=20, y=1.0)
     axes = ax.ravel()
     n_ax = 0
     for p in params:
@@ -524,3 +526,5 @@ def plot_prior_multipost(
         axes[a].set_axis_off()
 
     fig.tight_layout()
+    plt.close()
+    return fig
