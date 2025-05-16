@@ -13,7 +13,9 @@ from matplotlib import pyplot as plt
 import pycountry
 from os import listdir as ls
 import os
+import yaml as yml
 
+from emu_renewal.inputs import DATA_PATH
 from emu_renewal.inputs import get_google_mobility, get_apple_mobility, ANALYSIS_TYPES
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim
@@ -37,32 +39,6 @@ TARGET_TYPES = {
     "prop_ba2": "proportion BA.2",
     "prop_ba5": "proportion BA.5",
     "seropos": "seroprevalence",
-}
-PARAM_NAME_MAP = {
-    "gen_mean": "generation time, mean",
-    "gen_sd": "generation time, SD",
-    "cdr": "case detection proportion",
-    "har": "hospital admission proportion",
-    "icu_ar": "ICU admission proportion",
-    "ifr": "infection fatality proportion",
-    "cross_immunity": "between-strain cross immunity",
-    "relinfect": "relative infectiousness",
-    "seed_offsets": "seeding offset",
-    "seed_rates": "seeding rate",
-    "rt_init": "variable process initial value",
-    "admit_mean": "time to admission, mean",
-    "admit_sd": "time to admission, SD",
-    "stay_mean": "hospitalisation duration, mean",
-    "stay_sd": "hospitalisation duration, SD",
-    "icu_admit_mean": "time to ICU admission, mean",
-    "icu_admit_sd": "time to ICU admission, SD",
-    "icu_stay_mean": "ICU duration, mean",
-    "icu_stay_sd": "ICU duration, SD",
-    "death_mean": "time to death, mean",
-    "death_sd": "time to death, SD",
-    "report_mean": "time to notification, mean",
-    "report_sd": "time to notification, SD",
-    "shared_dispersion": "shared target dispersion",
 }
 VAR_NAME_MAP = {
     "start": "starting strain",
@@ -439,10 +415,18 @@ def get_prior_vals_from_dist(x_vals, dist, d):
     return np.exp(log_vals)
 
 
-def get_display_name(param, param_dim, param_idx, var_names):
+def get_flat_priors():
+    loaded_priors = yml.safe_load(open(DATA_PATH / "config/priors.yml", "r"))
+    flat_priors = {}
+    for v in loaded_priors.values():
+        flat_priors.update(v)
+    return flat_priors
+
+
+def get_display_name(param, param_dim, param_idx, var_names, prior_info):
     var_idx = param_idx + 1 if param == "relinfect" else param_idx
     var_ext = "" if param_dim == 1 else f", {VAR_NAME_MAP[var_names[var_idx]]}"
-    return PARAM_NAME_MAP[param] + var_ext
+    return prior_info[param]["short_name"] + var_ext
 
 
 def plot_prior_multipost(
@@ -466,7 +450,8 @@ def plot_prior_multipost(
     # Preparation
     country_name = pycountry.countries.lookup(iso3).name
     idata = idatas["no_mob"]
-    params = [p for p in PARAM_NAME_MAP if "proc" not in p and p in idata.posterior]
+    prior_info = get_flat_priors()
+    params = [p for p in prior_info if "proc" not in p and p in idata.posterior]
     n_params = sum([get_param_dim(p, idata) for p in params])
     n_rows = int(np.ceil(n_params / n_cols))
     width = 1.0 + n_cols * 3.0
@@ -491,7 +476,7 @@ def plot_prior_multipost(
             x_vals = np.linspace(*axis.get_xlim(), 100)
             y_vals = get_prior_vals_from_dist(x_vals, priors[p], d)
             axis.fill_between(x_vals, y_vals, color="k", alpha=0.2)
-            display_name = get_display_name(p, p_dim, d, var_names)
+            display_name = get_display_name(p, p_dim, d, var_names, prior_info)
             axis.set_title(display_name)
             plt.setp(axis.xaxis.get_majorticklabels(), fontsize=10)
             n_ax += 1

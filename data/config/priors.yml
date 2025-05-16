@@ -3,102 +3,126 @@ durations:
     mean: 4.5
     sd: 0.5
     param_name: Generation time mean (days)
+    short_name: generation time, mean
     evidence: Our preferred evidence for quantifying the generation interval come from analyses of transmission pairs that has been estimated in multiple different contexts for SARS-CoV-2.[@chen2022; @ganyani2020] Early case-contact data at the origin of the pandemic in Wuhan estimated a mean of around seven days prior to the implementation of population-wide public health and social measures such as contact tracing and movement restrictions. This led to a contraction of the mean generation interval to around four to five days after these interventions were implemented.[@chen2022] These findings are consistent with estimates from early 2020 from Tianjin, China and Singapore, which estimated generation intervals of around four and five days, respectively.[@ganyani2020] Estimates of the serial interval should be applicable to estimating the generation interval if the epidemic is not changing sufficiently rapidly to result in differences in the incubation period between infectors and infectees [@chen2022]. Estimates of the serial interval from Germany[@anderheiden2022] and Spain[@delaguilamejia2022] fell in a similar range as to the generation interval estimates we use.
   gen_sd:
     mean: 2.5
     sd: 0.5
     param_name: Generation time standard deviation (days)
+    short_name: generation time, SD
     evidence: For the standard deviation of the generation interval, we used the same sources of evidence as for the mean.[@chen2022; @ganyani2020] The standard deviation estiamtes were typically in the range of two to four days for early Wuhan [@chen2022] and 1.5 to 2.5 days from Tianjin and Singapore.[@ganyani2020]
   report_mean:
     mean: 8.0
     sd: 0.5
     param_name: Infection to reporting mean (days)
+    short_name: time to notification, mean
     evidence: This delay incorporates the incubation period and the time from symptom onset to presentation to the health care system. The incubation period for COVID-19 has been estimated at five to seven days. We have previously estimated the delay from symptom onset to notification to be four days in the Australian context.[@trauer2024; @golding2023]
   report_sd: 
     mean: 3.0
     sd: 0.5
     param_name: Infection to reporting standard deviation (days)
+    short_name: time to notification, SD
     evidence: Our previous estimate of four days for the time to reporting from symptom onset[@trauer2024] was associated with a standard deviation of two days.
   death_mean: 
     mean: 20.5
     sd: 5.0
     param_name: Infection to death mean (days)
+    short_name: time to death, mean
     evidence: A meta-analysis of studies from China quantifying the mean duration from symptom onset to death found a mean delay of 15.93 days.[@khalili2020] A study leveraging individual-level data from Hubei, China in combination with early cases outside of China (not included in the meta-analysis) found a mean time from symptom onset to death of 17.8 days.[@verity2020] A cohort study from a north-eastern state of Brazil found a median 19 days from symptom onset to death.[@sousa2020] We considered 17.5 days to be a reasonable estimate for the time from symptom onset to death, which we increased by three days to account for the time from infection to symptom onset.
   death_sd:
     mean: 5.0
     sd: 2.5
     param_name: Infection to death standard deviation (days)
+    short_name: time to death, SD
     evidence: The meta-analysis of studies from China introduced above[@khalili2020] found a range of symptom to death delays of 13.07 to 18.79 days, while the study from China[@verity2020] reported a credible interval of 16.9 to 19.2 days and the study from Brazil an interquartile range of 12 to 23 days.[@sousa2020]
   admit_mean:
     mean: 8.6
     sd: 3.0
     param_name: Infection to hospitalisation mean (days)
+    short_name: time to admission, mean
     evidence: A study from Belgium reported the duration from symptom onset to hospitalisation to be 5.6 days (Table A.2 appears to provide the correct estimate).[@faes2020] Again, we inflated this for an incubation period of three days.
   admit_sd: 
     mean: 5.0
     sd: 2.0
     param_name: Infection to hospitalisation standard deviation (days)
+    short_name: time to admission, SD
     evidence: The study from Belgium[@faes2020] above found considerable variation in the time to admission.
   stay_mean:
     mean: 15.0
     sd: 2.5
     param_name: Hospital admission duration (days)
+    short_name: hospitalisation duration, mean
     evidence: A systematic review that synthesised hospital admission durations found a median stay of 14 days.[@rees2020] Although more studies were identified for China than for other countries, stay length in China appeared longer than for other countries. Another systematic review undertaken later in the pandemic period found similar durations, with a mean individual-level length of stay of 14.49 days.[@alimohamadi2022]
   stay_sd:
     mean: 7.92
     sd: 2.5
     param_name: Hospitalisation to discharge standard deviation (days)
+    short_name: hospitalisation duration, SD
     evidence: The interquartile range reported in the first systematic review above[@rees2020] was ten to 19 days, while the individual-level standard deviation identified in the later systematic review above[@alimohamadi2022] was 7.92 days.
   icu_admit_mean:
     mean: 11.4
     sd: 7.0
     param_name: Infection to ICU admission mean (days)
+    short_name: time to ICU admission, mean
     evidence: ISARIC report (Table 6) gives mean 2.8 days (6.1 days standard deviation) from hospital admission to ICU entry.
   icu_admit_sd: 
     mean: 5.0
     sd: 2.0
     param_name: Infection to ICU admission standard deviation (days)
+    short_name: time to ICU admission, SD
     evidence: To populate
   icu_stay_mean:
     mean: 7.0
     sd: 3.0
     param_name: ICU admission duration (days)
+    short_name: ICU duration, mean
     evidence: The systematic review introduced above[@rees2020] reported a median ICU length of stay outside of China of seven days with an interquartile range from four to 11 days.
   icu_stay_sd:
     mean: 5.0
     sd: 2.5
     param_name: ICU admission to discharge standard deviation (days)
+    short_name: ICU duration, SD
     evidence: To populate, I think not reported by the Rees systematic review.
 beta_from_summary:
   cdr:
     mean: 0.38
     std: 0.1
-    # alpha: 5.0
-    # beta: 10.0
     param_name: Case detection proportion
+    short_name: case detection proportion
     evidence: An early analysis from France of the proportion of cases detected estimated that 38% (95% confidence interval 35 to 44%) of cases were detected.[@pullano2020] This is consistent with our estimate that one in two to six cases were detected from the early stages of Australia's Omicron outbreak.[@trauer2024] Nevertheless, this quantity is difficult to determine with confidence and is likely highly context-dependent, hence our broad prior.
   har:
     mean: 0.0339
     std: 0.0059
-    # alpha: 6.78
-    # beta: 186.64
     param_name: Infection hospitalisation proportion
+    short_name: hospital admission proportion
     evidence: This quantity was estimated to be 3.39% (credible interval 2.79 to 3.97%) from officially reported data in England prior to the marked declines that occurred as population-wide vaccination was rolled out.[@ward2024]
   ifr:
     mean: 0.0079
     std: 0.0012
-    # alpha: 7.9
-    # beta: 992.1
     param_name: Infection fatality proportion
+    short_name: infection fatality proportion
     evidence: An analysis that integrated serosurveillance with age-specific death rates from 45 countries estimated an infection fatality rate of 0.79% (credible interval 0.68 to 0.92%) for the reference population of France, [@odriscoll2021] which would be expected to vary considerably by population age structure. Other groups have found similarly variable estimates using a combination of modelling and serosurvey results, including an overall IFR estimated at 0.49 to 2.53%.[@brazeau2022] Our prior estimate is relatively broadly distributed and so should be applicable to a range of higher income settings. 
 beta:
   icu_ar:
     alpha: 17.0
     beta: 83.0
     param_name: Hospitalisation ICU admission proportion
+    short_name: ICU admission proportion
     evidence: ISARIC
   cross_immunity:
     alpha: 10.0
     beta: 10.0
     param_name: Cross immunity
+    short_name: cross immunity
     evidence: A meta-analysis found that protection against re-infection declined with time and varied with the variant considered, but was estimated at 78.6% (95% uncertainty interval 49.8 to 93.6%).[@covidforecasting2023] Our previous analysis of Australia's epidemic rapid succession of Omicron waves found high levels of immune escape.[@trauer2024]
+other:
+  relinfect:
+    short_name: relative infectiousness
+  seed_offsets:
+    short_name: seeding offset
+  seed_rates:
+    short_name: seeding rate
+  rt_init:
+    short_name: variable process initial value
+  shared_dispersion:
+    short_name: shared target dispersion
