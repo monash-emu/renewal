@@ -215,7 +215,7 @@ def plot_multianalysis_fit(
     n_targs = len(targets)
     ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
-    fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharex=True, sharey="row")
+    fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharey="row")
     fig.suptitle(f"Fit to data, {country}", fontsize=20, y=1.0)
     for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
