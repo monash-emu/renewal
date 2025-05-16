@@ -445,13 +445,16 @@ def get_display_name(param, param_dim, param_idx, var_names):
     return PARAM_NAME_MAP[param] + var_ext
 
 
-def plot_prior_multipost(idatas, n_cols, priors, var_names):
+def plot_prior_multipost(idatas, n_cols, priors, var_names, iso3):
     idata = idatas["no_mob"]
-    # params = [p for p in idata.posterior if "proc" not in p]
     params = [p for p in PARAM_NAME_MAP if "proc" not in p and p in idata.posterior]
     n_params = sum([get_param_dim(p, idata) for p in params])
     n_rows = int(np.ceil(n_params / n_cols))
-    fig, ax = plt.subplots(n_rows, n_cols, figsize=[15, 14])
+    width = 1.0 + n_cols * 3.0
+    height = 2.0 + n_rows * 2.5
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=[width, height])
+    country_name = pycountry.countries.lookup(iso3).name
+    fig.suptitle(country_name, fontsize=30, y=1.0)
     axes = ax.ravel()
     n_ax = 0
     for p in params:
@@ -470,6 +473,7 @@ def plot_prior_multipost(idatas, n_cols, priors, var_names):
             axis.fill_between(x_vals, y_vals, color="k", alpha=0.2)
             display_name = get_display_name(p, p_dim, d, var_names)
             axis.set_title(display_name)
+            plt.setp(axis.xaxis.get_majorticklabels(), fontsize=10)
             n_ax += 1
 
     for a in range(n_ax, len(axes)):
