@@ -201,7 +201,9 @@ def plot_multianalysis_fit(
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
     width = 1.0 + n_analyses * 3.5
     height = 2.0 + n_targs * 3.5
-    fig, axes = plt.subplots(n_targs, n_analyses, figsize=[width, height], sharex=True, sharey="row")
+    fig, axes = plt.subplots(
+        n_targs, n_analyses, figsize=[width, height], sharex=True, sharey="row"
+    )
     country_name = pycountry.countries.lookup(country).name
     fig.suptitle(country_name, fontsize=30, y=1.0)
     for a, analysis in enumerate(ordered_analyses):
@@ -386,3 +388,78 @@ def compare_proc_versus_mobility(proc_centiles, mob_types, mob_source="google"):
         plt.setp(c_ax.xaxis.get_majorticklabels(), rotation=70)
     mob_comparison_fig.tight_layout()
     return mob_comparison_fig
+
+
+colours = {
+    "no_mob": "black",
+    "g_mob": "green",
+    "fb_mob": "blue",
+    "a_mob": "red",
+}
+
+
+def get_param_dim(param, idata):
+    dims = idata.posterior[param].shape[2:]
+    return dims[0] if dims else 1
+
+
+def get_prior_vals_from_dist(x_vals, dist, d):
+    multi_dist = len(dist.batch_shape) > 0
+    logp = dist.log_prob
+    log_vals = logp(x_vals[:, None])[:, d] if multi_dist else logp(x_vals)
+    return np.exp(log_vals)
+
+
+param_display_names = {
+    "admit_mean": "time to admission, mean",
+    "admit_sd": "time to admission, SD",
+    "cdr": "case detection proportion",
+    "cross_immunity": "between-strain cross immunity",
+    "death_mean": "time to death, mean",
+    "death_sd": "time to death, SD",
+    "gen_mean": "generation time, mean",
+    "gen_sd": "generation time, SD",
+    "har": "hospital admission proportion",
+    "ifr": "infection fatality proportion",
+    "relinfect": "variant relative infectiousness",
+    "report_mean": "time to notification, mean",
+    "report_sd": "time to notification, SD",
+    "rt_init": "variable process initial value",
+    "seed_offsets": "variant seeding offset",
+    "seed_rates": "variant seeding rate",
+    "shared_dispersion": "shared target dispersion",
+    "stay_mean": "hospitalisation duration, mean",
+    "stay_sd": "hospitalisation duration, SD",
+}
+
+
+def plot_prior_multipost(idatas, n_cols, priors):
+    idata = idatas["no_mob"]
+    params = [p for p in idata.posterior if "proc" not in p]
+    n_params = sum([get_param_dim(p, idata) for p in params])
+    n_rows = int(np.ceil(n_params / n_cols))
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=[15, 14])
+    axes = ax.ravel()
+    n_ax = 0
+    for p in params:
+
+        # Posteriors
+        for a in idatas:
+            post = idatas[a].posterior[p]
+            az.plot_density(post, ax=axes[n_ax:], hdi_prob=0.99, colors=[colours[a]])
+
+        # Prior
+        p_dim = get_param_dim(p, idata)
+        for d in range(p_dim):
+            axis = axes[n_ax]
+            x_vals = np.linspace(*axis.get_xlim(), 100)
+            y_vals = get_prior_vals_from_dist(x_vals, priors[p], d)
+            axis.fill_between(x_vals, y_vals, color="k", alpha=0.2)
+            n_ax += 1
+            display_name = param_display_names[p] if p in param_display_names else p
+            axis.set_title(display_name)
+
+    for a in range(n_ax, len(axes)):
+        axes[a].set_axis_off()
+
+    fig.tight_layout()
