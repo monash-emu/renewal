@@ -47,7 +47,12 @@ VAR_NAME_MAP = {
     "ba2": "BA.2",
     "ba5": "BA.5",
 }
-
+MOB_COLOURS = {
+    "no_mob": "black",
+    "g_mob": "green",
+    "fb_mob": "blue",
+    "a_mob": "red",
+}
 
 def plot_spaghetti_calib_comparison(
     spaghetti: pd.DataFrame,
@@ -400,22 +405,36 @@ def compare_proc_versus_mobility(proc_centiles, mob_types, mob_source="google"):
     return mob_comparison_fig
 
 
-colours = {
-    "no_mob": "black",
-    "g_mob": "green",
-    "fb_mob": "blue",
-    "a_mob": "red",
-}
+def get_prior_vals_from_dist(
+    eval_points: List[float],
+    dist: dist.Distribution,
+    i_element: int,
+) -> np.array:
+    """Get the densities of a distribution,
+    accounting for it potentially having multiple elements.
 
+    Args:
+        eval_points: Points at which to evaluate
+        dist: Distribution
+        i_element: The element of the distribution
 
-def get_prior_vals_from_dist(x_vals, dist, d):
+    Returns:
+        The values
+    """
     multi_dist = len(dist.batch_shape) > 0
     logp = dist.log_prob
-    log_vals = logp(x_vals[:, None])[:, d] if multi_dist else logp(x_vals)
+    log_vals = logp(eval_points[:, None])[:, i_element] if multi_dist else logp(eval_points)
     return np.exp(log_vals)
 
 
-def get_flat_priors():
+def get_flat_priors() -> Dict[str, str]:
+    """Get the prior information,
+    but without the top level of the dictionary,
+    so that the names of all the priors are the first dictionary level.
+
+    Returns:
+        The flattened prior information
+    """
     loaded_priors = yml.safe_load(open(DATA_PATH / "config/priors.yml", "r"))
     flat_priors = {}
     for v in loaded_priors.values():
@@ -423,7 +442,26 @@ def get_flat_priors():
     return flat_priors
 
 
-def get_display_name(param, param_dim, param_idx, var_names, prior_info):
+def get_param_display_name(
+    param: str,
+    param_dim: int,
+    param_idx: int,
+    var_names: List[str],
+    prior_info: Dict[str, str],
+) -> str:
+    """Get parameter name, accounting for parameters
+    that are vectors over multiple strains.
+
+    Args:
+        param: Parameter name
+        param_dim: Number of elements to parameter
+        param_idx: Index of this parameter element
+        var_names: Names of the modelled variants
+        prior_info: Output of get_flat_priors
+
+    Returns:
+        The formatted parameter name
+    """
     var_idx = param_idx + 1 if param == "relinfect" else param_idx
     var_ext = "" if param_dim == 1 else f", {VAR_NAME_MAP[var_names[var_idx]]}"
     return prior_info[param]["short_name"] + var_ext
@@ -467,7 +505,7 @@ def plot_prior_multipost(
         # Posteriors
         for a in idatas:
             post = idatas[a].posterior[p]
-            az.plot_density(post, ax=axes[n_ax:], hdi_prob=0.99, colors=[colours[a]])
+            az.plot_density(post, ax=axes[n_ax:], hdi_prob=0.99, colors=[MOB_COLOURS[a]])
 
         # Prior
         p_dim = get_param_dim(p, idata)
@@ -476,7 +514,7 @@ def plot_prior_multipost(
             x_vals = np.linspace(*axis.get_xlim(), 100)
             y_vals = get_prior_vals_from_dist(x_vals, priors[p], d)
             axis.fill_between(x_vals, y_vals, color="k", alpha=0.2)
-            display_name = get_display_name(p, p_dim, d, var_names, prior_info)
+            display_name = get_param_display_name(p, p_dim, d, var_names, prior_info)
             axis.set_title(display_name)
             plt.setp(axis.xaxis.get_majorticklabels(), fontsize=10)
             n_ax += 1
