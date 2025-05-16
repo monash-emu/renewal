@@ -5,8 +5,7 @@ import itertools
 import numpy as np
 import pycountry
 import pycountry_convert as pc
-
-# from emu_renewal.renew import MultiStrainModel
+import arviz as az
 
 
 def format_date_for_str(
@@ -207,3 +206,21 @@ def get_beta_params_from_mean_var(mu, var):
     a = mu * (mu * (1.0 - mu) / var - 1.0)
     b = (1.0 - mu) * (mu * (1.0 - mu) / var - 1.0)
     return a, b
+
+
+def get_param_dim(
+    param: str,
+    idata: az.InferenceData,
+) -> int:
+    """Find how many elements a parameter has
+    from the calibration results.
+
+    Args:
+        param: Name of the parameter
+        idata: Calibration results
+
+    Returns:
+        Number of elements
+    """
+    dims = idata.posterior[param].shape[2:]
+    return dims[0] if dims else 1

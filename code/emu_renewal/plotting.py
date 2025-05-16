@@ -16,6 +16,7 @@ import os
 
 from emu_renewal.inputs import get_google_mobility, get_apple_mobility, ANALYSIS_TYPES
 from emu_renewal.calibration import StandardCalib
+from emu_renewal.utils import get_param_dim
 
 
 ANALYSIS_NAMES = {
@@ -36,6 +37,39 @@ TARGET_TYPES = {
     "prop_ba2": "proportion BA.2",
     "prop_ba5": "proportion BA.5",
     "seropos": "seroprevalence",
+}
+PARAM_NAME_MAP = {
+    "admit_mean": "time to admission, mean",
+    "admit_sd": "time to admission, SD",
+    "cdr": "case detection proportion",
+    "cross_immunity": "between-strain cross immunity",
+    "death_mean": "time to death, mean",
+    "death_sd": "time to death, SD",
+    "gen_mean": "generation time, mean",
+    "gen_sd": "generation time, SD",
+    "har": "hospital admission proportion",
+    "ifr": "infection fatality proportion",
+    "relinfect": "relative infectiousness",
+    "report_mean": "time to notification, mean",
+    "report_sd": "time to notification, SD",
+    "rt_init": "variable process initial value",
+    "seed_offsets": "seeding offset",
+    "seed_rates": "seeding rate",
+    "shared_dispersion": "shared target dispersion",
+    "stay_mean": "hospitalisation duration, mean",
+    "stay_sd": "hospitalisation duration, SD",
+    "icu_admit_mean": "time to ICU admission, mean",
+    "icu_admit_sd": "time to ICU admission, SD",
+    "icu_ar": "ICU admission proportion",
+    "icu_stay_mean": "ICU duration, mean",
+    "icu_stay_sd": "ICU duration, SD",
+}
+VAR_NAME_MAP = {
+    "start": "starting strain",
+    "alpha": "Alpha",
+    "delta": "Delta",
+    "ba2": "BA.2",
+    "ba5": "BA.5",
 }
 
 
@@ -398,11 +432,6 @@ colours = {
 }
 
 
-def get_param_dim(param, idata):
-    dims = idata.posterior[param].shape[2:]
-    return dims[0] if dims else 1
-
-
 def get_prior_vals_from_dist(x_vals, dist, d):
     multi_dist = len(dist.batch_shape) > 0
     logp = dist.log_prob
@@ -410,32 +439,16 @@ def get_prior_vals_from_dist(x_vals, dist, d):
     return np.exp(log_vals)
 
 
-param_display_names = {
-    "admit_mean": "time to admission, mean",
-    "admit_sd": "time to admission, SD",
-    "cdr": "case detection proportion",
-    "cross_immunity": "between-strain cross immunity",
-    "death_mean": "time to death, mean",
-    "death_sd": "time to death, SD",
-    "gen_mean": "generation time, mean",
-    "gen_sd": "generation time, SD",
-    "har": "hospital admission proportion",
-    "ifr": "infection fatality proportion",
-    "relinfect": "variant relative infectiousness",
-    "report_mean": "time to notification, mean",
-    "report_sd": "time to notification, SD",
-    "rt_init": "variable process initial value",
-    "seed_offsets": "variant seeding offset",
-    "seed_rates": "variant seeding rate",
-    "shared_dispersion": "shared target dispersion",
-    "stay_mean": "hospitalisation duration, mean",
-    "stay_sd": "hospitalisation duration, SD",
-}
+def get_display_name(param, param_dim, param_idx, var_names):
+    var_idx = param_idx + 1 if param == "relinfect" else param_idx
+    var_ext = "" if param_dim == 1 else f", {VAR_NAME_MAP[var_names[var_idx]]}"
+    return PARAM_NAME_MAP[param] + var_ext
 
 
-def plot_prior_multipost(idatas, n_cols, priors):
+def plot_prior_multipost(idatas, n_cols, priors, var_names):
     idata = idatas["no_mob"]
-    params = [p for p in idata.posterior if "proc" not in p]
+    # params = [p for p in idata.posterior if "proc" not in p]
+    params = [p for p in PARAM_NAME_MAP if "proc" not in p and p in idata.posterior]
     n_params = sum([get_param_dim(p, idata) for p in params])
     n_rows = int(np.ceil(n_params / n_cols))
     fig, ax = plt.subplots(n_rows, n_cols, figsize=[15, 14])
@@ -455,9 +468,9 @@ def plot_prior_multipost(idatas, n_cols, priors):
             x_vals = np.linspace(*axis.get_xlim(), 100)
             y_vals = get_prior_vals_from_dist(x_vals, priors[p], d)
             axis.fill_between(x_vals, y_vals, color="k", alpha=0.2)
-            n_ax += 1
-            display_name = param_display_names[p] if p in param_display_names else p
+            display_name = get_display_name(p, p_dim, d, var_names)
             axis.set_title(display_name)
+            n_ax += 1
 
     for a in range(n_ax, len(axes)):
         axes[a].set_axis_off()
