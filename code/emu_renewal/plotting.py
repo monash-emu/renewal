@@ -215,11 +215,7 @@ def plot_multianalysis_fit(
     n_targs = len(targets)
     ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
-    width = 1.0 + n_analyses * 3.5
-    height = 2.0 + n_targs * 3.5
-    fig, axes = plt.subplots(
-        n_targs, n_analyses, figsize=[width, height], sharex=True, sharey="row"
-    )
+    fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharex=True, sharey="row")
     fig.suptitle(f"Fit to data, {country}", fontsize=20, y=1.0)
     for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
@@ -494,11 +490,10 @@ def plot_prior_multipost(
     params = [p for p in prior_info if "proc" not in p and p in idata.posterior]
     n_params = sum([get_param_dim(p, idata) for p in params])
     n_rows = int(np.ceil(n_params / n_cols))
-    width = 1.0 + n_cols * 3.0
     height = 2.0 + n_rows * 2.5
 
     # Plotting
-    fig, ax = plt.subplots(n_rows, n_cols, figsize=[width, height])
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=[12, height])
     fig.suptitle(f"Prior posterior comparison, {country}", fontsize=20, y=1.0)
     axes = ax.ravel()
     n_ax = 0
