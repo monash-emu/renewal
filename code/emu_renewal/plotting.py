@@ -54,7 +54,8 @@ MOB_COLOURS = {
     "a_mob": "red",
 }
 
-def plot_spaghetti_calib_comparison(
+
+def plot_analysis_fit(
     spaghetti: pd.DataFrame,
     calib_data: StandardCalib,
     out_req: list[str],
@@ -90,7 +91,56 @@ def plot_spaghetti_calib_comparison(
     return fig
 
 
-def plot_post_prior_comparison(
+def plot_multianalysis_fit(
+    iso3: str,
+    targets: Dict[str, pd.Series],
+    spaghs: Dict[str, pd.DataFrame],
+) -> plt.Figure:
+    """Plot the fit of each of the analyses to data
+    using spaghetti and calibration targets.
+
+    Args:
+        country: Name of the country
+        targets: The calibration targets
+        spaghs: The spaghettis
+
+    Returns:
+        The figure
+    """
+    country = pycountry.countries.lookup(iso3).name
+    msg = ".*axis already has a converter set*"
+    warnings.filterwarnings("ignore", message=msg)
+    pd.options.plotting.backend = "matplotlib"
+    n_analyses = len(spaghs)
+    n_targs = len(targets)
+    ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
+    ordered_targets = [t for t in TARGET_TYPES if t in targets]
+    fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharey="row")
+    fig.suptitle(f"Fit to data, {country}", fontsize=20, y=1.0)
+    for a, analysis in enumerate(ordered_analyses):
+        a_spaghs = spaghs[analysis]
+        for o, out in enumerate(ordered_targets):
+            ax = axes[o, a]
+            a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.15, alpha=0.5)
+            target = targets[out]
+            ax.plot(target.index, target, linewidth=0.0, marker=".")
+            plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
+            if o == 0:
+                ax.set_title(ANALYSIS_NAMES[analysis], fontsize=15)
+            if a == 0:
+                ax.set_ylabel(TARGET_TYPES[out], fontsize=15)
+            ymax = ax.get_ylim()[1]
+            targ_max = max(targets[out]) * 1.5
+            if ymax > targ_max and out != "seropos" and "prop_" not in out:
+                ylim = min([ymax, targ_max])
+                ax.set_ylim(-ylim * 0.05, ylim)
+    fig.tight_layout()
+    fig.subplots_adjust(wspace=0.05)
+    plt.close()
+    return fig
+
+
+def plot_prior_post(
     idata: az.InferenceData,
     req_vars: List[str],
     priors: List[dist.Distribution],
@@ -129,6 +179,66 @@ def plot_post_prior_comparison(
             ax.fill_between(x_vals, y_vals, color="k", alpha=0.2, linewidth=2)
     ax.figure.suptitle(country, fontsize=30, y=1.0)
     return ax.figure.tight_layout()
+
+
+def plot_prior_multipost(
+    idatas: Dict[str, az.InferenceData],
+    n_cols: int,
+    priors: Dict[str, dist.Distribution],
+    var_names: List[str],
+    iso3: str,
+):
+    """Plot comparison of parameter prior distribution
+    to posterior from each mobility analysis type.
+
+    Args:
+        idatas: The calibration results for each analysis type
+        n_cols: Number of columns for figure
+        priors: The prior distributions
+        var_names: Names of the variables to plot
+        iso3: Country identifier
+    """
+
+    # Preparation
+    country = pycountry.countries.lookup(iso3).name
+    idata = idatas["no_mob"]
+    prior_info = get_flat_priors()
+    params = [p for p in prior_info if "proc" not in p and p in idata.posterior]
+    n_params = sum([get_param_dim(p, idata) for p in params])
+    n_rows = int(np.ceil(n_params / n_cols))
+    height = 2.0 + n_rows * 2.5
+
+    # Plotting
+    fig, ax = plt.subplots(n_rows, n_cols, figsize=[12, height])
+    fig.suptitle(f"Prior posterior comparison, {country}", fontsize=20, y=1.0)
+    axes = ax.ravel()
+    n_ax = 0
+    for p in params:
+
+        # Posteriors
+        for a in idatas:
+            post = idatas[a].posterior[p]
+            az.plot_density(post, ax=axes[n_ax:], hdi_prob=0.99, colors=[MOB_COLOURS[a]])
+
+        # Prior
+        p_dim = get_param_dim(p, idata)
+        for d in range(p_dim):
+            axis = axes[n_ax]
+            x_vals = np.linspace(*axis.get_xlim(), 100)
+            y_vals = get_prior_vals_from_dist(x_vals, priors[p], d)
+            axis.fill_between(x_vals, y_vals, color="k", alpha=0.2)
+            display_name = get_param_display_name(p, p_dim, d, var_names, prior_info)
+            axis.set_title(display_name)
+            plt.setp(axis.xaxis.get_majorticklabels(), fontsize=10)
+            n_ax += 1
+
+    # Suppress unused axes
+    for a in range(n_ax, len(axes)):
+        axes[a].set_axis_off()
+
+    fig.tight_layout()
+    plt.close()
+    return fig
 
 
 def plot_imm_props(
@@ -189,55 +299,6 @@ def plot_progress_priors(priors, xmax, leg=True):
     if leg:
         fig.legend()
     return fig.tight_layout()
-
-
-def plot_multianalysis_fit(
-    iso3: str,
-    targets: Dict[str, pd.Series],
-    spaghs: Dict[str, pd.DataFrame],
-) -> plt.Figure:
-    """Plot the fit of each of the analyses to data
-    using spaghetti and calibration targets.
-
-    Args:
-        country: Name of the country
-        targets: The calibration targets
-        spaghs: The spaghettis
-
-    Returns:
-        The figure
-    """
-    country = pycountry.countries.lookup(iso3).name
-    msg = ".*axis already has a converter set*"
-    warnings.filterwarnings("ignore", message=msg)
-    pd.options.plotting.backend = "matplotlib"
-    n_analyses = len(spaghs)
-    n_targs = len(targets)
-    ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
-    ordered_targets = [t for t in TARGET_TYPES if t in targets]
-    fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharey="row")
-    fig.suptitle(f"Fit to data, {country}", fontsize=20, y=1.0)
-    for a, analysis in enumerate(ordered_analyses):
-        a_spaghs = spaghs[analysis]
-        for o, out in enumerate(ordered_targets):
-            ax = axes[o, a]
-            a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.15, alpha=0.5)
-            target = targets[out]
-            ax.plot(target.index, target, linewidth=0.0, marker=".")
-            plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
-            if o == 0:
-                ax.set_title(ANALYSIS_NAMES[analysis], fontsize=15)
-            if a == 0:
-                ax.set_ylabel(TARGET_TYPES[out], fontsize=15)
-            ymax = ax.get_ylim()[1]
-            targ_max = max(targets[out]) * 1.5
-            if ymax > targ_max and out != "seropos" and "prop_" not in out:
-                ylim = min([ymax, targ_max])
-                ax.set_ylim(-ylim * 0.05, ylim)
-    fig.tight_layout()
-    fig.subplots_adjust(wspace=0.05)
-    plt.close()
-    return fig
 
 
 def plot_proc_comparison(
@@ -464,62 +525,3 @@ def get_param_display_name(
     var_ext = "" if param_dim == 1 else f", {VAR_NAME_MAP[var_names[var_idx]]}"
     return prior_info[param]["short_name"] + var_ext
 
-
-def plot_prior_multipost(
-    idatas: Dict[str, az.InferenceData],
-    n_cols: int,
-    priors: Dict[str, dist.Distribution],
-    var_names: List[str],
-    iso3: str,
-):
-    """Plot comparison of parameter prior distribution
-    to posterior from each mobility analysis type.
-
-    Args:
-        idatas: The calibration results for each analysis type
-        n_cols: Number of columns for figure
-        priors: The prior distributions
-        var_names: Names of the variables to plot
-        iso3: Country identifier
-    """
-
-    # Preparation
-    country = pycountry.countries.lookup(iso3).name
-    idata = idatas["no_mob"]
-    prior_info = get_flat_priors()
-    params = [p for p in prior_info if "proc" not in p and p in idata.posterior]
-    n_params = sum([get_param_dim(p, idata) for p in params])
-    n_rows = int(np.ceil(n_params / n_cols))
-    height = 2.0 + n_rows * 2.5
-
-    # Plotting
-    fig, ax = plt.subplots(n_rows, n_cols, figsize=[12, height])
-    fig.suptitle(f"Prior posterior comparison, {country}", fontsize=20, y=1.0)
-    axes = ax.ravel()
-    n_ax = 0
-    for p in params:
-
-        # Posteriors
-        for a in idatas:
-            post = idatas[a].posterior[p]
-            az.plot_density(post, ax=axes[n_ax:], hdi_prob=0.99, colors=[MOB_COLOURS[a]])
-
-        # Prior
-        p_dim = get_param_dim(p, idata)
-        for d in range(p_dim):
-            axis = axes[n_ax]
-            x_vals = np.linspace(*axis.get_xlim(), 100)
-            y_vals = get_prior_vals_from_dist(x_vals, priors[p], d)
-            axis.fill_between(x_vals, y_vals, color="k", alpha=0.2)
-            display_name = get_param_display_name(p, p_dim, d, var_names, prior_info)
-            axis.set_title(display_name)
-            plt.setp(axis.xaxis.get_majorticklabels(), fontsize=10)
-            n_ax += 1
-
-    # Suppress unused axes
-    for a in range(n_ax, len(axes)):
-        axes[a].set_axis_off()
-
-    fig.tight_layout()
-    plt.close()
-    return fig
