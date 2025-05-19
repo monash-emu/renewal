@@ -16,7 +16,7 @@ import os
 import yaml as yml
 
 from emu_renewal.inputs import DATA_PATH
-from emu_renewal.inputs import get_google_mobility, get_apple_mobility, ANALYSIS_TYPES
+from emu_renewal.inputs import get_google_mobility, get_apple_mobility, get_fb_mobility, ANALYSIS_TYPES
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim
 
@@ -52,6 +52,23 @@ MOB_COLOURS = {
     "g_mob": "green",
     "fb_mob": "blue",
     "a_mob": "red",
+}
+MOB_DOMAIN_MAP = {
+    "retail_and_recreation": "g_mob",
+    "grocery_and_pharmacy": "g_mob",
+    "parks": "g_mob",
+    "transit_stations": "g_mob",
+    "workplaces": "g_mob",
+    "residential": "g_mob",
+    "driving": "a_mob",
+    "transit": "a_mob",
+    "walking": "a_mob",
+    "": "fb_mob",
+}
+MOB_SOURCE_MAP = {
+    "g_mob": "Google",
+    "fb_mob": "Facebook",
+    "a_mob": "Apple",
 }
 
 
@@ -525,3 +542,64 @@ def get_param_display_name(
     var_ext = "" if param_dim == 1 else f", {VAR_NAME_MAP[var_names[var_idx]]}"
     return prior_info[param]["short_name"] + var_ext
 
+
+def compare_proc_mob(
+    job_path: Path,
+    countries: List[str],
+    n_cols: int,
+    mob_type: str,
+) -> plt.Figure:
+    """Plot comparison of variable process to mobility domain.
+
+    Args:
+        job_path: Path for the runs
+        countries: Requested countries to plot
+        n_cols: Number of subplot columns for the figure
+        mob_type: The name of the mobility domain (from MOB_DOMAIN_MAP above)
+
+    Returns:
+        The figure
+    """
+    n_rows = int(np.ceil(len(countries) / n_cols))
+    height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
+    mob_source = MOB_DOMAIN_MAP[mob_type]
+    title = f"Modelled variable process (with no mobility scaling) " \
+        f"versus {mob_type.replace('_', ' ')} " \
+        f"{MOB_SOURCE_MAP[MOB_DOMAIN_MAP[mob_type]]} mobility data"
+    fig.suptitle(title, fontsize=14, y=1.0)
+    flat_axes = axes.ravel()
+    for c, iso3 in enumerate(countries):
+        ax = flat_axes[c]
+        country = pycountry.countries.lookup(iso3).name
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
+        
+        # Variable process plotting
+        proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
+        centiles = proc_samples.quantile([0.05, 0.5, 0.95], axis=1).T
+        ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
+        ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
+
+        # Mobility overlay
+        try:
+            if mob_source == "g_mob":
+                mob = get_google_mobility(iso3)[mob_type]
+            elif mob_source == "fb_mob":
+                mob = get_fb_mobility(iso3)
+            elif mob_source == "a_mob":
+                mob = get_apple_mobility(iso3)[mob_type]
+            mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
+            smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
+            ax.plot(smoothed_mob.index, smoothed_mob, color=MOB_COLOURS[mob_source])
+            ax.set_title(country)
+        except:
+            ax.set_title(f"{country} (data unavailable)")
+    
+    # Switch off unused axes
+    for a in range(c + 1, len(flat_axes)):
+        ax = flat_axes[a]
+        ax.set_axis_off()
+        
+    fig.tight_layout()
+    plt.close()
+    return fig
