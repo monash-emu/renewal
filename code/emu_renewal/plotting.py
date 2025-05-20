@@ -16,7 +16,12 @@ import os
 import yaml as yml
 
 from emu_renewal.inputs import DATA_PATH
-from emu_renewal.inputs import get_google_mobility, get_apple_mobility, get_fb_mobility, ANALYSIS_TYPES
+from emu_renewal.inputs import (
+    get_google_mobility,
+    get_apple_mobility,
+    get_fb_mobility,
+    ANALYSIS_TYPES,
+)
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim
 
@@ -26,6 +31,12 @@ ANALYSIS_NAMES = {
     "g_mob": "Google mobility",
     "fb_mob": "Facebook mobility",
     "a_mob": "Apple mobility",
+}
+ANALYSIS_SHORT_NAMES = {
+    "no_mob": "none",
+    "g_mob": "Google",
+    "fb_mob": "Facebook",
+    "a_mob": "Apple",
 }
 TARGET_TYPES = {
     "weekly_cases": "weekly cases",
@@ -321,7 +332,6 @@ def plot_progress_priors(priors, xmax, leg=True):
 def plot_proc_comparison(
     procs: Dict[str, pd.DataFrame],
     countries: List[str],
-    colours: List[tuple],
     title: str,
     path: Path,
 ):
@@ -335,30 +345,25 @@ def plot_proc_comparison(
         title: Title to go above the whole figure
         path: Path to the analyses
     """
-    label_map = {
-        "no_mob": "none",
-        "g_mob": "g",
-        "fb_mob": "fb",
-        "a_mob": "a",
-    }
-
     n_cols = 4
     n_rows = int(np.ceil(len(countries) / n_cols))
-    proc_fig, axes = plt.subplots(n_rows, n_cols, figsize=[10, 10])
+    height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
+    proc_fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
+
     proc_fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
     for c, country in enumerate(countries):
         c_ax = flat_axes[c]
         c_ax.set_title(pycountry.countries.lookup(country).name)
         analyses = [i[1] for i in os.walk(path / country)][0]
-        for a, analysis in enumerate(analyses):
-            colour = MOB_COLOURS[analysis]
-            quants = procs[country][analysis].quantile([0.05, 0.5, 0.95], axis=1).T
+        for a in analyses:
+            colour = MOB_COLOURS[a]
+            quants = procs[country][a].quantile([0.05, 0.5, 0.95], axis=1).T
             c_ax.plot(
                 quants.index,
                 quants[0.5],
                 color=colour,
-                label=analysis,
+                label=ANALYSIS_SHORT_NAMES[a],
                 linewidth=2.0,
             )
             c_ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.2, color=colour)
@@ -367,6 +372,12 @@ def plot_proc_comparison(
         if c_ax.get_subplotspec().rowspan.stop != n_rows:
             c_ax.set_xticklabels([])
         c_ax.set_yticks([])
+
+    # Switch off unused axes
+    for a in range(c + 1, len(flat_axes)):
+        ax = flat_axes[a]
+        ax.set_axis_off()
+
     proc_fig.tight_layout()
 
 
@@ -563,16 +574,18 @@ def compare_proc_mob(
     height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
     fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
     mob_source = MOB_DOMAIN_MAP[mob_type]
-    title = f"Modelled variable process (with no mobility scaling) " \
-        f"versus {mob_type.replace('_', ' ')} " \
+    title = (
+        f"Modelled variable process (with no mobility scaling) "
+        f"versus {mob_type.replace('_', ' ')} "
         f"{MOB_SOURCE_MAP[MOB_DOMAIN_MAP[mob_type]]} mobility data"
+    )
     fig.suptitle(title, fontsize=14, y=1.0)
     flat_axes = axes.ravel()
     for c, iso3 in enumerate(countries):
         ax = flat_axes[c]
         country = pycountry.countries.lookup(iso3).name
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
-        
+
         # Variable process plotting
         proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.05, 0.5, 0.95], axis=1).T
@@ -593,12 +606,12 @@ def compare_proc_mob(
             ax.set_title(country)
         except:
             ax.set_title(f"{country} (data unavailable)")
-    
+
     # Switch off unused axes
     for a in range(c + 1, len(flat_axes)):
         ax = flat_axes[a]
         ax.set_axis_off()
-        
+
     fig.tight_layout()
     plt.close()
     return fig
