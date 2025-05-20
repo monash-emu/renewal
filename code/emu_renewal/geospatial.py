@@ -97,6 +97,9 @@ def retag_gidcol(poly_df, gadm_level, revision=1) -> gp.GeoDataFrame:
 
 def polyids_from_gadm(iso3: str, gadm_level: int, force_rev: int = 1) -> list[str]:
     if iso3 == "USA":
+        # Facebook uses FIPS county level classifications for the USA, rather the GADM sets
+        # Obtained from
+        # https://community.esri.com/t5/arcgis-enterprise-portal-questions/where-can-i-find-a-shapefile-with-all-us-counties/td-p/307592
         dest = DATA_PATH / "population/gadm_input_json/UScounties.zip"
         poly_df = gp.read_file(dest)
         return list(poly_df["FIPS"])
@@ -117,6 +120,7 @@ def polyids_from_gadm(iso3: str, gadm_level: int, force_rev: int = 1) -> list[st
 
 def polydf_from_gadm(iso3: str, gadm_level: int, force_rev: int = 1):
     if iso3 == "USA":
+        # Facebook uses FIPS county level classifications for the USA, rather the GADM sets
         dest = DATA_PATH / "population/gadm_input_json/UScounties.zip"
         poly_df = gp.read_file(dest)
         return poly_df
