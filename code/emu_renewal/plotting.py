@@ -25,6 +25,7 @@ from emu_renewal.inputs import (
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim
 
+plt.style.use("ggplot")
 
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
@@ -32,7 +33,7 @@ ANALYSIS_NAMES = {
     "fb_mob": "Facebook mobility",
     "a_mob": "Apple mobility",
 }
-ANALYSIS_SHORT_NAMES = {
+AN_ABBREVS = {
     "no_mob": "none",
     "g_mob": "Google",
     "fb_mob": "Facebook",
@@ -334,50 +335,46 @@ def plot_proc_comparison(
     countries: List[str],
     cont_name: str,
     path: Path,
-):
+    n_cols: int,
+) -> plt.Figure:
     """Plot the comparison of the variable processes
     across analysis types.
 
     Args:
         procs: Variable process data
         countries: Names of the countries
-        colours: Colours to use for lines
+        cont_name: Name of the continent considered
         path: Path to the analyses
     """
-    n_cols = 4
     n_rows = int(np.ceil(len(countries) / n_cols))
     height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
-    proc_fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
-    proc_fig.suptitle(
-        f"Comparisons of variable process scaling under each mobility assumption, {cont_name}",
-        fontsize=15,
-    )
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
+    title = f"Comparisons of variable process scaling under each mobility assumption, {cont_name}"
+    fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
-    for c, country in enumerate(countries):
-        c_ax = flat_axes[c]
-        c_ax.set_title(pycountry.countries.lookup(country).name)
-        analyses = [i[1] for i in os.walk(path / country)][0]
+    for c, iso3 in enumerate(countries):
+        country = pycountry.countries.lookup(iso3).name
+        ax = flat_axes[c]
+        ax.set_title(country)
+        analyses = [i.parts[-1] for i in (path / iso3).iterdir() if i.is_dir()]
         for a in analyses:
             colour = MOB_COLOURS[a]
-            quants = procs[country][a].quantile([0.05, 0.5, 0.95], axis=1).T
-            c_ax.plot(
-                quants.index,
-                quants[0.5],
-                color=colour,
-                label=ANALYSIS_SHORT_NAMES[a],
-                linewidth=2.0,
-            )
-            c_ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.2, color=colour)
-        c_ax.legend()
-        plt.setp(c_ax.xaxis.get_majorticklabels(), rotation=70)
+            quants = procs[iso3][a].quantile([0.05, 0.5, 0.95], axis=1).T
+            ax.plot(quants.index, quants[0.5], color=colour, label=AN_ABBREVS[a], linewidth=2.0)
+            ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.2, color=colour)
+        ax.legend()
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
     # Switch off unused axes
-    for a in range(c + 1, len(flat_axes)):
-        ax = flat_axes[a]
+    for ax in flat_axes[c + 1:]:
         ax.set_axis_off()
+    # for a in range(c + 1, len(flat_axes)):
+    #     ax = flat_axes[a]
+    #     ax.set_axis_off()
 
-    proc_fig.tight_layout()
-    return proc_fig
+    fig.tight_layout()
+    plt.close()
+    return fig
 
 
 def get_param_medians(
@@ -607,8 +604,7 @@ def compare_proc_mob(
             ax.set_title(f"{country} (data unavailable)")
 
     # Switch off unused axes
-    for a in range(c + 1, len(flat_axes)):
-        ax = flat_axes[a]
+    for ax in flat_axes[c + 1:]:
         ax.set_axis_off()
 
     fig.tight_layout()
