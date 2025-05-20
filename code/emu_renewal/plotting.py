@@ -332,7 +332,7 @@ def plot_progress_priors(priors, xmax, leg=True):
 def plot_proc_comparison(
     procs: Dict[str, pd.DataFrame],
     countries: List[str],
-    title: str,
+    cont_name: str,
     path: Path,
 ):
     """Plot the comparison of the variable processes
@@ -342,15 +342,16 @@ def plot_proc_comparison(
         procs: Variable process data
         countries: Names of the countries
         colours: Colours to use for lines
-        title: Title to go above the whole figure
         path: Path to the analyses
     """
     n_cols = 4
     n_rows = int(np.ceil(len(countries) / n_cols))
     height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
     proc_fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
-
-    proc_fig.suptitle(title, fontsize=15)
+    proc_fig.suptitle(
+        f"Comparisons of variable process scaling under each mobility assumption, {cont_name}",
+        fontsize=15,
+    )
     flat_axes = axes.ravel()
     for c, country in enumerate(countries):
         c_ax = flat_axes[c]
@@ -369,9 +370,6 @@ def plot_proc_comparison(
             c_ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.2, color=colour)
         c_ax.legend()
         plt.setp(c_ax.xaxis.get_majorticklabels(), rotation=70)
-        if c_ax.get_subplotspec().rowspan.stop != n_rows:
-            c_ax.set_xticklabels([])
-        c_ax.set_yticks([])
 
     # Switch off unused axes
     for a in range(c + 1, len(flat_axes)):
@@ -379,6 +377,7 @@ def plot_proc_comparison(
         ax.set_axis_off()
 
     proc_fig.tight_layout()
+    return proc_fig
 
 
 def get_param_medians(
