@@ -368,9 +368,6 @@ def plot_proc_comparison(
     # Switch off unused axes
     for ax in flat_axes[c + 1:]:
         ax.set_axis_off()
-    # for a in range(c + 1, len(flat_axes)):
-    #     ax = flat_axes[a]
-    #     ax.set_axis_off()
 
     fig.tight_layout()
     plt.close()
@@ -403,7 +400,6 @@ def plot_kde_comparison(
     data: Dict[str, pd.DataFrame],
     colours: Tuple[tuple],
     title: str,
-    filename: str,
     alpha: float = 0.1,
 ):
     """Plot the comparison of the kernel density of some
@@ -414,23 +410,25 @@ def plot_kde_comparison(
         data: The values of interest for each country
         colours: The colours for shading (to allow consistency between plots)
         title: Title to go above the whole figure
-        filename: Filename stem for saving
         alpha: Depth of the shading of the patches
     """
     n_cols = 4
     n_rows = int(np.ceil(len(data) / n_cols))
-    kde_fig, axes = plt.subplots(n_rows, n_cols, figsize=[10, 10])
-    kde_fig.suptitle(title, fontsize=15)
+    height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
+    fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
     for c, (country, c_likes) in enumerate(data.items()):
         country_name = pycountry.countries.lookup(country).name
         c_ax = flat_axes[c]
         c_ax.set_title(country_name)
+        colours = [MOB_COLOURS[c] for c in data[country].columns]
         sns.kdeplot(c_likes, fill=True, ax=c_ax, palette=colours, alpha=alpha)
         c_ax.set_yticks([])
         c_ax.set_ylabel("")
-    kde_fig.tight_layout()
-    kde_fig.savefig(f"{filename}_fig.svg")
+    fig.tight_layout()
+    plt.close()
+    return fig
 
 
 def plot_mob_weights_by_country(job_path, mob_type, normalise=False):
