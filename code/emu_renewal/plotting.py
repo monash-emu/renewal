@@ -398,7 +398,6 @@ def get_param_medians(
 
 def plot_kde_comparison(
     data: Dict[str, pd.DataFrame],
-    colours: Tuple[tuple],
     title: str,
     alpha: float = 0.1,
 ):
@@ -408,7 +407,6 @@ def plot_kde_comparison(
 
     Args:
         data: The values of interest for each country
-        colours: The colours for shading (to allow consistency between plots)
         title: Title to go above the whole figure
         alpha: Depth of the shading of the patches
     """
@@ -419,13 +417,14 @@ def plot_kde_comparison(
     fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
     for c, (country, c_likes) in enumerate(data.items()):
+        c_likes = c_likes.rename(columns=AN_ABBREVS)
         country_name = pycountry.countries.lookup(country).name
-        c_ax = flat_axes[c]
-        c_ax.set_title(country_name)
-        colours = [MOB_COLOURS[c] for c in data[country].columns]
-        sns.kdeplot(c_likes, fill=True, ax=c_ax, palette=colours, alpha=alpha)
-        c_ax.set_yticks([])
-        c_ax.set_ylabel("")
+        ax = flat_axes[c]
+        ax.set_title(country_name)
+        colours = [MOB_COLOURS[a] for a in data[country].columns]
+        sns.kdeplot(c_likes, fill=True, ax=ax, palette=colours, alpha=alpha)
+        ax.set_yticks([])
+        ax.set_ylabel("")
     fig.tight_layout()
     plt.close()
     return fig
