@@ -96,6 +96,11 @@ def retag_gidcol(poly_df, gadm_level, revision=1) -> gp.GeoDataFrame:
 
 
 def polyids_from_gadm(iso3: str, gadm_level: int, force_rev: int = 1) -> list[str]:
+    if iso3 == "USA":
+        dest = DATA_PATH / "population/gadm_input_json/UScounties.zip"
+        poly_df = gp.read_file(dest)
+        return list(poly_df["FIPS"])
+
     source = f"https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_{iso3}_{gadm_level}.json.zip"
     dest = DATA_PATH / f"population/gadm_input_json/gadm41_{iso3}_{gadm_level}.json.zip"
     if not dest.exists():
@@ -111,6 +116,11 @@ def polyids_from_gadm(iso3: str, gadm_level: int, force_rev: int = 1) -> list[st
 
 
 def polydf_from_gadm(iso3: str, gadm_level: int, force_rev: int = 1):
+    if iso3 == "USA":
+        dest = DATA_PATH / "population/gadm_input_json/UScounties.zip"
+        poly_df = gp.read_file(dest)
+        return poly_df
+
     source = f"https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_{iso3}_{gadm_level}.json.zip"
     dest = DATA_PATH / f"population/gadm_input_json/gadm41_{iso3}_{gadm_level}.json.zip"
     if not dest.exists():
@@ -139,7 +149,10 @@ def population_from_gadm(
         poly_ids = []
 
     # Use cached json if available;
-    json_pop_path = DATA_PATH / f"population/gadm_est/{iso3}_{gadm_level}.json"
+    if iso3 == "USA":
+        json_pop_path = DATA_PATH / f"population/gadm_est/{iso3}.json"
+    else:
+        json_pop_path = DATA_PATH / f"population/gadm_est/{iso3}_{gadm_level}.json"
     if json_pop_path.exists() and not force_rebuild:
         logger.info(f"Loading existing population from {json_pop_path}")
         return json.load(open(json_pop_path, "r"))
@@ -167,8 +180,13 @@ def population_from_gadm(
 
     pop_dict = {}
 
+    if iso3 == "USA":
+        poly_col = "FIPS"
+    else:
+        poly_col = f"GID_{gadm_level}"
+
     # Loop over the polygons relevant to the country
-    for i_poly, poly_id in enumerate(poly_df[f"GID_{gadm_level}"]):
+    for i_poly, poly_id in enumerate(poly_df[poly_col]):
 
         if poly_id in poly_ids:
 
@@ -300,7 +318,7 @@ class FacebookMobilityBuilder:
 
         country_mobility = self.fb_data.filter(pl.col("country") == iso3)
 
-        if gadm_level is None:
+        if gadm_level is None and iso3 != "USA":
             gadm_level = infer_gadm_level(country_mobility)
             logger.info(f"Inferred GADM level {gadm_level} for {iso3}")
 
