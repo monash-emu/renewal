@@ -450,29 +450,40 @@ def plot_kde_comparison(
 
 
 def plot_mob_weights_by_country(
-    job_path,
-    mob_type,
-    mobility,
+    job_path: Path,
+    mob_type: str,
+    mobility: Dict[str, pd.DataFrame],
     normalise=False,
 ) -> plt.figure:
+    """Plot the mobility weight posteriors for each
+    of the mobility domains implemented for the Google
+    or Apple mobility analyses.
 
+    Args:
+        job_path: Path for the runs
+        mob_type: Mobility type considered, either g_mob or a_mob
+        mobility: The mobility data by country
+        normalise: Whether to normalise the weights to sum to one
+
+    Returns:
+        The figure
+    """
+    palette = G_MOB_DOMAIN_CMAP if mob_type == "g_mob" else A_MOB_DOMAIN_CMAP
     fig, axes = get_standard_subplot(len(mobility), 4)
     flat_axes = axes.ravel()
-    for c, country in enumerate(mobility):
-        c_path = job_path / country
-        country_name = pycountry.countries.lookup(country).name
+    for c, iso3 in enumerate(mobility):
+        c_path = job_path / iso3
+        country = pycountry.countries.lookup(iso3).name
         idata = az.from_netcdf(c_path / f"{mob_type}/idata_filtered.nc")
-        mob_weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
+        weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
         if normalise:
-            mob_weights = mob_weights.div(mob_weights.sum(axis=1), axis=0)
-        mob_columns = mobility[country].columns
-        mob_weights.columns = mob_columns
+            weights = weights.div(weights.sum(axis=1), axis=0)
+        weights.columns = mobility[iso3].columns
         ax = flat_axes[c]
-        palette = G_MOB_DOMAIN_CMAP if mob_type == "g_mob" else A_MOB_DOMAIN_CMAP
-        sns.kdeplot(mob_weights, fill=True, alpha=0.1, linewidth=1.5, ax=ax, palette=palette)
-        ax.set_yticks([])
+        sns.kdeplot(weights, fill=True, alpha=0.05, linewidth=2.0, ax=ax, palette=palette)
+        ax.set_yticks([])   
         ax.set_ylabel("")
-        ax.set_title(country_name)
+        ax.set_title(country)
         if c < len(mobility) - 1:
             ax.get_legend().remove()
 
