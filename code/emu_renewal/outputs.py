@@ -57,7 +57,7 @@ def run_for_spaghetti(
 def get_spagh_df_from_dict(
     spagh_dict: dict[str, pd.DataFrame],
 ) -> pd.DataFrame:
-    """Process the dictionaries produced 
+    """Process the dictionaries produced
     by run_for_spaghetti into dataframe format.
 
     Args:
@@ -265,7 +265,7 @@ def get_param_vals_by_analysis(
         The posterior estimates
     """
     param_df = []
-    analyses = [i[1] for i in os.walk(country_path)][0]
+    analyses = [d.name for d in os.scandir(country_path) if d.is_dir()]
     for a in analyses:
         idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
         param_df.append(idata.posterior[param_name].to_series())

@@ -430,13 +430,13 @@ def plot_kde_comparison(
     fig, axes = get_standard_subplot(len(data), 4)
     fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
-    for c, (country, c_likes) in enumerate(data.items()):
-        c_likes = c_likes.rename(columns=AN_ABBREVS)
+    for c, (country, likes) in enumerate(data.items()):
+        likes = likes.rename(columns=AN_ABBREVS)
         country_name = pycountry.countries.lookup(country).name
         ax = flat_axes[c]
         ax.set_title(country_name)
         colours = [MOB_COLOURS[a] for a in data[country].columns]
-        sns.kdeplot(c_likes, fill=True, ax=ax, palette=colours, alpha=alpha)
+        sns.kdeplot(likes, fill=True, ax=ax, palette=colours, alpha=alpha)
         ax.set_yticks([])
         ax.set_ylabel("")
 
