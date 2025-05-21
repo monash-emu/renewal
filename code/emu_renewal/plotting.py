@@ -366,7 +366,7 @@ def plot_proc_comparison(
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
     # Switch off unused axes
-    for ax in flat_axes[c + 1:]:
+    for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
 
     fig.tight_layout()
@@ -396,6 +396,12 @@ def get_param_medians(
     return medians.T
 
 
+def get_standard_subplot(n_subplots, n_cols):
+    n_rows = int(np.ceil(n_subplots / n_cols))
+    height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
+    return plt.subplots(n_rows, n_cols, figsize=[12, height])
+
+
 def plot_kde_comparison(
     data: Dict[str, pd.DataFrame],
     title: str,
@@ -410,10 +416,7 @@ def plot_kde_comparison(
         title: Title to go above the whole figure
         alpha: Depth of the shading of the patches
     """
-    n_cols = 4
-    n_rows = int(np.ceil(len(data) / n_cols))
-    height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
+    fig, axes = get_standard_subplot(len(data), 4)
     fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
     for c, (country, c_likes) in enumerate(data.items()):
@@ -425,6 +428,11 @@ def plot_kde_comparison(
         sns.kdeplot(c_likes, fill=True, ax=ax, palette=colours, alpha=alpha)
         ax.set_yticks([])
         ax.set_ylabel("")
+
+    # Switch off unused axes
+    for ax in flat_axes[c + 1 :]:
+        ax.set_axis_off()
+
     fig.tight_layout()
     plt.close()
     return fig
@@ -601,7 +609,7 @@ def compare_proc_mob(
             ax.set_title(f"{country} (data unavailable)")
 
     # Switch off unused axes
-    for ax in flat_axes[c + 1:]:
+    for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
 
     fig.tight_layout()
