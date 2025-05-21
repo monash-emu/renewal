@@ -82,6 +82,19 @@ MOB_SOURCE_MAP = {
     "fb_mob": "Facebook",
     "a_mob": "Apple",
 }
+G_MOB_DOMAIN_CMAP = {
+    "retail_and_recreation": "red",
+    "grocery_and_pharmacy": "purple",
+    "parks": "green",
+    "transit_stations": "black",
+    "workplaces": "blue",
+    "residential": "brown",
+}
+A_MOB_DOMAIN_CMAP = {
+    "driving": "red",
+    "transit": "blue",
+    "walking": "green",
+}
 
 
 def get_standard_subplot(n_subplots, n_cols):
@@ -436,34 +449,40 @@ def plot_kde_comparison(
     return fig
 
 
-def plot_mob_weights_by_country(job_path, mob_type, normalise=False):
-    fig, axes = plt.subplots(4, 4, figsize=[10, 10])
+def plot_mob_weights_by_country(
+    job_path,
+    mob_type,
+    mobility,
+    normalise=False,
+) -> plt.figure:
+
+    fig, axes = get_standard_subplot(len(mobility), 4)
     flat_axes = axes.ravel()
-    countries = ls(job_path)
-    for c, country in enumerate(countries):
+    for c, country in enumerate(mobility):
         c_path = job_path / country
         country_name = pycountry.countries.lookup(country).name
         idata = az.from_netcdf(c_path / f"{mob_type}/idata_filtered.nc")
         mob_weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
         if normalise:
             mob_weights = mob_weights.div(mob_weights.sum(axis=1), axis=0)
-        if mob_type == "g_mob":
-            mob_columns = get_google_mobility(country).columns
-        elif mob_type == "a_mob":
-            mob_columns = get_apple_mobility(country).columns
-        else:
-            raise ValueError("unavailable mobility type request")
+        mob_columns = mobility[country].columns
         mob_weights.columns = mob_columns
-        c_ax = flat_axes[c]
-        sns.kdeplot(mob_weights, fill=True, alpha=0.1, linewidth=1.5, ax=c_ax)
-        c_ax.set_yticks([])
-        c_ax.set_ylabel("")
-        c_ax.set_title(country_name)
-        c_ax.get_legend().set_title("")
-        if country != "FIN" and mob_type == "google":
-            c_ax.get_legend().remove()
+        ax = flat_axes[c]
+        palette = G_MOB_DOMAIN_CMAP if mob_type == "g_mob" else A_MOB_DOMAIN_CMAP
+        sns.kdeplot(mob_weights, fill=True, alpha=0.1, linewidth=1.5, ax=ax, palette=palette)
+        ax.set_yticks([])
+        ax.set_ylabel("")
+        ax.set_title(country_name)
+        if c < len(mobility) - 1:
+            ax.get_legend().remove()
+
+    # Switch off unused axes
+    for ax in flat_axes[c + 1 :]:
+        ax.set_axis_off()
+
     fig.tight_layout()
-    fig.savefig("mob_fig.svg")
+    plt.close()
+    return fig
 
 
 def compare_proc_versus_mobility(proc_centiles, mob_types, mob_source="google"):
