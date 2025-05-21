@@ -84,6 +84,12 @@ MOB_SOURCE_MAP = {
 }
 
 
+def get_standard_subplot(n_subplots, n_cols):
+    n_rows = int(np.ceil(n_subplots / n_cols))
+    height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
+    return plt.subplots(n_rows, n_cols, figsize=[12, height])
+
+
 def plot_analysis_fit(
     spaghetti: pd.DataFrame,
     calib_data: StandardCalib,
@@ -346,9 +352,7 @@ def plot_proc_comparison(
         cont_name: Name of the continent considered
         path: Path to the analyses
     """
-    n_rows = int(np.ceil(len(countries) / n_cols))
-    height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
+    fig, axes = get_standard_subplot(len(countries), n_cols)
     title = f"Comparisons of variable process scaling under each mobility assumption, {cont_name}"
     fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
@@ -396,12 +400,6 @@ def get_param_medians(
     return medians.T
 
 
-def get_standard_subplot(n_subplots, n_cols):
-    n_rows = int(np.ceil(n_subplots / n_cols))
-    height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
-    return plt.subplots(n_rows, n_cols, figsize=[12, height])
-
-
 def plot_kde_comparison(
     data: Dict[str, pd.DataFrame],
     title: str,
@@ -445,13 +443,13 @@ def plot_mob_weights_by_country(job_path, mob_type, normalise=False):
     for c, country in enumerate(countries):
         c_path = job_path / country
         country_name = pycountry.countries.lookup(country).name
-        idata = az.from_netcdf(c_path / f"weighted_{mob_type}_1exp/idata_filtered.nc")
+        idata = az.from_netcdf(c_path / f"{mob_type}/idata_filtered.nc")
         mob_weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
         if normalise:
             mob_weights = mob_weights.div(mob_weights.sum(axis=1), axis=0)
-        if mob_type == "google":
+        if mob_type == "g_mob":
             mob_columns = get_google_mobility(country).columns
-        elif mob_type == "apple":
+        elif mob_type == "a_mob":
             mob_columns = get_apple_mobility(country).columns
         else:
             raise ValueError("unavailable mobility type request")
@@ -571,9 +569,7 @@ def compare_proc_mob(
     Returns:
         The figure
     """
-    n_rows = int(np.ceil(len(countries) / n_cols))
-    height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
+    fig, axes = get_standard_subplot(len(countries), n_cols)
     mob_source = MOB_DOMAIN_MAP[mob_type]
     title = (
         f"Modelled variable process (with no mobility scaling) "
