@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from pathlib import Path
 import warnings
 import numpy as np
@@ -12,7 +12,6 @@ from numpyro import distributions as dist
 from matplotlib import pyplot as plt
 import pycountry
 from os import listdir as ls
-import os
 import yaml as yml
 
 from emu_renewal.inputs import DATA_PATH
@@ -24,6 +23,7 @@ from emu_renewal.inputs import (
 )
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim
+from IPython.display import display, Markdown
 
 plt.style.use("ggplot")
 
@@ -449,10 +449,28 @@ def plot_kde_comparison(
     return fig
 
 
+def get_cont_mobility(cont, countries_by_cont, mob_type):
+    mob = {}
+    no_mob_countries = []
+    get_mob = get_google_mobility if mob_type == "g_mob" else get_apple_mobility
+    for c in countries_by_cont[cont]:
+        try:
+            mob[c] = get_mob(c)
+        except:
+            country = pycountry.countries.lookup(c).name
+            no_mob_countries.append(country)
+    if no_mob_countries:
+        mob_str = AN_ABBREVS[mob_type]
+        countries_str = ", ".join(no_mob_countries)
+        display(Markdown(f"No {mob_str} mobility available for {countries_str}."))
+    return mob
+
+
 def plot_mob_weights_by_country(
     job_path: Path,
     mob_type: str,
     mobility: Dict[str, pd.DataFrame],
+    title: str,
     normalise=False,
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
@@ -463,6 +481,7 @@ def plot_mob_weights_by_country(
         job_path: Path for the runs
         mob_type: Mobility type considered, either g_mob or a_mob
         mobility: The mobility data by country
+        title: Title for figure
         normalise: Whether to normalise the weights to sum to one
 
     Returns:
@@ -470,6 +489,7 @@ def plot_mob_weights_by_country(
     """
     palette = G_MOB_DOMAIN_CMAP if mob_type == "g_mob" else A_MOB_DOMAIN_CMAP
     fig, axes = get_standard_subplot(len(mobility), 4)
+    fig.suptitle(title, fontsize=14, y=1.0)
     flat_axes = axes.ravel()
     for c, iso3 in enumerate(mobility):
         c_path = job_path / iso3
@@ -481,7 +501,7 @@ def plot_mob_weights_by_country(
         weights.columns = mobility[iso3].columns
         ax = flat_axes[c]
         sns.kdeplot(weights, fill=True, alpha=0.05, linewidth=2.0, ax=ax, palette=palette)
-        ax.set_yticks([])   
+        ax.set_yticks([])
         ax.set_ylabel("")
         ax.set_title(country)
         if c < len(mobility) - 1:
