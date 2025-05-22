@@ -740,7 +740,8 @@ def get_param_quant_descript(
     out = {}
     for c in idatas:
         country = pycountry.countries.lookup(c).name
-        quants = idatas[c].posterior[param].quantile([0.5, 0.025, 0.975]).data
-        text = f"{round(quants[0], places)} ({round(quants[1], places)} to {round(quants[2], places)})"
-        out[country] = text
+        # quants = idatas[c].posterior[param].quantile([0.5, 0.025, 0.975]).data
+        median = float(idatas[c].posterior[param].quantile([0.5]).data)
+        # text = f"{round(quants[0], places)} ({round(quants[1], places)} to {round(quants[2], places)})"
+        out[c] = median
     return out

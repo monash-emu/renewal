@@ -945,3 +945,11 @@ def get_income_group(iso3):
     """
     data = pd.read_excel(DATA_PATH / "income/CLASS.xlsx", index_col="Code")
     return data.loc[iso3, "Income group"]
+
+
+def get_gdps(year):
+    """
+    https://data.worldbank.org/indicator/NY.GDP.PCAP.CD?most_recent_year_desc=true
+    """
+    data = pd.read_excel(DATA_PATH / "income/API_NY.GDP.PCAP.CD_DS2_en_excel_v2_85284.xls", header=3, index_col=1)
+    return data[str(year)]
