@@ -719,3 +719,28 @@ def plot_param_posts_for_countries(
     fig.tight_layout()
     plt.close()
     return fig
+
+
+def get_param_quant_descript(
+    param: str,
+    idatas: Dict[str, az.InferenceData],
+    places: int,
+) -> Dict[str, str]:
+    """Get median and 2.5th to 97.5th centiles
+    for a given parameter.
+
+    Args:
+        param: Parameter identifier
+        idatas: The inference data objects, output of get_idatas_for_mob_type
+        places: Number of decimal places for output
+
+    Returns:
+        The descriptions by country
+    """
+    out = {}
+    for c in idatas:
+        country = pycountry.countries.lookup(c).name
+        quants = idatas[c].posterior[param].quantile([0.5, 0.025, 0.975]).data
+        text = f"{round(quants[0], places)} ({round(quants[1], places)} to {round(quants[2], places)})"
+        out[country] = text
+    return out
