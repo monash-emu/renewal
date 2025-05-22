@@ -661,3 +661,61 @@ def compare_proc_mob(
     fig.tight_layout()
     plt.close()
     return fig
+
+
+def get_idatas_for_mob_type(
+    job_path: Path,
+    countries: List[str],
+    mob_type: str,
+) -> Dict[str, az.InferenceData]:
+    """Collate all the inference data objects for 
+    a requested group of countries.
+
+    Args:
+        job_path: Path for the runs
+        countries: Countries identifiers
+        mob_type: Mobility type considered, either g_mob or a_mob
+
+    Returns:
+        The inference data objects
+    """
+    country_idatas = {}
+    unavailable_countries = []
+    for iso3 in countries:
+        country = pycountry.countries.lookup(iso3).name
+        try:
+            path = job_path / iso3 / mob_type / "idata_filtered.nc"
+            country_idatas[iso3] = az.from_netcdf(path)
+        except:
+            unavailable_countries.append(country)
+    return country_idatas, unavailable_countries
+
+
+def plot_param_posts_for_countries(
+    param: str,
+    idatas: Dict[str, az.InferenceData],
+    n_cols: int,
+) -> plt.figure:
+    """Plot the posteriors of a specified
+    parameter from inference data objects by country.
+
+    Args:
+        idatas: The inference data objects, output of get_idatas_for_mob_type
+        n_cols: Number of columns for figure
+
+    Returns:
+        The figure
+    """
+    fig, axes = get_standard_subplot(len(idatas), n_cols)
+    axes = axes.ravel()
+    for c, iso3 in enumerate(idatas):
+        idata = idatas[iso3]
+        country = pycountry.countries.lookup(iso3).name
+        ax = axes[c]
+        az.plot_posterior(idata.posterior[param], ax=ax)
+        ax.set_title(country)
+    for a in range(c + 1, len(axes)):
+        axes[a].set_axis_off()
+    fig.tight_layout()
+    plt.close()
+    return fig
