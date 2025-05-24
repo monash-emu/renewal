@@ -288,3 +288,13 @@ def get_completed_chains(job_path):
             c_complete[a] = [c in completed_chains for c in all_chains]
         completion_lists.append(c_complete)
     return pd.concat(completion_lists, keys=countries, axis=1)
+
+
+def get_prop_improve(mob_type, countries, job_path):
+    param = "dispersion_proc"
+    prop_improve = {}
+    for c in countries:
+        c_posts = get_param_vals_by_analysis(param, job_path / c)
+        if mob_type in c_posts:
+            prop_improve[c] = pd.Series(c_posts["no_mob"] > c_posts[mob_type]).astype(int).mean()
+    return prop_improve
