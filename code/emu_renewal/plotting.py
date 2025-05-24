@@ -13,6 +13,7 @@ from matplotlib import pyplot as plt
 import pycountry
 from os import listdir as ls
 import yaml as yml
+import pycountry_convert as pc
 
 from emu_renewal.inputs import DATA_PATH
 from emu_renewal.inputs import (
@@ -20,6 +21,8 @@ from emu_renewal.inputs import (
     get_apple_mobility,
     get_fb_mobility,
     ANALYSIS_TYPES,
+    get_gdps,
+    get_worldbank_national_pop
 )
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim
@@ -94,6 +97,14 @@ A_MOB_DOMAIN_CMAP = {
     "driving": "red",
     "transit": "blue",
     "walking": "green",
+}
+CONT_CMAP = {
+    "AS": "yellow", 
+    "NA": "green",
+    "SA": "purple",
+    "OC": "red", 
+    "AF": "black",
+    "EU": "blue",
 }
 
 
@@ -721,27 +732,57 @@ def plot_param_posts_for_countries(
     return fig
 
 
-def get_param_quant_descript(
-    param: str,
-    idatas: Dict[str, az.InferenceData],
-    places: int,
-) -> Dict[str, str]:
-    """Get median and 2.5th to 97.5th centiles
-    for a given parameter.
+def get_mob_exp_gdp_df(
+    job_path: Path,
+    countries: List[str],
+) -> pd.DataFrame:
+    """Collate data on mob_exp parameter
+    estimated by various mobility analysis types,
+    GDP and population data by country.
 
     Args:
-        param: Parameter identifier
-        idatas: The inference data objects, output of get_idatas_for_mob_type
-        places: Number of decimal places for output
+        job_path: Path for the runs
+        countries: ISO3 codes for the ountries to include
 
     Returns:
-        The descriptions by country
+        The data
     """
-    out = {}
-    for c in idatas:
-        country = pycountry.countries.lookup(c).name
-        # quants = idatas[c].posterior[param].quantile([0.5, 0.025, 0.975]).data
-        median = float(idatas[c].posterior[param].quantile([0.5]).data)
-        # text = f"{round(quants[0], places)} ({round(quants[1], places)} to {round(quants[2], places)})"
-        out[c] = median
-    return out
+    quants = {}
+    analyses = [a for a in ANALYSIS_NAMES if a != "no_mob"]
+    for mob_type in analyses:
+        idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
+        quants[mob_type] = {c: float(idatas[c].posterior["mob_exp"].quantile([0.5]).data) for c in idatas}
+    quants["pop"] = {c: get_worldbank_national_pop(c, 2020) for c in countries}
+    quants["gdp"] = get_gdps(2020)
+    quants["gdp"]["VEN"] = 42.84e9 / quants["pop"]["VEN"]  # Assume Venezuela's GDP was 42.84 billion in 2020
+    quants["cont"] = {c: pc.country_alpha2_to_continent_code(pycountry.countries.lookup(c).alpha_2) for c in countries}
+    return pd.DataFrame(quants)
+
+
+def plot_mob_exp_versus_gdp(
+    quants_df: pd.DataFrame,
+) -> plt.figure:
+    """Plot the mobility exponent parameter
+    against GDP with population determining marker size
+    adn continent determining colour.
+
+    Args:
+        quants_df: The data, the output of get_mob_exp_gdp_df
+
+    Returns:
+        The figure
+    """
+    fig, axs = plt.subplots(2, 2, figsize=[12, 9])
+    axes = axs.ravel()
+    analyses = {k: v for k, v in ANALYSIS_NAMES.items() if k != "no_mob"}
+    for m, (mob_type, mob_name) in enumerate(analyses.items()):
+        plot_df = quants_df[["gdp", mob_type, "pop", "cont"]].dropna()
+        ax = axes[m]
+        sns.scatterplot(x="gdp", y=mob_type, size="pop", hue="cont", data=plot_df, sizes=(10, 200), ax=ax, legend=False, palette=CONT_CMAP)
+        ax.set_title(mob_name)
+        ax.set_ylabel("mobility exponent")
+        ax.set_xlabel("GDP per capita")
+    axes[3].set_axis_off()
+    fig.tight_layout()
+    plt.close()
+    return fig
