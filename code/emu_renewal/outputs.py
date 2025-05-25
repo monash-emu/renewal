@@ -2,6 +2,7 @@ from typing import List
 from pathlib import Path
 import git
 import json
+import numpy as np
 import pandas as pd
 from jax import jit
 from typing import Dict
@@ -296,5 +297,6 @@ def get_prop_improve(mob_type, countries, job_path):
     for c in countries:
         c_posts = get_param_vals_by_analysis(param, job_path / c)
         if mob_type in c_posts:
+            c_posts[mob_type] = np.random.permutation(c_posts[mob_type].values)
             prop_improve[c] = pd.Series(c_posts["no_mob"] > c_posts[mob_type]).astype(int).mean()
     return prop_improve

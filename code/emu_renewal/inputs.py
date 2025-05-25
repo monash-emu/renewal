@@ -1,5 +1,6 @@
 from typing import Union
 import pandas as pd
+import geopandas as gpd
 from jax import numpy as jnp
 import json
 from pathlib import Path
@@ -953,3 +954,11 @@ def get_gdps(year):
     """
     data = pd.read_excel(DATA_PATH / "income/API_NY.GDP.PCAP.CD_DS2_en_excel_v2_85284.xls", header=3, index_col=1)
     return data[str(year)]
+
+
+def get_world_shp():
+    world = gpd.read_file(DATA_PATH / "mapping/ne_10m_admin_0_countries.shp")
+    for c in ["FRA", "NOR"]:
+        country = pycountry.countries.lookup(c).name
+        world.loc[world["ADMIN"] == country, "ISO_A3"] = c
+    return world
