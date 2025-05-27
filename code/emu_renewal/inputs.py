@@ -952,11 +952,19 @@ def get_gdps(year):
     """
     https://data.worldbank.org/indicator/NY.GDP.PCAP.CD?most_recent_year_desc=true
     """
-    data = pd.read_excel(DATA_PATH / "income/API_NY.GDP.PCAP.CD_DS2_en_excel_v2_85284.xls", header=3, index_col=1)
+    data = pd.read_excel(
+        DATA_PATH / "income/API_NY.GDP.PCAP.CD_DS2_en_excel_v2_85284.xls", header=3, index_col=1
+    )
     return data[str(year)]
 
 
 def get_world_shp():
+    """Data obtained from:
+    https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_0_countries.zip
+
+    Returns:
+        The cleaned shapefile
+    """
     world = gpd.read_file(DATA_PATH / "mapping/ne_10m_admin_0_countries.shp")
     for c in ["FRA", "NOR"]:
         country = pycountry.countries.lookup(c).name
