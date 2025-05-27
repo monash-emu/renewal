@@ -431,6 +431,14 @@ def get_worldbank_national_pop(
     return pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype).loc[iso3, year_str]
 
 
+def get_ordered_countries_by_cont(countries_by_cont, conts):
+    ordered_countries = {}
+    for cont in conts:
+        pops = {c: get_worldbank_national_pop(c, 2020) for c in countries_by_cont[cont]}
+        ordered_countries[cont] = pd.Series(pops).sort_values(ascending=False).index
+    return ordered_countries
+
+
 def get_undesa_national_pop(iso3: str) -> float:
     """Get UN-DESA population estimate for a single country, for 2020
 
