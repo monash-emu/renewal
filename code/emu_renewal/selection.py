@@ -5,17 +5,6 @@ import pandas as pd
 from emu_renewal.inputs import DATA_PATH
 
 
-def get_mob_countries() -> List[str]:
-    """Get the list of all countries for which either mobility type is available.
-
-    Returns:
-        The country ISO3 codes
-    """
-    gmob_avail = [i[:3] for i in ls(DATA_PATH / "mobility") if "gmob" in i]
-    fbmob_avail = [i[:3] for i in ls(DATA_PATH / "mobility") if "fbmob" in i]
-    return list(set(fbmob_avail + gmob_avail))
-
-
 def is_mostly_zeros(
     data: pd.Series,
 ) -> bool:

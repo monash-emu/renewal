@@ -300,3 +300,21 @@ def get_prop_improve(mob_type, countries, job_path):
             c_posts[mob_type] = np.random.permutation(c_posts[mob_type].values)
             prop_improve[c] = pd.Series(c_posts["no_mob"] > c_posts[mob_type]).astype(int).mean()
     return prop_improve
+
+
+def add_bool_row_to_table(
+    table: pd.DataFrame,
+    bool_list: List[str],
+    col_name: str,
+):
+    """Add a column to a table based on its index
+    and a list of indexes for interpretation as a boolean
+    for whether to mark as yes or no for each index element.
+
+    Args:
+        table: The existing table
+        bool_list: The indexes to be interpreted as yes
+        col_name: The name for the new column
+    """
+    table[col_name] = table.index.isin(bool_list)
+    table[col_name] = table[col_name].map({True: "Yes", False: "No"})

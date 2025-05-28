@@ -132,12 +132,6 @@ def get_indicator_series_from_who_data(
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
 
-def get_filtered_indicator(indicator, start_time, end_time, country):
-    data = get_indicator_series_from_who_data(indicator, country)
-    date_filter = (start_time < data.index) & (data.index < end_time)
-    return data[date_filter]
-
-
 def get_owid_hosp_series(
     indicator: str,
     iso3: str,
