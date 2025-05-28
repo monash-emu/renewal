@@ -1,8 +1,5 @@
 from typing import List, Dict
-from os import listdir as ls
 import pandas as pd
-
-from emu_renewal.inputs import DATA_PATH
 
 
 def is_mostly_zeros(
