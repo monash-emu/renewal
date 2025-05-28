@@ -300,8 +300,7 @@ def run_single_country(
     logger.info(f"Git commit hash: {repo_head.object.hexsha}")
     msg = repo.head.reference.commit.message
     logger.info(f"Commit message: {msg}")
-    pop_year = 2022 if continent == "OC" else 2020
-    pop = get_worldbank_national_pop(iso3, pop_year)
+    pop = get_worldbank_national_pop(iso3)
     end_time = find_run_end_time(iso3)
 
     # Targets

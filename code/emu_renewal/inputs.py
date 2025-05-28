@@ -413,30 +413,29 @@ def get_standard_priors(
 
 def get_worldbank_national_pop(
     iso3: str,
-    year: int,
 ) -> float:
     """Read population data downloaded from the World Bank
     at https://databank.worldbank.org/source/population-estimates-and-projections#
     on 1st April 2025 and return population size in 2020
-    for country of interest.
+    for country of interest, except Australia for
+    which return population size in 2022 (because analysis is later).
 
     Args:
         iso3: Country identifier
 
     Returns:
-        Population data by country ISO3 code
+        Population size
     """
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
-    dtype = {"2020 [YR2020]": float}
-    col = "Country Code"
+    year = 2022 if iso3 == "AUS" else 2020
     year_str = f"{year} [YR{year}]"
-    return pd.read_csv(path, index_col=col, na_values=[".."], dtype=dtype).loc[iso3, year_str]
+    return pd.read_csv(path, index_col="Country Code", na_values=[".."]).loc[iso3, year_str]
 
 
 def get_ordered_countries_by_cont(countries_by_cont, conts):
     ordered_countries = {}
     for cont in conts:
-        pops = {c: get_worldbank_national_pop(c, 2020) for c in countries_by_cont[cont]}
+        pops = {c: get_worldbank_national_pop(c) for c in countries_by_cont[cont]}
         ordered_countries[cont] = pd.Series(pops).sort_values(ascending=False).index
     return ordered_countries
 

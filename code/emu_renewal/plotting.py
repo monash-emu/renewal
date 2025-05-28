@@ -752,7 +752,7 @@ def get_mob_exp_gdp_df(
     for mob_type in analyses:
         idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
         quants[mob_type] = {c: float(idatas[c].posterior["mob_exp"].quantile([0.5]).data) for c in idatas}
-    quants["pop"] = {c: get_worldbank_national_pop(c, 2020) for c in countries}
+    quants["pop"] = {c: get_worldbank_national_pop(c) for c in countries}
     quants["gdp"] = get_gdps(2020)
     quants["gdp"]["VEN"] = 42.84e9 / quants["pop"]["VEN"]  # Assume Venezuela's GDP was 42.84 billion in 2020
     quants["cont"] = {c: pc.country_alpha2_to_continent_code(pycountry.countries.lookup(c).alpha_2) for c in countries}
