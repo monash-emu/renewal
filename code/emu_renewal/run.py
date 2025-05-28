@@ -22,6 +22,7 @@ from emu_renewal.inputs import (
     MIN_DELTA_PROP,
     DELTA_INCLUSION_DATE,
     END_VACC_THRESHOLD,
+    START_VACC_THRESHOLD_AUS,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -54,7 +55,6 @@ class MobilityException(Exception):
 
 def find_run_start_time(
     deaths_data: pd.Series,
-    vacc_data: pd.Series,
     pop: float,
     threshold: float,
     iso3: str,
@@ -66,7 +66,6 @@ def find_run_start_time(
 
     Args:
         deaths_data: Deaths time series for the country considered
-        vacc_data: Two-dose vaccination coverage data
         pop: Population size
         threshold: How many deaths to reach
         iso3: The country identifier
@@ -77,20 +76,16 @@ def find_run_start_time(
     per_capita_deaths = deaths_data / pop
     start = per_capita_deaths.index[per_capita_deaths.gt(threshold)].min()
     if iso3 == "AUS":
-        aust_vacc_prop_to_start = 0.9
+        vacc_data = get_country_vacc_data("AUS")
         norm_vacc_data = vacc_data / vacc_data.iloc[-1]
-        return norm_vacc_data[norm_vacc_data.gt(aust_vacc_prop_to_start)].idxmin()
+        return norm_vacc_data[norm_vacc_data.gt(START_VACC_THRESHOLD_AUS)].idxmin()
     elif pd.isna(start) or start > DEFAULT_START_TIME:
         return DEFAULT_START_TIME
     else:
         return start
 
 
-def find_run_end_time(
-    vacc_data: pd.Series,
-    cov_threshold: float,
-    iso3: str,
-) -> datetime:
+def find_run_end_time(iso3: str) -> datetime:
     """Find the time that the analysis should finish.
     Calculated as the time that the population vaccination coverage
     passes the requested threshold for all countries but Australia,
@@ -100,14 +95,13 @@ def find_run_end_time(
     or return a default value for other countries.
 
     Args:
-        vacc_data: The vaccination data for the country considered
-        cov_threshold: The threshold
         iso3: The country identifier
 
     Returns:
         The date at which to end the analysis period
     """
-    cov_thresh_perc = cov_threshold * 100
+    cov_thresh_perc = END_VACC_THRESHOLD * 100
+    vacc_data = get_country_vacc_data(iso3)
     if iso3 == "AUS":
         mob = get_google_mobility(iso3)
         return mob.index[-1].to_pydatetime()
@@ -308,8 +302,7 @@ def run_single_country(
     logger.info(f"Commit message: {msg}")
     pop_year = 2022 if continent == "OC" else 2020
     pop = get_worldbank_national_pop(iso3, pop_year)
-    vacc_data = get_country_vacc_data(iso3)
-    end_time = find_run_end_time(vacc_data, END_VACC_THRESHOLD, iso3)
+    end_time = find_run_end_time(iso3)
 
     # Targets
     case_data = get_indicator_series_from_who_data("New_cases", country)
@@ -317,7 +310,7 @@ def run_single_country(
     case_data[case_data == 0.0] = 0.5
     death_data = get_indicator_series_from_who_data("New_deaths", country)
     death_data[death_data == 0.0] = 0.5
-    data_start = find_run_start_time(death_data, vacc_data, pop, death_start_threshold, iso3)
+    data_start = find_run_start_time(death_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     income = get_income_group(iso3)
     africa_reporting = continent == "AF" and income in ["Lower middle income", "Low income"]
