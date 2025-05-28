@@ -20,34 +20,6 @@ def is_mostly_zeros(
         return False
 
 
-def find_null_data(
-    data: Dict[str, pd.Series],
-) -> List[str]:
-    """Find countries for which the data is null or all zeroes.
-
-    Args:
-        data: The indicator series by country
-
-    Returns:
-        The countries that have null data
-    """
-    return [c for c, d in data.items() if d.size == 0 or d.max() == 0.0]
-
-
-def find_neg_data(
-    data: Dict[str, pd.Series],
-) -> List[str]:
-    """Find countries for which the data includes negative values.
-
-    Args:
-        data: The indicator series by country
-
-    Returns:
-        The countries that have negative data
-    """
-    return [c for c, d in data.items() if d.min() < 0.0]
-
-
 def has_repeats(
     data: pd.Series,
     n_repeats: int,
