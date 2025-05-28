@@ -414,11 +414,12 @@ def get_standard_priors(
 def get_worldbank_national_pop(
     iso3: str,
 ) -> float:
-    """Read population data downloaded from the World Bank
+    """Population data were downloaded from the World Bank
     at https://databank.worldbank.org/source/population-estimates-and-projections#
-    on 1st April 2025 and return population size in 2020
-    for country of interest, except Australia for
-    which return population size in 2022 (because analysis is later).
+    on 01/04/2025. From this data, the population size in 2020
+    of country of interest was extracted. The exception was Australia,
+    for which the population size in 2022 was used, 
+    because of its later analysis period.
 
     Args:
         iso3: Country identifier
