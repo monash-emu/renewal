@@ -21,6 +21,7 @@ from emu_renewal.inputs import (
     DEFAULT_START_TIME,
     MIN_DELTA_PROP,
     DELTA_INCLUSION_DATE,
+    END_VACC_THRESHOLD,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -308,7 +309,7 @@ def run_single_country(
     pop_year = 2022 if continent == "OC" else 2020
     pop = get_worldbank_national_pop(iso3, pop_year)
     vacc_data = get_country_vacc_data(iso3)
-    end_time = find_run_end_time(vacc_data, most_extreme_prop, iso3)
+    end_time = find_run_end_time(vacc_data, END_VACC_THRESHOLD, iso3)
 
     # Targets
     case_data = get_indicator_series_from_who_data("New_cases", country)

@@ -107,6 +107,7 @@ POST_SIM_DATE = datetime(2100, 1, 1)
 ALPHA_FULL_REPLACE_DATE = datetime(2021, 6, 30)
 ALREADY_WEEKLY_ADMIT_COUNTRIES = ["HRV", "ZAF", "IRL", "GRC", "SVN", "NOR"]
 ALREADY_WEEKLY_OCCUP_COUNTRIES = ["JPN", "BGR"]
+END_VACC_THRESHOLD = 0.05
 
 PREV_KEY = "serum_pos_prevalence"
 
@@ -129,6 +130,12 @@ def get_indicator_series_from_who_data(
     select_data = who_data.loc[who_data["Country_code"] == iso2]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format=TEXT_DATE_FORMAT)
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
+
+
+def get_filtered_indicator(indicator, start_time, end_time, country):
+    data = get_indicator_series_from_who_data(indicator, country)
+    date_filter = (start_time < data.index) & (data.index < end_time)
+    return data[date_filter]
 
 
 def get_owid_hosp_series(
@@ -918,29 +925,6 @@ def get_ba5_target(var_data, continent):
         period_mask = (BA5_PERIOD_START < ba5_data.index) & (ba5_data.index < BA5_PERIOD_END)
         filt_data = ba5_data[period_mask]
         return filt_data["ba5_prop"]
-
-
-def find_null_data(data):
-    return [c for c, d in data.items() if d.size == 0 or d.max() == 0.0]
-
-
-def find_neg_data(data):
-    return [c for c, d in data.items() if d.min() < 0.0]
-
-
-def has_change_repeated(data, n_repeats, threshold=1e-10):
-    repeat_change = (data.diff().diff().abs() < threshold) & (data > 0.0)
-    is_repeat = repeat_change.astype(int)
-    multirepeat = is_repeat.rolling(n_repeats).sum()
-    return (multirepeat == float(n_repeats)).any()
-
-
-def has_outlier(data):
-    if len(data) > 1:
-        largest, second = data.nlargest(2)
-        return second == 0.0 or largest / second > 2.0
-    else:
-        return False
 
 
 def get_income_group(iso3):
