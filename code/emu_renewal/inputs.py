@@ -414,8 +414,8 @@ def get_standard_priors(
 def get_worldbank_national_pop(
     iso3: str,
 ) -> float:
-    """Population data were downloaded from the World Bank
-    at https://databank.worldbank.org/source/population-estimates-and-projections#
+    """Population data were downloaded from the World Bank at
+    [this address](https://databank.worldbank.org/source/population-estimates-and-projections#)
     on 01/04/2025. From this data, the population size in 2020
     of country of interest was extracted. The exception was Australia,
     for which the population size in 2022 was used, 

@@ -86,13 +86,15 @@ def find_run_start_time(
 
 
 def find_run_end_time(iso3: str) -> datetime:
-    """Find the time that the analysis should finish.
-    Calculated as the time that the population vaccination coverage
-    passes the requested threshold for all countries but Australia,
+    """For all countries but Australia,
+    the end time for the analysis was calculated as 
+    the time that the population vaccination coverage
+    passes a specific threshold value, 
     provided that the vaccination coverage does reach this
-    value by the default end time. Otherwise return the end date
-    for Google mobility data for Australia,
-    or return a default value for other countries.
+    value by the default end time.
+    Otherwise, a default end date is used.
+    For Australia, the latest date for which
+    the Google mobility data was available is used.
 
     Args:
         iso3: The country identifier
