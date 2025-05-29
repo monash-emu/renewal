@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 from datetime import datetime, timedelta
 import pycountry
 import pycountry_convert as pc
@@ -23,6 +23,7 @@ from emu_renewal.inputs import (
     DELTA_INCLUSION_DATE,
     END_VACC_THRESHOLD,
     START_VACC_THRESHOLD_AUS,
+    DEATHS_WEIGHT,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -54,7 +55,6 @@ class MobilityException(Exception):
 
 
 def find_run_start_time(
-    deaths_data: pd.Series,
     pop: float,
     threshold: float,
     iso3: str,
@@ -73,6 +73,7 @@ def find_run_start_time(
     Returns:
         The date to start the analysis
     """
+    deaths_data = get_indicator_series_from_who_data("New_deaths", iso3)
     per_capita_deaths = deaths_data / pop
     start = per_capita_deaths.index[per_capita_deaths.gt(threshold)].min()
     if iso3 == "AUS":
@@ -102,32 +103,30 @@ def find_run_end_time(iso3: str) -> datetime:
     Returns:
         The date at which to end the analysis period
     """
-    cov_thresh_perc = END_VACC_THRESHOLD * 100
+    thresh_perc = END_VACC_THRESHOLD * 100
     vacc_data = get_country_vacc_data(iso3)
     if iso3 == "AUS":
         mob = get_google_mobility(iso3)
         return mob.index[-1].to_pydatetime()
-    elif vacc_data.empty or vacc_data.max() < cov_thresh_perc:
+    elif vacc_data.empty or vacc_data.max() < thresh_perc:
         return DEFAULT_END_TIME
     else:
-        return min([DEFAULT_END_TIME, vacc_data[vacc_data.gt(cov_thresh_perc)].idxmin()])
+        return min([DEFAULT_END_TIME, vacc_data[vacc_data.gt(thresh_perc)].idxmin()])
 
 
 def collate_targets(
-    cases_data: pd.Series,
-    deaths_data: pd.Series,
     hosp_data: pd.Series,
     hosp_output_name: str,
     seroprev_target: pd.Series,
     ext_prop: float,
     start: datetime,
     end: datetime,
-    iso3: str,
     continent: str,
     alpha_targ: Union[pd.Series, None],
     delta_targ: Union[pd.Series, None],
     ba2_targ: Union[pd.Series, None],
     ba5_targ: Union[pd.Series, None],
+    n_deaths,
 ) -> Dict[str, StandardDispTarget]:
     """Collate the targets gathered in the previous function
     into the appropriate structure for the calibration algorithm.
@@ -135,18 +134,6 @@ def collate_targets(
     Returns:
         All targets, either four or five, depending on whether there are seroprevalence estimates
     """
-
-    # Deaths
-    death_mask = (start < deaths_data.index) & (deaths_data.index < end)
-    select_deaths = deaths_data.loc[death_mask]
-    deaths_targ = StandardDispTarget(select_deaths, weight=20.0)
-
-    # Cases
-    pre_test_scaleup = cases_data.index > CASES_START
-    case_mask = (start < cases_data.index) & (cases_data.index < end) & pre_test_scaleup
-    cases_targ = cases_data.loc[case_mask]
-    case_weight = 20.0 * len(cases_targ) / len(select_deaths)
-    cases_targ = StandardDispTarget(cases_targ, weight=case_weight)
 
     # Hospitalisations
     if hosp_data is None:
@@ -157,7 +144,7 @@ def collate_targets(
         if select_hosps.empty:
             hosp_targ_dict = {}
         else:
-            hosp_weight = 20.0 * len(select_hosps) / len(select_deaths)
+            hosp_weight = 20.0 * len(select_hosps) / n_deaths
             hosp_targ = StandardDispTarget(select_hosps, weight=hosp_weight)
             hosp_targ_dict = {hosp_output_name: hosp_targ}
 
@@ -201,10 +188,8 @@ def collate_targets(
         ba5_targ_dict = {"prop_ba5": StandardPropTarget(ba5_targ, weight=var_weight)}
 
     # Collate together
-    core_targs = {"weekly_cases": cases_targ, "weekly_deaths": deaths_targ}
     return (
-        core_targs
-        | seroprev_targ_dict
+        seroprev_targ_dict
         | hosp_targ_dict
         | alpha_targ_dict
         | delta_targ_dict
@@ -273,6 +258,42 @@ def get_mobility_provider(
         raise Exception(f"No provider available for analysis type {mob_type}")
 
 
+def get_deaths_target(
+    iso3: str,
+    start: datetime, 
+    end: datetime,
+) -> Tuple[int, Dict[str, StandardDispTarget]]:
+    """The number of deaths by week reported by WHO 
+    was used as the first calibration target.
+    Any values of zero in this series were replaced with a
+    value of 0.5 to enable comparison to modelled outputs
+    on the log scale. Deaths was the first indicator
+    for which a common dispersion parameter was used
+    for the distribution comparison of the modelled value.
+
+    Returns:
+        Number of observations in the deaths series
+        The deaths calibration target
+    """
+    data = get_indicator_series_from_who_data("New_deaths", iso3)
+    data[data == 0.0] = 0.5
+    period_mask = (start < data.index) & (data.index < end)
+    select_data = data.loc[period_mask]
+    target = StandardDispTarget(select_data, weight=DEATHS_WEIGHT)
+    return len(select_data), {"weekly_deaths": target}
+
+
+def get_cases_target(iso3, data_start, end_time, n_deaths):
+    case_data = get_indicator_series_from_who_data("New_cases", iso3)
+    case_data[case_data == 0.0] = 0.5
+    cases_start = max([CASES_START, data_start])
+    case_mask = (cases_start < case_data.index) & (case_data.index < end_time)
+    cases_targ = case_data.loc[case_mask]
+    case_weight = 20.0 * len(cases_targ) / n_deaths
+    target = StandardDispTarget(cases_targ, weight=case_weight)
+    return {"weekly_cases": target}
+
+
 def run_single_country(
     country,
     proc_update_freq,
@@ -304,18 +325,12 @@ def run_single_country(
     logger.info(f"Commit message: {msg}")
     pop = get_worldbank_national_pop(iso3)
     end_time = find_run_end_time(iso3)
+    data_start = find_run_start_time(pop, death_start_threshold, iso3)
 
     # Targets
-    case_data = get_indicator_series_from_who_data("New_cases", country)
-    case_data = case_data[case_data > 0.0]
-    case_data[case_data == 0.0] = 0.5
-    death_data = get_indicator_series_from_who_data("New_deaths", country)
-    death_data[death_data == 0.0] = 0.5
-    data_start = find_run_start_time(death_data, pop, death_start_threshold, iso3)
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     income = get_income_group(iso3)
     africa_reporting = continent == "AF" and income in ["Lower middle income", "Low income"]
-
     seroprev = get_filtered_seroprev(country, data_start, end_time, africa_reporting)
     if seroprev.empty:
         seroprev_target = seroprev
@@ -336,22 +351,28 @@ def run_single_country(
     )
     ba2_targ = get_ba2_target(var_data, continent)
     ba5_targ = get_ba5_target(var_data, continent)
+
+    deaths_targ, n_deaths = get_deaths_target(iso3, data_start, end_time)
+    cases_targ = get_cases_target(iso3, data_start, end_time, n_deaths)
+
     targets = collate_targets(
-        case_data,
-        death_data,
         hosp_target,
         hosp_out_type,
         seroprev_target,
         most_extreme_prop,
         data_start,
         end_time,
-        iso3,
         continent,
         alpha_targ,
         delta_targ,
         ba2_targ,
         ba5_targ,
+        n_deaths,
     )
+
+
+    targets = deaths_targ | cases_targ | targets
+
     run_start = data_start - timedelta(run_data_delay)
     start_str = run_start.strftime(DATE_FORMAT)
     end_str = data_start.strftime(DATE_FORMAT)
