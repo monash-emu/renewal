@@ -22,6 +22,7 @@ from emu_renewal.renew import MultiStrainModel
 plt.style.use("ggplot")
 
 TARGET_KEY = "target_"
+TEXT_DATE_FORMAT = "%-d %B %Y"
 
 
 def run_for_spaghetti(

@@ -14,7 +14,6 @@ from emu_renewal.utils import get_beta_params_from_mean_var
 
 
 DATE_FORMAT = "%Y%m%d_%H%M"
-TEXT_DATE_FORMAT = "%d/%m/%Y"
 
 BASE_PATH = Path(__file__).parent.parent.parent
 

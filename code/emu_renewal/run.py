@@ -90,12 +90,12 @@ def find_run_end_time(iso3: str) -> datetime:
     """For all countries but Australia,
     the end time for the analysis was calculated as 
     the time that the population vaccination coverage
-    passes a specific threshold value, 
-    provided that the vaccination coverage does reach this
+    passed a specific threshold value, 
+    provided that the vaccination coverage did reach this
     value by the default end time.
     Otherwise, a default end date is used.
     For Australia, the latest date for which
-    the Google mobility data was available is used.
+    the Google mobility data was available was used.
 
     Args:
         iso3: The country identifier
@@ -264,12 +264,17 @@ def get_deaths_target(
     end: datetime,
 ) -> Tuple[int, Dict[str, StandardDispTarget]]:
     """The number of deaths by week reported by WHO 
-    was used as the first calibration target.
+    was used as the first calibration target for all countries.
     Any values of zero in this series were replaced with a
     value of 0.5 to enable comparison to modelled outputs
-    on the log scale. Deaths was the first indicator
+    on the log scale. Deaths was the one of two indicators
     for which a common dispersion parameter was used
     for the distribution comparison of the modelled value.
+
+    Args:
+        iso3: The country identifier
+        start: The calibration start time
+        end: The calibration end time
 
     Returns:
         Number of observations in the deaths series
@@ -283,13 +288,36 @@ def get_deaths_target(
     return len(select_data), {"weekly_deaths": target}
 
 
-def get_cases_target(iso3, data_start, end_time, n_deaths):
+def get_cases_target(
+    iso3: str,
+    start: datetime, 
+    end: datetime,
+    n_deaths: int,
+) -> Dict[str, StandardDispTarget]:
+    """The number of cases by week reported by WHO 
+    was used as the second calibration target for all countries.
+    As for deaths, any zero values were replaced with 0.5.
+    Cases was the other indicator for which 
+    a common dispersion parameter was applied.
+    A target weight was applied to the series of cases 
+    such that the weight for each case observation point
+    was the same as for each death observation.
+
+    Args:
+        iso3: The country identifier
+        start: The calibration start time
+        end: The calibration end time
+        n_deaths: The number of deaths observations
+
+    Returns:
+        The cases calibration target
+    """
     case_data = get_indicator_series_from_who_data("New_cases", iso3)
     case_data[case_data == 0.0] = 0.5
-    cases_start = max([CASES_START, data_start])
-    case_mask = (cases_start < case_data.index) & (case_data.index < end_time)
+    cases_start = max([CASES_START, start])
+    case_mask = (cases_start < case_data.index) & (case_data.index < end)
     cases_targ = case_data.loc[case_mask]
-    case_weight = 20.0 * len(cases_targ) / n_deaths
+    case_weight = DEATHS_WEIGHT * len(cases_targ) / n_deaths
     target = StandardDispTarget(cases_targ, weight=case_weight)
     return {"weekly_cases": target}
 
