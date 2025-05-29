@@ -11,9 +11,10 @@ import yaml as yml
 from numpyro import distributions as dist
 import pycountry_convert as pc
 from emu_renewal.utils import get_beta_params_from_mean_var
-
+from emu_renewal.outputs import TEXT_DATE_FORMAT
 
 DATE_FORMAT = "%Y%m%d_%H%M"
+WHO_DATE_FORMAT = "%d/%m/%Y"
 
 BASE_PATH = Path(__file__).parent.parent.parent
 
@@ -110,6 +111,7 @@ END_VACC_THRESHOLD = 0.05
 START_VACC_THRESHOLD_AUS = 0.9
 DEATHS_WEIGHT = 20.0
 PREV_KEY = "serum_pos_prevalence"
+DEATHS_START_THRESHOLD: float = 2e-6
 
 
 def get_indicator_series_from_who_data(
@@ -128,7 +130,7 @@ def get_indicator_series_from_who_data(
     who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
     iso2 = pycountry.countries.lookup(iso3).alpha_2
     select_data = who_data.loc[who_data["Country_code"] == iso2]
-    select_data.index = pd.to_datetime(select_data["Date_reported"], format=TEXT_DATE_FORMAT)
+    select_data.index = pd.to_datetime(select_data["Date_reported"], format=WHO_DATE_FORMAT)
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
 

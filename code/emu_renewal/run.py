@@ -24,6 +24,7 @@ from emu_renewal.inputs import (
     END_VACC_THRESHOLD,
     START_VACC_THRESHOLD_AUS,
     DEATHS_WEIGHT,
+    DEATHS_START_THRESHOLD,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -56,18 +57,19 @@ class MobilityException(Exception):
 
 def find_run_start_time(
     pop: float,
-    threshold: float,
     iso3: str,
 ) -> datetime:
-    """Determine the time that the analysis should start comparing to data from.
-    Calculated as the time until the per capita death rate reaches the
-    specified threshold for most countries, unless they never reach
-    that threshold or don't reach it by the default time.
+    """For all countries except Australia,
+    the start of the calibration period was
+    set to be the time at which the per capita
+    daily rate of deaths passed a specified threshold.
+    However, if this threshold was not reached by 
+    a default start date, the simulation commenced at this default time.
+    For Australia, the simulation commenced from
+    the time that vaccination reached a proportion of its final value.
 
     Args:
-        deaths_data: Deaths time series for the country considered
         pop: Population size
-        threshold: How many deaths to reach
         iso3: The country identifier
 
     Returns:
@@ -75,7 +77,7 @@ def find_run_start_time(
     """
     deaths_data = get_indicator_series_from_who_data("New_deaths", iso3)
     per_capita_deaths = deaths_data / pop
-    start = per_capita_deaths.index[per_capita_deaths.gt(threshold)].min()
+    start = per_capita_deaths.index[per_capita_deaths.gt(DEATHS_START_THRESHOLD)].min()
     if iso3 == "AUS":
         vacc_data = get_country_vacc_data("AUS")
         norm_vacc_data = vacc_data / vacc_data.iloc[-1]
@@ -331,19 +333,20 @@ def run_single_country(
     run_data_delay,
     analysis_name,
     most_extreme_prop: float = 0.05,
-    death_start_threshold: float = 2e-6,
     seed_duration: int = 10,
     n_chains=4,
     prog_bar=False,
     logger=None,
 ):
 
-    # Preliminaries
-    logger = logger or logging.getLogger()
-    logger.info(f"\n________________________\nRunning job at {analysis_name}")
+    # Country identifiers
     iso3 = pycountry.countries.lookup(country).alpha_3
     iso2 = pycountry.countries.lookup(country).alpha_2
     continent = pc.country_alpha2_to_continent_code(iso2)
+    
+    # Logging
+    logger = logger or logging.getLogger()
+    logger.info(f"\n________________________\nRunning job at {analysis_name}")
     logger.info(f"Country: {iso3}")
     logger.info(f"Mobility approach: {mob_analysis_type}")
     repo = git.Repo(search_parent_directories=True)
@@ -351,11 +354,17 @@ def run_single_country(
     logger.info(f"Git commit hash: {repo_head.object.hexsha}")
     msg = repo.head.reference.commit.message
     logger.info(f"Commit message: {msg}")
+
+    # Population size and analysis time
     pop = get_worldbank_national_pop(iso3)
     end_time = find_run_end_time(iso3)
-    data_start = find_run_start_time(pop, death_start_threshold, iso3)
+    data_start = find_run_start_time(pop, iso3)
 
     # Targets
+    n_deaths, deaths_targ = get_deaths_target(iso3, data_start, end_time)
+    cases_targ = get_cases_target(iso3, data_start, end_time, n_deaths)
+
+    # Old targets code
     hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
     income = get_income_group(iso3)
     africa_reporting = continent == "AF" and income in ["Lower middle income", "Low income"]
@@ -380,9 +389,6 @@ def run_single_country(
     ba2_targ = get_ba2_target(var_data, continent)
     ba5_targ = get_ba5_target(var_data, continent)
 
-    deaths_targ, n_deaths = get_deaths_target(iso3, data_start, end_time)
-    cases_targ = get_cases_target(iso3, data_start, end_time, n_deaths)
-
     targets = collate_targets(
         hosp_target,
         hosp_out_type,
@@ -397,7 +403,6 @@ def run_single_country(
         ba5_targ,
         n_deaths,
     )
-
 
     targets = deaths_targ | cases_targ | targets
 
