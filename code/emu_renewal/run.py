@@ -25,7 +25,8 @@ from emu_renewal.inputs import (
     START_VACC_THRESHOLD_AUS,
     DEATHS_WEIGHT,
     DEATHS_START_THRESHOLD,
-    MOST_EXTREME_PROP,
+    SEROPREV_EXTREME,
+    SEROPREV_WEIGHT,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -335,28 +336,37 @@ def get_seroprev_target(
     iso3: str,        
     start: datetime,
     end: datetime,
-    continent,
-):
+    continent: str,
+) -> Dict[str, UnivariateDispersionTarget]:
+    """For seroprevalence, we compared the modelled
+    proportion ever infected against the reported seroprevalence
+    reported at least six months after the start of the simulation,
+    because a comparison against early seroprevalence estimates
+    would not account for waves of transmission prior to 
+    the start of the simulation.
 
-    # Seroprevalence
+    Args:
+        iso3: The country identifier
+        start: The calibration start time
+        end: The calibration end time
+        continent: The country's continent
+
+    Returns:
+        The seroprevalence calibration target
+    """
     income = get_income_group(iso3)
     africa_reporting = continent == "AF" and income in ["Lower middle income", "Low income"]
     seroprev = get_filtered_seroprev(iso3, start, end, africa_reporting)
-    if seroprev.empty:
-        seroprev_target = seroprev
-    else:
-        seroprev_target = get_seroprev_pooled_totals(seroprev)
-        seroprev_target = seroprev_target[seroprev_target.index > start + timedelta(183)]
-    seroprev_mask = (MOST_EXTREME_PROP < seroprev_target) & (seroprev_target < 1.0 - MOST_EXTREME_PROP)
-    seroprev_target = seroprev_target[seroprev_mask]
-    if seroprev_target.empty or continent == "OC":
+    if seroprev.empty or continent == "OC":
         return {}
-    else:
-        seroprev_targ = UnivariateDispersionTarget(
-            seroprev_target, dist.Normal, "seroprev_disp", weight=5.0
-        )
-        seroprev_targ_dict = {"seropos": seroprev_targ}
-    return seroprev_targ_dict
+    data = get_seroprev_pooled_totals(seroprev)
+    data = data[start + timedelta(183) < data.index]
+    seroprev_mask = (SEROPREV_EXTREME < data) & (data < 1.0 - SEROPREV_EXTREME)
+    data = data[seroprev_mask]
+    if data.empty:
+        return {}
+    target = UnivariateDispersionTarget(data, dist.Normal, "seroprev_disp", weight=SEROPREV_WEIGHT)
+    return {"seropos": target}
 
 
 def run_single_country(
@@ -367,7 +377,6 @@ def run_single_country(
     n_iters,
     run_data_delay,
     analysis_name,
-    most_extreme_prop: float = 0.05,
     seed_duration: int = 10,
     n_chains=4,
     prog_bar=False,
@@ -392,6 +401,11 @@ def run_single_country(
     pop = get_worldbank_national_pop(iso3)
     data_start = find_run_start_time(pop, iso3)
     end_time = find_run_end_time(iso3)
+    run_start = data_start - timedelta(run_data_delay)
+    start_str = run_start.strftime(DATE_FORMAT)
+    end_str = data_start.strftime(DATE_FORMAT)
+    logger.info(f"Running from {start_str} with data starting from {end_str}")
+    logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
 
     # Targets
     n_deaths, deaths_targ = get_deaths_target(iso3, data_start, end_time)
@@ -426,11 +440,8 @@ def run_single_country(
 
     targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | targets
 
-    run_start = data_start - timedelta(run_data_delay)
-    start_str = run_start.strftime(DATE_FORMAT)
-    end_str = data_start.strftime(DATE_FORMAT)
-    logger.info(f"Running from {start_str} with data starting from {end_str}")
-    logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
+
+
     var_names = ["eu"]
     seed_times = []
     if alpha_targ is not None:
