@@ -112,6 +112,7 @@ START_VACC_THRESHOLD_AUS = 0.9
 DEATHS_WEIGHT = 20.0
 PREV_KEY = "serum_pos_prevalence"
 DEATHS_START_THRESHOLD: float = 2e-6
+MOST_EXTREME_PROP = 0.05
 
 
 def get_indicator_series_from_who_data(

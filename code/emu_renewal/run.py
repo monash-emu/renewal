@@ -25,6 +25,7 @@ from emu_renewal.inputs import (
     START_VACC_THRESHOLD_AUS,
     DEATHS_WEIGHT,
     DEATHS_START_THRESHOLD,
+    MOST_EXTREME_PROP,
     get_indicator_series_from_who_data,
     get_country_vacc_data,
     get_worldbank_national_pop,
@@ -53,6 +54,11 @@ from emu_renewal import mobility
 
 class MobilityException(Exception):
     pass
+
+
+def jax_config_cpu_only():
+    import jax
+    jax.config.update("jax_platform_name", "cpu")
 
 
 def find_run_start_time(
@@ -117,18 +123,11 @@ def find_run_end_time(iso3: str) -> datetime:
 
 
 def collate_targets(
-    hosp_data: pd.Series,
-    hosp_output_name: str,
-    seroprev_target: pd.Series,
-    ext_prop: float,
-    start: datetime,
     end: datetime,
-    continent: str,
     alpha_targ: Union[pd.Series, None],
     delta_targ: Union[pd.Series, None],
     ba2_targ: Union[pd.Series, None],
     ba5_targ: Union[pd.Series, None],
-    n_deaths,
 ) -> Dict[str, StandardDispTarget]:
     """Collate the targets gathered in the previous function
     into the appropriate structure for the calibration algorithm.
@@ -136,31 +135,6 @@ def collate_targets(
     Returns:
         All targets, either four or five, depending on whether there are seroprevalence estimates
     """
-
-    # Hospitalisations
-    if hosp_data is None:
-        hosp_targ_dict = {}
-    else:
-        hosp_mask = (start < hosp_data.index) & (hosp_data.index < end)
-        select_hosps = hosp_data.loc[hosp_mask]
-        if select_hosps.empty:
-            hosp_targ_dict = {}
-        else:
-            hosp_weight = 20.0 * len(select_hosps) / n_deaths
-            hosp_targ = StandardDispTarget(select_hosps, weight=hosp_weight)
-            hosp_targ_dict = {hosp_output_name: hosp_targ}
-
-    # Seroprevalence
-    seroprev_mask = (ext_prop < seroprev_target) & (seroprev_target < 1.0 - ext_prop)
-    seroprev_target = seroprev_target[seroprev_mask]
-    if seroprev_target.empty or continent == "OC":
-        seroprev_targ_dict = {}
-    else:
-        seroprev_targ = UnivariateDispersionTarget(
-            seroprev_target, dist.Normal, "seroprev_disp", weight=5.0
-        )
-        # seroprev_targ = StandardPropTarget(seroprev_target, weight=2.5)
-        seroprev_targ_dict = {"seropos": seroprev_targ}
 
     # Alpha proportion
     var_weight = 5.0
@@ -191,9 +165,7 @@ def collate_targets(
 
     # Collate together
     return (
-        seroprev_targ_dict
-        | hosp_targ_dict
-        | alpha_targ_dict
+        alpha_targ_dict
         | delta_targ_dict
         | ba2_targ_dict
         | ba5_targ_dict
@@ -284,8 +256,8 @@ def get_deaths_target(
     """
     data = get_indicator_series_from_who_data("New_deaths", iso3)
     data[data == 0.0] = 0.5
-    period_mask = (start < data.index) & (data.index < end)
-    select_data = data.loc[period_mask]
+    mask = (start < data.index) & (data.index < end)
+    select_data = data.loc[mask]
     target = StandardDispTarget(select_data, weight=DEATHS_WEIGHT)
     return len(select_data), {"weekly_deaths": target}
 
@@ -299,7 +271,7 @@ def get_cases_target(
     """The number of cases by week reported by WHO 
     was used as the second calibration target for all countries.
     As for deaths, any zero values were replaced with 0.5.
-    Cases was the other indicator for which 
+    Cases was the second indicator for which 
     a common dispersion parameter was applied.
     A target weight was applied to the series of cases 
     such that the weight for each case observation point
@@ -314,14 +286,77 @@ def get_cases_target(
     Returns:
         The cases calibration target
     """
-    case_data = get_indicator_series_from_who_data("New_cases", iso3)
-    case_data[case_data == 0.0] = 0.5
+    data = get_indicator_series_from_who_data("New_cases", iso3)
+    data[data == 0.0] = 0.5
     cases_start = max([CASES_START, start])
-    case_mask = (cases_start < case_data.index) & (case_data.index < end)
-    cases_targ = case_data.loc[case_mask]
-    case_weight = DEATHS_WEIGHT * len(cases_targ) / n_deaths
-    target = StandardDispTarget(cases_targ, weight=case_weight)
+    mask = (cases_start < data.index) & (data.index < end)
+    target = data.loc[mask]
+    weight = DEATHS_WEIGHT * len(target) / n_deaths
+    target = StandardDispTarget(target, weight=weight)
     return {"weekly_cases": target}
+
+
+def get_hosp_target(
+    iso3: str,
+    start: datetime, 
+    end: datetime,
+    n_deaths: int,
+) -> Dict[str, StandardDispTarget]:
+    """One hospitalisation indicator was also used for
+    each country, where available.
+    This indicator was the final calibration target for which 
+    a common dispersion parameter was applied.
+    As for cases, a weight was applied to the hospitalisation series 
+    such that the weight for each observation point
+    was the same as for each death observation.
+
+    Args:
+        iso3: The country identifier
+        start: The calibration start time
+        end: The calibration end time
+        n_deaths: The number of deaths observations
+
+    Returns:
+        The hospitalisation calibration target
+    """
+    data, output_name = get_country_hosps(iso3, start, end)
+    if data is None:
+        return {}
+    mask = (start < data.index) & (data.index < end)
+    select_data = data.loc[mask]
+    if select_data.empty:
+        return {}
+    weight = DEATHS_WEIGHT * len(select_data) / n_deaths
+    target = StandardDispTarget(select_data, weight=weight)
+    return {output_name: target}
+
+
+def get_seroprev_target(
+    iso3: str,        
+    start: datetime,
+    end: datetime,
+    continent,
+):
+
+    # Seroprevalence
+    income = get_income_group(iso3)
+    africa_reporting = continent == "AF" and income in ["Lower middle income", "Low income"]
+    seroprev = get_filtered_seroprev(iso3, start, end, africa_reporting)
+    if seroprev.empty:
+        seroprev_target = seroprev
+    else:
+        seroprev_target = get_seroprev_pooled_totals(seroprev)
+        seroprev_target = seroprev_target[seroprev_target.index > start + timedelta(183)]
+    seroprev_mask = (MOST_EXTREME_PROP < seroprev_target) & (seroprev_target < 1.0 - MOST_EXTREME_PROP)
+    seroprev_target = seroprev_target[seroprev_mask]
+    if seroprev_target.empty or continent == "OC":
+        return {}
+    else:
+        seroprev_targ = UnivariateDispersionTarget(
+            seroprev_target, dist.Normal, "seroprev_disp", weight=5.0
+        )
+        seroprev_targ_dict = {"seropos": seroprev_targ}
+    return seroprev_targ_dict
 
 
 def run_single_country(
@@ -349,32 +384,24 @@ def run_single_country(
     logger.info(f"\n________________________\nRunning job at {analysis_name}")
     logger.info(f"Country: {iso3}")
     logger.info(f"Mobility approach: {mob_analysis_type}")
-    repo = git.Repo(search_parent_directories=True)
-    repo_head = repo.head
-    logger.info(f"Git commit hash: {repo_head.object.hexsha}")
-    msg = repo.head.reference.commit.message
-    logger.info(f"Commit message: {msg}")
+    commit = git.Repo(search_parent_directories=True).head
+    logger.info(f"Git commit hash: {commit.object.hexsha}")
+    logger.info(f"Commit message: {commit.reference.commit.message}")
 
     # Population size and analysis time
     pop = get_worldbank_national_pop(iso3)
-    end_time = find_run_end_time(iso3)
     data_start = find_run_start_time(pop, iso3)
+    end_time = find_run_end_time(iso3)
 
     # Targets
     n_deaths, deaths_targ = get_deaths_target(iso3, data_start, end_time)
     cases_targ = get_cases_target(iso3, data_start, end_time, n_deaths)
+    hosp_targ = get_hosp_target(iso3, data_start, end_time, n_deaths)
+    seroprev_targ = get_seroprev_target(iso3, data_start, end_time, continent)
+
+
 
     # Old targets code
-    hosp_target, hosp_out_type = get_country_hosps(iso3, data_start, end_time)
-    income = get_income_group(iso3)
-    africa_reporting = continent == "AF" and income in ["Lower middle income", "Low income"]
-    seroprev = get_filtered_seroprev(country, data_start, end_time, africa_reporting)
-    if seroprev.empty:
-        seroprev_target = seroprev
-    else:
-        seroprev_target = get_seroprev_pooled_totals(seroprev)
-        seroprev_target = seroprev_target[seroprev_target.index > data_start + timedelta(183)]
-
     var_data = get_country_vars(iso3)
     delta_targ = (
         None
@@ -390,21 +417,14 @@ def run_single_country(
     ba5_targ = get_ba5_target(var_data, continent)
 
     targets = collate_targets(
-        hosp_target,
-        hosp_out_type,
-        seroprev_target,
-        most_extreme_prop,
-        data_start,
         end_time,
-        continent,
         alpha_targ,
         delta_targ,
         ba2_targ,
         ba5_targ,
-        n_deaths,
     )
 
-    targets = deaths_targ | cases_targ | targets
+    targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | targets
 
     run_start = data_start - timedelta(run_data_delay)
     start_str = run_start.strftime(DATE_FORMAT)
@@ -458,24 +478,16 @@ def run_single_country(
     )
 
     # Calibration
-    priors = get_standard_priors(len(var_names), hosp_out_type, iso3) | mob_provider.get_priors()
+    priors = get_standard_priors(len(var_names), list(hosp_targ.keys())[0], iso3) | mob_provider.get_priors()
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
     init = calib.custom_init(radius=0.1)
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
-    mcmc = infer.MCMC(
-        kernel, num_chains=n_chains, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar
-    )
+    mcmc = infer.MCMC(kernel, num_chains=n_chains, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar)
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
 
     # Outputs
-    storage_path = BASE_PATH / "outputs" / analysis_name / country / mob_analysis_type
-    storage_path.mkdir(parents=True, exist_ok=True)
-    logger.info(f"Writing to: {storage_path}")
-    store_outputs(storage_path, model, calib, mcmc)
+    out_path = BASE_PATH / "outputs" / analysis_name / country / mob_analysis_type
+    out_path.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Writing to: {out_path}")
+    store_outputs(out_path, model, calib, mcmc)
     logger.info(f"Completed {analysis_name}/{country}/{mob_analysis_type}")
-
-
-def jax_config_cpu_only():
-    import jax
-
-    jax.config.update("jax_platform_name", "cpu")
