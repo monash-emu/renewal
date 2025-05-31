@@ -115,9 +115,10 @@ DEATHS_START_THRESHOLD: float = 2e-6
 SEROPREV_EXTREME = 0.05
 SEROPREV_WEIGHT = 5.0
 ANTIBODY_DELAY = 14
+VAR_WEIGHT = 5.0
 
 
-def get_indicator_series_from_who_data(
+def get_who_indicator(
     indicator: str,
     iso3: str,
 ) -> pd.Series:
@@ -158,7 +159,7 @@ def get_owid_hosp_series(
     return data.loc[data["indicator"] == indicator, "value"]
 
 
-def get_country_hosps(
+def get_owid_hosps(
     country: str,
     start: datetime,
     end: datetime,
@@ -850,7 +851,7 @@ def get_var_target(var_data, continent, var_name):
         return data
 
 
-def get_alpha_target(var_data, iso3, continent, end_time, delta_targ):
+def get_alpha_data(var_data, iso3, continent, end_time, delta_targ):
     alpha_data = get_var_target(var_data, continent, "alpha")
     alpha_delta_trans = (
         ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
