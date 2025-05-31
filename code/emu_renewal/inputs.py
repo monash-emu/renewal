@@ -850,7 +850,7 @@ def get_var_target(var_data, continent, var_name):
         return data
 
 
-def get_delta_target(var_data, iso3, continent, end_time):
+def get_delta_data(var_data, iso3, continent, end_time):
     delta_data = get_var_target(var_data, continent, "delta")
     end_delta_time = min([DELTA_PERIOD_END, end_time])
     alpha_delta_trans = (

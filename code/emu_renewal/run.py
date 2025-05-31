@@ -31,7 +31,6 @@ from emu_renewal.inputs import (
     get_apple_mobility,
     get_fb_mobility,
     get_country_vars,
-    get_delta_target,
     get_ba2_target,
     get_ba5_target,
 )
@@ -42,7 +41,7 @@ from emu_renewal.distributions import GammaDens
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
-from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, get_seroprev_target, get_alpha_target
+from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, get_seroprev_target, get_alpha_target, get_delta_target
 
 
 class MobilityException(Exception):
@@ -113,56 +112,6 @@ def find_run_end_time(iso3: str) -> datetime:
         return DEFAULT_END_TIME
     else:
         return min([DEFAULT_END_TIME, vacc_data[vacc_data.gt(thresh_perc)].idxmin()])
-
-
-def collate_targets(
-    end: datetime,
-    alpha_targ: Union[pd.Series, None],
-    delta_targ: Union[pd.Series, None],
-    ba2_targ: Union[pd.Series, None],
-    ba5_targ: Union[pd.Series, None],
-) -> Dict[str, StandardDispTarget]:
-    """Collate the targets gathered in the previous function
-    into the appropriate structure for the calibration algorithm.
-
-    Returns:
-        All targets, either four or five, depending on whether there are seroprevalence estimates
-    """
-
-    # Alpha proportion
-    var_weight = 5.0
-    if alpha_targ is None:
-        alpha_targ_dict = {}
-    else:
-        alpha_targ_dict = {"prop_alpha": StandardPropTarget(alpha_targ, weight=var_weight)}
-
-    # Delta proportion
-    if delta_targ is None or delta_targ.empty or max(delta_targ) < MIN_DELTA_PROP:
-        delta_targ_dict = {}
-    else:
-        # Need extra weight for Delta target if emergence is right at end of simulation
-        delta_weight = 25.0 if (end - delta_targ.index[0]).days < 87 else var_weight
-        delta_targ_dict = {"prop_delta": StandardPropTarget(delta_targ, weight=delta_weight)}
-
-    # BA.2 proportion
-    if ba2_targ is None:
-        ba2_targ_dict = {}
-    else:
-        ba2_targ_dict = {"prop_ba2": StandardPropTarget(ba2_targ, weight=var_weight)}
-
-    # BA.5 proportion
-    if ba5_targ is None:
-        ba5_targ_dict = {}
-    else:
-        ba5_targ_dict = {"prop_ba5": StandardPropTarget(ba5_targ, weight=var_weight)}
-
-    # Collate together
-    return (
-        alpha_targ_dict
-        | delta_targ_dict
-        | ba2_targ_dict
-        | ba5_targ_dict
-    )
 
 
 def get_logger(log_file: Path = None):
@@ -273,20 +222,7 @@ def run_single_country(
     var_weight = 5.0
     var_data = get_country_vars(iso3)
 
-    # Delta proportion
-    delta_targ = (
-        None
-        if continent == "OC" or end_time < DELTA_INCLUSION_DATE
-        else get_delta_target(var_data, iso3, continent, end_time)
-    )
-    if delta_targ is None or delta_targ.empty or max(delta_targ) < MIN_DELTA_PROP:
-        delta_targ_dict = {}
-    else:
-        # Need extra weight for Delta target if emergence is right at end of simulation
-        delta_weight = 25.0 if (end_time - delta_targ.index[0]).days < 87 else var_weight
-        delta_targ_dict = {"prop_delta": StandardPropTarget(delta_targ, weight=delta_weight)}
-
-    # Alpha
+    delta_targ = get_delta_target(iso3, var_data, continent, end_time)
     alpha_targ = get_alpha_target(iso3, var_data, continent, end_time, delta_targ)
 
     # BA.2 proportion
@@ -303,9 +239,7 @@ def run_single_country(
     else:
         ba5_targ_dict = {"prop_ba5": StandardPropTarget(ba5_targ, weight=var_weight)}
 
-    targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | alpha_targ | delta_targ_dict | ba2_targ_dict | ba5_targ_dict
-
-
+    targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | alpha_targ | delta_targ | ba2_targ_dict | ba5_targ_dict
 
     var_names = ["eu"]
     seed_times = []
@@ -313,9 +247,9 @@ def run_single_country(
         var_names.append("alpha")
         alpha_seed_time = alpha_targ["prop_alpha"].data.index[0]
         seed_times.append(alpha_seed_time)
-    if delta_targ is not None and not delta_targ.empty and max(delta_targ) > MIN_DELTA_PROP:
+    if delta_targ:
         var_names.append("delta")
-        delta_seed_time = delta_targ.index[0]
+        delta_seed_time = delta_targ["prop_delta"].data.index[0]
         seed_times.append(delta_seed_time)
     if continent == "OC":
         var_names = ["ba1", "ba2", "ba5"]
