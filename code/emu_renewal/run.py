@@ -255,7 +255,7 @@ def get_deaths_target(
         Number of observations in the deaths series
         The deaths calibration target
     """
-    data = get_indicator_series_from_who_data("New_deaths", iso3)
+    data = get_indicator_series_from_who_data("New_deaths", iso3).interpolate(method="linear").fillna(0.0)
     data[data == 0.0] = 0.5
     mask = (start < data.index) & (data.index < end)
     select_data = data.loc[mask]
@@ -287,7 +287,7 @@ def get_cases_target(
     Returns:
         The cases calibration target
     """
-    data = get_indicator_series_from_who_data("New_cases", iso3)
+    data = get_indicator_series_from_who_data("New_cases", iso3).interpolate(method="linear").fillna(0.0)
     data[data == 0.0] = 0.5
     cases_start = max([CASES_START, start])
     mask = (cases_start < data.index) & (data.index < end)
