@@ -26,9 +26,7 @@ def has_repeats(
     threshold=1e-10,
 ) -> bool:
     """Find if an indicator series either has the
-    same value repeated several times,
-    or if the absolute change in the indicators is the same
-    (i.e. a straight diagonal line).
+    same value repeated several times.
 
     Args:
         data: The indicator data
@@ -38,11 +36,13 @@ def has_repeats(
     Returns:
         Whether the data has more than the number of repeats
     """
-    repeat_change = (data.diff().diff().abs() < threshold) & (data > 0.0)
+    repeat_change = data.diff().abs() < threshold
     is_repeat = repeat_change.astype(int)
     multirepeat = is_repeat.rolling(n_repeats).sum()
     return (multirepeat == float(n_repeats)).any()
 
+
+# ['LVA', 'BEN', 'CRI', 'MWI', 'LTU', 'NIC', 'GEO', 'GUF', 'TUN', 'GNB', 'HTI', 'TGO']
 
 def has_outlier(
     data: pd.Series,

@@ -133,6 +133,7 @@ def get_indicator_series_from_who_data(
     iso2 = pycountry.countries.lookup(iso3).alpha_2
     select_data = who_data.loc[who_data["Country_code"] == iso2]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format=WHO_DATE_FORMAT)
+    return select_data[indicator]
     return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
 
