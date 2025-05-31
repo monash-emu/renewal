@@ -18,8 +18,6 @@ from emu_renewal.inputs import (
     BASE_PATH,
     DEFAULT_END_TIME,
     DEFAULT_START_TIME,
-    MIN_DELTA_PROP,
-    DELTA_INCLUSION_DATE,
     END_VACC_THRESHOLD,
     START_VACC_THRESHOLD_AUS,
     DEATHS_START_THRESHOLD,
@@ -41,7 +39,7 @@ from emu_renewal.distributions import GammaDens
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
-from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, get_seroprev_target, get_alpha_target, get_delta_target
+from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, get_seroprev_target, get_alpha_info, get_delta_info, get_ba2_info
 
 
 class MobilityException(Exception):
@@ -222,15 +220,9 @@ def run_single_country(
     var_weight = 5.0
     var_data = get_country_vars(iso3)
 
-    delta_var, delta_targ, delta_seed = get_delta_target(iso3, var_data, continent, end_time)
-    alpha_var, alpha_targ, alpha_seed = get_alpha_target(iso3, var_data, continent, end_time, delta_targ)
-
-    # BA.2 proportion
-    ba2_targ = get_ba2_target(var_data, continent)
-    if ba2_targ is None:
-        ba2_targ_dict = {}
-    else:
-        ba2_targ_dict = {"prop_ba2": StandardPropTarget(ba2_targ, weight=var_weight)}
+    delta_var, delta_targ, delta_seed = get_delta_info(iso3, var_data, continent, end_time)
+    alpha_var, alpha_targ, alpha_seed = get_alpha_info(iso3, var_data, continent, end_time, delta_targ)
+    ba2_var, ba2_targ, ba2_seed = get_ba2_info(var_data, continent)
 
     # BA.5 proportion
     ba5_targ = get_ba5_target(var_data, continent)
@@ -239,15 +231,17 @@ def run_single_country(
     else:
         ba5_targ_dict = {"prop_ba5": StandardPropTarget(ba5_targ, weight=var_weight)}
 
-    targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | alpha_targ | delta_targ | ba2_targ_dict | ba5_targ_dict
+    targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | alpha_targ | delta_targ | ba2_targ | ba5_targ_dict
 
-    var_names = ["eu"] + alpha_var + delta_var
-    seed_times = [] + alpha_seed + delta_seed
+    start_var = "ba1" if continent == "OC" else "eu"
+    var_names = [start_var] + alpha_var + delta_var + ba2_var
+    seed_times = [] + alpha_seed + delta_seed + ba2_seed
     if continent == "OC":
-        var_names = ["ba1", "ba2", "ba5"]
-        ba2_seed_time = ba2_targ.index[0]
+        var_names += ["ba5"]
+        # var_names = ["ba1", "ba2", "ba5"]
+        # ba2_seed_time = ba2_targ.index[0]
         ba5_seed_time = ba5_targ.index[0]
-        seed_times = [ba2_seed_time, ba5_seed_time]
+        seed_times += [ba5_seed_time]
 
     # Mobility
     try:

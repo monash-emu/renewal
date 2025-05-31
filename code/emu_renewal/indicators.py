@@ -8,7 +8,7 @@ from emu_renewal.inputs import DEATHS_WEIGHT, CASES_START, SEROPREV_EXTREME, SER
     ALPHA_DELTA_EXCEPTS, ALPHA_PERIOD_START, ALPHA_DELTA_TRANS, DELTA_INCLUSION_DATE, MIN_DELTA_PROP, DELTA_PERIOD_END, \
     get_who_indicator, get_owid_hosps, get_owid_hosps, get_all_seroprev, get_all_seroprev, \
     get_seroprev_pooled_totals, get_income_group, get_var_target, \
-    get_incr_pooled_totals
+    get_incr_pooled_totals, get_ba2_target, get_ba5_target
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
 
 
@@ -189,7 +189,7 @@ def get_seroprev_target(
     return {"seropos": target}
 
 
-def get_alpha_target(iso3, var_data, continent, end_time, delta_targ):
+def get_alpha_info(iso3, var_data, continent, end_time, delta_targ):
     if continent in ["OC", "AF"]:
         return [], {}, []
     data = get_var_target(var_data, continent, "alpha")
@@ -202,7 +202,7 @@ def get_alpha_target(iso3, var_data, continent, end_time, delta_targ):
     return ["alpha"], {"prop_alpha": StandardPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
 
 
-def get_delta_target(iso3, var_data, continent, end_time):
+def get_delta_info(iso3, var_data, continent, end_time):
     if continent or end_time < DELTA_INCLUSION_DATE:
         return [], {}, []
     data = get_var_target(var_data, continent, "delta")
@@ -217,3 +217,11 @@ def get_delta_target(iso3, var_data, continent, end_time):
     weight = 25.0 if (end_time - target.index[0]).days < 87 else VAR_WEIGHT
     var_start = target.index[0]
     return ["delta"], {"prop_delta": StandardPropTarget(target, weight=weight)}, [var_start]
+
+
+def get_ba2_info(var_data, continent):
+    target = get_ba2_target(var_data, continent)
+    if target is None:
+        return [], {}, []
+    var_start = target.index[0]
+    return ["ba2"], {"prop_ba2": StandardPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
