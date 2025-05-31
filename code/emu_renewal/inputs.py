@@ -114,6 +114,7 @@ PREV_KEY = "serum_pos_prevalence"
 DEATHS_START_THRESHOLD: float = 2e-6
 SEROPREV_EXTREME = 0.05
 SEROPREV_WEIGHT = 5.0
+ANTIBODY_DELAY = 14
 
 
 def get_indicator_series_from_who_data(
@@ -134,7 +135,6 @@ def get_indicator_series_from_who_data(
     select_data = who_data.loc[who_data["Country_code"] == iso2]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format=WHO_DATE_FORMAT)
     return select_data[indicator]
-    return select_data[indicator].interpolate(method="linear").fillna(0.0)
 
 
 def get_owid_hosp_series(
@@ -248,15 +248,13 @@ def process_raw_google_mobility(
     return nat_data.sort_index()
 
 
-def get_all_seroprev(
-    lag: int = 14,
-) -> pd.Series:
-    """Get all the seroprevalence data,
-    including calculating midpoint for survey date
-    and lagging by 14 days.
-
-    Args:
-        lag: Days to lag for antibody development
+def get_all_seroprev() -> pd.Series:
+    """Seroprevalence data was obtained from SeroTracker,
+    with the date for each serosurvey calculated as the 
+    mid-point between the reported start and end dates of sampling.
+    This date was then lagged earlier for the purposes 
+    of calibration to allow for a delay between infection 
+    and the subsequent development of immunity.
 
     Returns:
         All SeroTracker data
@@ -264,46 +262,10 @@ def get_all_seroprev(
     data = pd.read_csv(DATA_PATH / "seroprevalence/serotracker.csv")
     data["start"] = pd.to_datetime(data["sampling_start_date"])
     data["end"] = pd.to_datetime(data["sampling_end_date"])
-    data.index = (data["end"] - data["start"]) / 2 + data["start"] - timedelta(lag)
+    data.index = (data["end"] - data["start"]) / 2 + data["start"]
+    data.index -= timedelta(ANTIBODY_DELAY)
     data.index = data.index.normalize()
     return data.sort_index()
-
-
-def get_filtered_seroprev(
-    iso3: str,
-    start: datetime,
-    end: datetime,
-    africa_lic: bool = False,
-) -> pd.Series:
-    """Filter the SeroTracker data according to our choices
-    about what constitutes good enough data
-    for including in the calibration targets.
-    Don't use seroprevalence for Australia,
-    because it had reached high levels
-    by the time of analysis.
-
-    Args:
-        iso3: Country identifier
-        start: Start date of analysis
-        end: End date of analysis
-
-    Returns:
-        Filtered data to use as target
-    """
-    if iso3 == "AUS" or africa_lic:
-        return pd.Series([])
-    data = get_all_seroprev()
-    country = pycountry.countries.lookup(iso3).name
-    country_filt = data["country"] == country
-    time_filt = (start < data.index) & (data.index < end)
-    nat_filt = data["estimate_grade"] == "National"
-    type_filt = data["subgroup_var"] == "Primary Estimate"
-    unity_filt = data["is_unity_aligned"] == "Unity-Aligned"
-    n_filt = data["denominator_value"] > 599
-    all_filt = time_filt & country_filt & nat_filt & type_filt & unity_filt & n_filt
-    filt_data = data[all_filt]
-    # Drop 2 of 3 estimates for Mexico on the same date (keeping the first and largest)
-    return filt_data[[not i for i in filt_data.index.duplicated()]]
 
 
 def get_standard_priors(

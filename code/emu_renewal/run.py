@@ -34,7 +34,7 @@ from emu_renewal.inputs import (
     get_google_mobility,
     get_apple_mobility,
     get_fb_mobility,
-    get_filtered_seroprev,
+    get_all_seroprev,
     get_country_hosps,
     get_country_vars,
     get_alpha_target,
@@ -255,7 +255,8 @@ def get_deaths_target(
         Number of observations in the deaths series
         The deaths calibration target
     """
-    data = get_indicator_series_from_who_data("New_deaths", iso3).interpolate(method="linear").fillna(0.0)
+    data = get_indicator_series_from_who_data("New_deaths", iso3)
+    data = data.interpolate(method="linear").fillna(0.0)
     data[data == 0.0] = 0.5
     mask = (start < data.index) & (data.index < end)
     select_data = data.loc[mask]
@@ -271,7 +272,8 @@ def get_cases_target(
 ) -> Dict[str, StandardDispTarget]:
     """The number of cases by week reported by WHO 
     was used as the second calibration target for all countries.
-    As for deaths, any zero values were replaced with 0.5.
+    Linear interpolation was used to replace missing values, and
+    as for deaths, any zero values were replaced with a value of 0.5.
     Cases was the second indicator for which 
     a common dispersion parameter was applied.
     A target weight was applied to the series of cases 
@@ -287,7 +289,8 @@ def get_cases_target(
     Returns:
         The cases calibration target
     """
-    data = get_indicator_series_from_who_data("New_cases", iso3).interpolate(method="linear").fillna(0.0)
+    data = get_indicator_series_from_who_data("New_cases", iso3)
+    data = data.interpolate(method="linear").fillna(0.0)
     data[data == 0.0] = 0.5
     cases_start = max([CASES_START, start])
     mask = (cases_start < data.index) & (data.index < end)
@@ -330,6 +333,44 @@ def get_hosp_target(
     weight = DEATHS_WEIGHT * len(select_data) / n_deaths
     target = StandardDispTarget(select_data, weight=weight)
     return {output_name: target}
+
+
+def get_filtered_seroprev(
+    iso3: str,
+    start: datetime,
+    end: datetime,
+    africa_lic: bool = False,
+) -> pd.Series:
+    """
+    Filter the SeroTracker data according to our choices
+    about what constitutes good enough data
+    for including in the calibration targets.
+    Don't use seroprevalence for Australia,
+    because it had reached high levels
+    by the time of analysis.
+
+    Args:
+        iso3: Country identifier
+        start: Start date of analysis
+        end: End date of analysis
+
+    Returns:
+        Filtered data to use as target
+    """
+    if iso3 == "AUS" or africa_lic:
+        return pd.Series([])
+    data = get_all_seroprev()
+    country = pycountry.countries.lookup(iso3).name
+    country_filt = data["country"] == country
+    time_filt = (start < data.index) & (data.index < end)
+    nat_filt = data["estimate_grade"] == "National"
+    type_filt = data["subgroup_var"] == "Primary Estimate"
+    unity_filt = data["is_unity_aligned"] == "Unity-Aligned"
+    n_filt = data["denominator_value"] > 599
+    all_filt = time_filt & country_filt & nat_filt & type_filt & unity_filt & n_filt
+    filt_data = data[all_filt]
+    # Drop 2 of 3 estimates for Mexico on the same date (keeping the first and largest)
+    return filt_data[[not i for i in filt_data.index.duplicated()]]
 
 
 def get_seroprev_target(
