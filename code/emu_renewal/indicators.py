@@ -7,8 +7,8 @@ from numpyro import distributions as dist
 from emu_renewal.inputs import DEATHS_WEIGHT, CASES_START, SEROPREV_EXTREME, SEROPREV_WEIGHT, VAR_WEIGHT, \
     ALPHA_DELTA_EXCEPTS, ALPHA_PERIOD_START, ALPHA_DELTA_TRANS, \
     get_who_indicator, get_owid_hosps, get_owid_hosps, get_all_seroprev, get_all_seroprev, \
-    get_seroprev_pooled_totals, get_income_group, get_alpha_data, get_var_target, \
-    get_dec_pooled_totals
+    get_seroprev_pooled_totals, get_income_group, get_var_target, \
+    get_incr_pooled_totals
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
 
 
@@ -196,6 +196,6 @@ def get_alpha_target(iso3, var_data, continent, end_time, delta_targ):
     alpha_delta_trans = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
     end_alpha_time = end_time if delta_targ is None else min([alpha_delta_trans, end_time])
     period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < end_alpha_time)
-    pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
+    pooled_data = get_incr_pooled_totals(alpha_data[period_mask], "alpha")
     alpha_targ = pooled_data["alpha_prop"]
     return {"prop_alpha": StandardPropTarget(alpha_targ, weight=VAR_WEIGHT)}

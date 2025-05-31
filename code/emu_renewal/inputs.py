@@ -822,12 +822,11 @@ def get_seroprev_pooled_totals(data):
     return data[PREV_KEY]
 
 
-def get_dec_pooled_totals(
+def get_incr_pooled_totals(
     data: pd.DataFrame,
     var_name: str = "prealpha",
 ) -> pd.DataFrame:
     """Combines the two preceding functions
-
     to get the totals after pooling for increases in the data.
 
     Args:
@@ -851,17 +850,6 @@ def get_var_target(var_data, continent, var_name):
         return data
 
 
-def get_alpha_data(var_data, iso3, continent, end_time, delta_targ):
-    alpha_data = get_var_target(var_data, continent, "alpha")
-    alpha_delta_trans = (
-        ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
-    )
-    end_alpha_time = end_time if delta_targ is None else min([alpha_delta_trans, end_time])
-    period_mask = (ALPHA_PERIOD_START < alpha_data.index) & (alpha_data.index < end_alpha_time)
-    pooled_data = get_dec_pooled_totals(alpha_data[period_mask], "alpha")
-    return pooled_data["alpha_prop"]
-
-
 def get_delta_target(var_data, iso3, continent, end_time):
     delta_data = get_var_target(var_data, continent, "delta")
     end_delta_time = min([DELTA_PERIOD_END, end_time])
@@ -869,7 +857,7 @@ def get_delta_target(var_data, iso3, continent, end_time):
         ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
     )
     period_mask = (alpha_delta_trans < delta_data.index) & (delta_data.index < end_delta_time)
-    pooled_data = get_dec_pooled_totals(delta_data[period_mask], "delta")
+    pooled_data = get_incr_pooled_totals(delta_data[period_mask], "delta")
     return pooled_data["delta_prop"]
 
 
