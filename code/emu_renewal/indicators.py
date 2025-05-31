@@ -5,10 +5,10 @@ import pycountry
 from numpyro import distributions as dist
 
 from emu_renewal.inputs import DEATHS_WEIGHT, CASES_START, SEROPREV_EXTREME, SEROPREV_WEIGHT, VAR_WEIGHT, \
-    ALPHA_DELTA_EXCEPTS, ALPHA_PERIOD_START, ALPHA_DELTA_TRANS, DELTA_INCLUSION_DATE, MIN_DELTA_PROP, \
+    ALPHA_DELTA_EXCEPTS, ALPHA_PERIOD_START, ALPHA_DELTA_TRANS, DELTA_INCLUSION_DATE, MIN_DELTA_PROP, DELTA_PERIOD_END, \
     get_who_indicator, get_owid_hosps, get_owid_hosps, get_all_seroprev, get_all_seroprev, \
     get_seroprev_pooled_totals, get_income_group, get_var_target, \
-    get_incr_pooled_totals, get_delta_data
+    get_incr_pooled_totals
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
 
 
@@ -191,23 +191,29 @@ def get_seroprev_target(
 
 def get_alpha_target(iso3, var_data, continent, end_time, delta_targ):
     if continent in ["OC", "AF"]:
-        return {}
+        return [], {}, []
     data = get_var_target(var_data, continent, "alpha")
-    alpha_delta_trans = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
-    alpha_end = end_time if delta_targ else min([alpha_delta_trans, end_time])
+    alpha_start = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
+    alpha_end = end_time if delta_targ else min([alpha_start, end_time])
     mask = (ALPHA_PERIOD_START < data.index) & (data.index < alpha_end)
     pooled_data = get_incr_pooled_totals(data[mask], "alpha")
     target = pooled_data["alpha_prop"]
-    return {"prop_alpha": StandardPropTarget(target, weight=VAR_WEIGHT)}
+    var_start = target.index[0]
+    return ["alpha"], {"prop_alpha": StandardPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
 
 
 def get_delta_target(iso3, var_data, continent, end_time):
     if continent or end_time < DELTA_INCLUSION_DATE:
-        return {}
-    data = get_delta_data(var_data, iso3, continent, end_time)
-    if data is None or data.empty or max(data) < MIN_DELTA_PROP:
-        return {}
-    else:
-        # Need extra weight for Delta target if emergence is right at end of simulation
-        weight = 25.0 if (end_time - data.index[0]).days < 87 else VAR_WEIGHT
-        return {"prop_delta": StandardPropTarget(data, weight=weight)}
+        return [], {}, []
+    data = get_var_target(var_data, continent, "delta")
+    delta_start = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
+    delta_end = min([DELTA_PERIOD_END, end_time])
+    mask = (delta_start < data.index) & (data.index < delta_end)
+    pooled_data = get_incr_pooled_totals(data[mask], "delta")["delta_prop"]
+    target = pooled_data["delta_prop"]
+    if target is None or target.empty or max(target) < MIN_DELTA_PROP:
+        return [], {}, []
+    # Need extra weight for Delta target if emergence is right at end of simulation
+    weight = 25.0 if (end_time - target.index[0]).days < 87 else VAR_WEIGHT
+    var_start = target.index[0]
+    return ["delta"], {"prop_delta": StandardPropTarget(target, weight=weight)}, [var_start]

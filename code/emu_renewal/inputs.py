@@ -850,17 +850,6 @@ def get_var_target(var_data, continent, var_name):
         return data
 
 
-def get_delta_data(var_data, iso3, continent, end_time):
-    delta_data = get_var_target(var_data, continent, "delta")
-    end_delta_time = min([DELTA_PERIOD_END, end_time])
-    alpha_delta_trans = (
-        ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
-    )
-    period_mask = (alpha_delta_trans < delta_data.index) & (delta_data.index < end_delta_time)
-    pooled_data = get_incr_pooled_totals(delta_data[period_mask], "delta")
-    return pooled_data["delta_prop"]
-
-
 def get_ba2_target(var_data, continent):
     if continent == "OC":
         ba2_data = extract_specific_var(var_data, "ba2")

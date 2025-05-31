@@ -222,8 +222,8 @@ def run_single_country(
     var_weight = 5.0
     var_data = get_country_vars(iso3)
 
-    delta_targ = get_delta_target(iso3, var_data, continent, end_time)
-    alpha_targ = get_alpha_target(iso3, var_data, continent, end_time, delta_targ)
+    delta_var, delta_targ, delta_seed = get_delta_target(iso3, var_data, continent, end_time)
+    alpha_var, alpha_targ, alpha_seed = get_alpha_target(iso3, var_data, continent, end_time, delta_targ)
 
     # BA.2 proportion
     ba2_targ = get_ba2_target(var_data, continent)
@@ -241,16 +241,8 @@ def run_single_country(
 
     targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | alpha_targ | delta_targ | ba2_targ_dict | ba5_targ_dict
 
-    var_names = ["eu"]
-    seed_times = []
-    if alpha_targ:
-        var_names.append("alpha")
-        alpha_seed_time = alpha_targ["prop_alpha"].data.index[0]
-        seed_times.append(alpha_seed_time)
-    if delta_targ:
-        var_names.append("delta")
-        delta_seed_time = delta_targ["prop_delta"].data.index[0]
-        seed_times.append(delta_seed_time)
+    var_names = ["eu"] + alpha_var + delta_var
+    seed_times = [] + alpha_seed + delta_seed
     if continent == "OC":
         var_names = ["ba1", "ba2", "ba5"]
         ba2_seed_time = ba2_targ.index[0]
