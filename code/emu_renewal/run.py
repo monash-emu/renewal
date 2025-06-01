@@ -39,7 +39,7 @@ from emu_renewal.distributions import GammaDens
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
-from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, get_seroprev_target, get_alpha_info, get_delta_info, get_ba2_info
+from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, get_seroprev_target, get_alpha_info, get_delta_info, get_ba2_info, get_ba5_info
 
 
 class MobilityException(Exception):
@@ -217,31 +217,15 @@ def run_single_country(
     seroprev_targ = get_seroprev_target(iso3, data_start, end_time, continent)
 
     # Variants
-    var_weight = 5.0
     var_data = get_country_vars(iso3)
-
     delta_var, delta_targ, delta_seed = get_delta_info(iso3, var_data, continent, end_time)
     alpha_var, alpha_targ, alpha_seed = get_alpha_info(iso3, var_data, continent, end_time, delta_targ)
     ba2_var, ba2_targ, ba2_seed = get_ba2_info(var_data, continent)
-
-    # BA.5 proportion
-    ba5_targ = get_ba5_target(var_data, continent)
-    if ba5_targ is None:
-        ba5_targ_dict = {}
-    else:
-        ba5_targ_dict = {"prop_ba5": StandardPropTarget(ba5_targ, weight=var_weight)}
-
-    targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | alpha_targ | delta_targ | ba2_targ | ba5_targ_dict
-
+    ba5_var, ba5_targ, ba5_seed = get_ba5_info(var_data, continent)
     start_var = "ba1" if continent == "OC" else "eu"
-    var_names = [start_var] + alpha_var + delta_var + ba2_var
-    seed_times = [] + alpha_seed + delta_seed + ba2_seed
-    if continent == "OC":
-        var_names += ["ba5"]
-        # var_names = ["ba1", "ba2", "ba5"]
-        # ba2_seed_time = ba2_targ.index[0]
-        ba5_seed_time = ba5_targ.index[0]
-        seed_times += [ba5_seed_time]
+    var_names = [start_var] + alpha_var + delta_var + ba2_var + ba5_var
+    seed_times = [] + alpha_seed + delta_seed + ba2_seed + ba5_seed
+    var_targs = alpha_targ | delta_targ | ba2_targ | ba5_targ
 
     # Mobility
     try:
@@ -276,6 +260,7 @@ def run_single_country(
     # Calibration
     hosp_key = list(hosp_targ.keys())[0] if hosp_targ else ""
     priors = get_standard_priors(len(var_names), hosp_key, iso3) | mob_provider.get_priors()
+    targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | var_targs
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
     init = calib.custom_init(radius=0.1)
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)

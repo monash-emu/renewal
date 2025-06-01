@@ -220,8 +220,16 @@ def get_delta_info(iso3, var_data, continent, end_time):
 
 
 def get_ba2_info(var_data, continent):
-    target = get_ba2_target(var_data, continent)
-    if target is None:
+    data = get_ba2_target(var_data, continent)
+    if data is None:
         return [], {}, []
-    var_start = target.index[0]
-    return ["ba2"], {"prop_ba2": StandardPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
+    var_start = data.index[0]
+    return ["ba2"], {"prop_ba2": StandardPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
+
+
+def get_ba5_info(var_data, continent):
+    data = get_ba5_target(var_data, continent)
+    if data is None:
+        return [], {}, []
+    var_start = data.index[0]
+    return ["ba5"],  {"prop_ba5": StandardPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
