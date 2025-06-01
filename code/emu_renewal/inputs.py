@@ -9,7 +9,6 @@ from typing import List, Dict, Tuple, Union
 from datetime import datetime, timedelta
 import yaml as yml
 from numpyro import distributions as dist
-import pycountry_convert as pc
 from emu_renewal.utils import get_beta_params_from_mean_var
 from emu_renewal.outputs import TEXT_DATE_FORMAT
 
@@ -533,165 +532,7 @@ def get_all_var_data() -> dict:
         Data in raw form
     """
     return {v: json.load(open(DATA_PATH / f"nextclade/{v}.json", "r")) for v in VAR_NAMES}
-
-
-def get_country_vars(
-    iso3: str,
-) -> pd.DataFrame:
-    """Get all the CoVariants data for a particular country.
-
-    Args:
-        iso3: The country identifier
-
-    Returns:
-        The data
-    """
-    if iso3 == "CZE":
-        country = pycountry.countries.lookup(iso3).official_name
-    elif iso3 == "USA":
-        country = iso3
-    else:
-        country = pycountry.countries.lookup(iso3).name
-    data = pd.DataFrame()
-    for var in VAR_NAMES:
-        var_data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")
-        if country in var_data:
-            raw_data = var_data[country]
-            dates = pd.to_datetime(raw_data["week"])
-            vals = raw_data["cluster_sequences"]
-            data[var] = pd.Series(vals, index=dates)
-    return data.astype(float)
-
-
-def get_specific_var_props(
-    data: pd.DataFrame,
-    var_name: str,
-    rel_cols: List[str],
-    end_date: datetime,
-    min_samples: int = 5,
-    min_obs: int = 5,
-    min_prop: float = 0.0,
-) -> Union[pd.DataFrame, None]:
-    """Get the total number and proportion
-    of sequences attributable to a particular variant.
-
-    Args:
-        data: The country variant data
-        var_name: Our name for the variant of interest
-        rel_cols: The names of the relevant columns for the variant
-        end_date: A date after which data are discarded
-        min_samples: Minimum number of dates needed to use the data
-        min_obs: Minimum number of sequences at a date for inclusion in data
-        min_prop: Minimum proportion attributable to the variant
-            or to other non-index variants for inclusion
-
-    Returns:
-        The data for the variant of interest
-    """
-    data = data[data.index < end_date]
-    data = data[data.sum(axis=1) >= min_samples]
-    rel_cols = [c for c in rel_cols if c in data.columns]
-    vals = data[rel_cols].sum(axis=1)
-    totals = data.sum(axis=1)
-    country_df = pd.DataFrame(
-        {
-            var_name: vals,
-            "totals": totals,
-            f"{var_name}_prop": vals / totals,
-        }
-    )
-    above_min_prop = min_prop < country_df[f"{var_name}_prop"]
-    below_max_prop = country_df[f"{var_name}_prop"] < 1.0 - min_prop
-    out_df = country_df[above_min_prop & below_max_prop]
-    if len(out_df) > min_obs:
-        return out_df
-
-
-def extract_specific_var(
-    var_data: pd.DataFrame,
-    var_name: str,
-) -> Union[pd.DataFrame, None]:
-    """Find the proportion of variant sequences
-    attributable to a specific variant type.
-
-    Args:
-        var_data: All the raw variant data
-        var_name: The name of the variant of interest
-
-    Returns:
-        Data for the number of pre-Alpha specimens, total specimens and
-            proportion pre-Alpha by date - where available
-    """
-    prealpha_cols = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
-    alpha_cols = [c for c in var_data.columns if c not in prealpha_cols]
-    delta_cols = [c for c in var_data.columns if "Delta" in c]
-    ba2_col = ["21L.Omicron"]
-    ba5_cols = [c for c in var_data.columns if c not in ba2_col]
-    rel_cols = {
-        "alpha": alpha_cols,
-        "delta": delta_cols,
-        "ba2": ba2_col,
-        "ba5": ba5_cols,
-    }
-    end_dates = {
-        "alpha": ALPHA_FULL_REPLACE_DATE,
-        "delta": POST_SIM_DATE,
-        "ba2": POST_SIM_DATE,
-        "ba5": POST_SIM_DATE,
-    }
-    return get_specific_var_props(var_data, var_name, rel_cols[var_name], end_dates[var_name])
-
-
-def get_continent_data(
-    continent: str,
-    var: str,
-) -> Dict[str, pd.DataFrame]:
-    """Get the variant data for each country of
-    a particular continent, ignoring the (small) pycountry
-    countries that don't have an associated continent.
-
-    Args:
-        continent: The continent of interest
-        var: The variant of interest
-
-    Returns:
-        The data by country of the continent of interest
-    """
-    no_continent_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
-    countries = [c for c in pycountry.countries if c.alpha_2 not in no_continent_countries]
-    cont_data = {}
-    for country in countries:
-        if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
-            var_data = get_country_vars(country.alpha_3)
-            iso3 = country.alpha_3
-            cont_data[iso3] = extract_specific_var(var_data, var)
-    return cont_data
-
-
-def get_continent_vars(
-    data: Dict[str, pd.DataFrame],
-    var_name: str = "prealpha",
-) -> Dict[str, pd.DataFrame]:
-    """Get the overall variant proportions for a continent
-    from the country data for that continent.
-    (Recalculate the proportions because these
-    have been summed too.)
-
-    Args:
-        data: Data on variants by country for a continent,
-            the output of get_continent_data
-        var_name: The variant of interest
-
-    Returns:
-        The aggregated data for the continent
-    """
-    cont_data = pd.DataFrame()
-    for d in data.values():
-        if d is not None:
-            cont_data = cont_data.add(d, fill_value=0.0)
-    cont_data[f"{var_name}_prop"] = cont_data[var_name] / cont_data["totals"]
-    return cont_data
-
+    
 
 def find_increasing_groups(
     data: pd.Series,
@@ -839,15 +680,6 @@ def get_incr_pooled_totals(
         group_starts, group_ends = find_decreasing_groups(data[f"{var_name}_prop"])
         data = pool_totals(group_starts, group_ends, data, var_name)
     return data
-
-
-def get_var_target(var_data, continent, var_name):
-    data = extract_specific_var(var_data, var_name)
-    if data is None:
-        cont_data = get_continent_data(continent, var_name)
-        return get_continent_vars(cont_data, var_name)
-    else:
-        return data
 
 
 def get_ba2_target(var_data, continent):

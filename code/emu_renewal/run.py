@@ -6,7 +6,6 @@ import logging
 from numpyro import distributions as dist
 from numpyro import infer
 from jax import random
-from typing import Dict
 import pandas as pd
 import numpy as np
 import sys
@@ -28,18 +27,14 @@ from emu_renewal.inputs import (
     get_google_mobility,
     get_apple_mobility,
     get_fb_mobility,
-    get_country_vars,
-    get_ba2_target,
-    get_ba5_target,
 )
-from emu_renewal.targets import StandardDispTarget, StandardPropTarget
 from emu_renewal.process import CosineMultiCurve
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.distributions import GammaDens
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
-from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, get_seroprev_target, get_alpha_info, get_delta_info, get_ba2_info, get_ba5_info
+from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, get_seroprev_target, get_alpha_info, get_delta_info, get_ba2_info, get_ba5_info, get_country_vars
 
 
 class MobilityException(Exception):
