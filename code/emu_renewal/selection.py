@@ -2,24 +2,6 @@ from typing import List, Dict
 import pandas as pd
 
 
-def is_mostly_zeros(
-    data: pd.Series,
-) -> bool:
-    """Return True if most values of a series are zero,
-    otherwise False.
-
-    Args:
-        data: The indicator data
-
-    Returns:
-        Whether mostly zeroes
-    """
-    if len(data) > 0:
-        return sum((data == 0.0).astype(int)) / len(data) > 0.5
-    else:
-        return False
-
-
 def has_repeats(
     data: pd.Series,
     n_repeats: int,
@@ -41,8 +23,6 @@ def has_repeats(
     multirepeat = is_repeat.rolling(n_repeats).sum()
     return (multirepeat == float(n_repeats)).any()
 
-
-# ['LVA', 'BEN', 'CRI', 'MWI', 'LTU', 'NIC', 'GEO', 'GUF', 'TUN', 'GNB', 'HTI', 'TGO']
 
 def has_outlier(
     data: pd.Series,
