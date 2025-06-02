@@ -9,10 +9,9 @@ from emu_renewal.constants import DATA_PATH, DEATHS_WEIGHT, CASES_START, SEROPRE
     SEROPREV_WEIGHT, VAR_WEIGHT, ALPHA_DELTA_EXCEPTS, ALPHA_PERIOD_START, ALPHA_DELTA_TRANS, \
     DELTA_INCLUSION_DATE, MIN_DELTA_PROP, DELTA_PERIOD_END, ALPHA_FULL_REPLACE_DATE, \
     POST_SIM_DATE, POST_SIM_DATE, POST_SIM_DATE, VAR_NAMES, BA2_PERIOD_START, BA2_PERIOD_END, \
-    BA5_PERIOD_START, BA5_PERIOD_END, ZERO_IND_REPLACEMENT
+    BA5_PERIOD_START, BA5_PERIOD_END, ZERO_IND_REPLACEMENT, SEROPREV_START_DELAY
 from emu_renewal.inputs import get_who_indicator, get_owid_hosps, get_owid_hosps, \
-    get_all_seroprev, get_all_seroprev, \
-    get_seroprev_pooled_totals, get_income_group, \
+    get_all_seroprev, get_seroprev_pooled_totals, get_income_group, \
     get_incr_pooled_totals
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
 
@@ -166,14 +165,24 @@ def get_seroprev_target(
     end: datetime,
     continent: str,
 ) -> Dict[str, UnivariateDispersionTarget]:
-    """For seroprevalence, we compared the modelled
+    """We compared the modelled
     proportion ever infected against the reported seroprevalence
-    reported at least six months after the start of the simulation,
+    reported at least six months ({SEROPREV_START_DELAY} days) 
+    after the start of the simulation,
     because a comparison against early seroprevalence estimates
     would not account for waves of transmission prior to 
     the start of the simulation.
     We discarded seroprevalence estiamtes that were less than
     {SEROPREV_EXTREME}% away from a value of zero or 100%.
+    We also ignored seroprevalence estimates from 
+    low and lower middle income countries of Africa, because
+    we were unable to obtain good fits for several of these countries
+    while also maintaining plausible detection parameters
+    (e.g. case detection rate, hospital admission rate 
+    and infection fatality rate).
+    For countries for which seroprevalence calibration targets
+    were available, we assigned a target weight to this indicator
+    of {SEROPREV_WEIGHT}.
 
     Args:
         iso3: The country identifier
@@ -185,12 +194,12 @@ def get_seroprev_target(
         The seroprevalence calibration target
     """
     income = get_income_group(iso3)
-    africa_reporting = continent == "AF" and income in ["Lower middle income", "Low income"]
-    seroprev = get_filtered_seroprev(iso3, start, end, africa_reporting)
+    seroprev_issues = continent in "AF" and income in ["Lower middle income", "Low income"]
+    seroprev = get_filtered_seroprev(iso3, start, end, seroprev_issues)
     if seroprev.empty or continent == "OC":
         return {}
     data = get_seroprev_pooled_totals(seroprev)
-    data = data[start + timedelta(183) < data.index]
+    data = data[start + timedelta(SEROPREV_START_DELAY) < data.index]
     seroprev_mask = (SEROPREV_EXTREME / 1e2 < data) & (data < 1.0 - SEROPREV_EXTREME / 1e2)
     data = data[seroprev_mask]
     if data.empty:
