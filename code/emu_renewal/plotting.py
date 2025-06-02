@@ -16,11 +16,11 @@ import yaml as yml
 import pycountry_convert as pc
 
 from emu_renewal.inputs import DATA_PATH
+from emu_renewal.constants import ANALYSIS_TYPES
 from emu_renewal.inputs import (
     get_google_mobility,
     get_apple_mobility,
     get_fb_mobility,
-    ANALYSIS_TYPES,
     get_gdps,
     get_worldbank_national_pop,
 )

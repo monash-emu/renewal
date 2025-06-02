@@ -15,7 +15,7 @@ from emu_renewal.constants import (
     DATE_FORMAT,
     NEW_DATE_FORMAT,
     BASE_PATH,
-    DEFAULT_END_TIME,
+    DEFAULT_END_DATE,
     DEFAULT_START_DATE,
     END_VACC_THRESHOLD,
     START_VACC_THRESHOLD_AUS,
@@ -90,7 +90,7 @@ def find_run_end_time(iso3: str) -> datetime:
     the time that the population vaccination coverage
     passed {END_VACC_THRESHOLD}%, 
     provided that the vaccination coverage did reach this
-    value before the default end time of {DEF_END_STR}.
+    value before the default end time of {DEFAULT_END_DATE}.
     Otherwise, this default end date was used instead. 
     For Australia, the latest date for which
     the Google mobility data was available was used.
@@ -105,10 +105,11 @@ def find_run_end_time(iso3: str) -> datetime:
         mob = get_google_mobility(iso3)
         return mob.index[-1].to_pydatetime()
     vacc_data = get_country_vacc_data(iso3)
+    default_end_time = datetime.strptime(DEFAULT_END_DATE, NEW_DATE_FORMAT)
     if vacc_data.empty or vacc_data.max() < END_VACC_THRESHOLD:
-        return DEFAULT_END_TIME
+        return default_end_time
     else:
-        return min([DEFAULT_END_TIME, vacc_data[vacc_data.gt(END_VACC_THRESHOLD)].idxmin()])
+        return min([default_end_time, vacc_data[vacc_data.gt(END_VACC_THRESHOLD)].idxmin()])
 
 
 def get_logger(log_file: Path = None):

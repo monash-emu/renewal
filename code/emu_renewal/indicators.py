@@ -9,7 +9,7 @@ from emu_renewal.constants import DATA_PATH, DEATHS_WEIGHT, CASES_START, SEROPRE
     SEROPREV_WEIGHT, VAR_WEIGHT, ALPHA_DELTA_EXCEPTS, ALPHA_PERIOD_START, ALPHA_DELTA_TRANS, \
     DELTA_INCLUSION_DATE, MIN_DELTA_PROP, DELTA_PERIOD_END, ALPHA_FULL_REPLACE_DATE, \
     POST_SIM_DATE, POST_SIM_DATE, POST_SIM_DATE, VAR_NAMES, BA2_PERIOD_START, BA2_PERIOD_END, \
-    BA5_PERIOD_START, BA5_PERIOD_END
+    BA5_PERIOD_START, BA5_PERIOD_END, ZERO_IND_REPLACEMENT
 from emu_renewal.inputs import get_who_indicator, get_owid_hosps, get_owid_hosps, \
     get_all_seroprev, get_all_seroprev, \
     get_seroprev_pooled_totals, get_income_group, \
@@ -25,10 +25,13 @@ def get_deaths_target(
     """The number of deaths by week reported by WHO 
     was used as the first calibration target for all countries.
     Any values of zero in this series were replaced with a
-    value of 0.5 to enable comparison to modelled outputs
-    on the log scale. Deaths was the one of two indicators
+    value of {ZERO_IND_REPLACEMENT} to enable comparison to 
+    modelled outputs on the log scale. 
+    Deaths was the one of two indicators
     for which a common dispersion parameter was used
     for the distribution comparison of the modelled value.
+    The value for weighting the deaths indicator time series
+    was set to {DEATHS_WEIGHT}.
 
     Args:
         iso3: The country identifier
@@ -41,7 +44,7 @@ def get_deaths_target(
     """
     data = get_who_indicator("New_deaths", iso3)
     data = data.interpolate(method="linear").fillna(0.0)
-    data[data == 0.0] = 0.5
+    data[data == 0.0] = ZERO_IND_REPLACEMENT
     mask = (start < data.index) & (data.index < end)
     select_data = data.loc[mask]
     target = StandardDispTarget(select_data, weight=DEATHS_WEIGHT)
@@ -169,6 +172,8 @@ def get_seroprev_target(
     because a comparison against early seroprevalence estimates
     would not account for waves of transmission prior to 
     the start of the simulation.
+    We discarded seroprevalence estiamtes that were less than
+    {SEROPREV_EXTREME}% away from a value of zero or 100%.
 
     Args:
         iso3: The country identifier
@@ -186,7 +191,7 @@ def get_seroprev_target(
         return {}
     data = get_seroprev_pooled_totals(seroprev)
     data = data[start + timedelta(183) < data.index]
-    seroprev_mask = (SEROPREV_EXTREME < data) & (data < 1.0 - SEROPREV_EXTREME)
+    seroprev_mask = (SEROPREV_EXTREME / 1e2 < data) & (data < 1.0 - SEROPREV_EXTREME / 1e2)
     data = data[seroprev_mask]
     if data.empty:
         return {}

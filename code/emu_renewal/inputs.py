@@ -150,9 +150,9 @@ def get_all_seroprev() -> pd.Series:
     """Seroprevalence data was obtained from SeroTracker,
     with the date for each serosurvey calculated as the 
     mid-point between the reported start and end dates of sampling.
-    This date was then lagged earlier for the purposes 
+    This date was then lagged earlier by {ANTIBODY_DELAY} for the purposes 
     of calibration to allow for a delay between infection 
-    and the subsequent development of immunity.
+    and the subsequent development of detectable antibodies.
 
     Returns:
         All SeroTracker data
