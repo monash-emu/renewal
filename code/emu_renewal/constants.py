@@ -5,7 +5,7 @@ import re
 DATE_FORMAT = "%Y%m%d_%H%M"
 WHO_DATE_FORMAT = "%d/%m/%Y"
 TEXT_DATE_FORMAT = "%-d %B %Y"
-NEW_DATE_FORMAT = "%d %B %Y"
+CODE_DATE_FORMAT = "%d %B %Y"
 
 BASE_PATH = Path(__file__).parent.parent.parent
 

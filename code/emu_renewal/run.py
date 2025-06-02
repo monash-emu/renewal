@@ -13,7 +13,7 @@ import git
 
 from emu_renewal.constants import (
     DATE_FORMAT,
-    NEW_DATE_FORMAT,
+    CODE_DATE_FORMAT,
     BASE_PATH,
     DEFAULT_END_DATE,
     DEFAULT_START_DATE,
@@ -78,8 +78,8 @@ def find_run_start_time(
         vacc_data = get_country_vacc_data("AUS")
         norm_vacc_data = vacc_data / vacc_data.iloc[-1]
         return norm_vacc_data[norm_vacc_data.gt(START_VACC_THRESHOLD_AUS / 100.0)].idxmin()
-    elif pd.isna(start) or start > datetime.strptime(DEFAULT_START_DATE, NEW_DATE_FORMAT):
-        return datetime.strptime(DEFAULT_START_DATE, NEW_DATE_FORMAT)
+    elif pd.isna(start) or start > datetime.strptime(DEFAULT_START_DATE, CODE_DATE_FORMAT):
+        return datetime.strptime(DEFAULT_START_DATE, CODE_DATE_FORMAT)
     else:
         return start
 
@@ -105,7 +105,7 @@ def find_run_end_time(iso3: str) -> datetime:
         mob = get_google_mobility(iso3)
         return mob.index[-1].to_pydatetime()
     vacc_data = get_country_vacc_data(iso3)
-    default_end_time = datetime.strptime(DEFAULT_END_DATE, NEW_DATE_FORMAT)
+    default_end_time = datetime.strptime(DEFAULT_END_DATE, CODE_DATE_FORMAT)
     if vacc_data.empty or vacc_data.max() < END_VACC_THRESHOLD:
         return default_end_time
     else:
