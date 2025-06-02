@@ -5,12 +5,15 @@ import pycountry
 from numpyro import distributions as dist
 import pycountry_convert as pc
 
-from emu_renewal.inputs import DATA_PATH, DEATHS_WEIGHT, CASES_START, SEROPREV_EXTREME, SEROPREV_WEIGHT, VAR_WEIGHT, \
-    ALPHA_DELTA_EXCEPTS, ALPHA_PERIOD_START, ALPHA_DELTA_TRANS, DELTA_INCLUSION_DATE, MIN_DELTA_PROP, DELTA_PERIOD_END, \
-    ALPHA_FULL_REPLACE_DATE, POST_SIM_DATE, POST_SIM_DATE, POST_SIM_DATE, VAR_NAMES, \
-    get_who_indicator, get_owid_hosps, get_owid_hosps, get_all_seroprev, get_all_seroprev, \
+from emu_renewal.constants import DATA_PATH, DEATHS_WEIGHT, CASES_START, SEROPREV_EXTREME, \
+    SEROPREV_WEIGHT, VAR_WEIGHT, ALPHA_DELTA_EXCEPTS, ALPHA_PERIOD_START, ALPHA_DELTA_TRANS, \
+    DELTA_INCLUSION_DATE, MIN_DELTA_PROP, DELTA_PERIOD_END, ALPHA_FULL_REPLACE_DATE, \
+    POST_SIM_DATE, POST_SIM_DATE, POST_SIM_DATE, VAR_NAMES, BA2_PERIOD_START, BA2_PERIOD_END, \
+    BA5_PERIOD_START, BA5_PERIOD_END
+from emu_renewal.inputs import get_who_indicator, get_owid_hosps, get_owid_hosps, \
+    get_all_seroprev, get_all_seroprev, \
     get_seroprev_pooled_totals, get_income_group, \
-    get_incr_pooled_totals, get_ba2_target, get_ba5_target
+    get_incr_pooled_totals
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
 
 
@@ -386,6 +389,22 @@ def get_delta_info(iso3, var_data, continent, end_time):
     weight = 25.0 if (end_time - target.index[0]).days < 87 else VAR_WEIGHT
     var_start = target.index[0]
     return ["delta"], {"prop_delta": StandardPropTarget(target, weight=weight)}, [var_start]
+
+
+def get_ba2_target(var_data, continent):
+    if continent == "OC":
+        ba2_data = extract_specific_var(var_data, "ba2")
+        period_mask = (BA2_PERIOD_START < ba2_data.index) & (ba2_data.index < BA2_PERIOD_END)
+        filt_data = ba2_data[period_mask]
+        return filt_data["ba2_prop"]
+
+
+def get_ba5_target(var_data, continent):
+    if continent == "OC":
+        ba5_data = extract_specific_var(var_data, "ba5")
+        period_mask = (BA5_PERIOD_START < ba5_data.index) & (ba5_data.index < BA5_PERIOD_END)
+        filt_data = ba5_data[period_mask]
+        return filt_data["ba5_prop"]
 
 
 def get_ba2_info(var_data, continent):

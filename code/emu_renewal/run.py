@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 import git
 
-from emu_renewal.inputs import (
+from emu_renewal.constants import (
     DATE_FORMAT,
     BASE_PATH,
     DEFAULT_END_TIME,
@@ -20,6 +20,8 @@ from emu_renewal.inputs import (
     END_VACC_THRESHOLD,
     START_VACC_THRESHOLD_AUS,
     DEATHS_START_THRESHOLD,
+)
+from emu_renewal.inputs import (
     get_who_indicator,
     get_country_vacc_data,
     get_worldbank_national_pop,
