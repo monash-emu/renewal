@@ -5,27 +5,53 @@ import pycountry
 from numpyro import distributions as dist
 import pycountry_convert as pc
 
-from emu_renewal.constants import DATA_PATH, DEATHS_WEIGHT, CASES_START, SEROPREV_EXTREME, \
-    SEROPREV_WEIGHT, VAR_WEIGHT, ALPHA_DELTA_EXCEPTS, ALPHA_PERIOD_START, ALPHA_DELTA_TRANS, \
-    DELTA_INCLUSION_DATE, MIN_DELTA_PROP, DELTA_PERIOD_END, ALPHA_FULL_REPLACE_DATE, \
-    POST_SIM_DATE, POST_SIM_DATE, POST_SIM_DATE, VAR_NAMES, BA2_PERIOD_START, BA2_PERIOD_END, \
-    BA5_PERIOD_START, BA5_PERIOD_END, ZERO_IND_REPLACEMENT, SEROPREV_START_DELAY
-from emu_renewal.inputs import get_who_indicator, get_owid_hosps, get_owid_hosps, \
-    get_all_seroprev, get_seroprev_pooled_totals, get_income_group, \
-    get_incr_pooled_totals
+from emu_renewal.constants import (
+    DATA_PATH,
+    DEATHS_WEIGHT,
+    CASES_START,
+    SEROPREV_EXTREME,
+    SEROPREV_WEIGHT,
+    VAR_WEIGHT,
+    ALPHA_DELTA_EXCEPTS,
+    ALPHA_PERIOD_START,
+    ALPHA_DELTA_TRANS,
+    DELTA_INCLUSION_DATE,
+    MIN_DELTA_PROP,
+    DELTA_PERIOD_END,
+    ALPHA_FULL_REPLACE_DATE,
+    POST_SIM_DATE,
+    POST_SIM_DATE,
+    POST_SIM_DATE,
+    VAR_NAMES,
+    BA2_PERIOD_START,
+    BA2_PERIOD_END,
+    BA5_PERIOD_START,
+    BA5_PERIOD_END,
+    ZERO_IND_REPLACEMENT,
+    SEROPREV_START_DELAY,
+)
+from emu_renewal.inputs import (
+    get_who_indicator,
+    get_owid_hosps,
+    get_owid_hosps,
+    get_all_seroprev,
+    get_seroprev_pooled_totals,
+    get_income_group,
+    get_incr_pooled_totals,
+)
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
 
 
 def get_deaths_target(
     iso3: str,
-    start: datetime, 
+    start: datetime,
     end: datetime,
 ) -> Tuple[int, Dict[str, StandardDispTarget]]:
-    """The number of deaths by week reported by WHO 
+    """The number of deaths by week reported by WHO
     was used as the first calibration target for all countries.
     Any values of zero in this series were replaced with a
-    value of {ZERO_IND_REPLACEMENT} to enable comparison to 
-    modelled outputs on the log scale. 
+    value of {ZERO_IND_REPLACEMENT} to enable comparison to
+    modelled outputs on the log scale.
     Deaths was the one of two indicators
     for which a common dispersion parameter was used
     for the distribution comparison of the modelled value.
@@ -52,17 +78,17 @@ def get_deaths_target(
 
 def get_cases_target(
     iso3: str,
-    start: datetime, 
+    start: datetime,
     end: datetime,
     n_deaths: int,
 ) -> Dict[str, StandardDispTarget]:
-    """The number of cases by week reported by WHO 
+    """The number of cases by week reported by WHO
     was used as the second calibration target for all countries.
     Linear interpolation was used to replace missing values, and
     as for deaths, any zero values were replaced with a value of 0.5.
-    Cases was the second indicator for which 
+    Cases was the second indicator for which
     a common dispersion parameter was applied.
-    A target weight was applied to the series of cases 
+    A target weight was applied to the series of cases
     such that the weight for each case observation point
     was the same as for each death observation.
 
@@ -88,15 +114,15 @@ def get_cases_target(
 
 def get_hosp_target(
     iso3: str,
-    start: datetime, 
+    start: datetime,
     end: datetime,
     n_deaths: int,
 ) -> Dict[str, StandardDispTarget]:
     """One hospitalisation indicator was also used for
     each country, where available.
-    This indicator was the final calibration target for which 
+    This indicator was the final calibration target for which
     a common dispersion parameter was applied.
-    As for cases, a weight was applied to the hospitalisation series 
+    As for cases, a weight was applied to the hospitalisation series
     such that the weight for each observation point
     was the same as for each death observation.
 
@@ -126,11 +152,10 @@ def get_filtered_seroprev(
     start: datetime,
     end: datetime,
 ) -> pd.Series:
-    """
-    Filter the SeroTracker data according to our choices
+    """Filter the SeroTracker data according to our choices
     about what constitutes good enough data
     for including in the calibration targets.
-    Don't use seroprevalence for Australia,
+    Ignore seroprevalence for Australia,
     because it had reached high levels
     by the time of analysis.
 
@@ -157,25 +182,25 @@ def get_filtered_seroprev(
 
 
 def get_seroprev_target(
-    iso3: str,        
+    iso3: str,
     start: datetime,
     end: datetime,
     continent: str,
 ) -> Dict[str, UnivariateDispersionTarget]:
     """We compared the modelled
     proportion ever infected against the reported seroprevalence
-    reported at least six months ({SEROPREV_START_DELAY} days) 
+    reported at least six months ({SEROPREV_START_DELAY} days)
     after the start of the simulation,
     because a comparison against early seroprevalence estimates
-    would not account for waves of transmission prior to 
+    would not account for waves of transmission prior to
     the start of the simulation.
     We discarded seroprevalence estiamtes that were less than
     {SEROPREV_EXTREME}% away from a value of zero or 100%.
-    We also ignored seroprevalence estimates from 
+    We also ignored seroprevalence estimates from
     low and lower middle income countries of Africa, because
     we were unable to obtain good fits for several of these countries
     while also maintaining plausible detection parameters
-    (e.g. case detection rate, hospital admission rate 
+    (e.g. case detection rate, hospital admission rate
     and infection fatality rate).
     For countries for which seroprevalence calibration targets
     were available, we assigned a target weight to this indicator
@@ -432,4 +457,4 @@ def get_ba5_info(var_data, continent):
     if data is None:
         return [], {}, []
     var_start = data.index[0]
-    return ["ba5"],  {"prop_ba5": StandardPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
+    return ["ba5"], {"prop_ba5": StandardPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
