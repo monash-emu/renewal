@@ -12,17 +12,19 @@ import pickle
 from numpyro import infer
 from os import listdir as ls
 import os
+import re
 
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
+from emu_renewal.inputs import DEATHS_START_THRESHOLD, TEXT_DATE_FORMAT, DEF_START_STR, \
+    START_VACC_THRESHOLD_AUS, END_VACC_THRESHOLD, DEF_END_STR
 
 plt.style.use("ggplot")
 
 TARGET_KEY = "target_"
-TEXT_DATE_FORMAT = "%-d %B %Y"
 
 
 def run_for_spaghetti(
@@ -319,3 +321,10 @@ def add_bool_row_to_table(
     """
     table[col_name] = table.index.isin(bool_list)
     table[col_name] = table[col_name].map({True: "Yes", False: "No"})
+
+
+def get_func_blurb(function):
+    docstring = function.__doc__
+    blurb = re.split("(Args|Returns):", docstring)[0]
+    blurb_str = re.sub(r"\s+", " ", blurb)
+    return eval(f"f'{blurb_str}'")

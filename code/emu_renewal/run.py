@@ -50,15 +50,16 @@ def find_run_start_time(
     pop: float,
     iso3: str,
 ) -> datetime:
-    """For all countries except Australia,
+    """For all countries but Australia,
     the start of the calibration period was
     set to be the time at which the per capita
     daily rate of deaths passed {DEATHS_START_THRESHOLD}
     deaths per million population.
-    However, if this threshold was not reached by 
-    a default start date, the simulation commenced at this default time.
+    However, if this threshold was not reached by {DEF_START_STR}, 
+    the simulation commenced at this default time instead.
     For Australia, the simulation commenced from
-    the time that vaccination reached a proportion of its final value.
+    the time that vaccination reached {START_VACC_THRESHOLD_AUS}% 
+    of its final value.
 
     Args:
         pop: Population size
@@ -73,7 +74,7 @@ def find_run_start_time(
     if iso3 == "AUS":
         vacc_data = get_country_vacc_data("AUS")
         norm_vacc_data = vacc_data / vacc_data.iloc[-1]
-        return norm_vacc_data[norm_vacc_data.gt(START_VACC_THRESHOLD_AUS)].idxmin()
+        return norm_vacc_data[norm_vacc_data.gt(START_VACC_THRESHOLD_AUS / 100.0)].idxmin()
     elif pd.isna(start) or start > DEFAULT_START_TIME:
         return DEFAULT_START_TIME
     else:
@@ -84,10 +85,10 @@ def find_run_end_time(iso3: str) -> datetime:
     """For all countries but Australia,
     the end time for the analysis was calculated as 
     the time that the population vaccination coverage
-    passed a specific threshold value, 
+    passed {END_VACC_THRESHOLD}%, 
     provided that the vaccination coverage did reach this
-    value by the default end time.
-    Otherwise, a default end date is used.
+    value before the default end time of {DEF_END_STR}.
+    Otherwise, this default end date was used instead. 
     For Australia, the latest date for which
     the Google mobility data was available was used.
 
@@ -97,15 +98,14 @@ def find_run_end_time(iso3: str) -> datetime:
     Returns:
         The date at which to end the analysis period
     """
-    thresh_perc = END_VACC_THRESHOLD * 100
-    vacc_data = get_country_vacc_data(iso3)
     if iso3 == "AUS":
         mob = get_google_mobility(iso3)
         return mob.index[-1].to_pydatetime()
-    elif vacc_data.empty or vacc_data.max() < thresh_perc:
+    vacc_data = get_country_vacc_data(iso3)
+    if vacc_data.empty or vacc_data.max() < END_VACC_THRESHOLD:
         return DEFAULT_END_TIME
     else:
-        return min([DEFAULT_END_TIME, vacc_data[vacc_data.gt(thresh_perc)].idxmin()])
+        return min([DEFAULT_END_TIME, vacc_data[vacc_data.gt(END_VACC_THRESHOLD)].idxmin()])
 
 
 def get_logger(log_file: Path = None):

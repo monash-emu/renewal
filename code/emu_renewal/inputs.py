@@ -5,15 +5,15 @@ from jax import numpy as jnp
 import json
 from pathlib import Path
 import pycountry
-from typing import List, Dict, Tuple, Union
+from typing import Dict, Tuple, Union
 from datetime import datetime, timedelta
 import yaml as yml
 from numpyro import distributions as dist
 from emu_renewal.utils import get_beta_params_from_mean_var
-from emu_renewal.outputs import TEXT_DATE_FORMAT
 
 DATE_FORMAT = "%Y%m%d_%H%M"
 WHO_DATE_FORMAT = "%d/%m/%Y"
+TEXT_DATE_FORMAT = "%-d %B %Y"
 
 BASE_PATH = Path(__file__).parent.parent.parent
 
@@ -79,7 +79,9 @@ ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_mob", "fb_withintile_mob"]
 
 CASES_START = datetime(2020, 6, 1)
 DEFAULT_START_TIME = datetime(2020, 6, 1)
+DEF_START_STR = DEFAULT_START_TIME.strftime(TEXT_DATE_FORMAT)
 DEFAULT_END_TIME = datetime(2021, 12, 1)
+DEF_END_STR = DEFAULT_END_TIME.strftime(TEXT_DATE_FORMAT)
 ALPHA_PERIOD_START = datetime(2020, 1, 1)
 ALPHA_DELTA_TRANS = datetime(2021, 3, 1)
 ALPHA_DELTA_EXCEPTS = {
@@ -106,8 +108,8 @@ POST_SIM_DATE = datetime(2100, 1, 1)
 ALPHA_FULL_REPLACE_DATE = datetime(2021, 6, 30)
 ALREADY_WEEKLY_ADMIT_COUNTRIES = ["HRV", "ZAF", "IRL", "GRC", "SVN", "NOR"]
 ALREADY_WEEKLY_OCCUP_COUNTRIES = ["JPN", "BGR"]
-END_VACC_THRESHOLD = 0.05
-START_VACC_THRESHOLD_AUS = 0.9
+END_VACC_THRESHOLD = 5
+START_VACC_THRESHOLD_AUS = 90
 DEATHS_WEIGHT = 20.0
 PREV_KEY = "serum_pos_prevalence"
 DEATHS_START_THRESHOLD = 2
