@@ -9,10 +9,20 @@ from datetime import datetime, timedelta
 import yaml as yml
 from numpyro import distributions as dist
 from emu_renewal.utils import get_beta_params_from_mean_var
-from emu_renewal.constants import WHO_DATE_FORMAT, VAR_NAMES, BA2_PERIOD_START, DATA_PATH, \
-    RAW_MOB_PATH, \
-    BA2_PERIOD_END, BA5_PERIOD_START, BA5_PERIOD_END, ALREADY_WEEKLY_ADMIT_COUNTRIES, \
-    ALREADY_WEEKLY_OCCUP_COUNTRIES, PREV_KEY, ANTIBODY_DELAY
+from emu_renewal.constants import (
+    WHO_DATE_FORMAT,
+    VAR_NAMES,
+    BA2_PERIOD_START,
+    DATA_PATH,
+    RAW_MOB_PATH,
+    BA2_PERIOD_END,
+    BA5_PERIOD_START,
+    BA5_PERIOD_END,
+    ALREADY_WEEKLY_ADMIT_COUNTRIES,
+    ALREADY_WEEKLY_OCCUP_COUNTRIES,
+    PREV_KEY,
+    ANTIBODY_DELAY,
+)
 
 
 def get_who_indicator(
@@ -147,11 +157,13 @@ def process_raw_google_mobility(
 
 
 def get_all_seroprev() -> pd.Series:
-    """Seroprevalence data was obtained from SeroTracker,
-    with the date for each serosurvey calculated as the 
+    """Seroprevalence data was obtained from
+    [SeroTracker](https://github.com/serotracker/sars-cov-2-data/raw/refs/heads/main/serotracker_dataset.csv)
+    on 11 December 2024,
+    with the date for each serosurvey calculated as the
     mid-point between the reported start and end dates of sampling.
-    This date was then lagged earlier by {ANTIBODY_DELAY} for the purposes 
-    of calibration to allow for a delay between infection 
+    This date was then lagged earlier by {ANTIBODY_DELAY} for the purposes
+    of calibration to allow for a delay between infection
     and the subsequent development of detectable antibodies.
 
     Returns:
@@ -278,11 +290,11 @@ def get_standard_priors(
 def get_worldbank_national_pop(
     iso3: str,
 ) -> float:
-    """Population data were downloaded from the World Bank at
-    [this address](https://databank.worldbank.org/source/population-estimates-and-projections#)
+    """Population data were downloaded from
+    [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
     on 01/04/2025. From this data, the population size in 2020
     of country of interest was extracted. The exception was Australia,
-    for which the population size in 2022 was used, 
+    for which the population size in 2022 was used,
     because of its later analysis period.
 
     Args:
@@ -534,7 +546,23 @@ def pool_totals(
     return new_data.sort_index()
 
 
-def pool_seroprev_totals(starts, ends, data):
+def pool_seroprev_totals(
+    starts: datetime,
+    ends: datetime,
+    data: pd.Series,
+) -> pd.Series:
+    """Pool groups of seroprevalence data that are
+    decreasing over time and were identified by
+    find_decreasing_groups.
+
+    Args:
+        starts: The start indices for the decreasing groups
+        ends: The end indices for the decreasing groups
+        data: The data before processing
+
+    Returns:
+        The processed data
+    """
     period_sums = pd.DataFrame()
     idx_to_remove = []
     for start, end in zip(starts, ends):
@@ -571,7 +599,20 @@ def get_pooled_totals(
     return data
 
 
-def get_seroprev_pooled_totals(data):
+def get_seroprev_pooled_totals(
+    data: pd.Series,
+) -> pd.Series:
+    """Pool any sequences of seroprevalence data
+    that are decreasing over time.
+    Continue pooling until all estimates are monotonically
+    increasing.
+
+    Args:
+        data: The raw seroprevalence data
+
+    Returns:
+        The data after pooling
+    """
     while not data[PREV_KEY].is_monotonic_increasing:
         starts, ends = find_decreasing_groups(data[PREV_KEY])
         data = pool_seroprev_totals(starts, ends, data)

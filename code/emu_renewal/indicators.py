@@ -11,6 +11,7 @@ from emu_renewal.constants import (
     CASES_START,
     SEROPREV_EXTREME,
     SEROPREV_WEIGHT,
+    SEROPREV_MIN_SIZE,
     VAR_WEIGHT,
     ALPHA_DELTA_EXCEPTS,
     ALPHA_PERIOD_START,
@@ -149,20 +150,17 @@ def get_hosp_target(
 
 def get_filtered_seroprev(
     iso3: str,
-    start: datetime,
-    end: datetime,
 ) -> pd.Series:
-    """Filter the SeroTracker data according to our choices
-    about what constitutes good enough data
-    for including in the calibration targets.
-    Ignore seroprevalence for Australia,
-    because it had reached high levels
-    by the time of analysis.
+    """We filtered the SeroTracker data to include
+    only the estimate reported as primary from
+    Unity-aligned national-level surveys for
+    which the number of participants was at least 600.
+    We also considered only a maximum of one seroprevalence
+    value for any given date (keeping the largest
+    estimate of three surveys done on the same day for Mexico).
 
     Args:
         iso3: Country identifier
-        start: Start date of analysis
-        end: End date of analysis
 
     Returns:
         Filtered data to use as target
@@ -170,14 +168,12 @@ def get_filtered_seroprev(
     data = get_all_seroprev()
     country = pycountry.countries.lookup(iso3).name
     country_filt = data["country"] == country
-    time_filt = (start < data.index) & (data.index < end)
     nat_filt = data["estimate_grade"] == "National"
     type_filt = data["subgroup_var"] == "Primary Estimate"
     unity_filt = data["is_unity_aligned"] == "Unity-Aligned"
-    n_filt = data["denominator_value"] > 599
-    all_filt = time_filt & country_filt & nat_filt & type_filt & unity_filt & n_filt
+    n_filt = data["denominator_value"] >= SEROPREV_MIN_SIZE
+    all_filt = country_filt & nat_filt & type_filt & unity_filt & n_filt
     filt_data = data[all_filt]
-    # Drop 2 of 3 estimates for Mexico on the same date (keeping the first and largest)
     return filt_data[[not i for i in filt_data.index.duplicated()]]
 
 
@@ -194,7 +190,13 @@ def get_seroprev_target(
     because a comparison against early seroprevalence estimates
     would not account for waves of transmission prior to
     the start of the simulation.
-    We discarded seroprevalence estiamtes that were less than
+    For any consecutive estimates for which a lower estimate
+    followed an immediately preceding higher estimate,
+    we pooled these two estimates and placed the pooled
+    estimate at the mid-point of the dates of the two estimates.
+    We repeatedly applied this process until seroprevalence
+    estimates were monotonically increasing over time.
+    We discarded seroprevalence estimates that were less than
     {SEROPREV_EXTREME}% away from a value of zero or 100%.
     We also ignored seroprevalence estimates from
     low and lower middle income countries of Africa, because
@@ -202,6 +204,9 @@ def get_seroprev_target(
     while also maintaining plausible detection parameters
     (e.g. case detection rate, hospital admission rate
     and infection fatality rate).
+    Last, we ignored seroprevalence estimates for Australia,
+    for which the analysis was run largely through 2022
+    during which seroprevalence values were much higher.
     For countries for which seroprevalence calibration targets
     were available, we assigned a target weight to this indicator
     of {SEROPREV_WEIGHT}.
@@ -219,10 +224,9 @@ def get_seroprev_target(
     if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
         return {}
     seroprev = get_filtered_seroprev(iso3, start, end)
-    if seroprev.empty:
-        return {}
     data = get_seroprev_pooled_totals(seroprev)
-    data = data[start + timedelta(SEROPREV_START_DELAY) < data.index]
+    time_filt = (start + timedelta(SEROPREV_START_DELAY) < data.index) & (data.index < end)
+    data = data[time_filt]
     seroprev_mask = (SEROPREV_EXTREME / 1e2 < data) & (data < 1.0 - SEROPREV_EXTREME / 1e2)
     data = data[seroprev_mask]
     if data.empty:
