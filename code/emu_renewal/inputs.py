@@ -110,7 +110,7 @@ END_VACC_THRESHOLD = 0.05
 START_VACC_THRESHOLD_AUS = 0.9
 DEATHS_WEIGHT = 20.0
 PREV_KEY = "serum_pos_prevalence"
-DEATHS_START_THRESHOLD: float = 2e-6
+DEATHS_START_THRESHOLD = 2
 SEROPREV_EXTREME = 0.05
 SEROPREV_WEIGHT = 5.0
 ANTIBODY_DELAY = 14
@@ -549,7 +549,7 @@ def get_all_var_data() -> dict:
         Data in raw form
     """
     return {v: json.load(open(DATA_PATH / f"nextclade/{v}.json", "r")) for v in VAR_NAMES}
-    
+
 
 def find_increasing_groups(
     data: pd.Series,

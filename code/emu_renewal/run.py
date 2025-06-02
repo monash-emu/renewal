@@ -25,7 +25,6 @@ from emu_renewal.inputs import (
     get_worldbank_national_pop,
     get_standard_priors,
     get_google_mobility,
-    get_apple_mobility,
     get_fb_mobility,
     get_fb_withintile_mobility,
 )
@@ -54,7 +53,8 @@ def find_run_start_time(
     """For all countries except Australia,
     the start of the calibration period was
     set to be the time at which the per capita
-    daily rate of deaths passed a specified threshold.
+    daily rate of deaths passed {DEATHS_START_THRESHOLD}
+    deaths per million population.
     However, if this threshold was not reached by 
     a default start date, the simulation commenced at this default time.
     For Australia, the simulation commenced from
@@ -69,7 +69,7 @@ def find_run_start_time(
     """
     deaths_data = get_who_indicator("New_deaths", iso3)
     per_capita_deaths = deaths_data / pop
-    start = per_capita_deaths.index[per_capita_deaths.gt(DEATHS_START_THRESHOLD)].min()
+    start = per_capita_deaths.index[per_capita_deaths.gt(DEATHS_START_THRESHOLD / 1e6)].min()
     if iso3 == "AUS":
         vacc_data = get_country_vacc_data("AUS")
         norm_vacc_data = vacc_data / vacc_data.iloc[-1]
