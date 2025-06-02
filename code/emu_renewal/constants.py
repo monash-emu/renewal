@@ -118,4 +118,4 @@ def get_func_blurb(function):
     docstring = function.__doc__
     blurb = re.split("(Args|Returns):", docstring)[0]
     blurb_str = re.sub(r"\s+", " ", blurb)
-    return eval(f"f'{blurb_str}'")
+    return blurb_str.format(**globals()).format(**globals())

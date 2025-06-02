@@ -154,7 +154,7 @@ def get_filtered_seroprev(
     """We filtered the SeroTracker data to include
     only the estimate reported as primary from
     Unity-aligned national-level surveys for
-    which the number of participants was at least 600.
+    which the number of participants was at least {SEROPREV_MIN_SIZE}.
     We also considered only a maximum of one seroprevalence
     value for any given date (keeping the largest
     estimate of three surveys done on the same day for Mexico).

@@ -638,8 +638,11 @@ def get_incr_pooled_totals(
     return data
 
 
-def get_income_group(iso3):
-    """https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755
+def get_income_group(
+    iso3: str,
+) -> str:
+    """We obtained income groups from 
+    [the World Bank](https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755). 
 
     Args:
         iso3: Country identifier
