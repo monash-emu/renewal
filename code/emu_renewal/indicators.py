@@ -125,7 +125,6 @@ def get_filtered_seroprev(
     iso3: str,
     start: datetime,
     end: datetime,
-    africa_lic: bool = False,
 ) -> pd.Series:
     """
     Filter the SeroTracker data according to our choices
@@ -143,8 +142,6 @@ def get_filtered_seroprev(
     Returns:
         Filtered data to use as target
     """
-    if iso3 == "AUS" or africa_lic:
-        return pd.Series([])
     data = get_all_seroprev()
     country = pycountry.countries.lookup(iso3).name
     country_filt = data["country"] == country
@@ -194,9 +191,10 @@ def get_seroprev_target(
         The seroprevalence calibration target
     """
     income = get_income_group(iso3)
-    seroprev_issues = continent in "AF" and income in ["Lower middle income", "Low income"]
-    seroprev = get_filtered_seroprev(iso3, start, end, seroprev_issues)
-    if seroprev.empty or continent == "OC":
+    if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
+        return {}
+    seroprev = get_filtered_seroprev(iso3, start, end)
+    if seroprev.empty:
         return {}
     data = get_seroprev_pooled_totals(seroprev)
     data = data[start + timedelta(SEROPREV_START_DELAY) < data.index]
