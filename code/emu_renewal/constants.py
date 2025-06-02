@@ -5,6 +5,7 @@ import re
 DATE_FORMAT = "%Y%m%d_%H%M"
 WHO_DATE_FORMAT = "%d/%m/%Y"
 TEXT_DATE_FORMAT = "%-d %B %Y"
+NEW_DATE_FORMAT = "%d %B %Y"
 
 BASE_PATH = Path(__file__).parent.parent.parent
 
@@ -69,8 +70,9 @@ VAR_NAMES = [
 ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_mob", "fb_withintile_mob"]
 
 CASES_START = datetime(2020, 6, 1)
-DEFAULT_START_TIME = datetime(2020, 6, 1)
-DEF_START_STR = DEFAULT_START_TIME.strftime(TEXT_DATE_FORMAT)
+
+DEFAULT_START_DATE = "1 June 2020"
+
 DEFAULT_END_TIME = datetime(2021, 12, 1)
 DEF_END_STR = DEFAULT_END_TIME.strftime(TEXT_DATE_FORMAT)
 ALPHA_PERIOD_START = datetime(2020, 1, 1)

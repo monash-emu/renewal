@@ -1,4 +1,3 @@
-from typing import Union
 from datetime import datetime, timedelta
 import pycountry
 import pycountry_convert as pc
@@ -14,9 +13,10 @@ import git
 
 from emu_renewal.constants import (
     DATE_FORMAT,
+    NEW_DATE_FORMAT,
     BASE_PATH,
     DEFAULT_END_TIME,
-    DEFAULT_START_TIME,
+    DEFAULT_START_DATE,
     END_VACC_THRESHOLD,
     START_VACC_THRESHOLD_AUS,
     DEATHS_START_THRESHOLD,
@@ -36,7 +36,8 @@ from emu_renewal.distributions import GammaDens
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
-from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, get_seroprev_target, get_alpha_info, get_delta_info, get_ba2_info, get_ba5_info, get_country_vars
+from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, \
+    get_seroprev_target, get_alpha_info, get_delta_info, get_ba2_info, get_ba5_info, get_country_vars
 
 
 class MobilityException(Exception):
@@ -57,7 +58,7 @@ def find_run_start_time(
     set to be the time at which the per capita
     daily rate of deaths passed {DEATHS_START_THRESHOLD}
     deaths per million population.
-    However, if this threshold was not reached by {DEF_START_STR}, 
+    However, if this threshold was not reached by {DEFAULT_START_DATE}, 
     the simulation commenced at this default time instead.
     For Australia, the simulation commenced from
     the time that vaccination reached {START_VACC_THRESHOLD_AUS}% 
@@ -77,8 +78,8 @@ def find_run_start_time(
         vacc_data = get_country_vacc_data("AUS")
         norm_vacc_data = vacc_data / vacc_data.iloc[-1]
         return norm_vacc_data[norm_vacc_data.gt(START_VACC_THRESHOLD_AUS / 100.0)].idxmin()
-    elif pd.isna(start) or start > DEFAULT_START_TIME:
-        return DEFAULT_START_TIME
+    elif pd.isna(start) or start > datetime.strptime(DEFAULT_START_DATE, NEW_DATE_FORMAT):
+        return datetime.strptime(DEFAULT_START_DATE, NEW_DATE_FORMAT)
     else:
         return start
 

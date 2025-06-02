@@ -19,7 +19,7 @@ from estival.sampling import tools as esamp
 
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
-from emu_renewal.constants import DEATHS_START_THRESHOLD, TEXT_DATE_FORMAT, DEF_START_STR, \
+from emu_renewal.constants import DEATHS_START_THRESHOLD, TEXT_DATE_FORMAT, DEFAULT_START_DATE, \
     START_VACC_THRESHOLD_AUS, END_VACC_THRESHOLD, DEF_END_STR
 
 plt.style.use("ggplot")
