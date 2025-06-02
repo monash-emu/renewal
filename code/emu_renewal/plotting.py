@@ -22,7 +22,7 @@ from emu_renewal.inputs import (
     get_fb_mobility,
     ANALYSIS_TYPES,
     get_gdps,
-    get_worldbank_national_pop
+    get_worldbank_national_pop,
 )
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim
@@ -33,14 +33,14 @@ plt.style.use("ggplot")
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
     "g_mob": "Google mobility",
-    "fb_mob": "Facebook mobility",
-    "a_mob": "Apple mobility",
+    "fb_mob": "FB tiles visited",
+    "fb_withintile_mob": "FB within tile mobility",
 }
 AN_ABBREVS = {
     "no_mob": "none",
     "g_mob": "Google",
-    "fb_mob": "Facebook",
-    "a_mob": "Apple",
+    "fb_mob": "FB tiles visited",
+    "fb_withintile_mob": "FB within tile",
 }
 TARGET_TYPES = {
     "weekly_cases": "weekly cases",
@@ -66,7 +66,7 @@ MOB_COLOURS = {
     "no_mob": "black",
     "g_mob": "green",
     "fb_mob": "blue",
-    "a_mob": "red",
+    "fb_withintile_mob": "red",
 }
 MOB_DOMAIN_MAP = {
     "retail_and_recreation": "g_mob",
@@ -75,15 +75,12 @@ MOB_DOMAIN_MAP = {
     "transit_stations": "g_mob",
     "workplaces": "g_mob",
     "residential": "g_mob",
-    "driving": "a_mob",
-    "transit": "a_mob",
-    "walking": "a_mob",
     "": "fb_mob",
 }
 MOB_SOURCE_MAP = {
     "g_mob": "Google",
     "fb_mob": "Facebook",
-    "a_mob": "Apple",
+    "fb_withintile_mob": "Facebook",
 }
 G_MOB_DOMAIN_CMAP = {
     "retail_and_recreation": "red",
@@ -99,10 +96,10 @@ A_MOB_DOMAIN_CMAP = {
     "walking": "green",
 }
 CONT_CMAP = {
-    "AS": "yellow", 
+    "AS": "yellow",
     "NA": "green",
     "SA": "purple",
-    "OC": "red", 
+    "OC": "red",
     "AF": "black",
     "EU": "blue",
 }
@@ -490,7 +487,7 @@ def plot_mob_weights_by_country(
 
     Args:
         job_path: Path for the runs
-        mob_type: Mobility type considered, either g_mob or a_mob
+        mob_type: Mobility type considered
         mobility: The mobility data by country
         title: Title for figure
         normalise: Whether to normalise the weights to sum to one
@@ -656,8 +653,6 @@ def compare_proc_mob(
                 mob = get_google_mobility(iso3)[mob_type]
             elif mob_source == "fb_mob":
                 mob = get_fb_mobility(iso3)
-            elif mob_source == "a_mob":
-                mob = get_apple_mobility(iso3)[mob_type]
             mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
             smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
             ax.plot(smoothed_mob.index, smoothed_mob, color=MOB_COLOURS[mob_source])
@@ -679,13 +674,13 @@ def get_idatas_for_mob_type(
     countries: List[str],
     mob_type: str,
 ) -> Dict[str, az.InferenceData]:
-    """Collate all the inference data objects for 
+    """Collate all the inference data objects for
     a requested group of countries.
 
     Args:
         job_path: Path for the runs
         countries: Countries identifiers
-        mob_type: Mobility type considered, either g_mob or a_mob
+        mob_type: Mobility type considered
 
     Returns:
         The inference data objects
@@ -751,11 +746,18 @@ def get_mob_exp_gdp_df(
     analyses = [a for a in ANALYSIS_NAMES if a != "no_mob"]
     for mob_type in analyses:
         idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
-        quants[mob_type] = {c: float(idatas[c].posterior["mob_exp"].quantile([0.5]).data) for c in idatas}
+        quants[mob_type] = {
+            c: float(idatas[c].posterior["mob_exp"].quantile([0.5]).data) for c in idatas
+        }
     quants["pop"] = {c: get_worldbank_national_pop(c) for c in countries}
     quants["gdp"] = get_gdps(2020)
-    quants["gdp"]["VEN"] = 42.84e9 / quants["pop"]["VEN"]  # Assume Venezuela's GDP was 42.84 billion in 2020
-    quants["cont"] = {c: pc.country_alpha2_to_continent_code(pycountry.countries.lookup(c).alpha_2) for c in countries}
+    quants["gdp"]["VEN"] = (
+        42.84e9 / quants["pop"]["VEN"]
+    )  # Assume Venezuela's GDP was 42.84 billion in 2020
+    quants["cont"] = {
+        c: pc.country_alpha2_to_continent_code(pycountry.countries.lookup(c).alpha_2)
+        for c in countries
+    }
     return pd.DataFrame(quants)
 
 
@@ -778,7 +780,17 @@ def plot_mob_exp_versus_gdp(
     for m, (mob_type, mob_name) in enumerate(analyses.items()):
         plot_df = quants_df[["gdp", mob_type, "pop", "cont"]].dropna()
         ax = axes[m]
-        sns.scatterplot(x="gdp", y=mob_type, size="pop", hue="cont", data=plot_df, sizes=(10, 200), ax=ax, legend=False, palette=CONT_CMAP)
+        sns.scatterplot(
+            x="gdp",
+            y=mob_type,
+            size="pop",
+            hue="cont",
+            data=plot_df,
+            sizes=(10, 200),
+            ax=ax,
+            legend=False,
+            palette=CONT_CMAP,
+        )
         ax.set_title(mob_name)
         ax.set_ylabel("mobility exponent")
         ax.set_xlabel("GDP per capita")

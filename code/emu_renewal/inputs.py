@@ -75,7 +75,7 @@ VAR_NAMES = [
     "24I.Omicron",
 ]
 
-ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_mob", "a_mob"]
+ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_mob", "fb_withintile_mob"]
 
 CASES_START = datetime(2020, 6, 1)
 DEFAULT_START_TIME = datetime(2020, 6, 1)
@@ -456,6 +456,23 @@ def get_fb_mobility(
     fb_mob = pd.read_csv(DATA_PATH / filename, index_col=0)["0"]
     fb_mob.index = pd.to_datetime(fb_mob.index)
     return 1.0 + fb_mob
+
+
+def get_fb_withintile_mobility(
+    iso3,
+) -> pd.Series:
+    """Get the single field of the Facebook mobility data.
+
+    Args:
+        iso3: Country identifier
+
+    Returns:
+        The data
+    """
+    filename = f"mobility/{iso3}_fbmob_data.csv"
+    fb_mob = pd.read_csv(DATA_PATH / filename, index_col=0)["0"]
+    fb_mob.index = pd.to_datetime(fb_mob.index)
+    return 1.0 - fb_mob
 
 
 def get_apple_mobility(
