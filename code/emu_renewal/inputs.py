@@ -157,7 +157,14 @@ def process_raw_google_mobility(
 
 
 def get_all_seroprev() -> pd.Series:
-    """Seroprevalence data was obtained from
+    """Get all the seroprevalence data.
+
+    Returns:
+        All SeroTracker data
+    
+    Notes
+    -----
+    Seroprevalence data was obtained from
     [SeroTracker](https://github.com/serotracker/sars-cov-2-data/raw/refs/heads/main/serotracker_dataset.csv)
     on 11 December 2024,
     with the date for each serosurvey calculated as the
@@ -165,9 +172,6 @@ def get_all_seroprev() -> pd.Series:
     This date was then lagged earlier by {ANTIBODY_DELAY} for the purposes
     of calibration to allow for a delay between infection
     and the subsequent development of detectable antibodies.
-
-    Returns:
-        All SeroTracker data
     """
     data = pd.read_csv(DATA_PATH / "seroprevalence/serotracker.csv")
     data["start"] = pd.to_datetime(data["sampling_start_date"])
@@ -290,18 +294,22 @@ def get_standard_priors(
 def get_worldbank_national_pop(
     iso3: str,
 ) -> float:
-    """Population data were downloaded from
-    [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
-    on 01/04/2025. From this data, the population size in 2020
-    of country of interest was extracted. The exception was Australia,
-    for which the population size in 2022 was used,
-    because of its later analysis period.
+    """Get the population size of a country.
 
     Args:
         iso3: Country identifier
 
     Returns:
         Population size
+
+    Notes
+    -----
+    Population data were downloaded from
+    [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
+    on 01/04/2025. From this data, the population size in 2020
+    of country of interest was extracted. The exception was Australia,
+    for which the population size in 2022 was used,
+    because of its later analysis period.
     """
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
     year = 2022 if iso3 == "AUS" else 2020
@@ -641,8 +649,8 @@ def get_incr_pooled_totals(
 def get_income_group(
     iso3: str,
 ) -> str:
-    """We obtained income groups from 
-    [the World Bank](https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755). 
+    """We obtained income groups from
+    [the World Bank](https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755).
 
     Args:
         iso3: Country identifier

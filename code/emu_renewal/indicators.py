@@ -48,7 +48,20 @@ def get_deaths_target(
     start: datetime,
     end: datetime,
 ) -> Tuple[int, Dict[str, StandardDispTarget]]:
-    """The number of deaths by week reported by WHO
+    """Get the deaths calibration target.
+
+    Args:
+        iso3: The country identifier
+        start: The calibration start time
+        end: The calibration end time
+
+    Returns:
+        Number of observations in the deaths series
+        The target
+
+    Notes
+    -----
+    The number of deaths by week reported by WHO
     was used as the first calibration target for all countries.
     Any values of zero in this series were replaced with a
     value of {ZERO_IND_REPLACEMENT} to enable comparison to
@@ -58,15 +71,6 @@ def get_deaths_target(
     for the distribution comparison of the modelled value.
     The value for weighting the deaths indicator time series
     was set to {DEATHS_WEIGHT}.
-
-    Args:
-        iso3: The country identifier
-        start: The calibration start time
-        end: The calibration end time
-
-    Returns:
-        Number of observations in the deaths series
-        The deaths calibration target
     """
     data = get_who_indicator("New_deaths", iso3)
     data = data.interpolate(method="linear").fillna(0.0)
@@ -83,15 +87,7 @@ def get_cases_target(
     end: datetime,
     n_deaths: int,
 ) -> Dict[str, StandardDispTarget]:
-    """The number of cases by week reported by WHO
-    was used as the second calibration target for all countries.
-    Linear interpolation was used to replace missing values, and
-    as for deaths, any zero values were replaced with a value of 0.5.
-    Cases was the second indicator for which
-    a common dispersion parameter was applied.
-    A target weight was applied to the series of cases
-    such that the weight for each case observation point
-    was the same as for each death observation.
+    """Get the cases calibration target.
 
     Args:
         iso3: The country identifier
@@ -100,7 +96,19 @@ def get_cases_target(
         n_deaths: The number of deaths observations
 
     Returns:
-        The cases calibration target
+        The target
+
+    Notes
+    -----
+    The number of cases by week reported by WHO
+    was used as the second calibration target for all countries.
+    Linear interpolation was used to replace missing values, and
+    as for deaths, any zero values were replaced with a value of 0.5.
+    Cases was the second indicator for which
+    a common dispersion parameter was applied.
+    A target weight was applied to the series of cases
+    such that the weight for each case observation point
+    was the same as for each death observation.
     """
     data = get_who_indicator("New_cases", iso3)
     data = data.interpolate(method="linear").fillna(0.0)
@@ -119,13 +127,7 @@ def get_hosp_target(
     end: datetime,
     n_deaths: int,
 ) -> Dict[str, StandardDispTarget]:
-    """One hospitalisation indicator was also used for
-    each country, where available.
-    This indicator was the final calibration target for which
-    a common dispersion parameter was applied.
-    As for cases, a weight was applied to the hospitalisation series
-    such that the weight for each observation point
-    was the same as for each death observation.
+    """Get the hospitalisations calibration target.
 
     Args:
         iso3: The country identifier
@@ -135,6 +137,16 @@ def get_hosp_target(
 
     Returns:
         The hospitalisation calibration target
+
+    Notes
+    -----
+    One hospitalisation indicator was also used for
+    each country, where available.
+    This indicator was the final calibration target for which
+    a common dispersion parameter was applied.
+    As for cases, a weight was applied to the hospitalisation series
+    such that the weight for each observation point
+    was the same as for each death observation.
     """
     data, output_name = get_owid_hosps(iso3, start, end)
     if data is None:
@@ -151,19 +163,23 @@ def get_hosp_target(
 def get_filtered_seroprev(
     iso3: str,
 ) -> pd.Series:
-    """We filtered the SeroTracker data to include
-    only the estimate reported as primary from
-    Unity-aligned national-level surveys for
-    which the number of participants was at least {SEROPREV_MIN_SIZE}.
-    We also considered only a maximum of one seroprevalence
-    value for any given date (keeping the largest
-    estimate of three surveys done on the same day for Mexico).
+    """Get and filter the seroprevalence data.
 
     Args:
         iso3: Country identifier
 
     Returns:
         Filtered data to use as target
+
+    Notes
+    -----
+    We filtered the SeroTracker data to include
+    only the estimate reported as primary from
+    Unity-aligned national-level surveys for
+    which the number of participants was at least {SEROPREV_MIN_SIZE}.
+    We also considered only a maximum of one seroprevalence
+    value for any given date (keeping the largest
+    estimate of three surveys done on the same day for Mexico).
     """
     data = get_all_seroprev()
     country = pycountry.countries.lookup(iso3).name
@@ -183,7 +199,20 @@ def get_seroprev_target(
     end: datetime,
     continent: str,
 ) -> Dict[str, UnivariateDispersionTarget]:
-    """We compared the modelled
+    """Construct the seroprevalence calibration target.
+
+    Args:
+        iso3: The country identifier
+        start: The calibration start time
+        end: The calibration end time
+        continent: The country's continent
+
+    Returns:
+        The seroprevalence calibration target
+
+    Notes
+    -----
+    We compared the modelled
     proportion ever infected against the reported seroprevalence
     reported at least six months ({SEROPREV_START_DELAY} days)
     after the start of the simulation,
@@ -210,20 +239,11 @@ def get_seroprev_target(
     For countries for which seroprevalence calibration targets
     were available, we assigned a target weight to this indicator
     of {SEROPREV_WEIGHT}.
-
-    Args:
-        iso3: The country identifier
-        start: The calibration start time
-        end: The calibration end time
-        continent: The country's continent
-
-    Returns:
-        The seroprevalence calibration target
     """
     income = get_income_group(iso3)
     if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
         return {}
-    seroprev = get_filtered_seroprev(iso3, start, end)
+    seroprev = get_filtered_seroprev(iso3)
     data = get_seroprev_pooled_totals(seroprev)
     time_filt = (start + timedelta(SEROPREV_START_DELAY) < data.index) & (data.index < end)
     data = data[time_filt]
