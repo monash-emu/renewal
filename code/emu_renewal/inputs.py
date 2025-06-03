@@ -161,7 +161,7 @@ def get_all_seroprev() -> pd.Series:
 
     Returns:
         All SeroTracker data
-    
+
     Notes
     -----
     Seroprevalence data was obtained from
@@ -291,6 +291,13 @@ def get_standard_priors(
     )
 
 
+def get_country_pop(iso3):
+    try:
+        return get_worldbank_national_pop(iso3)
+    except:
+        return get_undesa_national_pop(iso3)
+
+
 def get_worldbank_national_pop(
     iso3: str,
 ) -> float:
@@ -320,7 +327,7 @@ def get_worldbank_national_pop(
 def get_ordered_countries_by_cont(countries_by_cont, conts):
     ordered_countries = {}
     for cont in conts:
-        pops = {c: get_worldbank_national_pop(c) for c in countries_by_cont[cont]}
+        pops = {c: get_country_pop(c) for c in countries_by_cont[cont]}
         ordered_countries[cont] = pd.Series(pops).sort_values(ascending=False).index
     return ordered_countries
 
@@ -658,6 +665,8 @@ def get_income_group(
     Returns:
         World Bank income classification
     """
+    if iso3 == "GUF":
+        return "High income"
     data = pd.read_excel(DATA_PATH / "income/CLASS.xlsx", index_col="Code")
     return data.loc[iso3, "Income group"]
 

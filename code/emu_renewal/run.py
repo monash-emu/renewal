@@ -24,7 +24,7 @@ from emu_renewal.constants import (
 from emu_renewal.inputs import (
     get_who_indicator,
     get_country_vacc_data,
-    get_worldbank_national_pop,
+    get_country_pop,
     get_standard_priors,
     get_google_mobility,
     get_fb_mobility,
@@ -216,7 +216,7 @@ def run_single_country(
     logger.info(f"Commit message: {commit.reference.commit.message}")
 
     # Population size and analysis time
-    pop = get_worldbank_national_pop(iso3)
+    pop = get_country_pop(iso3)
     data_start = find_run_start_time(pop, iso3)
     end_time = find_run_end_time(iso3)
     run_start = data_start - timedelta(run_data_delay)
