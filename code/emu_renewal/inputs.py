@@ -73,32 +73,6 @@ def process_raw_google_mobility(
     return nat_data.sort_index()
 
 
-def get_all_seroprev() -> pd.Series:
-    """Get all the seroprevalence data.
-
-    Returns:
-        All SeroTracker data
-
-    Notes
-    -----
-    Seroprevalence data was obtained from
-    [SeroTracker](https://github.com/serotracker/sars-cov-2-data/raw/refs/heads/main/serotracker_dataset.csv)
-    on 11 December 2024,
-    with the date for each serosurvey calculated as the
-    mid-point between the reported start and end dates of sampling.
-    This date was then lagged earlier by {ANTIBODY_DELAY} for the purposes
-    of calibration to allow for a delay between infection
-    and the subsequent development of detectable antibodies.
-    """
-    data = pd.read_csv(DATA_PATH / "seroprevalence/serotracker.csv")
-    data["start"] = pd.to_datetime(data["sampling_start_date"])
-    data["end"] = pd.to_datetime(data["sampling_end_date"])
-    data.index = (data["end"] - data["start"]) / 2 + data["start"]
-    data.index -= timedelta(ANTIBODY_DELAY)
-    data.index = data.index.normalize()
-    return data.sort_index()
-
-
 def get_standard_priors(
     n_strains: int,
     hosp_out_type: str,
@@ -420,7 +394,7 @@ def find_increasing_groups(
 def find_decreasing_groups(
     data: pd.Series,
 ) -> Tuple[pd.DatetimeIndex]:
-    """Find the indexes at which a series
+    """Find the indices at which a series
     (which is supposed to be generally increasing)
     is decreasing.
 
@@ -478,39 +452,6 @@ def pool_totals(
     return new_data.sort_index()
 
 
-def pool_seroprev_totals(
-    starts: datetime,
-    ends: datetime,
-    data: pd.Series,
-) -> pd.Series:
-    """Pool groups of seroprevalence data that are
-    decreasing over time and were identified by
-    find_decreasing_groups.
-
-    Args:
-        starts: The start indices for the decreasing groups
-        ends: The end indices for the decreasing groups
-        data: The data before processing
-
-    Returns:
-        The processed data
-    """
-    period_sums = pd.DataFrame()
-    idx_to_remove = []
-    for start, end in zip(starts, ends):
-        period = data.loc[start:end]
-        average_date = period.index.mean()
-        prevs = period[PREV_KEY]
-        denoms = period["denominator_value"]
-        total_denoms = denoms.sum()
-        new_prev = (prevs * denoms).sum() / total_denoms
-        period_sums.loc[average_date, PREV_KEY] = new_prev
-        period_sums.loc[average_date, "denominator_value"] = total_denoms
-        idx_to_remove += list(period.index)
-    new_data = pd.concat([period_sums, data.drop(index=idx_to_remove)])
-    return new_data.sort_index()
-
-
 def get_pooled_totals(
     data: pd.DataFrame,
     var_name: str = "prealpha",
@@ -531,32 +472,13 @@ def get_pooled_totals(
     return data
 
 
-def get_seroprev_pooled_totals(
-    data: pd.Series,
-) -> pd.Series:
-    """Pool any sequences of seroprevalence data
-    that are decreasing over time.
-    Continue pooling until all estimates are monotonically
-    increasing.
-
-    Args:
-        data: The raw seroprevalence data
-
-    Returns:
-        The data after pooling
-    """
-    while not data[PREV_KEY].is_monotonic_increasing:
-        starts, ends = find_decreasing_groups(data[PREV_KEY])
-        data = pool_seroprev_totals(starts, ends, data)
-    return data[PREV_KEY]
-
-
 def get_incr_pooled_totals(
     data: pd.DataFrame,
     var_name: str = "prealpha",
 ) -> pd.DataFrame:
     """Combines the two preceding functions
-    to get the totals after pooling for increases in the data.
+    to get the totals after pooling to remove
+    decreases in the data.
 
     Args:
         data: The unadjusted data
@@ -573,14 +495,18 @@ def get_incr_pooled_totals(
 def get_income_group(
     iso3: str,
 ) -> str:
-    """We obtained income groups from
-    [the World Bank](https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755).
+    """Get World Bank income group for a country.
 
     Args:
         iso3: Country identifier
 
     Returns:
         World Bank income classification
+    
+    Notes
+    -----
+    Country income classifications were obtained from 
+    [the World Bank](https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755).
     """
     if iso3 == "GUF":
         return "High income"

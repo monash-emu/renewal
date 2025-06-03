@@ -33,13 +33,14 @@ from emu_renewal.constants import (
     WHO_DATE_FORMAT,
     ALREADY_WEEKLY_ADMIT_COUNTRIES,
     ALREADY_WEEKLY_OCCUP_COUNTRIES,
+    ANTIBODY_DELAY,
+    PREV_KEY,
 )
 from emu_renewal.inputs import (
-    get_all_seroprev,
-    get_seroprev_pooled_totals,
     get_income_group,
     get_incr_pooled_totals,
     get_owid_hosp_series,
+    find_decreasing_groups,
 )
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
 
@@ -245,13 +246,41 @@ def get_hosp_target(
     return {output_name: target}
 
 
-def get_filtered_seroprev(
+def get_all_seroprev() -> pd.Series:
+    """Get all the seroprevalence data.
+
+    Returns:
+        All SeroTracker data
+
+    Notes
+    -----
+    Seroprevalence data was obtained from
+    [SeroTracker](https://github.com/serotracker/sars-cov-2-data/raw/refs/heads/main/serotracker_dataset.csv)
+    on 11 December 2024,
+    with the date for each serosurvey estimate calculated as the
+    mid-point between the reported start and end dates of sampling.
+    This date was then lagged earlier by {ANTIBODY_DELAY} for the purposes
+    of calibration to allow for a delay between infection
+    and the subsequent development of detectable antibodies.
+    """
+    data = pd.read_csv(DATA_PATH / "seroprevalence/serotracker.csv")
+    data["start"] = pd.to_datetime(data["sampling_start_date"])
+    data["end"] = pd.to_datetime(data["sampling_end_date"])
+    data.index = (data["end"] - data["start"]) / 2 + data["start"]
+    data.index -= timedelta(ANTIBODY_DELAY)
+    data.index = data.index.normalize()
+    return data.sort_index()
+
+
+def filter_seroprev(
     iso3: str,
+    data: pd.DataFrame,
 ) -> pd.Series:
     """Get and filter the seroprevalence data.
 
     Args:
         iso3: Country identifier
+        data: The raw data from get_all_seroprev
 
     Returns:
         Filtered data to use as target
@@ -266,7 +295,6 @@ def get_filtered_seroprev(
     value for any given date (keeping the largest
     estimate of three surveys done on the same day for Mexico).
     """
-    data = get_all_seroprev()
     country = pycountry.countries.lookup(iso3).name
     country_filt = data["country"] == country
     nat_filt = data["estimate_grade"] == "National"
@@ -276,6 +304,59 @@ def get_filtered_seroprev(
     all_filt = country_filt & nat_filt & type_filt & unity_filt & n_filt
     filt_data = data[all_filt]
     return filt_data[[not i for i in filt_data.index.duplicated()]]
+
+
+def pool_seroprev_totals(
+    starts: datetime,
+    ends: datetime,
+    data: pd.Series,
+) -> pd.Series:
+    """Pool groups of seroprevalence data that are
+    decreasing over time and were identified by
+    find_decreasing_groups.
+
+    Args:
+        starts: The start indices for the decreasing groups
+        ends: The end indices for the decreasing groups
+        data: The data before processing
+
+    Returns:
+        The processed data
+    """
+    period_sums = pd.DataFrame()
+    idx_to_remove = []
+    for start, end in zip(starts, ends):
+        period = data.loc[start:end]
+        average_date = period.index.mean()
+        prevs = period[PREV_KEY]
+        denoms = period["denominator_value"]
+        total_denoms = denoms.sum()
+        new_prev = (prevs * denoms).sum() / total_denoms
+        period_sums.loc[average_date, PREV_KEY] = new_prev
+        period_sums.loc[average_date, "denominator_value"] = total_denoms
+        idx_to_remove += list(period.index)
+    new_data = pd.concat([period_sums, data.drop(index=idx_to_remove)])
+    return new_data.sort_index()
+
+
+def get_seroprev_pooled_totals(
+    data: pd.Series,
+) -> pd.Series:
+    """Pool any sequences of seroprevalence data
+    that are decreasing over time.
+    Continue pooling until all estimates are monotonically
+    increasing.
+
+    Args:
+        data: The raw seroprevalence data
+
+    Returns:
+        The data after pooling
+    """
+    while not data[PREV_KEY].is_monotonic_increasing:
+        starts, ends = find_decreasing_groups(data[PREV_KEY])
+        data = pool_seroprev_totals(starts, ends, data)
+    return data[PREV_KEY]
 
 
 def get_seroprev_target(
@@ -328,7 +409,8 @@ def get_seroprev_target(
     income = get_income_group(iso3)
     if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
         return {}
-    seroprev = get_filtered_seroprev(iso3)
+    seroprev = get_all_seroprev()
+    seroprev = filter_seroprev(iso3, seroprev)
     if seroprev.empty:
         return {}
     data = get_seroprev_pooled_totals(seroprev)
