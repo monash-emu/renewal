@@ -169,13 +169,12 @@ def get_owid_hosps(
     over estimates of total bed occupancy, and total hospital
     indicators were preferred over ICU indicators.
     The final hierarchy of indicators was:
-
-    \n1) Hospital new admissions
-    2) Hospital occupancy
-    3) ICU new admissions
-    4) ICU occupancy
-    5) No hospital indicator\n
-
+    __RETURN__1. Hospital new admissions thing
+    __RETURN__2. Hospital occupancy
+    __RETURN__3. ICU new admissions
+    __RETURN__4. ICU occupancy
+    __RETURN__5. No hospital indicator
+    __RETURN____RETURN__
     That is, the highest ranked indicator was used based on data availability,
     and no hospital indicator was incorporated if none were available.
     """

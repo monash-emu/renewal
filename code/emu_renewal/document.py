@@ -16,6 +16,7 @@ def get_func_blurb(
         The formatted text
     """
     docstring = function.__doc__
-    blurb = re.split("-----", docstring)[1]
-    blurb_str = re.sub(r"\s+", " ", blurb)
-    return blurb_str.format(**constants.__dict__)
+    txt = re.split("-----", docstring)[1]
+    txt = re.sub(r"\s+", " ", txt)
+    txt = re.sub(r"__RETURN__", "\n", txt)
+    return txt.format(**constants.__dict__)
