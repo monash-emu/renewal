@@ -169,9 +169,9 @@ def get_owid_hosps(
     over estimates of total bed occupancy, and total hospital
     indicators were preferred over ICU indicators.
     The final hierarchy of indicators was:
-    __RETURN__1. Hospital new admissions thing
+    __RETURN__1. New hospital admissions
     __RETURN__2. Hospital occupancy
-    __RETURN__3. ICU new admissions
+    __RETURN__3. New ICU admissions
     __RETURN__4. ICU occupancy
     __RETURN__5. No hospital indicator
     __RETURN____RETURN__
@@ -298,7 +298,7 @@ def get_seroprev_target(
     Notes
     -----
     We compared the modelled
-    proportion ever infected against the reported seroprevalence
+    proportion ever infected against the seroprevalence
     reported at least six months ({SEROPREV_START_DELAY} days)
     after the start of the simulation,
     because a comparison against early seroprevalence estimates
@@ -315,12 +315,12 @@ def get_seroprev_target(
     We also ignored seroprevalence estimates from
     low and lower middle income countries of Africa, because
     we were unable to obtain good fits for several of these countries
-    while also maintaining plausible detection parameters
-    (e.g. case detection rate, hospital admission rate
+    while also maintaining plausible detection/severity parameters
+    (i.e. case detection rate, hospital admission rate
     and infection fatality rate).
     Last, we ignored seroprevalence estimates for Australia,
-    for which the analysis was run largely through 2022
-    during which seroprevalence values were much higher.
+    for which the analysis was run largely through 2022,
+    during which time seroprevalence values were much higher.
     For countries for which seroprevalence calibration targets
     were available, we assigned a target weight to this indicator
     of {SEROPREV_WEIGHT}.

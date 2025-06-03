@@ -236,3 +236,20 @@ def get_countries_by_continent(countries):
         else:
             result[cont] = [c]
     return result
+
+
+def count_max_consecutive_nans(
+    data: pd.Series,
+) -> int:
+    """Find the maximum number of consecutive NaNs 
+    in a row in the input data.
+
+    Args:
+        data: The data
+
+    Returns:
+        The number of NaNs
+    """
+    is_nan = data.isna()
+    consecutive_nans = is_nan.groupby((is_nan != is_nan.shift()).cumsum()).cumsum()
+    return consecutive_nans.max()
