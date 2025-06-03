@@ -41,64 +41,6 @@ def get_owid_hosp_series(
     return data.loc[data["indicator"] == indicator, "value"]
 
 
-def get_owid_hosps(
-    country: str,
-    start: datetime,
-    end: datetime,
-) -> Tuple[Union[pd.Series, None], str]:
-    """Get only one hospitalisation target for a specified country,
-    hierarchically choosing the preferred target,
-    or returning None and empty string if nothing available.
-    The "best" indicator is chosen hierarchically,
-    such that a hospital indicator beats a ICU indicator
-    and daily admissions beat occupancy.
-    Croatia admissions from OWID is reported weekly,
-    so no need to apply rolling average
-    (even though it is weekly data, it is reported
-    each day for most countries).
-    Japan and Bulgaria occupancy from OWID is reported weekly,
-    so no need to apply rolling average.
-
-    Args:
-        country: Country identifier
-        start: Data comparison start time
-        end: Analysis end time
-
-    Returns:
-        Tuple of two elements:
-            - The calibration data for comparison
-            - The name of the indicator for comparison
-    """
-    admits = get_owid_hosp_series("Weekly new hospital admissions", country)
-    filt_admits = admits[(start < admits.index) & (admits.index < end) & (admits > 0.0)]
-    occup = get_owid_hosp_series("Daily hospital occupancy", country)
-    filt_occup = occup[(start < occup.index) & (occup.index < end)]
-    icu_admits = get_owid_hosp_series("Weekly new ICU admissions", country)
-    filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
-    icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
-    filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
-    if not filt_admits.empty and country in ALREADY_WEEKLY_ADMIT_COUNTRIES:
-        weekly_admits = filt_admits.dropna()
-        return weekly_admits, "weekly_admissions"
-    elif not filt_admits.empty:
-        weekly_admits = filt_admits.rolling(7).mean()[::7].dropna()
-        return weekly_admits, "weekly_admissions"
-    elif not filt_occup.empty and country in ALREADY_WEEKLY_OCCUP_COUNTRIES:
-        weekly_occup = filt_occup.dropna()
-        return weekly_occup, "occupancy"
-    elif not filt_occup.empty:
-        weekly_occup = filt_occup.rolling(7).mean()[::7].dropna()
-        return weekly_occup, "occupancy"
-    elif not filt_icu_admits.empty:
-        weekly_icu_admits = filt_icu_admits.rolling(7).mean()[::7].dropna()
-        return weekly_icu_admits, "icu_weekly_admissions"
-    elif not filt_icu_occup.empty:
-        weekly_icu_occup = filt_icu_occup.rolling(7).mean()[::7].dropna()
-        return weekly_icu_occup, "icu_occupancy"
-    else:
-        return None, ""
-
-
 def process_raw_google_mobility(
     iso3: str,
 ) -> pd.DataFrame:

@@ -31,14 +31,15 @@ from emu_renewal.constants import (
     ZERO_IND_REPLACEMENT,
     SEROPREV_START_DELAY,
     WHO_DATE_FORMAT,
+    ALREADY_WEEKLY_ADMIT_COUNTRIES,
+    ALREADY_WEEKLY_OCCUP_COUNTRIES,
 )
 from emu_renewal.inputs import (
-    get_owid_hosps,
-    get_owid_hosps,
     get_all_seroprev,
     get_seroprev_pooled_totals,
     get_income_group,
     get_incr_pooled_totals,
+    get_owid_hosp_series,
 )
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
 
@@ -141,6 +142,58 @@ def get_cases_target(
     return {"weekly_cases": target}
 
 
+def get_owid_hosps(
+    country: str,
+    start: datetime,
+    end: datetime,
+) -> Tuple[Union[pd.Series, None], str]:
+    """Select the hospitalisation calibration target.
+
+    Args:
+        country: Country identifier
+        start: Data comparison start time
+        end: Analysis end time
+
+    Returns:
+        Tuple of two elements:
+            - The calibration data for comparison
+            - The name of the indicator for comparison
+
+    Notes
+    -----
+    A single hospitalisation indicator used for calibration was
+    chosen using a hierarchical approach.
+    """
+    admits = get_owid_hosp_series("Weekly new hospital admissions", country)
+    filt_admits = admits[(start < admits.index) & (admits.index < end) & (admits > 0.0)]
+    occup = get_owid_hosp_series("Daily hospital occupancy", country)
+    filt_occup = occup[(start < occup.index) & (occup.index < end)]
+    icu_admits = get_owid_hosp_series("Weekly new ICU admissions", country)
+    filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
+    icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
+    filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
+    if not filt_admits.empty and country in ALREADY_WEEKLY_ADMIT_COUNTRIES:
+        weekly_admits = filt_admits.dropna()
+        return weekly_admits, "weekly_admissions"
+    elif not filt_admits.empty:
+        weekly_admits = filt_admits.rolling(7).mean()[::7].dropna()
+        return weekly_admits, "weekly_admissions"
+    elif not filt_occup.empty and country in ALREADY_WEEKLY_OCCUP_COUNTRIES:
+        weekly_occup = filt_occup.dropna()
+        return weekly_occup, "occupancy"
+    elif not filt_occup.empty:
+        weekly_occup = filt_occup.rolling(7).mean()[::7].dropna()
+        return weekly_occup, "occupancy"
+    elif not filt_icu_admits.empty:
+        weekly_icu_admits = filt_icu_admits.rolling(7).mean()[::7].dropna()
+        return weekly_icu_admits, "icu_weekly_admissions"
+    elif not filt_icu_occup.empty:
+        weekly_icu_occup = filt_icu_occup.rolling(7).mean()[::7].dropna()
+        return weekly_icu_occup, "icu_occupancy"
+    else:
+        return None, ""
+
+
 def get_hosp_target(
     iso3: str,
     start: datetime,
@@ -160,8 +213,6 @@ def get_hosp_target(
 
     Notes
     -----
-    One hospitalisation indicator was also used for
-    each country, where available.
     This indicator was the final calibration target for which
     a common dispersion parameter was applied.
     As for cases, a weight was applied to the hospitalisation series
