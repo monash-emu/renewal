@@ -148,6 +148,8 @@ def get_owid_hosps(
     end: datetime,
 ) -> Tuple[Union[pd.Series, None], str]:
     """Select the hospitalisation calibration target.
+    Code needs to account for some countries that already report
+    their hospitalisation indicator weekly.
 
     Args:
         country: Country identifier
@@ -163,6 +165,19 @@ def get_owid_hosps(
     -----
     A single hospitalisation indicator used for calibration was
     chosen using a hierarchical approach.
+    In selecting the indicator, the number of new admissions was preferred
+    over estimates of total bed occupancy, and total hospital
+    indicators were preferred over ICU indicators.
+    The final hierarchy of indicators was:
+
+    \n1) Hospital new admissions
+    2) Hospital occupancy
+    3) ICU new admissions
+    4) ICU occupancy
+    5) No hospital indicator\n
+
+    That is, the highest ranked indicator was used based on data availability,
+    and no hospital indicator was incorporated if none were available.
     """
     admits = get_owid_hosp_series("Weekly new hospital admissions", country)
     filt_admits = admits[(start < admits.index) & (admits.index < end) & (admits > 0.0)]
