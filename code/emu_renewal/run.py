@@ -22,7 +22,6 @@ from emu_renewal.constants import (
     DEATHS_START_THRESHOLD,
 )
 from emu_renewal.inputs import (
-    get_who_indicator,
     get_country_vacc_data,
     get_country_pop,
     get_standard_priors,
@@ -37,6 +36,7 @@ from emu_renewal.calibration import StandardCalib
 from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
 from emu_renewal.indicators import (
+    get_who_indicator,
     get_deaths_target,
     get_cases_target,
     get_hosp_target,

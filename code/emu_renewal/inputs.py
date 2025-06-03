@@ -10,39 +10,14 @@ import yaml as yml
 from numpyro import distributions as dist
 from emu_renewal.utils import get_beta_params_from_mean_var
 from emu_renewal.constants import (
-    WHO_DATE_FORMAT,
     VAR_NAMES,
-    BA2_PERIOD_START,
     DATA_PATH,
     RAW_MOB_PATH,
-    BA2_PERIOD_END,
-    BA5_PERIOD_START,
-    BA5_PERIOD_END,
     ALREADY_WEEKLY_ADMIT_COUNTRIES,
     ALREADY_WEEKLY_OCCUP_COUNTRIES,
     PREV_KEY,
     ANTIBODY_DELAY,
 )
-
-
-def get_who_indicator(
-    indicator: str,
-    iso3: str,
-) -> pd.Series:
-    """Get WHO estimates for single indicator from the original raw data.
-
-    Args:
-        indicator: Name of the indicator
-        iso3: Country identifier
-
-    Returns:
-        The data
-    """
-    who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
-    iso2 = pycountry.countries.lookup(iso3).alpha_2
-    select_data = who_data.loc[who_data["Country_code"] == iso2]
-    select_data.index = pd.to_datetime(select_data["Date_reported"], format=WHO_DATE_FORMAT)
-    return select_data[indicator]
 
 
 def get_owid_hosp_series(

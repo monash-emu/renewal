@@ -33,7 +33,6 @@ from emu_renewal.constants import (
     WHO_DATE_FORMAT,
 )
 from emu_renewal.inputs import (
-    get_who_indicator,
     get_owid_hosps,
     get_owid_hosps,
     get_all_seroprev,
