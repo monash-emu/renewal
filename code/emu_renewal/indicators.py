@@ -30,6 +30,7 @@ from emu_renewal.constants import (
     BA5_PERIOD_END,
     ZERO_IND_REPLACEMENT,
     SEROPREV_START_DELAY,
+    WHO_DATE_FORMAT,
 )
 from emu_renewal.inputs import (
     get_who_indicator,
@@ -41,6 +42,26 @@ from emu_renewal.inputs import (
     get_incr_pooled_totals,
 )
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
+
+
+def get_who_indicator(
+    indicator: str,
+    iso3: str,
+) -> pd.Series:
+    """Get WHO estimates for single indicator from the original raw data.
+
+    Args:
+        indicator: Name of the indicator
+        iso3: Country identifier
+
+    Returns:
+        The data
+    """
+    who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
+    iso2 = pycountry.countries.lookup(iso3).alpha_2
+    select_data = who_data.loc[who_data["Country_code"] == iso2]
+    select_data.index = pd.to_datetime(select_data["Date_reported"], format=WHO_DATE_FORMAT)
+    return select_data[indicator]
 
 
 def get_deaths_target(
