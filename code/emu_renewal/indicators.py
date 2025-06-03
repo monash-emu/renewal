@@ -244,6 +244,8 @@ def get_seroprev_target(
     if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
         return {}
     seroprev = get_filtered_seroprev(iso3)
+    if seroprev.empty:
+        return {}
     data = get_seroprev_pooled_totals(seroprev)
     time_filt = (start + timedelta(SEROPREV_START_DELAY) < data.index) & (data.index < end)
     data = data[time_filt]
