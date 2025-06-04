@@ -4,6 +4,7 @@ import pandas as pd
 import pycountry
 from numpyro import distributions as dist
 import pycountry_convert as pc
+from os import listdir as ls
 
 from emu_renewal.constants import (
     DATA_PATH,
@@ -23,7 +24,6 @@ from emu_renewal.constants import (
     POST_SIM_DATE,
     POST_SIM_DATE,
     POST_SIM_DATE,
-    VAR_NAMES,
     BA2_PERIOD_START,
     BA2_PERIOD_END,
     BA5_PERIOD_START,
@@ -436,7 +436,7 @@ def get_seroprev_target(
 def get_country_vars(
     iso3: str,
 ) -> pd.DataFrame:
-    """Get all the CoVariants data for a particular country.
+    """Get all the covariants data for a particular country.
 
     Args:
         iso3: The country identifier
@@ -446,7 +446,12 @@ def get_country_vars(
     
     Notes
     -----
-    
+    Reports of the number of isolates of specific variants of SARS-CoV-2
+    were obtained from the
+    [covariants](https://github.com/hodcroftlab/covariants/raw/refs/heads/master/cluster_tables/)
+    GitHub repository. Each variant-specific file was downloaded 
+    used to create country-specific tables of the variant-specific 
+    counts by date.
     """
     if iso3 == "CZE":
         country = pycountry.countries.lookup(iso3).official_name
@@ -455,7 +460,8 @@ def get_country_vars(
     else:
         country = pycountry.countries.lookup(iso3).name
     data = pd.DataFrame()
-    for var in VAR_NAMES:
+    var_names = [v.split(".json")[0] for v in ls(DATA_PATH / "nextclade") if v.startswith("2")]
+    for var in var_names:
         var_data = pd.read_json(DATA_PATH / f"nextclade/{var}.json")
         if country in var_data:
             raw_data = var_data[country]

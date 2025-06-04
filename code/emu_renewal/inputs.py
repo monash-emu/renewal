@@ -1,23 +1,14 @@
-from typing import Union
 import pandas as pd
 import geopandas as gpd
 from jax import numpy as jnp
 import json
 import pycountry
-from typing import Dict, Tuple, Union
-from datetime import datetime, timedelta
+from typing import Dict, Tuple
 import yaml as yml
 from numpyro import distributions as dist
 from emu_renewal.utils import get_beta_params_from_mean_var
-from emu_renewal.constants import (
-    VAR_NAMES,
-    DATA_PATH,
-    RAW_MOB_PATH,
-    ALREADY_WEEKLY_ADMIT_COUNTRIES,
-    ALREADY_WEEKLY_OCCUP_COUNTRIES,
-    PREV_KEY,
-    ANTIBODY_DELAY,
-)
+from emu_renewal.constants import DATA_PATH, RAW_MOB_PATH
+from os import listdir as ls
 
 
 def get_owid_hosp_series(
@@ -364,7 +355,8 @@ def get_all_var_data() -> dict:
     Returns:
         Data in raw form
     """
-    return {v: json.load(open(DATA_PATH / f"nextclade/{v}.json", "r")) for v in VAR_NAMES}
+    var_names = [v.split(".json")[0] for v in ls(DATA_PATH / "nextclade") if v.startswith("2")]
+    return {v: json.load(open(DATA_PATH / f"nextclade/{v}.json", "r")) for v in var_names}
 
 
 def find_increasing_groups(
