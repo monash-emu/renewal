@@ -532,25 +532,26 @@ def extract_specific_var(
     Returns:
         Data for the number of pre-Alpha specimens, total specimens and
             proportion pre-Alpha by date - where available
+    
+    Notes
+    -----
+    The identifiers 20A.EU1, 20A.EU2, 20B.S.732A and 21C.Epsilon
+    were used to identify variants prior to Alpha.
+    The text "Delta" was used to identify Delta variants and
+    the text "21L.Omicron" was used to distinguish the BA.2
+    variant from later variants (modelled as BA.5).
     """
-    prealpha_cols = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
-    alpha_cols = [c for c in var_data.columns if c not in prealpha_cols]
-    delta_cols = [c for c in var_data.columns if "Delta" in c]
-    ba2_col = ["21L.Omicron"]
-    ba5_cols = [c for c in var_data.columns if c not in ba2_col]
-    rel_cols = {
-        "alpha": alpha_cols,
-        "delta": delta_cols,
-        "ba2": ba2_col,
-        "ba5": ba5_cols,
-    }
-    end_dates = {
-        "alpha": ALPHA_FULL_REPLACE_DATE,
-        "delta": POST_SIM_DATE,
-        "ba2": POST_SIM_DATE,
-        "ba5": POST_SIM_DATE,
-    }
-    return get_specific_var_props(var_data, var_name, rel_cols[var_name], end_dates[var_name])
+    if var_name == "alpha":
+        prealpha_cols = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
+        cols = [c for c in var_data.columns if c not in prealpha_cols]
+    elif var_name == "delta":
+        cols = [c for c in var_data.columns if "Delta" in c]
+    elif var_name == "ba2":
+        cols = ["21L.Omicron"]
+    elif var_name == "ba5":
+        cols = [c for c in var_data.columns if c != "21L.Omicron"]
+    end_date = ALPHA_FULL_REPLACE_DATE if var_name == "alpha" else POST_SIM_DATE
+    return get_specific_var_props(var_data, var_name, cols, end_date)
 
 
 def get_continent_data(
@@ -579,15 +580,6 @@ def get_continent_data(
     return cont_data
 
 
-def get_var_target(var_data, continent, var_name):
-    data = extract_specific_var(var_data, var_name)
-    if data is None:
-        cont_data = get_continent_data(continent, var_name)
-        return get_continent_vars(cont_data, var_name)
-    else:
-        return data
-
-
 def get_continent_vars(
     data: Dict[str, pd.DataFrame],
     var_name: str = "prealpha",
@@ -611,6 +603,40 @@ def get_continent_vars(
             cont_data = cont_data.add(d, fill_value=0.0)
     cont_data[f"{var_name}_prop"] = cont_data[var_name] / cont_data["totals"]
     return cont_data
+
+
+def get_var_target(
+    var_data: pd.DataFrame, 
+    continent: str,
+    var_name: str,
+) -> pd.DataFrame:
+    """Get the variant-specific data (for Alpha or Delta)
+    for a country, using the continent data 
+    if not available for the country.
+
+    Args:
+        var_data: All variant data for the country
+        continent: Continent identifier
+        var_name: Variant identifier
+
+    Returns:
+        The data
+
+    Notes
+    -----
+    To obtain data to use as calibration targets for
+    both the Alpha and the Delta variants,
+    we used the totals for the country analysed where available.
+    If data were not available for the country,
+    we used pooled data from all the other countries 
+    from the same continent where available.
+    """
+    data = extract_specific_var(var_data, var_name)
+    if data is None:
+        cont_data = get_continent_data(continent, var_name)
+        return get_continent_vars(cont_data, var_name)
+    else:
+        return data
 
 
 def get_alpha_info(iso3, var_data, continent, end_time, delta_targ):
@@ -661,7 +687,7 @@ def get_delta_info(
     As for the other variants and for seroprevalence,
     decreasing values for the proportion of sequences attributable
     to Delta were recursively pooled to ensure they were strictly increasing.
-    The target weight for calibration was set to be {VAR_WEIGHTS}
+    The target weight for calibration was set to be {VAR_WEIGHT}
     for most countries. Exceptions were made if the target for data
     emerged towards the very end of the calibration last
     ({LATE_DELTA_WEIGHT} days), in which case a higher weight 
