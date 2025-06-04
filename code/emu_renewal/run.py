@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from socket import gethostname
 import pycountry
 import pycountry_convert as pc
 import logging
@@ -36,8 +37,17 @@ from emu_renewal.distributions import GammaDens
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
-from emu_renewal.indicators import get_deaths_target, get_cases_target, get_hosp_target, \
-    get_seroprev_target, get_alpha_info, get_delta_info, get_ba2_info, get_ba5_info, get_country_vars
+from emu_renewal.indicators import (
+    get_deaths_target,
+    get_cases_target,
+    get_hosp_target,
+    get_seroprev_target,
+    get_alpha_info,
+    get_delta_info,
+    get_ba2_info,
+    get_ba5_info,
+    get_country_vars,
+)
 
 
 class MobilityException(Exception):
@@ -46,6 +56,7 @@ class MobilityException(Exception):
 
 def jax_config_cpu_only():
     import jax
+
     jax.config.update("jax_platform_name", "cpu")
 
 
@@ -58,10 +69,10 @@ def find_run_start_time(
     set to be the time at which the per capita
     daily rate of deaths passed {DEATHS_START_THRESHOLD}
     deaths per million population.
-    However, if this threshold was not reached by {DEFAULT_START_DATE}, 
+    However, if this threshold was not reached by {DEFAULT_START_DATE},
     the simulation commenced at this default time instead.
     For Australia, the simulation commenced from
-    the time that vaccination reached {START_VACC_THRESHOLD_AUS}% 
+    the time that vaccination reached {START_VACC_THRESHOLD_AUS}%
     of its final value.
 
     Args:
@@ -86,12 +97,12 @@ def find_run_start_time(
 
 def find_run_end_time(iso3: str) -> datetime:
     """For all countries but Australia,
-    the end time for the analysis was calculated as 
+    the end time for the analysis was calculated as
     the time that the population vaccination coverage
-    passed {END_VACC_THRESHOLD}%, 
+    passed {END_VACC_THRESHOLD}%,
     provided that the vaccination coverage did reach this
     value before the default end time of {DEFAULT_END_DATE}.
-    Otherwise, this default end date was used instead. 
+    Otherwise, this default end date was used instead.
     For Australia, the latest date for which
     the Google mobility data was available was used.
 
@@ -187,7 +198,7 @@ def run_single_country(
     iso3 = pycountry.countries.lookup(country).alpha_3
     iso2 = pycountry.countries.lookup(country).alpha_2
     continent = pc.country_alpha2_to_continent_code(iso2)
-    
+
     # Logging
     logger = logger or logging.getLogger()
     logger.info(f"\n________________________\nRunning job at {analysis_name}")
@@ -196,6 +207,7 @@ def run_single_country(
     commit = git.Repo(search_parent_directories=True).head
     logger.info(f"Git commit hash: {commit.object.hexsha}")
     logger.info(f"Commit message: {commit.reference.commit.message}")
+    logger.info(f"Hostname: {gethostname()}")
 
     # Population size and analysis time
     pop = get_worldbank_national_pop(iso3)
@@ -216,7 +228,9 @@ def run_single_country(
     # Variants
     var_data = get_country_vars(iso3)
     delta_var, delta_targ, delta_seed = get_delta_info(iso3, var_data, continent, end_time)
-    alpha_var, alpha_targ, alpha_seed = get_alpha_info(iso3, var_data, continent, end_time, delta_targ)
+    alpha_var, alpha_targ, alpha_seed = get_alpha_info(
+        iso3, var_data, continent, end_time, delta_targ
+    )
     ba2_var, ba2_targ, ba2_seed = get_ba2_info(var_data, continent)
     ba5_var, ba5_targ, ba5_seed = get_ba5_info(var_data, continent)
     start_var = "ba1" if continent == "OC" else "eu"
@@ -261,7 +275,9 @@ def run_single_country(
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
     init = calib.custom_init(radius=0.1)
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
-    mcmc = infer.MCMC(kernel, num_chains=n_chains, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar)
+    mcmc = infer.MCMC(
+        kernel, num_chains=n_chains, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar
+    )
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
 
     # Outputs
