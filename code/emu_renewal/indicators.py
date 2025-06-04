@@ -35,6 +35,9 @@ from emu_renewal.constants import (
     ALREADY_WEEKLY_OCCUP_COUNTRIES,
     ANTIBODY_DELAY,
     PREV_KEY,
+    CODE_DATE_FORMAT,
+    LATE_DELTA_WEIGHT,
+    LATE_DELTA_TIME,
 )
 from emu_renewal.inputs import (
     get_income_group,
@@ -623,19 +626,62 @@ def get_alpha_info(iso3, var_data, continent, end_time, delta_targ):
     return ["alpha"], {"prop_alpha": StandardPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
 
 
-def get_delta_info(iso3, var_data, continent, end_time):
-    if continent or end_time < DELTA_INCLUSION_DATE:
+def get_delta_info(
+    iso3: str,
+    var_data: pd.DataFrame,
+    continent: str,
+    end_time: datetime,
+) -> Tuple[List[str], Dict[str, StandardPropTarget], List[datetime]]:
+    """Get the required information relating
+    to the Delta variant to run an analysis.
+
+    Args:
+        iso3: The country identifier
+        var_data: All the variant data for the country
+        continent: The continent identifier
+        end_time: The analysis end date
+
+    Returns:
+        - A list containing the name of the variant (if included)
+        - The calibration target for Delta (if included)
+        - A list containing the first identification date of Delta (if included)
+    
+    Notes
+    -----
+    For all countries other than Australia, 
+    the Delta variant was included if the end date of the 
+    calibration fell later than {DELTA_INCLUSION_DATE}.
+    The periods for calibration against the Alpha and the Delta
+    variants were set so as to be mutually exclusive in time.
+    Specifically, the date to transition from calibrating against available data for 
+    the Alpha to calibrating against data for Delta was set as
+    {ALPHA_DELTA_TRANS}. Exceptions were made for several Asian countries
+    for which this transition date was set one month earlier and two countries
+    of North America for which it was set six weeks later.
+    As for the other variants and for seroprevalence,
+    decreasing values for the proportion of sequences attributable
+    to Delta were recursively pooled to ensure they were strictly increasing.
+    The target weight for calibration was set to be {VAR_WEIGHTS}
+    for most countries. Exceptions were made if the target for data
+    emerged towards the very end of the calibration last
+    ({LATE_DELTA_WEIGHT} days), in which case a higher weight 
+    (of {LATE_DELTA_WEIGHT}) was needed to capture this late emergence
+    with fewer data points.
+    """
+    delta_inc_date = datetime.strptime(DELTA_INCLUSION_DATE, CODE_DATE_FORMAT)
+    delta_end_date = datetime.strptime(DELTA_PERIOD_END, CODE_DATE_FORMAT)
+    ad_trans = datetime.strptime(ALPHA_DELTA_TRANS, CODE_DATE_FORMAT)
+    if continent == "OC" or end_time < delta_inc_date:
         return [], {}, []
     data = get_var_target(var_data, continent, "delta")
-    delta_start = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
-    delta_end = min([DELTA_PERIOD_END, end_time])
+    delta_start = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ad_trans
+    delta_end = min([delta_end_date, end_time])
     mask = (delta_start < data.index) & (data.index < delta_end)
-    pooled_data = get_incr_pooled_totals(data[mask], "delta")["delta_prop"]
-    target = pooled_data["delta_prop"]
+    target = get_incr_pooled_totals(data[mask], "delta")["delta_prop"]
     if target is None or target.empty or max(target) < MIN_DELTA_PROP:
         return [], {}, []
-    # Need extra weight for Delta target if emergence is right at end of simulation
-    weight = 25.0 if (end_time - target.index[0]).days < 87 else VAR_WEIGHT
+    is_end_period = (end_time - target.index[0]).days < LATE_DELTA_TIME
+    weight = LATE_DELTA_WEIGHT if is_end_period else VAR_WEIGHT
     var_start = target.index[0]
     return ["delta"], {"prop_delta": StandardPropTarget(target, weight=weight)}, [var_start]
 
