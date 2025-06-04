@@ -355,7 +355,7 @@ def get_seroprev_pooled_totals(
 
     Returns:
         The data after pooling
-    
+
     Notes
     -----
     For any consecutive estimates for which a lower estimate
@@ -407,7 +407,7 @@ def get_seroprev_target(
     and infection fatality rate).
     That is, we applied much lower priors for these parameters
     in these countries, although the modelled attack rate
-    still remained well below seroprevalence estimates for 
+    still remained well below seroprevalence estimates for
     some countries.
     Last, we ignored seroprevalence estimates for Australia,
     for which the analysis was run largely through 2022,
@@ -446,14 +446,14 @@ def get_country_vars(
 
     Returns:
         The data
-    
+
     Notes
     -----
     Reports of the number of isolates of specific variants of SARS-CoV-2
     were obtained from the
     [covariants](https://github.com/hodcroftlab/covariants/raw/refs/heads/master/cluster_tables/)
-    GitHub repository. Each variant-specific file was downloaded 
-    used to create country-specific tables of the variant-specific 
+    GitHub repository. Each variant-specific file was downloaded
+    used to create country-specific tables of the variant-specific
     counts by date.
     """
     if iso3 == "CZE":
@@ -532,7 +532,7 @@ def extract_specific_var(
     Returns:
         Data for the number of pre-Alpha specimens, total specimens and
             proportion pre-Alpha by date - where available
-    
+
     Notes
     -----
     The identifiers 20A.EU1, 20A.EU2, 20B.S.732A and 21C.Epsilon
@@ -606,12 +606,12 @@ def get_continent_vars(
 
 
 def get_var_target(
-    var_data: pd.DataFrame, 
+    var_data: pd.DataFrame,
     continent: str,
     var_name: str,
 ) -> pd.DataFrame:
     """Get the variant-specific data (for Alpha or Delta)
-    for a country, using the continent data 
+    for a country, using the continent data
     if not available for the country.
 
     Args:
@@ -628,7 +628,7 @@ def get_var_target(
     both the Alpha and the Delta variants,
     we used the totals for the country analysed where available.
     If data were not available for the country,
-    we used pooled data from all the other countries 
+    we used pooled data from all the other countries
     from the same continent where available.
     """
     data = extract_specific_var(var_data, var_name)
@@ -643,7 +643,8 @@ def get_alpha_info(iso3, var_data, continent, end_time, delta_targ):
     if continent in ["OC", "AF"]:
         return [], {}, []
     data = get_var_target(var_data, continent, "alpha")
-    alpha_start = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ALPHA_DELTA_TRANS
+    ad_trans = datetime.strptime(ALPHA_DELTA_TRANS, CODE_DATE_FORMAT)
+    alpha_start = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ad_trans
     alpha_end = end_time if delta_targ else min([alpha_start, end_time])
     mask = (ALPHA_PERIOD_START < data.index) & (data.index < alpha_end)
     pooled_data = get_incr_pooled_totals(data[mask], "alpha")
@@ -671,15 +672,15 @@ def get_delta_info(
         - A list containing the name of the variant (if included)
         - The calibration target for Delta (if included)
         - A list containing the first identification date of Delta (if included)
-    
+
     Notes
     -----
-    For all countries other than Australia, 
-    the Delta variant was included if the end date of the 
+    For all countries other than Australia,
+    the Delta variant was included if the end date of the
     calibration fell later than {DELTA_INCLUSION_DATE}.
     The periods for calibration against the Alpha and the Delta
     variants were set so as to be mutually exclusive in time.
-    Specifically, the date to transition from calibrating against available data for 
+    Specifically, the date to transition from calibrating against available data for
     the Alpha to calibrating against data for Delta was set as
     {ALPHA_DELTA_TRANS}. Exceptions were made for several Asian countries
     for which this transition date was set one month earlier and two countries
@@ -690,7 +691,7 @@ def get_delta_info(
     The target weight for calibration was set to be {VAR_WEIGHT}
     for most countries. Exceptions were made if the target for data
     emerged towards the very end of the calibration last
-    ({LATE_DELTA_WEIGHT} days), in which case a higher weight 
+    ({LATE_DELTA_WEIGHT} days), in which case a higher weight
     (of {LATE_DELTA_WEIGHT}) was needed to capture this late emergence
     with fewer data points.
     """
