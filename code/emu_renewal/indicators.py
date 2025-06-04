@@ -443,6 +443,10 @@ def get_country_vars(
 
     Returns:
         The data
+    
+    Notes
+    -----
+    
     """
     if iso3 == "CZE":
         country = pycountry.countries.lookup(iso3).official_name
