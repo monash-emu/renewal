@@ -749,7 +749,7 @@ def get_mob_exp_gdp_df(
         quants[mob_type] = {
             c: float(idatas[c].posterior["mob_exp"].quantile([0.5]).data) for c in idatas
         }
-    quants["pop"] = {c: get_worldbank_national_pop(c) for c in countries}
+    quants["pop"] = {c: get_country_pop(c) for c in countries}
     quants["gdp"] = get_gdps(2020)
     quants["gdp"]["VEN"] = (
         42.84e9 / quants["pop"]["VEN"]

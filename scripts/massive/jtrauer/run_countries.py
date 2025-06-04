@@ -1,7 +1,8 @@
 import json
 import sys
 
-from emu_renewal.inputs import DATA_PATH, ANALYSIS_TYPES, BASE_PATH
+from emu_renewal.inputs import DATA_PATH
+from emu_renewal.constants import ANALYSIS_TYPES, BASE_PATH
 from emu_renewal.run import (
     run_single_country,
     MobilityException,
@@ -26,6 +27,8 @@ if __name__ == "__main__":
 
     for mob_type in ANALYSIS_TYPES:
         try:
-            run_single_country(c, 7, 50, mob_type, 1000, 50, task_name, n_chains=8, logger=logger)
+            run_single_country(
+                c, 7, 50, mob_type, 1000, 50, task_name, n_chains=8, logger=logger
+            )
         except MobilityException as e:
             logger.warning(e)

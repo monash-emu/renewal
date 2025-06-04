@@ -112,10 +112,6 @@ SEROPREV_MIN_SIZE = 600
 SEROPREV_START_DELAY = 183
 ANTIBODY_DELAY = 14
 VAR_WEIGHT = 5.0
-
-
-def get_func_blurb(function):
-    docstring = function.__doc__
-    blurb = re.split("(Args|Returns):", docstring)[0]
-    blurb_str = re.sub(r"\s+", " ", blurb)
-    return eval(f"f'{blurb_str}'")
+OUTLIER_THRESHOLD = 2
+N_REPEATS = 8
+START_TIME = "1 April 2020"

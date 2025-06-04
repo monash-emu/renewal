@@ -23,9 +23,8 @@ from emu_renewal.constants import (
     DEATHS_START_THRESHOLD,
 )
 from emu_renewal.inputs import (
-    get_who_indicator,
     get_country_vacc_data,
-    get_worldbank_national_pop,
+    get_country_pop,
     get_standard_priors,
     get_google_mobility,
     get_fb_mobility,
@@ -38,6 +37,7 @@ from emu_renewal.calibration import StandardCalib
 from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
 from emu_renewal.indicators import (
+    get_who_indicator,
     get_deaths_target,
     get_cases_target,
     get_hosp_target,
@@ -64,7 +64,18 @@ def find_run_start_time(
     pop: float,
     iso3: str,
 ) -> datetime:
-    """For all countries but Australia,
+    """Find the start time for the analysis.
+
+    Args:
+        pop: Population size
+        iso3: The country identifier
+
+    Returns:
+        The date to start the analysis
+
+    Notes
+    -----
+    For all countries but Australia,
     the start of the calibration period was
     set to be the time at which the per capita
     daily rate of deaths passed {DEATHS_START_THRESHOLD}
@@ -74,13 +85,6 @@ def find_run_start_time(
     For Australia, the simulation commenced from
     the time that vaccination reached {START_VACC_THRESHOLD_AUS}%
     of its final value.
-
-    Args:
-        pop: Population size
-        iso3: The country identifier
-
-    Returns:
-        The date to start the analysis
     """
     deaths_data = get_who_indicator("New_deaths", iso3)
     per_capita_deaths = deaths_data / pop
@@ -96,7 +100,17 @@ def find_run_start_time(
 
 
 def find_run_end_time(iso3: str) -> datetime:
-    """For all countries but Australia,
+    """Find the end time for the analysis.
+
+    Args:
+        iso3: The country identifier
+
+    Returns:
+        The date at which to end the analysis period
+
+    Notes
+    -----
+    For all countries but Australia,
     the end time for the analysis was calculated as
     the time that the population vaccination coverage
     passed {END_VACC_THRESHOLD}%,
@@ -105,12 +119,6 @@ def find_run_end_time(iso3: str) -> datetime:
     Otherwise, this default end date was used instead.
     For Australia, the latest date for which
     the Google mobility data was available was used.
-
-    Args:
-        iso3: The country identifier
-
-    Returns:
-        The date at which to end the analysis period
     """
     if iso3 == "AUS":
         mob = get_google_mobility(iso3)
@@ -210,7 +218,7 @@ def run_single_country(
     logger.info(f"Hostname: {gethostname()}")
 
     # Population size and analysis time
-    pop = get_worldbank_national_pop(iso3)
+    pop = get_country_pop(iso3)
     data_start = find_run_start_time(pop, iso3)
     end_time = find_run_end_time(iso3)
     run_start = data_start - timedelta(run_data_delay)

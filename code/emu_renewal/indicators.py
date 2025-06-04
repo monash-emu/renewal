@@ -30,17 +30,39 @@ from emu_renewal.constants import (
     BA5_PERIOD_END,
     ZERO_IND_REPLACEMENT,
     SEROPREV_START_DELAY,
+    WHO_DATE_FORMAT,
+    ALREADY_WEEKLY_ADMIT_COUNTRIES,
+    ALREADY_WEEKLY_OCCUP_COUNTRIES,
+    ANTIBODY_DELAY,
+    PREV_KEY,
 )
 from emu_renewal.inputs import (
-    get_who_indicator,
-    get_owid_hosps,
-    get_owid_hosps,
-    get_all_seroprev,
-    get_seroprev_pooled_totals,
     get_income_group,
     get_incr_pooled_totals,
+    get_owid_hosp_series,
+    find_decreasing_groups,
 )
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
+
+
+def get_who_indicator(
+    indicator: str,
+    iso3: str,
+) -> pd.Series:
+    """Get WHO estimates for single indicator from the original raw data.
+
+    Args:
+        indicator: Name of the indicator
+        iso3: Country identifier
+
+    Returns:
+        The data
+    """
+    who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
+    iso2 = pycountry.countries.lookup(iso3).alpha_2
+    select_data = who_data.loc[who_data["Country_code"] == iso2]
+    select_data.index = pd.to_datetime(select_data["Date_reported"], format=WHO_DATE_FORMAT)
+    return select_data[indicator]
 
 
 def get_deaths_target(
@@ -48,7 +70,20 @@ def get_deaths_target(
     start: datetime,
     end: datetime,
 ) -> Tuple[int, Dict[str, StandardDispTarget]]:
-    """The number of deaths by week reported by WHO
+    """Get the deaths calibration target.
+
+    Args:
+        iso3: The country identifier
+        start: The calibration start time
+        end: The calibration end time
+
+    Returns:
+        Number of observations in the deaths series
+        The target
+
+    Notes
+    -----
+    The number of deaths by week reported by WHO
     was used as the first calibration target for all countries.
     Any values of zero in this series were replaced with a
     value of {ZERO_IND_REPLACEMENT} to enable comparison to
@@ -58,15 +93,6 @@ def get_deaths_target(
     for the distribution comparison of the modelled value.
     The value for weighting the deaths indicator time series
     was set to {DEATHS_WEIGHT}.
-
-    Args:
-        iso3: The country identifier
-        start: The calibration start time
-        end: The calibration end time
-
-    Returns:
-        Number of observations in the deaths series
-        The deaths calibration target
     """
     data = get_who_indicator("New_deaths", iso3)
     data = data.interpolate(method="linear").fillna(0.0)
@@ -83,15 +109,7 @@ def get_cases_target(
     end: datetime,
     n_deaths: int,
 ) -> Dict[str, StandardDispTarget]:
-    """The number of cases by week reported by WHO
-    was used as the second calibration target for all countries.
-    Linear interpolation was used to replace missing values, and
-    as for deaths, any zero values were replaced with a value of 0.5.
-    Cases was the second indicator for which
-    a common dispersion parameter was applied.
-    A target weight was applied to the series of cases
-    such that the weight for each case observation point
-    was the same as for each death observation.
+    """Get the cases calibration target.
 
     Args:
         iso3: The country identifier
@@ -100,7 +118,19 @@ def get_cases_target(
         n_deaths: The number of deaths observations
 
     Returns:
-        The cases calibration target
+        The target
+
+    Notes
+    -----
+    The number of cases by week reported by WHO
+    was used as the second calibration target for all countries.
+    Linear interpolation was used to replace missing values, and
+    as for deaths, any zero values were replaced with a value of 0.5.
+    Cases was the second indicator for which
+    a common dispersion parameter was applied.
+    A target weight was applied to the series of cases
+    such that the weight for each case observation point
+    was the same as for each death observation.
     """
     data = get_who_indicator("New_cases", iso3)
     data = data.interpolate(method="linear").fillna(0.0)
@@ -113,19 +143,79 @@ def get_cases_target(
     return {"weekly_cases": target}
 
 
+def get_owid_hosps(
+    country: str,
+    start: datetime,
+    end: datetime,
+) -> Tuple[Union[pd.Series, None], str]:
+    """Select the hospitalisation calibration target.
+    Code needs to account for some countries that already report
+    their hospitalisation indicator weekly.
+
+    Args:
+        country: Country identifier
+        start: Data comparison start time
+        end: Analysis end time
+
+    Returns:
+        Tuple of two elements:
+            - The calibration data for comparison
+            - The name of the indicator for comparison
+
+    Notes
+    -----
+    A single hospitalisation indicator used for calibration was
+    chosen using a hierarchical approach.
+    In selecting the indicator, the number of new admissions was preferred
+    over estimates of total bed occupancy, and total hospital
+    indicators were preferred over ICU indicators.
+    The final hierarchy of indicators was:
+    __RETURN__1. New hospital admissions
+    __RETURN__2. Hospital occupancy
+    __RETURN__3. New ICU admissions
+    __RETURN__4. ICU occupancy
+    __RETURN__5. No hospital indicator
+    __RETURN____RETURN__
+    That is, the highest ranked indicator was used based on data availability,
+    and no hospital indicator was incorporated if none were available.
+    """
+    admits = get_owid_hosp_series("Weekly new hospital admissions", country)
+    filt_admits = admits[(start < admits.index) & (admits.index < end) & (admits > 0.0)]
+    occup = get_owid_hosp_series("Daily hospital occupancy", country)
+    filt_occup = occup[(start < occup.index) & (occup.index < end)]
+    icu_admits = get_owid_hosp_series("Weekly new ICU admissions", country)
+    filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
+    icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
+    filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
+    if not filt_admits.empty and country in ALREADY_WEEKLY_ADMIT_COUNTRIES:
+        weekly_admits = filt_admits.dropna()
+        return weekly_admits, "weekly_admissions"
+    elif not filt_admits.empty:
+        weekly_admits = filt_admits.rolling(7).mean()[::7].dropna()
+        return weekly_admits, "weekly_admissions"
+    elif not filt_occup.empty and country in ALREADY_WEEKLY_OCCUP_COUNTRIES:
+        weekly_occup = filt_occup.dropna()
+        return weekly_occup, "occupancy"
+    elif not filt_occup.empty:
+        weekly_occup = filt_occup.rolling(7).mean()[::7].dropna()
+        return weekly_occup, "occupancy"
+    elif not filt_icu_admits.empty:
+        weekly_icu_admits = filt_icu_admits.rolling(7).mean()[::7].dropna()
+        return weekly_icu_admits, "icu_weekly_admissions"
+    elif not filt_icu_occup.empty:
+        weekly_icu_occup = filt_icu_occup.rolling(7).mean()[::7].dropna()
+        return weekly_icu_occup, "icu_occupancy"
+    else:
+        return None, ""
+
+
 def get_hosp_target(
     iso3: str,
     start: datetime,
     end: datetime,
     n_deaths: int,
 ) -> Dict[str, StandardDispTarget]:
-    """One hospitalisation indicator was also used for
-    each country, where available.
-    This indicator was the final calibration target for which
-    a common dispersion parameter was applied.
-    As for cases, a weight was applied to the hospitalisation series
-    such that the weight for each observation point
-    was the same as for each death observation.
+    """Get the hospitalisations calibration target.
 
     Args:
         iso3: The country identifier
@@ -135,6 +225,14 @@ def get_hosp_target(
 
     Returns:
         The hospitalisation calibration target
+
+    Notes
+    -----
+    This indicator was the final calibration target for which
+    a common dispersion parameter was applied.
+    As for cases, a weight was applied to the hospitalisation series
+    such that the weight for each observation point
+    was the same as for each death observation.
     """
     data, output_name = get_owid_hosps(iso3, start, end)
     if data is None:
@@ -148,24 +246,55 @@ def get_hosp_target(
     return {output_name: target}
 
 
-def get_filtered_seroprev(
+def get_all_seroprev() -> pd.Series:
+    """Get all the seroprevalence data.
+
+    Returns:
+        All SeroTracker data
+
+    Notes
+    -----
+    Seroprevalence data was obtained from
+    [SeroTracker](https://github.com/serotracker/sars-cov-2-data/raw/refs/heads/main/serotracker_dataset.csv)
+    on 11 December 2024,
+    with the date for each serosurvey estimate calculated as the
+    mid-point between the reported start and end dates of sampling.
+    This date was then lagged earlier by {ANTIBODY_DELAY} for the purposes
+    of calibration to allow for a delay between infection
+    and the subsequent development of detectable antibodies.
+    """
+    data = pd.read_csv(DATA_PATH / "seroprevalence/serotracker.csv")
+    data["start"] = pd.to_datetime(data["sampling_start_date"])
+    data["end"] = pd.to_datetime(data["sampling_end_date"])
+    data.index = (data["end"] - data["start"]) / 2 + data["start"]
+    data.index -= timedelta(ANTIBODY_DELAY)
+    data.index = data.index.normalize()
+    return data.sort_index()
+
+
+def filter_seroprev(
     iso3: str,
+    data: pd.DataFrame,
 ) -> pd.Series:
-    """We filtered the SeroTracker data to include
-    only the estimate reported as primary from
-    Unity-aligned national-level surveys for
-    which the number of participants was at least 600.
-    We also considered only a maximum of one seroprevalence
-    value for any given date (keeping the largest
-    estimate of three surveys done on the same day for Mexico).
+    """Get and filter the seroprevalence data.
 
     Args:
         iso3: Country identifier
+        data: The raw data from get_all_seroprev
 
     Returns:
         Filtered data to use as target
+
+    Notes
+    -----
+    We filtered the SeroTracker data to include
+    only the estimate reported as primary from
+    Unity-aligned national-level surveys for
+    which the number of participants was at least {SEROPREV_MIN_SIZE}.
+    We also considered only a maximum of one seroprevalence
+    value for any given date (keeping the largest
+    estimate of three surveys done on the same day for Mexico).
     """
-    data = get_all_seroprev()
     country = pycountry.countries.lookup(iso3).name
     country_filt = data["country"] == country
     nat_filt = data["estimate_grade"] == "National"
@@ -177,14 +306,80 @@ def get_filtered_seroprev(
     return filt_data[[not i for i in filt_data.index.duplicated()]]
 
 
+def pool_seroprev_totals(
+    starts: datetime,
+    ends: datetime,
+    data: pd.Series,
+) -> pd.Series:
+    """Pool groups of seroprevalence data that are
+    decreasing over time and were identified by
+    find_decreasing_groups.
+
+    Args:
+        starts: The start indices for the decreasing groups
+        ends: The end indices for the decreasing groups
+        data: The data before processing
+
+    Returns:
+        The processed data
+    """
+    period_sums = pd.DataFrame()
+    idx_to_remove = []
+    for start, end in zip(starts, ends):
+        period = data.loc[start:end]
+        average_date = period.index.mean()
+        prevs = period[PREV_KEY]
+        denoms = period["denominator_value"]
+        total_denoms = denoms.sum()
+        new_prev = (prevs * denoms).sum() / total_denoms
+        period_sums.loc[average_date, PREV_KEY] = new_prev
+        period_sums.loc[average_date, "denominator_value"] = total_denoms
+        idx_to_remove += list(period.index)
+    new_data = pd.concat([period_sums, data.drop(index=idx_to_remove)])
+    return new_data.sort_index()
+
+
+def get_seroprev_pooled_totals(
+    data: pd.Series,
+) -> pd.Series:
+    """Pool any sequences of seroprevalence data
+    that are decreasing over time.
+    Continue pooling until all estimates are monotonically
+    increasing.
+
+    Args:
+        data: The raw seroprevalence data
+
+    Returns:
+        The data after pooling
+    """
+    while not data[PREV_KEY].is_monotonic_increasing:
+        starts, ends = find_decreasing_groups(data[PREV_KEY])
+        data = pool_seroprev_totals(starts, ends, data)
+    return data[PREV_KEY]
+
+
 def get_seroprev_target(
     iso3: str,
     start: datetime,
     end: datetime,
     continent: str,
 ) -> Dict[str, UnivariateDispersionTarget]:
-    """We compared the modelled
-    proportion ever infected against the reported seroprevalence
+    """Construct the seroprevalence calibration target.
+
+    Args:
+        iso3: The country identifier
+        start: The calibration start time
+        end: The calibration end time
+        continent: The country's continent
+
+    Returns:
+        The seroprevalence calibration target
+
+    Notes
+    -----
+    We compared the modelled
+    proportion ever infected against the seroprevalence
     reported at least six months ({SEROPREV_START_DELAY} days)
     after the start of the simulation,
     because a comparison against early seroprevalence estimates
@@ -201,29 +396,23 @@ def get_seroprev_target(
     We also ignored seroprevalence estimates from
     low and lower middle income countries of Africa, because
     we were unable to obtain good fits for several of these countries
-    while also maintaining plausible detection parameters
-    (e.g. case detection rate, hospital admission rate
+    while also maintaining plausible detection/severity parameters
+    (i.e. case detection rate, hospital admission rate
     and infection fatality rate).
     Last, we ignored seroprevalence estimates for Australia,
-    for which the analysis was run largely through 2022
-    during which seroprevalence values were much higher.
+    for which the analysis was run largely through 2022,
+    during which time seroprevalence values were much higher.
     For countries for which seroprevalence calibration targets
     were available, we assigned a target weight to this indicator
     of {SEROPREV_WEIGHT}.
-
-    Args:
-        iso3: The country identifier
-        start: The calibration start time
-        end: The calibration end time
-        continent: The country's continent
-
-    Returns:
-        The seroprevalence calibration target
     """
     income = get_income_group(iso3)
     if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
         return {}
-    seroprev = get_filtered_seroprev(iso3, start, end)
+    seroprev = get_all_seroprev()
+    seroprev = filter_seroprev(iso3, seroprev)
+    if seroprev.empty:
+        return {}
     data = get_seroprev_pooled_totals(seroprev)
     time_filt = (start + timedelta(SEROPREV_START_DELAY) < data.index) & (data.index < end)
     data = data[time_filt]

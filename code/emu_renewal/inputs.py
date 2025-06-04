@@ -10,39 +10,14 @@ import yaml as yml
 from numpyro import distributions as dist
 from emu_renewal.utils import get_beta_params_from_mean_var
 from emu_renewal.constants import (
-    WHO_DATE_FORMAT,
     VAR_NAMES,
-    BA2_PERIOD_START,
     DATA_PATH,
     RAW_MOB_PATH,
-    BA2_PERIOD_END,
-    BA5_PERIOD_START,
-    BA5_PERIOD_END,
     ALREADY_WEEKLY_ADMIT_COUNTRIES,
     ALREADY_WEEKLY_OCCUP_COUNTRIES,
     PREV_KEY,
     ANTIBODY_DELAY,
 )
-
-
-def get_who_indicator(
-    indicator: str,
-    iso3: str,
-) -> pd.Series:
-    """Get WHO estimates for single indicator from the original raw data.
-
-    Args:
-        indicator: Name of the indicator
-        iso3: Country identifier
-
-    Returns:
-        The data
-    """
-    who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
-    iso2 = pycountry.countries.lookup(iso3).alpha_2
-    select_data = who_data.loc[who_data["Country_code"] == iso2]
-    select_data.index = pd.to_datetime(select_data["Date_reported"], format=WHO_DATE_FORMAT)
-    return select_data[indicator]
 
 
 def get_owid_hosp_series(
@@ -64,64 +39,6 @@ def get_owid_hosp_series(
     iso3 = pycountry.countries.lookup(iso3).alpha_3
     data = hosp[hosp["iso_code"] == iso3]
     return data.loc[data["indicator"] == indicator, "value"]
-
-
-def get_owid_hosps(
-    country: str,
-    start: datetime,
-    end: datetime,
-) -> Tuple[Union[pd.Series, None], str]:
-    """Get only one hospitalisation target for a specified country,
-    hierarchically choosing the preferred target,
-    or returning None and empty string if nothing available.
-    The "best" indicator is chosen hierarchically,
-    such that a hospital indicator beats a ICU indicator
-    and daily admissions beat occupancy.
-    Croatia admissions from OWID is reported weekly,
-    so no need to apply rolling average
-    (even though it is weekly data, it is reported
-    each day for most countries).
-    Japan and Bulgaria occupancy from OWID is reported weekly,
-    so no need to apply rolling average.
-
-    Args:
-        country: Country identifier
-        start: Data comparison start time
-        end: Analysis end time
-
-    Returns:
-        Tuple of two elements:
-            - The calibration data for comparison
-            - The name of the indicator for comparison
-    """
-    admits = get_owid_hosp_series("Weekly new hospital admissions", country)
-    filt_admits = admits[(start < admits.index) & (admits.index < end) & (admits > 0.0)]
-    occup = get_owid_hosp_series("Daily hospital occupancy", country)
-    filt_occup = occup[(start < occup.index) & (occup.index < end)]
-    icu_admits = get_owid_hosp_series("Weekly new ICU admissions", country)
-    filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
-    icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
-    filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
-    if not filt_admits.empty and country in ALREADY_WEEKLY_ADMIT_COUNTRIES:
-        weekly_admits = filt_admits.dropna()
-        return weekly_admits, "weekly_admissions"
-    elif not filt_admits.empty:
-        weekly_admits = filt_admits.rolling(7).mean()[::7].dropna()
-        return weekly_admits, "weekly_admissions"
-    elif not filt_occup.empty and country in ALREADY_WEEKLY_OCCUP_COUNTRIES:
-        weekly_occup = filt_occup.dropna()
-        return weekly_occup, "occupancy"
-    elif not filt_occup.empty:
-        weekly_occup = filt_occup.rolling(7).mean()[::7].dropna()
-        return weekly_occup, "occupancy"
-    elif not filt_icu_admits.empty:
-        weekly_icu_admits = filt_icu_admits.rolling(7).mean()[::7].dropna()
-        return weekly_icu_admits, "icu_weekly_admissions"
-    elif not filt_icu_occup.empty:
-        weekly_icu_occup = filt_icu_occup.rolling(7).mean()[::7].dropna()
-        return weekly_icu_occup, "icu_occupancy"
-    else:
-        return None, ""
 
 
 def process_raw_google_mobility(
@@ -154,28 +71,6 @@ def process_raw_google_mobility(
     # Convert from percentage reduction to ratio
     nat_data = 1.0 + nat_data / 100.0
     return nat_data.sort_index()
-
-
-def get_all_seroprev() -> pd.Series:
-    """Seroprevalence data was obtained from
-    [SeroTracker](https://github.com/serotracker/sars-cov-2-data/raw/refs/heads/main/serotracker_dataset.csv)
-    on 11 December 2024,
-    with the date for each serosurvey calculated as the
-    mid-point between the reported start and end dates of sampling.
-    This date was then lagged earlier by {ANTIBODY_DELAY} for the purposes
-    of calibration to allow for a delay between infection
-    and the subsequent development of detectable antibodies.
-
-    Returns:
-        All SeroTracker data
-    """
-    data = pd.read_csv(DATA_PATH / "seroprevalence/serotracker.csv")
-    data["start"] = pd.to_datetime(data["sampling_start_date"])
-    data["end"] = pd.to_datetime(data["sampling_end_date"])
-    data.index = (data["end"] - data["start"]) / 2 + data["start"]
-    data.index -= timedelta(ANTIBODY_DELAY)
-    data.index = data.index.normalize()
-    return data.sort_index()
 
 
 def get_standard_priors(
@@ -287,21 +182,32 @@ def get_standard_priors(
     )
 
 
+def get_country_pop(iso3):
+    try:
+        return get_worldbank_national_pop(iso3)
+    except:
+        return get_undesa_national_pop(iso3)
+
+
 def get_worldbank_national_pop(
     iso3: str,
 ) -> float:
-    """Population data were downloaded from
-    [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
-    on 01/04/2025. From this data, the population size in 2020
-    of country of interest was extracted. The exception was Australia,
-    for which the population size in 2022 was used,
-    because of its later analysis period.
+    """Get the population size of a country.
 
     Args:
         iso3: Country identifier
 
     Returns:
         Population size
+
+    Notes
+    -----
+    Population data were downloaded from
+    [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
+    on 01/04/2025. From this data, the population size in 2020
+    of country of interest was extracted. The exception was Australia,
+    for which the population size in 2022 was used,
+    because of its later analysis period.
     """
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
     year = 2022 if iso3 == "AUS" else 2020
@@ -312,7 +218,7 @@ def get_worldbank_national_pop(
 def get_ordered_countries_by_cont(countries_by_cont, conts):
     ordered_countries = {}
     for cont in conts:
-        pops = {c: get_worldbank_national_pop(c) for c in countries_by_cont[cont]}
+        pops = {c: get_country_pop(c) for c in countries_by_cont[cont]}
         ordered_countries[cont] = pd.Series(pops).sort_values(ascending=False).index
     return ordered_countries
 
@@ -488,7 +394,7 @@ def find_increasing_groups(
 def find_decreasing_groups(
     data: pd.Series,
 ) -> Tuple[pd.DatetimeIndex]:
-    """Find the indexes at which a series
+    """Find the indices at which a series
     (which is supposed to be generally increasing)
     is decreasing.
 
@@ -546,39 +452,6 @@ def pool_totals(
     return new_data.sort_index()
 
 
-def pool_seroprev_totals(
-    starts: datetime,
-    ends: datetime,
-    data: pd.Series,
-) -> pd.Series:
-    """Pool groups of seroprevalence data that are
-    decreasing over time and were identified by
-    find_decreasing_groups.
-
-    Args:
-        starts: The start indices for the decreasing groups
-        ends: The end indices for the decreasing groups
-        data: The data before processing
-
-    Returns:
-        The processed data
-    """
-    period_sums = pd.DataFrame()
-    idx_to_remove = []
-    for start, end in zip(starts, ends):
-        period = data.loc[start:end]
-        average_date = period.index.mean()
-        prevs = period[PREV_KEY]
-        denoms = period["denominator_value"]
-        total_denoms = denoms.sum()
-        new_prev = (prevs * denoms).sum() / total_denoms
-        period_sums.loc[average_date, PREV_KEY] = new_prev
-        period_sums.loc[average_date, "denominator_value"] = total_denoms
-        idx_to_remove += list(period.index)
-    new_data = pd.concat([period_sums, data.drop(index=idx_to_remove)])
-    return new_data.sort_index()
-
-
 def get_pooled_totals(
     data: pd.DataFrame,
     var_name: str = "prealpha",
@@ -599,32 +472,13 @@ def get_pooled_totals(
     return data
 
 
-def get_seroprev_pooled_totals(
-    data: pd.Series,
-) -> pd.Series:
-    """Pool any sequences of seroprevalence data
-    that are decreasing over time.
-    Continue pooling until all estimates are monotonically
-    increasing.
-
-    Args:
-        data: The raw seroprevalence data
-
-    Returns:
-        The data after pooling
-    """
-    while not data[PREV_KEY].is_monotonic_increasing:
-        starts, ends = find_decreasing_groups(data[PREV_KEY])
-        data = pool_seroprev_totals(starts, ends, data)
-    return data[PREV_KEY]
-
-
 def get_incr_pooled_totals(
     data: pd.DataFrame,
     var_name: str = "prealpha",
 ) -> pd.DataFrame:
     """Combines the two preceding functions
-    to get the totals after pooling for increases in the data.
+    to get the totals after pooling to remove
+    decreases in the data.
 
     Args:
         data: The unadjusted data
@@ -638,15 +492,24 @@ def get_incr_pooled_totals(
     return data
 
 
-def get_income_group(iso3):
-    """https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755
+def get_income_group(
+    iso3: str,
+) -> str:
+    """Get World Bank income group for a country.
 
     Args:
         iso3: Country identifier
 
     Returns:
         World Bank income classification
+    
+    Notes
+    -----
+    Country income classifications were obtained from 
+    [the World Bank](https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755).
     """
+    if iso3 == "GUF":
+        return "High income"
     data = pd.read_excel(DATA_PATH / "income/CLASS.xlsx", index_col="Code")
     return data.loc[iso3, "Income group"]
 
