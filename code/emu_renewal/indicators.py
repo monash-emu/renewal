@@ -352,6 +352,15 @@ def get_seroprev_pooled_totals(
 
     Returns:
         The data after pooling
+    
+    Notes
+    -----
+    For any consecutive estimates for which a lower estimate
+    followed an immediately preceding higher estimate,
+    we pooled these two estimates and placed the pooled
+    estimate at the mid-point of the dates of the two estimates.
+    We repeatedly applied this process until seroprevalence
+    estimates were monotonically increasing over time.
     """
     while not data[PREV_KEY].is_monotonic_increasing:
         starts, ends = find_decreasing_groups(data[PREV_KEY])
@@ -385,12 +394,6 @@ def get_seroprev_target(
     because a comparison against early seroprevalence estimates
     would not account for waves of transmission prior to
     the start of the simulation.
-    For any consecutive estimates for which a lower estimate
-    followed an immediately preceding higher estimate,
-    we pooled these two estimates and placed the pooled
-    estimate at the mid-point of the dates of the two estimates.
-    We repeatedly applied this process until seroprevalence
-    estimates were monotonically increasing over time.
     We discarded seroprevalence estimates that were less than
     {SEROPREV_EXTREME}% away from a value of zero or 100%.
     We also ignored seroprevalence estimates from
@@ -399,12 +402,18 @@ def get_seroprev_target(
     while also maintaining plausible detection/severity parameters
     (i.e. case detection rate, hospital admission rate
     and infection fatality rate).
+    That is, we applied much lower priors for these parameters
+    in these countries, although the modelled attack rate
+    still remained well below seroprevalence estimates for 
+    some countries.
     Last, we ignored seroprevalence estimates for Australia,
     for which the analysis was run largely through 2022,
     during which time seroprevalence values were much higher.
     For countries for which seroprevalence calibration targets
     were available, we assigned a target weight to this indicator
-    of {SEROPREV_WEIGHT}.
+    of {SEROPREV_WEIGHT} (which is an arbitrary quantity,
+    but can be interpreted with reference to the deaths indicator
+    weight of {DEATHS_WEIGHT}).
     """
     income = get_income_group(iso3)
     if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
