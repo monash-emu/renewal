@@ -465,7 +465,9 @@ def get_cont_mobility(cont, countries_by_cont, mob_type):
         try:
             c_mob = get_mob(c)
             # Don't include one country (Guinea Bissau) with locations missing
-            if not c_mob.isnull().all().any():
+            if c_mob.isnull().all().any():
+                no_mob_countries.append(country)
+            else:
                 mob[c] = c_mob
         except:
             country = pycountry.countries.lookup(c).name
