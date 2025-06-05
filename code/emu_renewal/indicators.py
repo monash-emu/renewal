@@ -683,11 +683,10 @@ def get_alpha_info(
     if continent in ["OC", "AF"]:
         return [], {}, []
     data = get_var_target(var_data, continent, "alpha")
-    ad_trans = datetime.strptime(ALPHA_DELTA_TRANS, CODE_DATE_FORMAT)
-    ad_trans = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ad_trans
-    alpha_end = min([ad_trans, end_time])
+    ad_trans_date = datetime.strptime(ALPHA_DELTA_TRANS, CODE_DATE_FORMAT)
+    ad_trans = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ad_trans_date
     alpha_start = datetime.strptime(ALPHA_PERIOD_START, CODE_DATE_FORMAT)
-    mask = (alpha_start < data.index) & (data.index < alpha_end)
+    mask = (alpha_start < data.index) & (data.index < min([ad_trans, end_time]))
     target = get_incr_pooled_totals(data[mask], "alpha")["alpha_prop"]
     var_start = target.index[0]
     return ["alpha"], {"prop_alpha": StandardPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
