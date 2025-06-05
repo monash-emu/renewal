@@ -555,7 +555,7 @@ def extract_specific_var(
 
 
 def get_continent_data(
-    continent: str,
+    cont: str,
     var: str,
 ) -> Dict[str, pd.DataFrame]:
     """Get the variant data for each country of
@@ -563,19 +563,19 @@ def get_continent_data(
     countries that don't have an associated continent.
 
     Args:
-        continent: The continent of interest
+        continent: The continent identifier
         var: The variant of interest
 
     Returns:
         The data by country of the continent of interest
     """
-    no_continent_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
-    countries = [c for c in pycountry.countries if c.alpha_2 not in no_continent_countries]
+    no_cont_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
+    countries = [c for c in pycountry.countries if c.alpha_2 not in no_cont_countries]
     cont_data = {}
-    for country in countries:
-        if pc.country_alpha2_to_continent_code(country.alpha_2) == continent:
-            var_data = get_country_vars(country.alpha_3)
-            iso3 = country.alpha_3
+    for c in countries:
+        if pc.country_alpha2_to_continent_code(c.alpha_2) == cont:
+            iso3 = c.alpha_3
+            var_data = get_country_vars(iso3)
             cont_data[iso3] = extract_specific_var(var_data, var)
     return cont_data
 
@@ -639,16 +639,56 @@ def get_var_target(
         return data
 
 
-def get_alpha_info(iso3, var_data, continent, end_time, delta_targ):
+def get_alpha_info(
+    iso3: str,
+    var_data: pd.DataFrame,
+    continent: str,
+    end_time: datetime,
+    delta_targ: Dict[str, StandardPropTarget],
+) -> Tuple[List[str], Dict[str, StandardPropTarget], List[datetime]]:
+    """_summary_
+
+    Args:
+        iso3: The country identifier
+        var_data: All the variant data for the country
+        continent: The continent identifier
+        end_time: The analysis end date
+        delta_targ: The Delta target, output of get_delta_info
+
+    Returns:
+        - A list containing the name of the variant (if included)
+        - The calibration target for Alpha (if included)
+        - A list containing the first identification date of Alpha (if included)
+
+    Notes
+    -----
+    For all countries other than those in Oceania (Australia) and Africa,
+    the Alpha variant was included in the calibration algorithm.
+    Calibration against data for Alpha started from the beginning
+    of the simulation period (from {ALPHA_PERIOD_START}).
+    The periods for calibration against the Alpha and the Delta
+    variants were set so as to be mutually exclusive in time.
+    Specifically, the date to transition from calibrating against available data for
+    the Alpha to calibrating against data for Delta was set as
+    {ALPHA_DELTA_TRANS}. Exceptions were made for several Asian countries
+    for which this transition date was set one month earlier and two countries
+    of North America for which it was set six weeks later.
+    If this date occurred after the end of the simulation,
+    the Alpha calibration period lasted to the end of the simulation.
+    As for the other variants and for seroprevalence,
+    decreasing values for the proportion of sequences attributable
+    to Alpha were recursively pooled to ensure they were strictly increasing.
+    The target weight for calibration was set to be {VAR_WEIGHT}.
+    """
     if continent in ["OC", "AF"]:
         return [], {}, []
     data = get_var_target(var_data, continent, "alpha")
     ad_trans = datetime.strptime(ALPHA_DELTA_TRANS, CODE_DATE_FORMAT)
-    alpha_start = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ad_trans
-    alpha_end = end_time if delta_targ else min([alpha_start, end_time])
-    mask = (ALPHA_PERIOD_START < data.index) & (data.index < alpha_end)
-    pooled_data = get_incr_pooled_totals(data[mask], "alpha")
-    target = pooled_data["alpha_prop"]
+    ad_trans = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ad_trans
+    alpha_end = min([ad_trans, end_time])
+    alpha_start = datetime.strptime(ALPHA_PERIOD_START, CODE_DATE_FORMAT)
+    mask = (alpha_start < data.index) & (data.index < alpha_end)
+    target = get_incr_pooled_totals(data[mask], "alpha")["alpha_prop"]
     var_start = target.index[0]
     return ["alpha"], {"prop_alpha": StandardPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
 
@@ -678,17 +718,8 @@ def get_delta_info(
     For all countries other than Australia,
     the Delta variant was included if the end date of the
     calibration fell later than {DELTA_INCLUSION_DATE}.
-    The periods for calibration against the Alpha and the Delta
-    variants were set so as to be mutually exclusive in time.
-    Specifically, the date to transition from calibrating against available data for
-    the Alpha to calibrating against data for Delta was set as
-    {ALPHA_DELTA_TRANS}. Exceptions were made for several Asian countries
-    for which this transition date was set one month earlier and two countries
-    of North America for which it was set six weeks later.
-    As for the other variants and for seroprevalence,
-    decreasing values for the proportion of sequences attributable
-    to Delta were recursively pooled to ensure they were strictly increasing.
-    The target weight for calibration was set to be {VAR_WEIGHT}
+    Values were again pooled to ensure they were strictly increasing.
+    The target weight for calibration to Delta was set to be {VAR_WEIGHT}
     for most countries. Exceptions were made if the target for data
     emerged towards the very end of the calibration last
     ({LATE_DELTA_WEIGHT} days), in which case a higher weight
