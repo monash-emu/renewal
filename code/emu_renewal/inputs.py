@@ -258,6 +258,13 @@ def get_fb_mobility(
 
     Returns:
         The data
+
+    Notes
+    -----
+    For the first Facebook mobility analysis,
+    we used the `all_day_bing_tiles_visited_relative_change`
+    estimate and scaled transmission according
+    to one plus this mobility metric.
     """
     filename = f"mobility/{iso3}_fbmob_data.csv"
     fb_mob = pd.read_csv(DATA_PATH / filename, index_col=0)["0"]
@@ -275,8 +282,15 @@ def get_fb_withintile_mobility(
 
     Returns:
         The data
+    
+    Notes
+    -----
+    For the second Facebook mobility analysis,
+    we used the `all_day_ratio_single_tile_users`
+    estimate and scaled transmission according to
+    one minus this mobility metric.
     """
-    filename = f"mobility/{iso3}_fbmob_data.csv"
+    filename = f"mobility/{iso3}_fbsingletile_data.csv"
     fb_mob = pd.read_csv(DATA_PATH / filename, index_col=0)["0"]
     fb_mob.index = pd.to_datetime(fb_mob.index)
     return 1.0 - fb_mob

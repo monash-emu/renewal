@@ -178,8 +178,12 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         
         Notes
         -----
-        One prior value is incorporated with this approach, 
+        One prior value was incorporated with each of these approaches, 
         which specifies the exponent parameter for the mobility data.
+        This mobility approach was used for each of the two 
+        analyses that incorporated Facebook data,
+        using both the tiles visited and the within tile 
+        estimates.
         """
         self.mobility_series = mobility
         assert set(priors.keys()) == set(["mob_exp"])

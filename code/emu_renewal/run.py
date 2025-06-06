@@ -21,6 +21,9 @@ from emu_renewal.constants import (
     END_VACC_THRESHOLD,
     START_VACC_THRESHOLD_AUS,
     DEATHS_START_THRESHOLD,
+    MOBILITY_SMOOTH_PERIOD,
+    EXP_PRIOR_LOWER,
+    EXP_PRIOR_UPPER,
 )
 from emu_renewal.inputs import (
     get_country_vacc_data,
@@ -161,6 +164,31 @@ def get_mobility_provider(
 
     Returns:
         The mobility provider
+
+    Notes
+    -----
+    For each country, we ran one analysis with 
+    no mobility scaling to the transmission rate.
+    We ran one analysis in which Google mobility
+    was used to scale the transmission rate,
+    if mobility data was available from Google.
+    We also ran two analyses in which Facebook mobility
+    was used to scale the transmission rate,
+    if mobility data was available from Facebook.
+    Although Apple mobility data was available
+    and we were able to run analyses using this
+    data source, Apple's terms of use indicate 
+    that this source of data cannot be used for this purpose.
+    We contacted Apple, who declined to allow
+    their data to be used for this analysis.
+    For all mobility sources, we smoothed the raw
+    data using a {MOBILITY_SMOOTH_PERIOD} day centred
+    rolling average.
+    For all analyses incorporating mobility scaling,
+    we used an exponential scaling parameter 
+    (described in more detail below) which 
+    was assigned a uniform prior over limits 
+    {EXP_PRIOR_LOWER} to {EXP_PRIOR_UPPER}.
     """
 
     # Data processing
@@ -173,10 +201,10 @@ def get_mobility_provider(
     elif mob_type == "fb_withintile_mob":
         mob = get_fb_withintile_mobility(iso3)
     n_domains = len(mob.columns) if isinstance(mob, pd.DataFrame) else None
-    smoothed_mob = mob.rolling(7, center=True).mean().dropna()
+    smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
     # Priors
-    exp_prior = {"mob_exp": dist.Uniform(0.0, 2.0)}
+    exp_prior = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
     if mob_type == "no_mob":
         return mobility.NoMobilityProvider()
     elif mob_type == "g_mob":
