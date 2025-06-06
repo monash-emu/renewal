@@ -20,7 +20,7 @@ from emu_renewal.constants import ANALYSIS_TYPES
 from emu_renewal.inputs import (
     get_google_mobility,
     get_apple_mobility,
-    get_fb_mobility,
+    get_fb_visited_mobility,
     get_gdps,
     get_worldbank_national_pop,
 )
@@ -33,14 +33,14 @@ plt.style.use("ggplot")
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
     "g_mob": "Google mobility",
-    "fb_mob": "FB tiles visited",
-    "fb_withintile_mob": "FB within tile mobility",
+    "fb_visited_mob": "FB tiles visited",
+    "fb_singletile_mob": "FB single tile mobility",
 }
 AN_ABBREVS = {
     "no_mob": "none",
     "g_mob": "Google",
-    "fb_mob": "FB tiles visited",
-    "fb_withintile_mob": "FB within tile",
+    "fb_visited_mob": "FB tiles visited",
+    "fb_singletile_mob": "FB single tile",
 }
 TARGET_TYPES = {
     "weekly_cases": "weekly cases",
@@ -65,8 +65,8 @@ VAR_NAME_MAP = {
 MOB_COLOURS = {
     "no_mob": "black",
     "g_mob": "green",
-    "fb_mob": "blue",
-    "fb_withintile_mob": "red",
+    "fb_visited_mob": "blue",
+    "fb_singletile_mob": "red",
 }
 MOB_DOMAIN_MAP = {
     "retail_and_recreation": "g_mob",
@@ -79,8 +79,8 @@ MOB_DOMAIN_MAP = {
 }
 MOB_SOURCE_MAP = {
     "g_mob": "Google",
-    "fb_mob": "Facebook",
-    "fb_withintile_mob": "Facebook",
+    "fb_visited_mob": "Facebook",
+    "fb_singletile_mob": "Facebook",
 }
 G_MOB_DOMAIN_CMAP = {
     "retail_and_recreation": "red",
@@ -656,8 +656,8 @@ def compare_proc_mob(
         try:
             if mob_source == "g_mob":
                 mob = get_google_mobility(iso3)[mob_type]
-            elif mob_source == "fb_mob":
-                mob = get_fb_mobility(iso3)
+            elif mob_source == "fb_visited_mob":
+                mob = get_fb_visited_mobility(iso3)
             mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
             smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
             ax.plot(smoothed_mob.index, smoothed_mob, color=MOB_COLOURS[mob_source])

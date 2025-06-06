@@ -13,7 +13,7 @@ OUTPUTS_PATH = BASE_PATH / "outputs"
 DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"  # Will not push these larger original files
 
-ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_mob", "fb_withintile_mob"]
+ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_visited_mob", "fb_singletile_mob"]
 
 CASES_START = datetime(2020, 6, 1)
 

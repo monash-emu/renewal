@@ -30,8 +30,8 @@ from emu_renewal.inputs import (
     get_country_pop,
     get_standard_priors,
     get_google_mobility,
-    get_fb_mobility,
-    get_fb_withintile_mobility,
+    get_fb_visited_mobility,
+    get_fb_singletile_mobility,
 )
 from emu_renewal.process import CosineMultiCurve
 from emu_renewal.renew import MultiStrainModel
@@ -196,10 +196,10 @@ def get_mobility_provider(
         mob = pd.Series([])
     elif mob_type == "g_mob":
         mob = get_google_mobility(iso3)
-    elif mob_type == "fb_mob":
-        mob = get_fb_mobility(iso3)
-    elif mob_type == "fb_withintile_mob":
-        mob = get_fb_withintile_mobility(iso3)
+    elif mob_type == "fb_visited_mob":
+        mob = get_fb_visited_mobility(iso3)
+    elif mob_type == "fb_singletile_mob":
+        mob = get_fb_singletile_mobility(iso3)
     n_domains = len(mob.columns) if isinstance(mob, pd.DataFrame) else None
     smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
@@ -210,7 +210,7 @@ def get_mobility_provider(
     elif mob_type == "g_mob":
         weight_prior = {"mob_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
         return mobility.WeightedExpMobilityProvider(smoothed_mob, weight_prior | exp_prior)
-    elif mob_type in ["fb_mob", "fb_withintile_mob"]:
+    elif mob_type in ["fb_visited_mob", "fb_singletile_mob"]:
         return mobility.SingleSeriesExpMobilityProvider(smoothed_mob, exp_prior)
     else:
         raise Exception(f"No provider available for analysis type {mob_type}")

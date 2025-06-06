@@ -248,7 +248,7 @@ def get_google_mobility(
     return g_mob
 
 
-def get_fb_mobility(
+def get_fb_visited_mobility(
     iso3,
 ) -> pd.Series:
     """Get the single field of the Facebook mobility data.
@@ -267,12 +267,12 @@ def get_fb_mobility(
     to one plus this mobility metric.
     """
     filename = f"mobility/{iso3}_fbmob_data.csv"
-    fb_mob = pd.read_csv(DATA_PATH / filename, index_col=0)["0"]
-    fb_mob.index = pd.to_datetime(fb_mob.index)
-    return 1.0 + fb_mob
+    mob = pd.read_csv(DATA_PATH / filename, index_col=0)["0"]
+    mob.index = pd.to_datetime(mob.index)
+    return 1.0 + mob
 
 
-def get_fb_withintile_mobility(
+def get_fb_singletile_mobility(
     iso3,
 ) -> pd.Series:
     """Get the single field of the Facebook mobility data.
@@ -291,9 +291,9 @@ def get_fb_withintile_mobility(
     one minus this mobility metric.
     """
     filename = f"mobility/{iso3}_fbsingletile_data.csv"
-    fb_mob = pd.read_csv(DATA_PATH / filename, index_col=0)["0"]
-    fb_mob.index = pd.to_datetime(fb_mob.index)
-    return 1.0 - fb_mob
+    mob = pd.read_csv(DATA_PATH / filename, index_col=0)["0"]
+    mob.index = pd.to_datetime(mob.index)
+    return 1.0 - mob
 
 
 def get_apple_mobility(
