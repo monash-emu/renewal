@@ -40,6 +40,8 @@ from emu_renewal.constants import (
     LATE_DELTA_TIME,
     MIN_VAR_SEQS,
     MIN_VAR_DATES,
+    PREALPHA_IDENTIFIERS,
+    BA2_IDENTIFIER,
 )
 from emu_renewal.inputs import (
     get_income_group,
@@ -537,21 +539,21 @@ def extract_specific_var(
 
     Notes
     -----
-    The identifiers 20A.EU1, 20A.EU2, 20B.S.732A and 21C.Epsilon
-    were used to identify variants prior to Alpha.
+    The identifiers used to identify variants prior to Alpha
+    were: {PREALPHA_IDENTIFIERS}.
     The text "Delta" was used to identify Delta variants and
-    the text "21L.Omicron" was used to distinguish the BA.2
+    the text {BA2_IDENTIFIER} was used to distinguish the BA.2
     variant from later variants (modelled as BA.5).
     """
     if var_name == "alpha":
-        prealpha_cols = ["20A.EU1", "20A.EU2", "20B.S.732A", "21C.Epsilon"]
+        prealpha_cols = PREALPHA_IDENTIFIERS.split(", ")
         cols = [c for c in var_data.columns if c not in prealpha_cols]
     elif var_name == "delta":
         cols = [c for c in var_data.columns if "Delta" in c]
     elif var_name == "ba2":
-        cols = ["21L.Omicron"]
+        cols = [BA2_IDENTIFIER]
     elif var_name == "ba5":
-        cols = [c for c in var_data.columns if c != "21L.Omicron"]
+        cols = [c for c in var_data.columns if c != BA2_IDENTIFIER]
     end_date = ALPHA_FULL_REPLACE_DATE if var_name == "alpha" else POST_SIM_DATE
     return get_specific_var_props(var_data, var_name, cols, end_date)
 
