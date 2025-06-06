@@ -662,31 +662,35 @@ def get_alpha_info(
 
     Notes
     -----
-    For all countries other than those in Oceania (Australia) and Africa,
-    the Alpha variant was included in the calibration algorithm.
+    For countries of all continents other than those 
+    in Oceania (Australia only) and Africa,
+    a target for the Alpha variant 
+    was included in our calibration algorithm.
     Calibration against data for Alpha started from the beginning
     of the simulation period (from {ALPHA_PERIOD_START}).
     The periods for calibration against the Alpha and the Delta
     variants were set so as to be mutually exclusive in time.
-    Specifically, the date to transition from calibrating against available data for
-    the Alpha to calibrating against data for Delta was set as
-    {ALPHA_DELTA_TRANS}. Exceptions were made for several Asian countries
+    Specifically, the date to transition from calibrating 
+    against available data for the Alpha to calibrating 
+    against data for Delta was set as {ALPHA_DELTA_TRANS}. 
+    Exceptions were made for several Asian countries
     for which this transition date was set one month earlier and two countries
     of North America for which it was set six weeks later.
     If this date occurred after the end of the simulation,
-    the Alpha calibration period lasted to the end of the simulation.
-    As for the other variants and for seroprevalence,
+    the Alpha calibration period continued to the end of the simulation.
+    As with the other variants and for the seroprevalence target,
     decreasing values for the proportion of sequences attributable
     to Alpha were recursively pooled to ensure they were strictly increasing.
-    The target weight for calibration was set to be {VAR_WEIGHT}.
+    The target weight for the Alpha target was set to be {VAR_WEIGHT}.
     """
     if continent in ["OC", "AF"]:
         return [], {}, []
     data = get_var_target(var_data, continent, "alpha")
-    ad_trans_date = datetime.strptime(ALPHA_DELTA_TRANS, CODE_DATE_FORMAT)
-    ad_trans = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ad_trans_date
     alpha_start = datetime.strptime(ALPHA_PERIOD_START, CODE_DATE_FORMAT)
-    mask = (alpha_start < data.index) & (data.index < min([ad_trans, end_time]))
+    ad_trans_req = datetime.strptime(ALPHA_DELTA_TRANS, CODE_DATE_FORMAT)
+    ad_trans = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ad_trans_req
+    alpha_end = min([ad_trans, end_time]) if delta_targ else end_time
+    mask = (alpha_start < data.index) & (data.index < alpha_end)
     target = get_incr_pooled_totals(data[mask], "alpha")["alpha_prop"]
     var_start = target.index[0]
     return ["alpha"], {"prop_alpha": StandardPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
