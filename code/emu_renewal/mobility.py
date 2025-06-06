@@ -16,18 +16,18 @@ class MobilityProvider:
         """Do any appropriate slicing/extension required based on the supplied
         (model) start and end times. Called once at start of calibration.
         Any further calls into the MobilityProvider will use index times rather
-        than datetimes, where start=0
+        than datetimes, where start is 0.
 
         Args:
-            start (datetime): First datetime of model run (will be referenced as t=0)
-            end (datetime): Final datetime of model run (t=-1)
+            start: First datetime of model run (will be referenced as t=0)
+            end: Final datetime of model run (referenced as t=-1)
         """
         raise NotImplementedError
 
     def get_priors(self) -> PriorDict:
-        """Get a dict of priors for any parameters required for mobility transforms
+        """Get the priors for any parameters required for mobility transforms
         These values will be sampled during calibration, and returned to the
-        MobilityProvider in the get_parameterised_mobility call
+        MobilityProvider in the get_parameterised_mobility call.
 
         Returns:
             PriorDict: A dict of [str, Prior] pairs specific to this MobilityProvider
@@ -37,12 +37,35 @@ class MobilityProvider:
     def get_parameterised_mobility(self, **kwargs) -> Array:
         """Called once per iteration; any parameterized transforms of the mobility
         should occur here; kwargs will be guaranteed to contain any values described
-        in get_priors
+        in get_priors.
 
         Returns:
-            Array: _description_
+            The mobility values
         """
         raise NotImplementedError
+
+
+class NoMobilityProvider(MobilityProvider):
+    def __init__(self):
+        """Allow for analyses with no scaling for mobility.
+
+        Notes
+        -----
+        For the analysis without mobility, no empiric data
+        was used to scale the transmission rate over time
+        (which was implemented by setting the mobility
+        scaling to one throughout the simulation).
+        """
+        self.mob_end = None
+
+    def get_priors(self) -> dict[str, Distribution | float]:
+        return {}
+
+    def reconcile_times(self, start: datetime, end: datetime):
+        self.mob_arr = jnp.ones((end - start).days + 1)
+
+    def get_parameterised_mobility(self, **kwargs) -> Array:
+        return self.mob_arr
 
 
 class WeightedExpMobilityProvider(MobilityProvider):
@@ -53,6 +76,13 @@ class WeightedExpMobilityProvider(MobilityProvider):
         Args:
             mobility: The untransformed source data
             priors: Priors for the transform parameters
+
+        Notes
+        -----
+        This approach to incorporating mobility involves
+        a set of priors weighting each mobility domain
+        and one further prior governing the overall
+        influence of the weighted mobility estimate on transmission.
         """
         self.mobility_df = mobility
         assert set(priors.keys()) == set(["mob_weights", "mob_exp"])
@@ -82,29 +112,28 @@ class WeightedExpMobilityProvider(MobilityProvider):
         self.mobility_arr = mob_array
 
     def get_parameterised_mobility(self, mob_weights, mob_exp, **kwargs) -> Array:
+        """See methods to parent class MobilityProvider.
+
+        Args:
+            mob_weights: The weights for each mobility domain
+            mob_exp: The scaling factor for the weighted mobility estimate
+
+        Returns:
+            The mobility values
+        
+        Notes
+        -----
+        The weights for each mobility domain were normalised to sum to one,
+        with the resulting weighted mobility profile exponentiated
+        to the value specified by the mobility exponential parameter.
+        """
         norm_mob_weights = mob_weights / mob_weights.sum()
-        mobility = (self.mobility_arr * norm_mob_weights).sum(axis=1) ** mob_exp
-        return mobility
-
-
-class NoMobilityProvider(MobilityProvider):
-    def __init__(self):
-        self.mob_end = None
-
-    def get_priors(self) -> dict[str, Distribution | float]:
-        return {}
-
-    def reconcile_times(self, start: datetime, end: datetime):
-        self.mob_arr = jnp.ones((end - start).days + 1)
-
-    def get_parameterised_mobility(self, **kwargs) -> Array:
-        return self.mob_arr
+        return (self.mobility_arr * norm_mob_weights).sum(axis=1) ** mob_exp
 
 
 class SingleSeriesMobilityProvider(MobilityProvider):
     def __init__(self, mobility: pd.Series):
-        """Provide a mobility array to a RenewalModel, which is the weighted
-        sum of a DataFrame, which is then exponentiated.
+        """Provide a mobility array to a RenewalModel.
 
         Args:
             mobility: The untransformed source data
@@ -146,6 +175,11 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         Args:
             mobility: The untransformed source data
             priors: Priors for the transform parameters
+        
+        Notes
+        -----
+        One prior value is incorporated with this approach, 
+        which specifies the exponent parameter for the mobility data.
         """
         self.mobility_series = mobility
         assert set(priors.keys()) == set(["mob_exp"])
@@ -156,4 +190,17 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         return self.priors
 
     def get_parameterised_mobility(self, mob_exp, **kwargs) -> Array:
+        """See methods to parent class MobilityProvider.
+
+        Args:
+            mob_exp: The mobility exponent parameter
+
+        Returns:
+            The mobility values
+        
+        Notes
+        -----
+        The single mobility field is exponentiated to a value
+        specified by a single mobility exponent parameter.
+        """
         return self.mobility_arr ** mob_exp
