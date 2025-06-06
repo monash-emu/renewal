@@ -751,33 +751,107 @@ def get_delta_info(
     return ["delta"], {"prop_delta": StandardPropTarget(target, weight=weight)}, [var_start]
 
 
-def get_ba2_target(var_data, continent):
-    if continent == "OC":
-        ba2_data = extract_specific_var(var_data, "ba2")
-        period_mask = (BA2_PERIOD_START < ba2_data.index) & (ba2_data.index < BA2_PERIOD_END)
-        filt_data = ba2_data[period_mask]
-        return filt_data["ba2_prop"]
+def get_ba2_target(
+    var_data,
+) -> pd.Series:
+    """Get the proportion data for Omicron BA.2.
+
+    Args:
+        var_data: All the variant data for the country
+
+    Returns:
+        The data
+
+    Notes
+    -----
+    The BA.2 calibration target for Australia
+    used the data available from {BA2_PERIOD_START}
+    to {BA2_PERIOD_END}.
+    """
+    data = extract_specific_var(var_data, "ba2")
+    ba2_start = datetime.strptime(BA2_PERIOD_START)
+    ba2_end = datetime.strptime(BA2_PERIOD_END)
+    mask = (ba2_start < data.index) & (data.index < ba2_end)    
+    filt_data = data[mask]
+    return filt_data["ba2_prop"]
 
 
-def get_ba5_target(var_data, continent):
-    if continent == "OC":
-        ba5_data = extract_specific_var(var_data, "ba5")
-        period_mask = (BA5_PERIOD_START < ba5_data.index) & (ba5_data.index < BA5_PERIOD_END)
-        filt_data = ba5_data[period_mask]
-        return filt_data["ba5_prop"]
+def get_ba5_target(
+    var_data,
+) -> pd.Series:
+    """Get the proportion data for Omicron BA.5.
+
+    Args:
+        var_data: All the variant data for the country
+
+    Returns:
+        The data
+
+    Notes
+    ----- 
+    The BA.5 calibration target for Australia
+    used the data available from {BA5_PERIOD_START}
+    to {BA5_PERIOD_END}.
+    """
+    data = extract_specific_var(var_data, "ba5")
+    ba5_start = datetime.strptime(BA5_PERIOD_START)
+    ba5_end = datetime.strptime(BA5_PERIOD_END)
+    mask = (ba5_start < data.index) & (data.index < ba5_end)
+    filt_data = data[mask]
+    return filt_data["ba5_prop"]
 
 
-def get_ba2_info(var_data, continent):
-    data = get_ba2_target(var_data, continent)
-    if data is None:
+def get_ba2_info(
+    var_data: pd.Series,
+    continent: str,
+) -> Tuple[List[str], Dict[str, StandardPropTarget], List[datetime]]:
+    """Get the required information relating
+    to the Omicron BA.2 variant.
+
+    Args:
+        var_data: All the variant data for the country
+        continent: The continent identifier
+
+    Returns:
+        - A list containing the name of the variant (if included)
+        - The calibration target for BA.2 (if included)
+        - A list containing the first identification date of BA.2 (if included)
+    
+    Notes
+    -----
+    A calibration target for Omicron BA.2 was only included for
+    Oceania, i.e. only Australia.
+    As for other variants, the target weight for BA.2 was set to be {VAR_WEIGHT}.
+    """
+    if continent != "OC":
         return [], {}, []
+    data = get_ba2_target(var_data)
     var_start = data.index[0]
     return ["ba2"], {"prop_ba2": StandardPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
 
 
-def get_ba5_info(var_data, continent):
-    data = get_ba5_target(var_data, continent)
-    if data is None:
+def get_ba5_info(
+    var_data: pd.Series,
+    continent: str,
+) -> Tuple[List[str], Dict[str, StandardPropTarget], List[datetime]]:
+    """_summary_
+
+    Args:
+        var_data: _description_
+        continent: _description_
+
+    Returns:
+        - A list containing the name of the variant (if included)
+        - The calibration target for BA.5 (if included)
+        - A list containing the first identification date of BA.5 (if included)
+
+    Notes
+    -----
+    As for BA.2, a calibration target for Omicron BA.5 was only included for Oceania.
+    As for other variants, the target weight for BA.5 was set to be {VAR_WEIGHT}.
+    """
+    if continent != "OC":
         return [], {}, []
+    data = get_ba5_target(var_data, continent)
     var_start = data.index[0]
     return ["ba5"], {"prop_ba5": StandardPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
