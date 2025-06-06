@@ -38,6 +38,8 @@ from emu_renewal.constants import (
     CODE_DATE_FORMAT,
     LATE_DELTA_WEIGHT,
     LATE_DELTA_TIME,
+    MIN_VAR_SEQS,
+    MIN_VAR_DATES,
 )
 from emu_renewal.inputs import (
     get_income_group,
@@ -479,9 +481,6 @@ def get_specific_var_props(
     var_name: str,
     rel_cols: List[str],
     end_date: datetime,
-    min_samples: int = 5,
-    min_obs: int = 5,
-    min_prop: float = 0.0,
 ) -> Union[pd.DataFrame, None]:
     """Get the total number and proportion
     of sequences attributable to a particular variant.
@@ -491,16 +490,21 @@ def get_specific_var_props(
         var_name: Our name for the variant of interest
         rel_cols: The names of the relevant columns for the variant
         end_date: A date after which data are discarded
-        min_samples: Minimum number of dates needed to use the data
-        min_obs: Minimum number of sequences at a date for inclusion in data
-        min_prop: Minimum proportion attributable to the variant
-            or to other non-index variants for inclusion
 
     Returns:
         The data for the variant of interest
+
+    Notes
+    -----
+    Variant data was considered for dates on
+    which at least {MIN_VAR_SEQS} sequences were available
+    for the country considered.
+    Further, we required at least {MIN_VAR_DATES} such dates be available
+    for that country's variant data to be used as a 
+    calibration target.
     """
     data = data[data.index < end_date]
-    data = data[data.sum(axis=1) >= min_samples]
+    data = data[data.sum(axis=1) >= MIN_VAR_SEQS]
     rel_cols = [c for c in rel_cols if c in data.columns]
     vals = data[rel_cols].sum(axis=1)
     totals = data.sum(axis=1)
@@ -511,11 +515,9 @@ def get_specific_var_props(
             f"{var_name}_prop": vals / totals,
         }
     )
-    above_min_prop = min_prop < country_df[f"{var_name}_prop"]
-    below_max_prop = country_df[f"{var_name}_prop"] < 1.0 - min_prop
-    out_df = country_df[above_min_prop & below_max_prop]
-    if len(out_df) > min_obs:
-        return out_df
+    country_df
+    if len(country_df) > MIN_VAR_DATES:
+        return country_df
 
 
 def extract_specific_var(

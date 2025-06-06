@@ -236,9 +236,7 @@ def run_single_country(
     # Variants
     var_data = get_country_vars(iso3)
     delta_var, delta_targ, delta_seed = get_delta_info(iso3, var_data, continent, end_time)
-    alpha_var, alpha_targ, alpha_seed = get_alpha_info(
-        iso3, var_data, continent, end_time, delta_targ
-    )
+    alpha_var, alpha_targ, alpha_seed = get_alpha_info(iso3, var_data, continent, end_time, delta_targ)
     ba2_var, ba2_targ, ba2_seed = get_ba2_info(var_data, continent)
     ba5_var, ba5_targ, ba5_seed = get_ba5_info(var_data, continent)
     start_var = "ba1" if continent == "OC" else "eu"
