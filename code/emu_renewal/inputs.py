@@ -35,29 +35,38 @@ def get_owid_hosp_series(
 def process_raw_google_mobility(
     iso3: str,
 ) -> pd.DataFrame:
-    """Load raw Google mobility data and process for storing.
+    """Load raw Google mobility data for single country.
 
     Args:
         iso3: Country identifier
 
     Returns:
         The data
+
+    Notes
+    -----
+    We obtained Google mobility date from 
+    [the Google Community Mobility Reports](https://www.gstatic.com/covid19/mobility/Region_Mobility_Report_CSVs.zip)
+    on 14 January 2025 and extracted national mobility estimates
+    by Google mobility domain.
     """
+    mob_col_identifier = "_percent_change_from_baseline"
     years = range(2020, 2023)
     iso2 = pycountry.countries.lookup(iso3).alpha_2
     file_end = f"_{iso2}_Region_Mobility_Report.csv"
-    data_files = [pd.read_csv(RAW_MOB_PATH / (str(y) + file_end), index_col="date", low_memory=False) for y in years]
+    data_files = [
+        pd.read_csv(RAW_MOB_PATH / (str(y) + file_end), index_col="date", low_memory=False) 
+        for y in years
+    ]
     all_data = pd.concat(data_files)
     all_data.index = pd.to_datetime(all_data.index)
 
     # The rows at the national level for the country
     c_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]
 
-    # The mobility columns
-    c_data = c_data[[c for c in c_data.columns if "change_from_baseline" in c]]
-
-    # Simplify column naming
-    c_data = c_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)
+    # Get the mobility columns and drop the end of their names
+    c_data = c_data[[c for c in c_data.columns if mob_col_identifier in c]]
+    c_data = c_data.rename(lambda c: c.replace(mob_col_identifier, ""), axis=1)
 
     return c_data.sort_index()
 
