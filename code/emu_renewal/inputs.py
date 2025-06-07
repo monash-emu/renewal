@@ -248,6 +248,12 @@ def get_google_mobility(
 
     Returns:
         The data
+
+    Notes
+    -----
+    For the Google mobility analysis,
+    we used the raw value interpreted as a percentage
+    plus one to scale the transmission rate.
     """
     filename = f"mobility/{iso3}_gmob_data.csv"
     g_mob = pd.read_csv(DATA_PATH / filename, index_col=0)
