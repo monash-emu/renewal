@@ -46,22 +46,20 @@ def process_raw_google_mobility(
     years = range(2020, 2023)
     iso2 = pycountry.countries.lookup(iso3).alpha_2
     file_end = f"_{iso2}_Region_Mobility_Report.csv"
-    data_files = [pd.read_csv(RAW_MOB_PATH / (str(y) + file_end), index_col="date") for y in years]
+    data_files = [pd.read_csv(RAW_MOB_PATH / (str(y) + file_end), index_col="date", low_memory=False) for y in years]
     all_data = pd.concat(data_files)
     all_data.index = pd.to_datetime(all_data.index)
 
-    # The rows at the national level
-    nat_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]
+    # The rows at the national level for the country
+    c_data = all_data.loc[pd.isna(all_data["sub_region_1"]) & pd.isna(all_data["metro_area"])]
 
     # The mobility columns
-    nat_data = nat_data[[c for c in nat_data.columns if "change_from_baseline" in c]]
+    c_data = c_data[[c for c in c_data.columns if "change_from_baseline" in c]]
 
     # Simplify column naming
-    nat_data = nat_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)
+    c_data = c_data.rename(lambda c: c.replace("_percent_change_from_baseline", ""), axis=1)
 
-    # Convert from percentage reduction to ratio
-    nat_data = 1.0 + nat_data / 100.0
-    return nat_data.sort_index()
+    return c_data.sort_index()
 
 
 def get_standard_priors(
@@ -245,7 +243,7 @@ def get_google_mobility(
     filename = f"mobility/{iso3}_gmob_data.csv"
     g_mob = pd.read_csv(DATA_PATH / filename, index_col=0)
     g_mob.index = pd.to_datetime(g_mob.index)
-    return g_mob
+    return 1.0 + g_mob / 100.0
 
 
 def get_fb_visited_mobility(
