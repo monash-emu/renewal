@@ -9,7 +9,7 @@ import copy
 
 from summer2.utils import Epoch
 
-from emu_renewal.constants import PROC_UPDATE_FREQ, INIT_DURATION
+from emu_renewal.constants import PROC_UPDATE_FREQ, INIT_DURATION, SEED_DURATION
 from emu_renewal.process import sinterp, MultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import (
@@ -128,11 +128,9 @@ class MultiStrainModel:
         reporting_dist: Dens,
         discharge_dens: Dens,
         strains: List[str],
-        start_strain: str,
         seed_times: List[datetime],
         mobility: MobilityProvider,
-        seed_duration: int,
-        vacc_effect: bool = False,
+        vacc_effect: bool,
     ):
         """Construct the object for running the renewal process.
 
@@ -148,16 +146,16 @@ class MultiStrainModel:
             start_strain: Which of the variants to consider as the first strain
             seed_times: Times to seed each variant (including the first one)
             mobility: The mobility time series to scale transmission with
-            seed_duration: The duration of seeding new variants
+            vacc_effect: ***
         """
-        assert start_strain in strains, "Start strain not among modelled strains"
         self.strains = strains
+        self.start_strain = strains[0]
         self.n_strains = len(strains)
         self.strain_map = get_combs(len(strains))
         self.dests = get_dests(self.strain_map)
         self.trans_mats = get_trans_mats(self.dests)
         self.var_times = seed_times
-        self.seed_duration = seed_duration
+        self.seed_duration = SEED_DURATION
         self.discharge_dens = discharge_dens
         self.init_length = INIT_DURATION
         self.vacc_effect = vacc_effect

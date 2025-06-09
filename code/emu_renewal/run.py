@@ -221,7 +221,6 @@ def run_single_country(
     country,
     mob_analysis_type,
     analysis_name,
-    seed_duration: int = 10,
     prog_bar=False,
     logger=None,
 ):
@@ -288,11 +287,9 @@ def run_single_country(
         GammaDens(),
         GammaDens(),
         var_names,
-        var_names[0],
         seed_times,
         mob_provider,
-        seed_duration,
-        vacc_effect=vacc_effect,
+        vacc_effect,
     )
 
     # Calibration
