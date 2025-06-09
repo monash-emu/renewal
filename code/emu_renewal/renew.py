@@ -119,7 +119,6 @@ class MultiStrainModel:
         start: datetime,
         end: datetime,
         dens_obj: Dens,
-        reporting_dist: Dens,
         strains: List[str],
         seed_times: List[datetime],
         mobility: MobilityProvider,
@@ -132,7 +131,6 @@ class MultiStrainModel:
             start: Time to run the model from
             end: Time to run the model until
             dens_obj: Distribution for the renewal process
-            reporting_dist: Distribution for the time from infection to case reporting
             discharge_dens: Distribution for the time from hospital admission to discharge
             strains: Names of the variants to be implemented
             seed_times: Times to seed each variant (including the first one)
@@ -187,16 +185,6 @@ class MultiStrainModel:
             f"is truncated from {self.window_len} days onwards " \
             "on the assumption that the distribution's density " \
             "has reached negligible values once this period has elapsed. "
-
-        # Renewal process
-        self.describe_renewal()
-        # self.describe_process()
-
-        # Reporting delay
-        self.report_dist = reporting_dist
-        self.describe_reporting()
-        self.description["Reporting"] += self.report_dist.get_desc()
-        self.describe_weekly_sum()
 
     def renew(
         self, mean, sd, proc, init, cross_immunity, relinfect, seed_rates, seed_offsets, **kwargs
