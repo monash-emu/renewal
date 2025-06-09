@@ -53,6 +53,24 @@ from emu_renewal.indicators import (
 )
 
 
+def get_logger(log_file: Path = None):
+    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    root_logger = logging.getLogger()
+
+    if log_file:
+        file_handler = logging.FileHandler(log_file, mode="w")
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+    root_logger.addHandler(stream_handler)
+
+    root_logger.setLevel(logging.INFO)
+
+    return root_logger
+
+
 class MobilityException(Exception):
     pass
 
@@ -134,24 +152,6 @@ def find_run_end_time(iso3: str) -> datetime:
         return min([default_end_time, vacc_data[vacc_data.gt(END_VACC_THRESHOLD)].idxmin()])
 
 
-def get_logger(log_file: Path = None):
-    formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-    root_logger = logging.getLogger()
-
-    if log_file:
-        file_handler = logging.FileHandler(log_file, mode="w")
-        file_handler.setFormatter(formatter)
-        root_logger.addHandler(file_handler)
-
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setFormatter(formatter)
-    root_logger.addHandler(stream_handler)
-
-    root_logger.setLevel(logging.INFO)
-
-    return root_logger
-
-
 def get_mobility_provider(
     iso3: str,
     mob_type: str,
@@ -193,21 +193,19 @@ def get_mobility_provider(
 
     # Data processing
     if mob_type == "no_mob":
-        mob = pd.Series([])
+        return mobility.NoMobilityProvider()
     elif mob_type == "g_mob":
         mob = get_google_mobility(iso3)
     elif mob_type == "fb_visited_mob":
         mob = get_fb_visited_mobility(iso3)
     elif mob_type == "fb_singletile_mob":
         mob = get_fb_singletile_mobility(iso3)
-    n_domains = len(mob.columns) if isinstance(mob, pd.DataFrame) else None
     smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
     # Priors
     exp_prior = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
-    if mob_type == "no_mob":
-        return mobility.NoMobilityProvider()
-    elif mob_type == "g_mob":
+    if mob_type == "g_mob":
+        n_domains = len(mob.columns)
         weight_prior = {"mob_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
         return mobility.WeightedExpMobilityProvider(smoothed_mob, weight_prior | exp_prior)
     elif mob_type in ["fb_visited_mob", "fb_singletile_mob"]:
@@ -218,8 +216,6 @@ def get_mobility_provider(
 
 def run_single_country(
     country,
-    proc_update_freq,
-    init_duration,
     mob_analysis_type,
     n_iters,
     run_data_delay,
@@ -287,11 +283,8 @@ def run_single_country(
         pop,
         run_start,
         end_time,
-        proc_update_freq,
         CosineMultiCurve(),
         GammaDens(),
-        init_duration,
-        init_duration,
         GammaDens(),
         GammaDens(),
         var_names,

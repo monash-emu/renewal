@@ -9,6 +9,7 @@ import copy
 
 from summer2.utils import Epoch
 
+from emu_renewal.constants import PROC_UPDATE_FREQ, INIT_DURATION
 from emu_renewal.process import sinterp, MultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import (
@@ -122,11 +123,8 @@ class MultiStrainModel:
         population: float,
         start: datetime,
         end: datetime,
-        proc_update_freq: int,
         proc_fitter: MultiCurve,
         dens_obj: Dens,
-        window_len: int,
-        init_length: int,
         reporting_dist: Dens,
         discharge_dens: Dens,
         strains: List[str],
@@ -142,11 +140,8 @@ class MultiStrainModel:
             population: Number of people considered in the analysis
             start: Time to run the model from
             end: Time to run the model until
-            proc_update_freq: Frequency to adjust the variable process
             proc_fitter: Method for fitting a curve to the points in the variable process
             dens_obj: Distribution for the renewal process
-            window_len: How far back to go with the sliding window
-            init_length: Initialisation period
             reporting_dist: Distribution for the time from infection to case reporting
             discharge_dens: Distribution for the time from hospital admission to discharge
             strains: Names of the variants to be implemented
@@ -164,7 +159,7 @@ class MultiStrainModel:
         self.var_times = seed_times
         self.seed_duration = seed_duration
         self.discharge_dens = discharge_dens
-        self.init_length = init_length
+        self.init_length = INIT_DURATION
         self.vacc_effect = vacc_effect
 
         # Times
@@ -190,7 +185,7 @@ class MultiStrainModel:
         ] += f"The starting model population is {round_sigfig(population / 1e6, 2)} million persons. "
 
         # Process
-        self.proc_update_freq = proc_update_freq
+        self.proc_update_freq = PROC_UPDATE_FREQ
         self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
         self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
         self.proc_fitter = proc_fitter
@@ -213,10 +208,10 @@ class MultiStrainModel:
         # Generation interval
         self.dens_obj = dens_obj
         self.description["Generation times"] = self.dens_obj.get_desc()
-        self.window_len = window_len
+        self.window_len = INIT_DURATION
         self.description["Generation times"] += (
             "The generation interval for all calculations "
-            f"is truncated from {window_len} days onwards "
+            f"is truncated from {self.window_len} days onwards "
             "on the assumption that the distribution's density "
             "has reached negligible values once this period has elapsed. "
         )
