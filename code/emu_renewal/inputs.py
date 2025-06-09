@@ -230,14 +230,6 @@ def get_worldbank_national_pop(
     return pd.read_csv(path, index_col="Country Code", na_values=[".."]).loc[iso3, year_str]
 
 
-def get_ordered_countries_by_cont(countries_by_cont, conts):
-    ordered_countries = {}
-    for cont in conts:
-        pops = {c: get_country_pop(c) for c in countries_by_cont[cont]}
-        ordered_countries[cont] = pd.Series(pops).sort_values(ascending=False).index
-    return ordered_countries
-
-
 def get_undesa_national_pop(iso3: str) -> float:
     """Get UN-DESA population estimate for a single country, for 2020
 
@@ -255,6 +247,14 @@ def get_undesa_national_pop(iso3: str) -> float:
     csv_path = DATA_PATH / "population/undesa_pops_2020.csv"
     data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
     return data.loc[iso3, "population"]
+
+
+def get_ordered_countries_by_cont(countries_by_cont, conts):
+    ordered_countries = {}
+    for cont in conts:
+        pops = {c: get_country_pop(c) for c in countries_by_cont[cont]}
+        ordered_countries[cont] = pd.Series(pops).sort_values(ascending=False).index
+    return ordered_countries
 
 
 def get_google_mobility(
