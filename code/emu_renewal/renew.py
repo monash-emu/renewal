@@ -136,14 +136,6 @@ class MultiStrainModel:
             seed_times: Times to seed each variant (including the first one)
             mobility: The mobility time series to scale transmission with
             vacc_effect: Whether to reduce severity based on vaccination effects (for Australia)
-        
-        Notes
-        -----
-        Each time point for fitting the variable process was set at intervals 
-        through the analysis period spaced by {PROC_UPDATE_FREQ} days
-        working backwards from the end of the analysis period.
-        The variable process was then fit to these points using 
-        piecewise cosine functions.
         """
         self.strains = strains
         self.start_strain = strains[0]
@@ -168,11 +160,7 @@ class MultiStrainModel:
         self.pop = population
 
         # Process
-        self.proc_update_freq = PROC_UPDATE_FREQ
-        self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
-        self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
-        self.proc_fitter = CosineMultiCurve()
-        self.process_start = int(self.x_proc_vals[0])
+        self.initialise_var_proc()
 
         # Generation interval
         self.dens_obj = dens_obj
@@ -185,6 +173,23 @@ class MultiStrainModel:
             f"is truncated from {self.window_len} days onwards " \
             "on the assumption that the distribution's density " \
             "has reached negligible values once this period has elapsed. "
+
+    def initialise_var_proc(self):
+        """Initialise the structured needed for the variable process.
+
+        Notes
+        -----
+        Each time point for fitting the variable process was set at intervals 
+        through the analysis period spaced by {PROC_UPDATE_FREQ} days
+        working backwards from the end of the analysis period.
+        The variable process was then fit to these points using 
+        piecewise cosine functions.
+        """
+        self.proc_update_freq = PROC_UPDATE_FREQ
+        self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
+        self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
+        self.proc_fitter = CosineMultiCurve()
+        self.process_start = int(self.x_proc_vals[0])
 
     def renew(
         self, mean, sd, proc, init, cross_immunity, relinfect, seed_rates, seed_offsets, **kwargs
