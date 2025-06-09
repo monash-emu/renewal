@@ -8,6 +8,7 @@ from warnings import warn
 
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.targets import Target
+from emu_renewal.constants import INIT_RADIUS
 
 
 ParamDict = dict[str, dist.Distribution | float]
@@ -15,15 +16,15 @@ ParamDict = dict[str, dist.Distribution | float]
 
 def custom_init(
     site=None, 
-    radius: float=2.0, 
     n_proc: int=0,
 ):
     """Initialize a numpyro MCMC run, 
     returning 0.0 for "proc" (random process values),
     otherwise defaulting to init_to_uniform(radius)
     """
+
     if site is None:
-        return partial(custom_init, radius=radius, n_proc=n_proc)
+        return partial(custom_init, n_proc=n_proc)
 
     if (
         site["type"] == "sample"
@@ -36,7 +37,7 @@ def custom_init(
             if site["name"] == "proc":
                 return jnp.zeros(n_proc)
             else:
-                return infer.init_to_uniform(site, radius)
+                return infer.init_to_uniform(site, INIT_RADIUS)
 
 
 class StandardCalib:
@@ -45,7 +46,6 @@ class StandardCalib:
         epi_model: MultiStrainModel,
         params: ParamDict,
         targets: dict[str, Target],
-        proc_dispersion: dist.Distribution=dist.HalfNormal(0.1),
     ):
         """Set up calibration object with epi model and data.
 
@@ -53,7 +53,6 @@ class StandardCalib:
             epi_model: The renewal model
             params: Parameter inputs, including both priors and fixed parameters
             targets: The data targets
-            proc_dispersion: Distribution used for the dispersion of the random process
         """
         self.epi_model = epi_model
         self.n_proc_periods = len(self.epi_model.x_proc_data.points)
@@ -83,7 +82,7 @@ class StandardCalib:
         self.sampled_params = {k: v for k, v in self.params.items() if isinstance(v, dist.Distribution)}
         self.fixed_params = {k: v for k, v in self.params.items() if not isinstance(v, dist.Distribution)}
 
-        self.proc_dispersion = proc_dispersion
+        self.proc_dispersion = dist.HalfNormal(0.5)
 
     def get_description(self) -> str:
         description = self.describe_params()

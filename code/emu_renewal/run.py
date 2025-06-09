@@ -1,3 +1,4 @@
+from typing import Dict, Tuple
 from datetime import datetime, timedelta
 from socket import gethostname
 import pycountry
@@ -54,6 +55,7 @@ from emu_renewal.indicators import (
     get_ba5_info,
     get_country_vars,
 )
+from emu_renewal.targets import Target
 
 
 def get_logger(log_file: Path = None):
@@ -217,13 +219,61 @@ def get_mobility_provider(
         raise Exception(f"No provider available for analysis type {mob_type}")
 
 
+def run_calibration(
+    model: MultiStrainModel,
+    priors: Dict[str, dist.Distribution],
+    targets: Dict[str, Target],
+    prog_bar: bool,
+) -> Tuple[StandardCalib, infer.MCMC]:
+    """Run a calibration using a standard approach.
+
+    Args:
+        model: The renewal model
+        priors: The parameter priors
+        targets: The calibration targets
+        prog_bar: Whether to display a progress bar
+
+    Returns:
+        The calibration and MCMC objects
+
+    Notes
+    -----
+    We ran each calibration over {N_CHAINS} chains
+    for {N_ITERS} iterations each.
+    """
+    calib = StandardCalib(model, priors, targets)
+    init = calib.custom_init()
+    kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
+    mcmc = infer.MCMC(kernel, num_chains=N_CHAINS, num_samples=N_ITERS, num_warmup=N_ITERS, progress_bar=prog_bar)
+    mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
+    return calib, mcmc
+
+
 def run_single_country(
-    country,
-    mob_analysis_type,
-    analysis_name,
+    country: str,
+    mob_type: str,
+    task_name: str,
     prog_bar=False,
     logger=None,
 ):
+    """Run an analysis for a single country / mobility approach.
+
+    Args:
+        country: The country identifier
+        mob_type: The mobility analysis type
+        task_name: Identifier for the set of tasks
+        prog_bar: Whether to display the progress bar
+        logger: The logging object
+
+    Raises:
+        MobilityException: Error if unable to get the mobility
+            provider (assuming this is because mobility is unavailable)
+    
+    Notes
+    -----
+    Each analysis begins from {RUN_DATA_DELAY} days before the 
+    first available calibration data point.
+    """
 
     # Country identifiers
     iso3 = pycountry.countries.lookup(country).alpha_3
@@ -232,9 +282,9 @@ def run_single_country(
 
     # Logging
     logger = logger or logging.getLogger()
-    logger.info(f"\n________________________\nRunning job at {analysis_name}")
+    logger.info(f"\n________________________\nRunning job at {task_name}")
     logger.info(f"Country: {iso3}")
-    logger.info(f"Mobility approach: {mob_analysis_type}")
+    logger.info(f"Mobility approach: {mob_type}")
     commit = git.Repo(search_parent_directories=True).head
     logger.info(f"Git commit hash: {commit.object.hexsha}")
     logger.info(f"Commit message: {commit.reference.commit.message}")
@@ -269,9 +319,9 @@ def run_single_country(
 
     # Mobility
     try:
-        mob_provider = get_mobility_provider(iso3, mob_analysis_type)
+        mob_provider = get_mobility_provider(iso3, mob_type)
     except Exception as e:
-        msg = f"{mob_analysis_type} mobility not available"
+        msg = f"{mob_type} mobility not available"
         raise MobilityException(msg)
     if mob_provider.mob_end:
         end_time = min([end_time, mob_provider.mob_end])
@@ -296,15 +346,11 @@ def run_single_country(
     hosp_key = list(hosp_targ.keys())[0] if hosp_targ else ""
     priors = get_standard_priors(len(var_names), hosp_key, iso3) | mob_provider.get_priors()
     targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | var_targs
-    calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
-    init = calib.custom_init(radius=0.1)
-    kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
-    mcmc = infer.MCMC(kernel, num_chains=N_CHAINS, num_samples=N_ITERS, num_warmup=N_ITERS, progress_bar=prog_bar)
-    mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
+    calib, mcmc = run_calibration(model, priors, targets, prog_bar)
 
     # Outputs
-    out_path = BASE_PATH / "outputs" / analysis_name / country / mob_analysis_type
+    out_path = BASE_PATH / "outputs" / task_name / country / mob_type
     out_path.mkdir(parents=True, exist_ok=True)
     logger.info(f"Writing to: {out_path}")
     store_outputs(out_path, model, calib, mcmc)
-    logger.info(f"Completed {analysis_name}/{country}/{mob_analysis_type}")
+    logger.info(f"Completed {task_name}/{country}/{mob_type}")
