@@ -180,7 +180,24 @@ def get_standard_priors(
     )
 
 
-def get_country_pop(iso3):
+def get_country_pop(
+    iso3: str,
+) -> float:
+    """Get the population size to use for a specified country.
+
+    Args:
+        iso3: The country identifier
+
+    Returns:
+        The population size
+    
+    Notes
+    -----
+    We used total population size estimated
+    by the World Bank where a population size was available,
+    and used the estimate provided by the United Nations
+    Department of Economic and Social Affairs otherwise.
+    """
     try:
         return get_worldbank_national_pop(iso3)
     except:
@@ -202,10 +219,10 @@ def get_worldbank_national_pop(
     -----
     Population data were downloaded from
     [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
-    on 01/04/2025. From this data, the population size in 2020
-    of country of interest was extracted. The exception was Australia,
-    for which the population size in 2022 was used,
-    because of its later analysis period.
+    on 1 April 2025.
+    The population size for 2020 was used for all countries
+    except for Australia, for which the population size in 2022 was used
+    (because of the later analysis period for this country).
     """
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
     year = 2022 if iso3 == "AUS" else 2020
@@ -224,14 +241,16 @@ def get_ordered_countries_by_cont(countries_by_cont, conts):
 def get_undesa_national_pop(iso3: str) -> float:
     """Get UN-DESA population estimate for a single country, for 2020
 
-    Sourced from
-    https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/EXCEL_FILES/2_Population/WPP2024_POP_F01_1_POPULATION_SINGLE_AGE_BOTH_SEXES.xlsx
-
     Args:
         iso3: ISO3 country code
 
     Returns:
         2020 UNDESA population total for country
+    
+    Notes
+    -----
+    [UN DESA population data](https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/EXCEL_FILES/2_Population/WPP2024_POP_F02_1_POPULATION_5-YEAR_AGE_GROUPS_BOTH_SEXES.xlsx)
+    was downloaded on 18 March 2025.
     """
     csv_path = DATA_PATH / "population/undesa_pops_2020.csv"
     data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
