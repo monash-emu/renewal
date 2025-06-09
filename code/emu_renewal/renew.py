@@ -9,8 +9,8 @@ import copy
 
 from summer2.utils import Epoch
 
-from emu_renewal.constants import PROC_UPDATE_FREQ, INIT_DURATION, SEED_DURATION
-from emu_renewal.process import sinterp, MultiCurve, CosineMultiCurve
+from emu_renewal.constants import PROC_UPDATE_FREQ, INIT_DURATION, SEED_DURATION, GEN_TRUNC_POINT, CONVOLVE_TRUNC_POINT
+from emu_renewal.process import sinterp, CosineMultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import get_combs, get_col_increases, get_reset_array_from_increases
 from emu_renewal.mobility import MobilityProvider
@@ -168,11 +168,6 @@ class MultiStrainModel:
             "Generation times": self.dens_obj.get_desc(),
         }
         self.window_len = INIT_DURATION
-        self.description["Generation times"] +=  \
-            "The generation interval for all calculations " \
-            f"is truncated from {self.window_len} days onwards " \
-            "on the assumption that the distribution's density " \
-            "has reached negligible values once this period has elapsed. "
 
     def initialise_var_proc(self):
         """Initialise the structured needed for the variable process.
@@ -194,7 +189,28 @@ class MultiStrainModel:
     def renew(
         self, mean, sd, proc, init, cross_immunity, relinfect, seed_rates, seed_offsets, **kwargs
     ):
-        densities = self.dens_obj.get_densities(self.window_len, mean, sd)  # Generation densities
+        """_summary_
+
+        Args:
+            mean: _description_
+            sd: _description_
+            proc: _description_
+            init: _description_
+            cross_immunity: _description_
+            relinfect: _description_
+            seed_rates: _description_
+            seed_offsets: _description_
+
+        Returns:
+            _description_
+        
+        Notes
+        -----
+        The generation interval for all calculations
+        was truncated from {GEN_TRUNC_POINT} days onwards
+        because the density reached negligible values by this point.
+        """
+        densities = self.dens_obj.get_densities(GEN_TRUNC_POINT, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
         init_inc = jnp.fliplr(self.seed_array[:, : self.init_length])  # Reverse initialisation
         start_pop = self.pop - jnp.sum(init_inc)  # Starting susceptible population
