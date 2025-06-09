@@ -24,6 +24,9 @@ from emu_renewal.constants import (
     MOBILITY_SMOOTH_PERIOD,
     EXP_PRIOR_LOWER,
     EXP_PRIOR_UPPER,
+    N_ITERS,
+    RUN_DATA_DELAY,
+    N_CHAINS,
 )
 from emu_renewal.inputs import (
     get_country_vacc_data,
@@ -217,11 +220,8 @@ def get_mobility_provider(
 def run_single_country(
     country,
     mob_analysis_type,
-    n_iters,
-    run_data_delay,
     analysis_name,
     seed_duration: int = 10,
-    n_chains=4,
     prog_bar=False,
     logger=None,
 ):
@@ -245,7 +245,7 @@ def run_single_country(
     pop = get_country_pop(iso3)
     data_start = find_run_start_time(pop, iso3)
     end_time = find_run_end_time(iso3)
-    run_start = data_start - timedelta(run_data_delay)
+    run_start = data_start - timedelta(RUN_DATA_DELAY)
     start_str = run_start.strftime(DATE_FORMAT)
     end_str = data_start.strftime(DATE_FORMAT)
     logger.info(f"Running from {start_str} with data starting from {end_str}")
@@ -302,7 +302,7 @@ def run_single_country(
     calib = StandardCalib(model, priors, targets, proc_dispersion=dist.HalfNormal(0.5))
     init = calib.custom_init(radius=0.1)
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
-    mcmc = infer.MCMC(kernel, num_chains=n_chains, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar)
+    mcmc = infer.MCMC(kernel, num_chains=N_CHAINS, num_samples=N_ITERS, num_warmup=N_ITERS, progress_bar=prog_bar)
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
 
     # Outputs
