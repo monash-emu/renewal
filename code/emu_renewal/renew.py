@@ -12,13 +12,7 @@ from summer2.utils import Epoch
 from emu_renewal.constants import PROC_UPDATE_FREQ, INIT_DURATION, SEED_DURATION
 from emu_renewal.process import sinterp, MultiCurve
 from emu_renewal.distributions import Dens
-from emu_renewal.utils import (
-    format_date_for_str,
-    round_sigfig,
-    get_combs,
-    get_col_increases,
-    get_reset_array_from_increases,
-)
+from emu_renewal.utils import get_combs, get_col_increases, get_reset_array_from_increases
 from emu_renewal.mobility import MobilityProvider
 
 
@@ -143,10 +137,14 @@ class MultiStrainModel:
             reporting_dist: Distribution for the time from infection to case reporting
             discharge_dens: Distribution for the time from hospital admission to discharge
             strains: Names of the variants to be implemented
-            start_strain: Which of the variants to consider as the first strain
             seed_times: Times to seed each variant (including the first one)
             mobility: The mobility time series to scale transmission with
-            vacc_effect: ***
+            vacc_effect: Whether to reduce severity based on vaccination effects (for Australia)
+        
+        Notes
+        -----
+        Each time point for fitting the variable process was set at intervals 
+        through the analysis period spaced by {PROC_UPDATE_FREQ} days.
         """
         self.strains = strains
         self.start_strain = strains[0]
@@ -165,22 +163,11 @@ class MultiStrainModel:
         self.start = int(self.epoch.dti_to_index(start))
         self.end = int(self.epoch.dti_to_index(end))
         self.model_times = jnp.arange(self.start, self.end + 1)
-        self.description = {
-            "Fixed parameters": (
-                f"The main analysis period runs from {format_date_for_str(start)} "
-                f"to {format_date_for_str(end)}, "
-                f"with a preceding initialisation period of {self.init_length} days. "
-            )
-        }
-
         self.mob_provider = mobility
         self.mob_provider.reconcile_times(start, end)
 
         # Population
         self.pop = population
-        self.description[
-            "Fixed parameters"
-        ] += f"The starting model population is {round_sigfig(population / 1e6, 2)} million persons. "
 
         # Process
         self.proc_update_freq = PROC_UPDATE_FREQ
@@ -188,34 +175,22 @@ class MultiStrainModel:
         self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
         self.proc_fitter = proc_fitter
         self.process_start = int(self.x_proc_vals[0])
-        self.description["Variable process"] = (
-            "Each x-value for the requested points in the variable process "
-            "are set at evenly spaced intervals through the analysis period "
-            f"spaced by {self.proc_update_freq} days and "
-            "ending at the analysis end time. "
-        )
-        if self.start < self.process_start:
-            self.description["Variable process"] = (
-                "Because the analysis period is not an exact multiple "
-                "of the duration of a process interval, "
-                "the variable process only starts from day "
-                f"{self.process_start} of the analysis. "
-            )
-        self.describe_process()
 
         # Generation interval
         self.dens_obj = dens_obj
-        self.description["Generation times"] = self.dens_obj.get_desc()
+        self.description = {
+            "Generation times": self.dens_obj.get_desc(),
+        }
         self.window_len = INIT_DURATION
-        self.description["Generation times"] += (
-            "The generation interval for all calculations "
-            f"is truncated from {self.window_len} days onwards "
-            "on the assumption that the distribution's density "
+        self.description["Generation times"] +=  \
+            "The generation interval for all calculations " \
+            f"is truncated from {self.window_len} days onwards " \
+            "on the assumption that the distribution's density " \
             "has reached negligible values once this period has elapsed. "
-        )
 
         # Renewal process
         self.describe_renewal()
+        # self.describe_process()
 
         # Reporting delay
         self.report_dist = reporting_dist
