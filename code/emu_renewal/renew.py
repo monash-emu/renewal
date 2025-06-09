@@ -10,10 +10,11 @@ import copy
 from summer2.utils import Epoch
 
 from emu_renewal.constants import PROC_UPDATE_FREQ, INIT_DURATION, SEED_DURATION
-from emu_renewal.process import sinterp, MultiCurve
+from emu_renewal.process import sinterp, MultiCurve, CosineMultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import get_combs, get_col_increases, get_reset_array_from_increases
 from emu_renewal.mobility import MobilityProvider
+from emu_renewal.distributions import GammaDens
 
 
 ModelResult = dict[str, Array]
@@ -117,10 +118,8 @@ class MultiStrainModel:
         population: float,
         start: datetime,
         end: datetime,
-        proc_fitter: MultiCurve,
         dens_obj: Dens,
         reporting_dist: Dens,
-        discharge_dens: Dens,
         strains: List[str],
         seed_times: List[datetime],
         mobility: MobilityProvider,
@@ -132,7 +131,6 @@ class MultiStrainModel:
             population: Number of people considered in the analysis
             start: Time to run the model from
             end: Time to run the model until
-            proc_fitter: Method for fitting a curve to the points in the variable process
             dens_obj: Distribution for the renewal process
             reporting_dist: Distribution for the time from infection to case reporting
             discharge_dens: Distribution for the time from hospital admission to discharge
@@ -144,7 +142,10 @@ class MultiStrainModel:
         Notes
         -----
         Each time point for fitting the variable process was set at intervals 
-        through the analysis period spaced by {PROC_UPDATE_FREQ} days.
+        through the analysis period spaced by {PROC_UPDATE_FREQ} days
+        working backwards from the end of the analysis period.
+        The variable process was then fit to these points using 
+        piecewise cosine functions.
         """
         self.strains = strains
         self.start_strain = strains[0]
@@ -154,7 +155,6 @@ class MultiStrainModel:
         self.trans_mats = get_trans_mats(self.dests)
         self.var_times = seed_times
         self.seed_duration = SEED_DURATION
-        self.discharge_dens = discharge_dens
         self.init_length = INIT_DURATION
         self.vacc_effect = vacc_effect
 
@@ -173,7 +173,7 @@ class MultiStrainModel:
         self.proc_update_freq = PROC_UPDATE_FREQ
         self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
         self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
-        self.proc_fitter = proc_fitter
+        self.proc_fitter = CosineMultiCurve()
         self.process_start = int(self.x_proc_vals[0])
 
         # Generation interval
@@ -448,7 +448,8 @@ class MultiStrainModel:
         )
 
     def get_hosp_occupancy_from_admits(self, full_admits, stay_mean, stay_sd):
-        discharge = 1.0 - self.discharge_dens.get_cum_dens(self.window_len, stay_mean, stay_sd)
+        discharge_dens = GammaDens()
+        discharge = 1.0 - discharge_dens.get_cum_dens(self.window_len, stay_mean, stay_sd)
         return jnp.convolve(full_admits, discharge)[: len(full_admits)]
 
     def get_description(self) -> str:

@@ -37,7 +37,6 @@ from emu_renewal.inputs import (
     get_fb_visited_mobility,
     get_fb_singletile_mobility,
 )
-from emu_renewal.process import CosineMultiCurve
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.distributions import GammaDens
 from emu_renewal.calibration import StandardCalib
@@ -332,8 +331,6 @@ def run_single_country(
         pop,
         run_start,
         end_time,
-        CosineMultiCurve(),
-        GammaDens(),
         GammaDens(),
         GammaDens(),
         var_names,
