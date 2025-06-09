@@ -18,5 +18,5 @@ def get_func_blurb(
     docstring = function.__doc__
     txt = re.split("-----", docstring)[1]
     txt = re.sub(r"\s+", " ", txt)
-    txt = re.sub(r"__RETURN__", "\n", txt)
+    txt = re.sub(r"__RETURN__", "\n\n", txt)
     return txt.format(**constants.__dict__)
