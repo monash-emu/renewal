@@ -6,24 +6,30 @@ from summer2.functions import interpolate as sinterp
 
 def _get_cos_curve_at_x(
     x: float, 
-    xdata: InterpolatorScaleData, 
-    ydata: InterpolatorScaleData,
+    x_data: InterpolatorScaleData, 
+    y_data: InterpolatorScaleData,
 ) -> float:
     """Get interpolated function value using half-cosine function.
 
     Args:
         x: Independent value to calculate result at
-        xdata: Requested series of independent values
-        ydata: Requested series of dependent values
+        x_data: Requested series of independent values
+        y_data: Requested series of dependent values
 
     Returns:
         Interpolated value
+
+    Notes
+    -----
+    The cosine function was obtained by translating 
+    and scaling a half cosine function 
+    (i.e. a cosine function on domain zero to $\pi$).
     """
-    idx = sinterp.binary_search_sum_ge(x, xdata.points) - 1
-    offset = x - xdata.points[idx]
-    relx = offset / xdata.ranges[idx]
+    idx = sinterp.binary_search_sum_ge(x, x_data.points) - 1
+    offset = x - x_data.points[idx]
+    relx = offset / x_data.ranges[idx]
     rely = 0.5 + 0.5 * -jnp.cos(relx * jnp.pi)
-    return ydata.points[idx] + (rely * ydata.ranges[idx])
+    return y_data.points[idx] + (rely * y_data.ranges[idx])
 
 
 class MultiCurve:
@@ -45,34 +51,24 @@ class CosineMultiCurve(MultiCurve):
     def get_multicurve(
         self,
         t: float, 
-        xdata: InterpolatorScaleData, 
-        ydata: InterpolatorScaleData,
-    ):
+        x_data: InterpolatorScaleData, 
+        y_data: InterpolatorScaleData,
+    ) -> callable:
         """Construct a half-cosine-based multi-curve.
 
         Args:
             t: Model time
-            xdata: Values of independent variable
-            ydata: Values of dependent variable
+            x_data: Values of independent variable
+            y_data: Values of dependent variable
 
         Returns:
             Curve fitting function
         """
         # Branch on whether t is in bounds
-        bounds_state = sum(t > xdata.bounds)
+        bounds_state = sum(t > x_data.bounds)
         branches = [
-            lambda _, __, ___: ydata.bounds[0],
+            lambda _, __, ___: y_data.bounds[0],
             _get_cos_curve_at_x,
-            lambda _, __, ___: ydata.bounds[1],
+            lambda _, __, ___: y_data.bounds[1],
         ]
-        return lax.switch(bounds_state, branches, t, xdata, ydata)
-    
-    def get_description(self):
-        return (
-            "Fitting is implemented using a half-cosine interpolation function "
-            "that is translated and scaled to reach each of the points specified. "
-            "This results in a function that joins each two successive requested values "
-            "with a function that scales smoothly from "
-            "a gradient of zero at the preceding point to "
-            "a gradient of zero at the subsequent point. "
-        )
+        return lax.switch(bounds_state, branches, t, x_data, y_data)

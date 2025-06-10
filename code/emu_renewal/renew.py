@@ -164,13 +164,11 @@ class MultiStrainModel:
 
         # Generation interval
         self.dens_obj = dens_obj
-        self.description = {
-            "Generation times": self.dens_obj.get_desc(),
-        }
+        self.description = {}
         self.window_len = INIT_DURATION
 
     def initialise_var_proc(self):
-        """Initialise the structured needed for the variable process.
+        """Initialise the structures needed for the variable process.
 
         Notes
         -----
@@ -185,6 +183,37 @@ class MultiStrainModel:
         self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
         self.proc_fitter = CosineMultiCurve()
         self.process_start = int(self.x_proc_vals[0])
+
+    def fit_process_curve(
+        self,
+        y_proc_req: List[float],
+        rt_init: float,
+    ) -> jnp.array:
+        """See describe_process below.
+
+        Args:
+            y_proc_req: The submitted log values for the variable process
+            rt_init: Starting value for the variable process
+
+        Returns:
+            The values of the variable process at each model time
+        
+        Notes
+        -----
+        The starting value for the variable process was explored 
+        as a calibration parameter, along with the subsequent values of the process.
+        This exploration was performed in log space,
+        with the calibrated values for these quantities
+        exponentiated before being used to scale the transmission rate.
+        Each parameter pertaining the variable process
+        was assigned the same prior centred at zero (i.e. no update),
+        and was interpreted as the change in the log-transformed
+        variable process relative to the previous value.
+        """
+        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((rt_init,)), y_proc_req]))
+        y_proc_data = sinterp.get_scale_data(y_proc_vals)
+        fitter = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
+        return jnp.exp(fitter(self.model_times, self.x_proc_data, y_proc_data))
 
     def renew(
         self, mean, sd, proc, init, cross_immunity, relinfect, seed_rates, seed_offsets, **kwargs
@@ -273,33 +302,6 @@ class MultiStrainModel:
             state_update, MultistrainState(init_inc, start_pops), self.model_times
         )
         return outputs
-
-    def fit_process_curve(
-        self,
-        y_proc_req: List[float],
-        rt_init,
-    ) -> jnp.array:
-        """See describe_process below.
-
-        Args:
-            y_proc_req: The submitted log values for the variable process
-
-        Returns:
-            The values of the variable process at each model time
-        """
-        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((rt_init,)), y_proc_req]))
-        y_proc_data = sinterp.get_scale_data(y_proc_vals)
-        cos_func = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
-        return jnp.exp(cos_func(self.model_times, self.x_proc_data, y_proc_data))
-
-    def describe_process(self):
-        self.description["Variable process"] += self.proc_fitter.get_description()
-        self.description["Variable process"] += (
-            "The parameters for the variable process are explored as "
-            "the update of each process value relative to the preceding value. "
-            "Each of the parameters for the variable process is exponentiated, "
-            "such that these parameters are explored in the log-transformed space. "
-        )
 
     def describe_renewal(self):
         self.description["Renewal process"] = (
