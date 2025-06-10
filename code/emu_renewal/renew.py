@@ -238,6 +238,16 @@ class MultiStrainModel:
         The generation interval for all calculations
         was truncated from {GEN_TRUNC_POINT} days onwards
         because the density reached negligible values by this point.
+        For all analyses, all the population was assigned
+        to the fully susceptible category.
+        Infectiousness of each variant was calculated
+        with reference to the first modelled variant strain.
+        Cross immunity was modelled as providing partial protection to
+        persons who had been infected with an preceding strain.
+        However, previously infected persons were assumed
+        to derive complete immunity to the infecting
+        strain and to variant strains that emerged prior
+        to the infecting strain.
         """
         densities = self.dens_obj.get_densities(GEN_TRUNC_POINT, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
@@ -263,7 +273,6 @@ class MultiStrainModel:
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
         half_dur = self.seed_duration / 2.0
-        # Not sure why this has to be minus one
         var_data_starts = [self.epoch.dti_to_index(s) for s in self.var_times]
         var_starts = jnp.array([-1.0] + var_data_starts)
         first_strain_offset = jnp.array([0.0])
