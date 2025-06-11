@@ -38,7 +38,6 @@ from emu_renewal.inputs import (
     get_fb_singletile_mobility,
 )
 from emu_renewal.renew import MultiStrainModel
-from emu_renewal.distributions import GammaDens
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility

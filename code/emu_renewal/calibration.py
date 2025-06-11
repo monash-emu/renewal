@@ -8,7 +8,7 @@ from warnings import warn
 
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.targets import Target
-from emu_renewal.constants import INIT_RADIUS
+from emu_renewal.constants import INIT_RADIUS, PROC_DISP_SD
 
 
 ParamDict = dict[str, dist.Distribution | float]
@@ -71,6 +71,14 @@ class StandardCalib:
             epi_model: The renewal model
             params: Parameter inputs, including both priors and fixed parameters
             targets: The data targets
+        
+        Notes
+        -----
+        For all epidemiological parameters,
+        the priors were set as described in the parameters section.
+        The dispersion parameter for the variable process
+        was set to a half normal distribution with 
+        standard deviation {PROC_DISP_SD}.
         """
         self.epi_model = epi_model
         self.n_proc_periods = len(self.epi_model.x_proc_data.points)
@@ -100,13 +108,7 @@ class StandardCalib:
         self.sampled_params = {k: v for k, v in self.params.items() if isinstance(v, dist.Distribution)}
         self.fixed_params = {k: v for k, v in self.params.items() if not isinstance(v, dist.Distribution)}
 
-        self.proc_dispersion = dist.HalfNormal(0.5)
-
-    def get_description(self) -> str:
-        description = self.describe_params()
-        for ind in self.targets.keys():
-            description += self.describe_like_contribution(ind)
-        return description
+        self.proc_dispersion = dist.HalfNormal(PROC_DISP_SD)
 
     def calibration(self):
         """Master calibration function.
@@ -121,23 +123,23 @@ class StandardCalib:
 
         Returns:
             Calibration parameters
+        
+        Notes
+        -----
+        The calibration process calibrates parameters for each
+        update point of the variable process in logarithmic space.
+        The prior distribution for the update for each period 
+        of the variable process is a normal distribution
+        centred at a value of zero to represent no change
+        from the previous value.
+        The standard deviation of each normal distribution
+        is provided by the (single) dispersion parameter
+        of the variable process introduced above.
         """
         params = {k: numpyro.sample(k, v) for k, v in self.sampled_params.items()}
         proc_disp = numpyro.sample("dispersion_proc", self.proc_dispersion)
         proc_dist = dist.Normal(jnp.repeat(0.0, self.n_proc_periods), proc_disp)
         return params | {"proc": numpyro.sample("proc", proc_dist)}
-
-    def describe_params(self):
-        return (
-            f"The calibration process calibrates parameters for {self.n_proc_periods} "
-            "values for periods of the variable process to the data. "
-            "The relative values pertaining to each period of the variable process "
-            "are estimated from normal prior distributions centred at no "
-            "change from the value of the previous stage of the process. "
-            "The dispersion of the variable process is calibrated, "
-            "using a half-normal distribution "
-            f"with standard deviation {self.proc_dispersion.scale}. "
-        )
 
     def add_factor(self, result, ind: str, parameters):
         """Add output target to calibration algorithm.
@@ -145,17 +147,13 @@ class StandardCalib:
         Args:
             result: Output from model
             ind: Name of indicator
+
+        Notes
+        -----
+        The log-likelihood of a simulation run
+        is calculated as the sum of the log-likelihood
+        associated with each target introduced above.
         """
         modelled = result[ind][self.common_idx[ind]]
         like_component = self.targets[ind].loglikelihood(modelled, parameters)
         numpyro.factor(f"{ind}_ll", like_component)
-
-    def describe_like_contribution(self, indicator):
-        return (
-            f"The log of the modelled {indicator} values for each parameter set "
-            "is compared against the corresponding data "
-            "from the end of the run-in phase through to the end of the analysis. "
-            "The dispersion parameter for this comparison of log values is also calibrated, "
-            "with the dispersion parameter prior using a half-normal distribution, "
-            "and shared between the calibration indicators. "
-        )
