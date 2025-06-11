@@ -9,7 +9,13 @@ import copy
 
 from summer2.utils import Epoch
 
-from emu_renewal.constants import PROC_UPDATE_FREQ, INIT_DURATION, SEED_DURATION, GEN_TRUNC_POINT, CONVOLVE_TRUNC_POINT
+from emu_renewal.constants import (
+    PROC_UPDATE_FREQ,
+    INIT_DURATION,
+    SEED_DURATION,
+    GEN_TRUNC_POINT,
+    CONVOLVE_TRUNC_POINT,
+)
 from emu_renewal.process import sinterp, CosineMultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import get_combs, get_col_increases, get_reset_array_from_increases
@@ -172,10 +178,10 @@ class MultiStrainModel:
 
         Notes
         -----
-        Each time point for fitting the variable process was set at intervals 
+        Each time point for fitting the variable process was set at intervals
         through the analysis period spaced by {PROC_UPDATE_FREQ} days
         working backwards from the end of the analysis period.
-        The variable process was then fit to these points using 
+        The variable process was then fit to these points using
         piecewise cosine functions.
         """
         self.proc_update_freq = PROC_UPDATE_FREQ
@@ -197,10 +203,10 @@ class MultiStrainModel:
 
         Returns:
             The values of the variable process at each model time
-        
+
         Notes
         -----
-        The starting value for the variable process was explored 
+        The starting value for the variable process was explored
         as a calibration parameter, along with the subsequent values of the process.
         This exploration was performed in log space,
         with the calibrated values for these quantities
@@ -232,59 +238,87 @@ class MultiStrainModel:
 
         Returns:
             _description_
-        
+
         Notes
         -----
+        Calculation of the renewal process
+        consists of multiplying the incidence values for the preceding days
+        by the reversed generation time distribution values.
+        This follows the common approach,
+        described elsewhere by several groups,[@cori2013; @faria2021] i.e.
+        $$i_t = R_t\sum_{{\\tau<t}} i_\\tau g_{{t-\\tau}}$$\n
+        $R_t$ is calculated as the product of the proportion
+        of the population remaining susceptible
+        and the non-mechanistic variable process.
+        The susceptible population is calculated by
+        subtracting the number of new incident cases from the
+        running total of susceptibles at each iteration.
+        If incidence exceeds the number of susceptible persons available
+        for infection in the model, incidence is capped at the
+        remaining number of susceptibles.
+
+
+
         The generation interval for all calculations
-        was truncated from {GEN_TRUNC_POINT} days onwards
+        was truncated up until {GEN_TRUNC_POINT} days only,
         because the density reached negligible values by this point.
-        For all analyses, all the population was assigned
-        to the fully susceptible category.
+
+        For all analyses, the starting population
+        minus the seeding values for the first strain
+        was assigned to the fully susceptible category.
+
         Infectiousness of each variant was calculated
         with reference to the first modelled variant strain.
+
         Cross immunity was modelled as providing partial protection to
         persons who had been infected with an preceding strain.
         However, previously infected persons were assumed
         to derive complete immunity to the infecting
         strain and to variant strains that emerged prior
-        to the infecting strain.
+        to the infecting strain
+        (for example, past infection with Delta confers
+        complete immunity against future infection with Alpha).
         """
-        densities = self.dens_obj.get_densities(GEN_TRUNC_POINT, mean, sd)  # Generation densities
         process_vals = self.fit_process_curve(proc, init)  # Variable process
-        init_inc = jnp.fliplr(self.seed_array[:, : self.init_length])  # Reverse initialisation
-        start_pop = self.pop - jnp.sum(init_inc)  # Starting susceptible population
-        start_pops = jnp.zeros(self.strain_map.shape[1])  # Starting susceptible distribution
-        start_pops = start_pops.at[0].set(start_pop)
-        if relinfect is not None:
-            relinfect = jnp.concat([jnp.array([1.0]), relinfect])
-        else:
-            relinfect = 1.0
+        densities = self.dens_obj.get_densities(GEN_TRUNC_POINT, mean, sd)  # Generation densities
+
+        # Starting population
+        init_inc = jnp.fliplr(self.seed_array[:, : self.init_length])
+        start_suscept = self.pop - jnp.sum(init_inc)
+        n_pops = self.strain_map.shape[1]
+        start_pops = jnp.zeros(n_pops)
+        start_pops = start_pops.at[0].set(start_suscept)
+
+        # Strain infectiousness
+        relinfect = 1.0 if relinfect is None else jnp.concat([jnp.array([1.0]), relinfect])
 
         # Cross immunity if previously infected with a different strain, otherwise zero (complete immunity) if infected with that strain
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
         # Complete susceptibility if never infected before
         suscept_levels = suscept_levels.at[:, 0].set(1.0)
-
         # Forbid reinfection with earlier strains after later emerging ones
         earlier_strain = get_col_increases(self.strain_map)
         reset_array = get_reset_array_from_increases(earlier_strain)
         suscept_levels = suscept_levels * (~reset_array).astype(float)
 
+        # Mobility
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
-        half_dur = self.seed_duration / 2.0
-        var_data_starts = [self.epoch.dti_to_index(s) for s in self.var_times]
-        var_starts = jnp.array([-1.0] + var_data_starts)
-        first_strain_offset = jnp.array([0.0])
+        # Seeding
+        first_data_start = jnp.array([-1.0])
+        other_data_starts = jnp.array([self.epoch.dti_to_index(s) for s in self.var_times])
+        data_starts = jnp.concat([first_data_start, other_data_starts])
+        first_offset = jnp.array([0.0])
         other_offsets = jnp.zeros(0) if seed_offsets is None else seed_offsets
-        offsets = jnp.concat([first_strain_offset, other_offsets])
+        offsets = jnp.concat([first_offset, other_offsets])
         seed_abs_rates = jnp.exp(seed_rates) * self.pop
+        half_dur = self.seed_duration / 2.0
 
         def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
             proc_val = process_vals[t - self.start]  # Variable process (scalar)
             mob_val = mobility[t - self.start]  # Mobility data (scalar)
             # Incidence history (array of shape n_strains X window_len)
-            peak_time = var_starts - offsets + half_dur
+            peak_time = data_starts - offsets + half_dur
             seed_vals = get_triangular_vals(t, peak_time, seed_abs_rates, half_dur)
             past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed_vals)
             # Incidence convolved with generation (vector of length n_strains)
@@ -304,7 +338,7 @@ class MultiStrainModel:
             # Move up (array of shape n_strains X window_len)
             inc = jnp.concat([strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1)
             strain_out = {s: strain_inc[i_strain] for i_strain, s in enumerate(self.strains)}
-            suscept_out = {f"sus_{i}": suscept[i] for i in range(self.strain_map.shape[1])}
+            suscept_out = {f"sus_{i}": suscept[i] for i in range(n_pops)}
             return MultistrainState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
 
         end_state, outputs = lax.scan(
