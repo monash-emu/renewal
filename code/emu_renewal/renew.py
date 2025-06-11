@@ -222,22 +222,33 @@ class MultiStrainModel:
         return jnp.exp(fitter(self.model_times, self.x_proc_data, y_proc_data))
 
     def renew(
-        self, mean, sd, proc, init, cross_immunity, relinfect, seed_rates, seed_offsets, **kwargs
-    ):
-        """_summary_
+        self,
+        mean: float,
+        sd: float,
+        proc: List[float],
+        init: float,
+        cross_immunity: float,
+        relinfect: List[float],
+        seed_rates: List[float],
+        seed_offsets: List[float],
+        **kwargs,
+    ) -> jnp.array:
+        """Main function implementing the renewal process,
+        see Notes for description.
 
         Args:
-            mean: _description_
-            sd: _description_
-            proc: _description_
-            init: _description_
-            cross_immunity: _description_
-            relinfect: _description_
-            seed_rates: _description_
-            seed_offsets: _description_
+            mean: Mean of the generation interval
+            sd: Standard deviation of the generation interval
+            proc: The values of the variable process
+            init: The starting value for the variable process
+            cross_immunity: The extent of cross-immunity
+            relinfect: The relative infectiousness of each non-starting strain
+            seed_rates: The rate of seeding for each strain
+            seed_offsets: The number of days before first data available
+                that each non-starting strain is seeded from
 
         Returns:
-            _description_
+            The numerical results of the analysis
 
         Notes
         -----
