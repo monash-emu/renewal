@@ -1,25 +1,24 @@
 from pathlib import Path
 from datetime import datetime
-import re
 
+# Date formats
 DATE_FORMAT = "%Y%m%d_%H%M"
 WHO_DATE_FORMAT = "%d/%m/%Y"
-TEXT_DATE_FORMAT = "%-d %B %Y"
 CODE_DATE_FORMAT = "%d %B %Y"
 
+# Paths
 BASE_PATH = Path(__file__).parent.parent.parent
-
 OUTPUTS_PATH = BASE_PATH / "outputs"
 DATA_PATH = BASE_PATH / "data"
-RAW_MOB_PATH = DATA_PATH / "mobility_raw"  # Will not push these larger original files
+RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
+# Analysis types
 ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_visited_mob", "fb_singletile_mob"]
 
-CASES_START = datetime(2020, 6, 1)
-
+# Dates
+CASES_START = "1 June 2020"
 DEFAULT_START_DATE = "1 June 2020"
 DEFAULT_END_DATE = "1 December 2021"
-
 ALPHA_PERIOD_START = "1 January 2020"
 ALPHA_DELTA_TRANS = "1 March 2021"
 ALPHA_DELTA_EXCEPTS = {
@@ -37,14 +36,16 @@ ALPHA_DELTA_EXCEPTS = {
 }
 DELTA_INCLUSION_DATE = "1 May 2021"
 DELTA_PERIOD_END = "1 September 2021"
-MIN_DELTA_PROP = 0.05
-
 BA2_PERIOD_START = "1 January 2022"
 BA2_PERIOD_END = "15 April 2022"
 BA5_PERIOD_START = "1 April 2022"
 BA5_PERIOD_END = "1 September 2022"
+START_TIME = "1 April 2020"
 POST_SIM_DATE = datetime(2100, 1, 1)
 ALPHA_FULL_REPLACE_DATE = datetime(2021, 6, 30)
+
+# Other constant parameters
+MIN_DELTA_PROP = 0.05
 ALREADY_WEEKLY_ADMIT_COUNTRIES = ["HRV", "ZAF", "IRL", "GRC", "SVN", "NOR"]
 ALREADY_WEEKLY_OCCUP_COUNTRIES = ["JPN", "BGR"]
 END_VACC_THRESHOLD = 5
@@ -63,7 +64,6 @@ LATE_DELTA_WEIGHT = 25
 LATE_DELTA_TIME = 87
 OUTLIER_THRESHOLD = 2
 N_REPEATS = 8
-START_TIME = "1 April 2020"
 MIN_VAR_SEQS = 5
 MIN_VAR_DATES = 5
 PREALPHA_IDENTIFIERS = "20A.EU1, 20A.EU2, 20B.S.732A, 21C.Epsilon"

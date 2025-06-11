@@ -133,6 +133,11 @@ def get_cases_target(
     was used as the second calibration target for all countries.
     Linear interpolation was used to replace missing values, and
     as for deaths, any zero values were replaced with a value of 0.5.
+    We only calibrated to cases from the {CASES_START} onward,
+    because we considered that prior to this time
+    many countries were still rapidly scaling
+    up testing capacity and this indicator may have
+    been less reliable.
     Cases was the second indicator for which
     a common dispersion parameter was applied.
     A target weight was applied to the series of cases
@@ -142,7 +147,7 @@ def get_cases_target(
     data = get_who_indicator("New_cases", iso3)
     data = data.interpolate(method="linear").fillna(0.0)
     data[data == 0.0] = 0.5
-    cases_start = max([CASES_START, start])
+    cases_start = max([datetime.strptime(CASES_START, CODE_DATE_FORMAT), start])
     mask = (cases_start < data.index) & (data.index < end)
     target = data.loc[mask]
     weight = DEATHS_WEIGHT * len(target) / n_deaths
@@ -482,7 +487,6 @@ def get_specific_var_props(
     data: pd.DataFrame,
     var_name: str,
     rel_cols: List[str],
-    end_date: datetime,
 ) -> Union[pd.DataFrame, None]:
     """Get the total number and proportion
     of sequences attributable to a particular variant.
@@ -491,7 +495,6 @@ def get_specific_var_props(
         data: The country variant data
         var_name: Our name for the variant of interest
         rel_cols: The names of the relevant columns for the variant
-        end_date: A date after which data are discarded
 
     Returns:
         The data for the variant of interest
@@ -505,7 +508,6 @@ def get_specific_var_props(
     for that country's variant data to be used as a 
     calibration target.
     """
-    data = data[data.index < end_date]
     data = data[data.sum(axis=1) >= MIN_VAR_SEQS]
     rel_cols = [c for c in rel_cols if c in data.columns]
     vals = data[rel_cols].sum(axis=1)
@@ -554,8 +556,7 @@ def extract_specific_var(
         cols = [BA2_IDENTIFIER]
     elif var_name == "ba5":
         cols = [c for c in var_data.columns if c != BA2_IDENTIFIER]
-    end_date = ALPHA_FULL_REPLACE_DATE if var_name == "alpha" else POST_SIM_DATE
-    return get_specific_var_props(var_data, var_name, cols, end_date)
+    return get_specific_var_props(var_data, var_name, cols)
 
 
 def get_continent_data(
