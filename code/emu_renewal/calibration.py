@@ -20,9 +20,27 @@ def custom_init(
 ):
     """Initialize a numpyro MCMC run, 
     returning 0.0 for "proc" (random process values),
-    otherwise defaulting to init_to_uniform(radius)
-    """
+    otherwise defaulting to init_to_uniform(radius).
 
+    Args:
+        site: 
+        n_proc: Number of updates in the variable process
+
+    Returns:
+        The initialisation for the calibration
+
+    Notes
+    -----
+    To initialise the model parameters,
+    we started all the updates to the variable
+    process from a value of zero (in logarithmic space)
+    to represent no update, such that the 
+    initialisation commenced with the variable 
+    process being constant over time.
+    For all other parameters,
+    we used `numpyro`'s `init_to_uniform` method,
+    with a radius of {INIT_RADIUS}.
+    """
     if site is None:
         return partial(custom_init, n_proc=n_proc)
 
