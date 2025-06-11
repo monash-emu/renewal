@@ -331,7 +331,6 @@ def run_single_country(
         pop,
         run_start,
         end_time,
-        GammaDens(),
         var_names,
         seed_times,
         mob_provider,

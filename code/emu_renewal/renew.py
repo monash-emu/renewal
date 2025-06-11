@@ -14,7 +14,10 @@ from emu_renewal.constants import (
     INIT_DURATION,
     SEED_DURATION,
     GEN_TRUNC_POINT,
-    CONVOLVE_TRUNC_POINT,
+    CONV_TRUNC_POINT,
+    DAYS_IN_WEEK,
+    VACC_DEATH_PROTECT,
+    VACC_HOSP_PROTECT,
 )
 from emu_renewal.process import sinterp, CosineMultiCurve
 from emu_renewal.distributions import Dens
@@ -124,7 +127,6 @@ class MultiStrainModel:
         population: float,
         start: datetime,
         end: datetime,
-        dens_obj: Dens,
         strains: List[str],
         seed_times: List[datetime],
         mobility: MobilityProvider,
@@ -136,7 +138,6 @@ class MultiStrainModel:
             population: Number of people considered in the analysis
             start: Time to run the model from
             end: Time to run the model until
-            dens_obj: Distribution for the renewal process
             discharge_dens: Distribution for the time from hospital admission to discharge
             strains: Names of the variants to be implemented
             seed_times: Times to seed each variant (including the first one)
@@ -169,8 +170,7 @@ class MultiStrainModel:
         self.initialise_var_proc()
 
         # Generation interval
-        self.dens_obj = dens_obj
-        self.description = {}
+        self.dens_obj = GammaDens()
         self.window_len = INIT_DURATION
 
     def initialise_var_proc(self):
@@ -244,6 +244,8 @@ class MultiStrainModel:
 
         Notes
         -----
+        A gamma-distributed generation interval 
+        was used for the renewal process.
         The generation interval for all calculations
         was truncated at {GEN_TRUNC_POINT} days,
         because the density reached negligible values beyond
@@ -296,7 +298,8 @@ class MultiStrainModel:
         them to their new states.
         """
         var_process = self.fit_process_curve(proc, init)
-        gen_densities = self.dens_obj.get_densities(GEN_TRUNC_POINT, mean, sd)
+        gen_dist = GammaDens()
+        gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
 
         # Starting population
         init_inc = jnp.fliplr(self.seed_array[:, : self.init_length])
@@ -413,82 +416,132 @@ class MultiStrainModel:
             stay_mean: Mean time from hospitalisation to discharge
             stay_sd: Standard deviation of time from hospitalisation to discharge
             har: Hospital admission rate (proportion)
-
-            icu_admit_mean: ***
-            icu_admit_sd: _description_
-            icu_stay_mean: _description_
-            icu_stay_sd: _description_
-            icu_ar: _description_
+            icu_admit_mean: Mean time from infection to ICU admission
+            icu_admit_sd: Standard deviation of time from infectino to ICU admission
+            icu_stay_mean: Mean time from ICU admission to ICU discharge
+            icu_stay_sd: Standard deviation of time from ICU admission to ICU discharge
+            icu_ar: Risk if admission to ICU given admission to hospital
             cross_immunity: The extent of cross-immunity
-            seed_offsets: _description_
+            seed_offsets: Time before first strain data that strain seeding begins
             seed_rates: The rate of seeding for each strain
             relinfect: The relative infectiousness of each non-starting strain
             seed_offsets: The number of days before first data available
                 that each non-starting strain is seeded from
 
         Returns:
-            _description_
+            The full epidemiological outputs of the simulation
 
         Notes
         -----
-
         Once the renewal process was run to calculate incidence,
         the other epidemiological outputs were calculated
-        using a series of convolutions.
-        Cases were calculated by convolving incidence
+        using a series of convolution operations.
+        Total incidence was first calculated by summing 
+        over strain-specific incidence.
+        Cases were then calculated by convolving incidence
         with a gamma-distributed set of delays from
-        incidence to notification, which was then
-        multiplied through by the case detection rate (a proportion).
-
+        incidence to notification
+        (parameterised according to the distribution mean 
+        and standard deviation),
+        which was truncated after {CONV_TRUNC_POINT} days.
+        This was then multiplied through by 
+        the case detection rate (a proportion)
+        and weekly cases were calculated by summing 
+        over the preceding {DAYS_IN_WEEK} days.
+        Deaths were similarly calculated from incidence,
+        but with separate parameters governing the
+        time from incidence to death
+        and with the fraction of incident episodes
+        resulting in death estimated according
+        to the infection fatality rate.
+        For one country (Australia),
+        a reduction in the risk of death
+        was applied because this analysis was performed
+        after wide-scale population vaccination.
+        The relative reduction in the risk of
+        death was set at {VACC_DEATH_PROTECT}
+        and was not varied during calibration
+        because this would have been collinear
+        with the risk of hospitalisation parameter.
+        As for cases and deaths, hospitalisations
+        were estimated through a convolution
+        distribution with its own parameters
+        and a hospital admission fraction.
+        As for the approach to deaths for Australia,
+        a reduction in the risk of hospitalisation
+        was applied to account for vaccination.
+        The relative reduction in the risk of
+        hospitalisation was set at {VACC_HOSP_PROTECT}
+        As for cases, deaths and hospitalisations,
+        the convolution of time to ICU admission
+        was parameterised independently,
+        but the proportion of cases resulting
+        in ICU admission was estimated according
+        to the product of the hospital admission
+        fraction and the proportion of hospital
+        admissions resulting in ICU admission.
+        Hospital and ICU occupancy were obtained
+        by convolving the time series of hospital and ICU
+        admissions with the complement of 
+        the cumulative distribution of the
+        time to hospital or ICU discharge.
+        Seropositivity was calculated
+        as the proportion of the population remaining
+        in the entirely infection-naive immunity
+        sub-population.
+        Finally, the proportion of incidence attributable
+        to each variant strain was also calculated
+        from the strain-specific incidence.
         """
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
-        out = self.renew(
-            proc,
-            gen_mean,
-            gen_sd,
-            rt_init,
-            cross_immunity,
-            seed_rates,
-            relinfect,
-            seed_offsets,
-            **kwargs,
-        )
+        out = self.renew(proc, gen_mean, gen_sd, rt_init, cross_immunity, seed_rates, relinfect, seed_offsets, **kwargs)
+
+        # Incidence
         strain_inc = jnp.array([out[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
         out["inc"] = full_inc[self.init_length :]
+        output_dist = GammaDens()
 
-        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
+        # Cases
+        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, output_dist)
         out["cases"] = cases[self.init_length :]
-        weekly_cases = self.get_period_output_from_daily(cases, 7)
+        weekly_cases = self.get_period_output_from_daily(cases, DAYS_IN_WEEK)
         out["weekly_cases"] = weekly_cases[self.init_length :]
 
-        vacc_death_protect = 0.8 if self.vacc_effect else 0.0
+        # Deaths
+        vacc_death_protect = VACC_DEATH_PROTECT if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
-        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr) * rel_vacc_death
+        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, output_dist) * rel_vacc_death
         out["deaths"] = deaths[self.init_length :]
-        weekly_deaths = self.get_period_output_from_daily(deaths, 7)
+        weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
         out["weekly_deaths"] = weekly_deaths[self.init_length :]
 
-        vacc_hosp_protect = 0.6 if self.vacc_effect else 0.0
+        # Hospital-related outputs
+        discharge_dist = GammaDens()
+        vacc_hosp_protect = VACC_HOSP_PROTECT if self.vacc_effect else 0.0
         rel_vacc_hosp = 1.0 - vacc_hosp_protect
-        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har) * rel_vacc_hosp
+        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, output_dist) * rel_vacc_hosp
         out["admissions"] = admissions[self.init_length :]
-        weekly_admissions = self.get_period_output_from_daily(admissions, 7)
+        weekly_admissions = self.get_period_output_from_daily(admissions, DAYS_IN_WEEK)
         out["weekly_admissions"] = weekly_admissions[self.init_length :]
-        occupancy = self.get_hosp_occupancy_from_admits(admissions, stay_mean, stay_sd)
+        occupancy = self.get_occupancy_from_admits(admissions, stay_mean, stay_sd, discharge_dist)
         out["occupancy"] = occupancy[self.init_length :]
 
-        icu_admits = self.get_output_from_inc(full_inc, icu_admit_mean, icu_admit_sd, har * icu_ar)
+        # ICU-related outputs
+        icu_admits = self.get_output_from_inc(full_inc, icu_admit_mean, icu_admit_sd, har * icu_ar, output_dist)
         out["icu_admissions"] = icu_admits[self.init_length :]
-        icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, 7)
+        icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, DAYS_IN_WEEK)
         out["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
-        icu_occupancy = self.get_hosp_occupancy_from_admits(icu_admits, icu_stay_mean, icu_stay_sd)
+        icu_occupancy = self.get_occupancy_from_admits(icu_admits, icu_stay_mean, icu_stay_sd, discharge_dist)
         out["icu_occupancy"] = icu_occupancy[self.init_length :]
 
+        # Seropositivity
         out["seropos"] = (self.pop - out["sus_0"]) / self.pop
-        strain_props = {f"prop_{s}": out[s] / out["inc"] for s in self.strains}
-        return out | strain_props
+
+        # Variant proportions
+        var_props = {f"prop_{s}": out[s] / out["inc"] for s in self.strains}
+        return out | var_props
 
     def get_output_from_inc(
         self,
@@ -496,6 +549,7 @@ class MultiStrainModel:
         dist_mean: float,
         dist_sd: float,
         outcome_prop: float,
+        output_dist: Dens,
     ) -> jnp.array:
         """Apply an observation distribution
         as a convolution to calculate an epidemiological output series.
@@ -509,20 +563,9 @@ class MultiStrainModel:
         Returns:
             Output from start of initialisation to end of model time
         """
-        densities = self.dens_obj.get_densities(self.window_len, dist_mean, dist_sd)
+        densities = output_dist.get_densities(CONV_TRUNC_POINT, dist_mean, dist_sd)
         convolved_cases = jnp.convolve(full_inc, densities) * outcome_prop
         return convolved_cases[: len(full_inc)]
-
-    def describe_reporting(self):
-        self.description["Reporting"] = (
-            "Notifications are calculated by first convoling "
-            "the probability distribution representing the time from "
-            "onset of an infection episode to reporting with the "
-            "time series of incidence. "
-            "This is then multiplied through by the modelled "
-            "case detection rate to obtain the final time series "
-            "for case notifications. "
-        )
 
     def get_period_output_from_daily(
         self,
@@ -541,25 +584,24 @@ class MultiStrainModel:
         windower = jnp.array([1.0] * n_sum_times)
         return jnp.convolve(raw_series, windower)[: len(raw_series)]
 
-    def describe_weekly_sum(self):
-        self.description["Reporting"] += (
-            "Last, weekly case counts are then calculated from this "
-            "time series of notifications. "
-        )
+    def get_occupancy_from_admits(
+        self, 
+        full_admits: jnp.array,
+        stay_mean: float, 
+        stay_sd: float,
+        discharge_dist: Dens,
+    ) -> jnp.array:
+        """Calculate hospital or ICU occupancy
+        (a prevalent quantity) from the admissions time series.
 
-    def get_hosp_occupancy_from_admits(self, full_admits, stay_mean, stay_sd):
-        discharge_dens = GammaDens()
-        discharge = 1.0 - discharge_dens.get_cum_dens(self.window_len, stay_mean, stay_sd)
-        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
-
-    def get_description(self) -> str:
-        """Compile the description of model.
+        Args:
+            full_admits: The admissions time series
+            stay_mean: The mean time to discharge
+            stay_sd: The standard deviation of the time to discharge
+            discharge_dist: The time to discharge distribution
 
         Returns:
-            Description
+            The time series of hospital or ICU occupancy
         """
-        description = ""
-        for title, text in self.description.items():
-            description += f"\n\n### {title}\n"
-            description += text
-        return description
+        discharge = 1.0 - discharge_dist.get_cum_dens(self.window_len, stay_mean, stay_sd)
+        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
