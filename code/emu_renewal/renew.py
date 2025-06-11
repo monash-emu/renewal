@@ -86,7 +86,7 @@ def get_trans_mats(dests: np.ndarray):
     return trans_mats
 
 
-def get_triangular_vals(
+def get_triang_vals(
     time: float,
     peak_times: np.array,
     peak_heights: np.array,
@@ -112,7 +112,7 @@ def get_triangular_vals(
     return jnp.multiply(zeroed_vals, peak_heights)
 
 
-class MultistrainState(NamedTuple):
+class MultivarState(NamedTuple):
     incidence: jnp.array
     suscept: jnp.array
 
@@ -241,58 +241,72 @@ class MultiStrainModel:
 
         Notes
         -----
-        Calculation of the renewal process
-        consists of multiplying the incidence values for the preceding days
-        by the reversed generation time distribution values.
-        This follows the common approach,
-        described elsewhere by several groups,[@cori2013; @faria2021] i.e.
-        $$i_t = R_t\sum_{{\\tau<t}} i_\\tau g_{{t-\\tau}}$$\n
-        $R_t$ is calculated as the product of the proportion
-        of the population remaining susceptible
-        and the non-mechanistic variable process.
-        The susceptible population is calculated by
-        subtracting the number of new incident cases from the
-        running total of susceptibles at each iteration.
-        If incidence exceeds the number of susceptible persons available
-        for infection in the model, incidence is capped at the
-        remaining number of susceptibles.
-
-
-
         The generation interval for all calculations
-        was truncated up until {GEN_TRUNC_POINT} days only,
-        because the density reached negligible values by this point.
-
+        was truncated at {GEN_TRUNC_POINT} days,
+        because the density reached negligible values beyond
+        this point.
         For all analyses, the starting population
         minus the seeding values for the first strain
         was assigned to the fully susceptible category.
-
+        Each newly emerging strain was seeded using a triangular
+        pulse of new infections that peaked according
+        to the per capita seeding rate specified.
         Infectiousness of each variant was calculated
         with reference to the first modelled variant strain.
-
-        Cross immunity was modelled as providing partial protection to
-        persons who had been infected with an preceding strain.
+        Persons who had never previously been infected
+        with any strain were considered fully susceptible.
+        We considered partial cross immunity was provided
+        by infection with a preceding variant strain
+        to infection with subsequent strains.
         However, previously infected persons were assumed
         to derive complete immunity to the infecting
         strain and to variant strains that emerged prior
         to the infecting strain
-        (for example, past infection with Delta confers
+        (for example, past infection with Delta conferred
         complete immunity against future infection with Alpha).
+        __RETURN__
+        The new strain-specific seeding value
+        was added to the most recent value for the
+        strain-specific history of incidence.
+        This updated strain-specific incidence array
+        was then convolved with
+        the generation interval distribution vector
+        to create a vector of the effective number of
+        infectious individuals.
+        These values were then multiplied by the scalar values
+        representing the variable process,
+        the mobility scaling value
+        and the relative infectiousness of each strain,
+        and divided through by the population size
+        to derive the calculated per capita rate of infection.
+        We then determined the actual rate of infection
+        for each strain as $1 - e^{{-r}}$
+        (where $r$ represents the calculated infection rate)
+        to ensure that the per capita rate
+        of infection could not exceed one.
+        These rates of infection were then applied
+        to each possible past history of
+        preceding exposure to variants and
+        their associated susceptibility to infection
+        to calculate the number of people infected
+        from each category and transition
+        them to their new states.
         """
-        process_vals = self.fit_process_curve(proc, init)  # Variable process
-        densities = self.dens_obj.get_densities(GEN_TRUNC_POINT, mean, sd)  # Generation densities
+        var_process = self.fit_process_curve(proc, init)
+        gen_densities = self.dens_obj.get_densities(GEN_TRUNC_POINT, mean, sd)
 
         # Starting population
         init_inc = jnp.fliplr(self.seed_array[:, : self.init_length])
         start_suscept = self.pop - jnp.sum(init_inc)
         n_pops = self.strain_map.shape[1]
-        start_pops = jnp.zeros(n_pops)
-        start_pops = start_pops.at[0].set(start_suscept)
+        start_pop = jnp.zeros(n_pops)
+        start_pop = start_pop.at[0].set(start_suscept)
 
         # Strain infectiousness
-        relinfect = 1.0 if relinfect is None else jnp.concat([jnp.array([1.0]), relinfect])
+        start_relinfect = jnp.array([1.0])
+        relinfect = 1.0 if relinfect is None else jnp.concat([start_relinfect, relinfect])
 
-        # Cross immunity if previously infected with a different strain, otherwise zero (complete immunity) if infected with that strain
+        # Cross immunity if previously infected with another strain, complete immunity if infected with same strain
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
         # Complete susceptibility if never infected before
         suscept_levels = suscept_levels.at[:, 0].set(1.0)
@@ -314,57 +328,41 @@ class MultiStrainModel:
         seed_abs_rates = jnp.exp(seed_rates) * self.pop
         half_dur = self.seed_duration / 2.0
 
-        def state_update(state: MultistrainState, t) -> tuple[MultistrainState, jnp.array]:
-            proc_val = process_vals[t - self.start]  # Variable process (scalar)
-            mob_val = mobility[t - self.start]  # Mobility data (scalar)
-            # Incidence history (array of shape n_strains X window_len)
-            peak_time = data_starts - offsets + half_dur
-            seed_vals = get_triangular_vals(t, peak_time, seed_abs_rates, half_dur)
-            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed_vals)
-            # Incidence convolved with generation (vector of length n_strains)
-            contributions = (densities * past_inc).sum(axis=1)
-            # Infection rate (vector of length n_strains)
-            target_inf_rates = contributions * proc_val * mob_val * relinfect / self.pop
-            # Ceiling in case of very high incidence rates within a given day (vector of length n_strains)
-            actual_inf_rate = 1.0 - jnp.exp(-target_inf_rates)
-            # Effective susceptibles (array of shape n_strains X 2**n_strains)
+        def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
+            # Variable process (scalar)
+            proc_val = var_process[t - self.start]
+            # Mobility data (scalar)
+            mob_val = mobility[t - self.start]
+            # Seed (vector, n_strains)
+            peak = data_starts - offsets + half_dur
+            seed = get_triang_vals(t, peak, seed_abs_rates, half_dur)
+            # Incidence history (array, n_strains by window_len)
+            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed)
+            # Incidence convolved with generation (vector, n_strains)
+            contributions = (gen_densities * past_inc).sum(axis=1)
+            # Calculated infection rate (vector, n_strains)
+            calc_inf_rates = contributions * proc_val * mob_val * relinfect / self.pop
+            # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
+            actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
+            # Effective susceptibles (array, n_strains by 2**n_strains)
             effect_suscepts = suscept_levels * state.suscept
-            # Apply infection rates across susceptible categories (array of shape n_strains X 2**n_strains)
+            # Apply infection rates across susceptible categories (array, n_strains by 2**n_strains)
             actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
-            suscept = state.suscept  # Population distribution (vector of length 2**n_strains)
-            for s in range(self.n_strains):  # Move susceptibles to recovered categories
+            # Population distribution (vector, 2**n_strains)
+            suscept = state.suscept
+            # Move susceptibles to recovered categories
+            for s in range(self.n_strains):
                 suscept += actual_inc[s] @ self.trans_mats[s]
-            strain_inc = actual_inc.sum(axis=1)  # Incidence by strain (vector of length n_strains)
-            # Move up (array of shape n_strains X window_len)
+            # Incidence by strain (vector, n_strains)
+            strain_inc = actual_inc.sum(axis=1)
+            # Move up (array, n_strains by window_len)
             inc = jnp.concat([strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1)
             strain_out = {s: strain_inc[i_strain] for i_strain, s in enumerate(self.strains)}
             suscept_out = {f"sus_{i}": suscept[i] for i in range(n_pops)}
-            return MultistrainState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
+            return MultivarState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
 
-        end_state, outputs = lax.scan(
-            state_update, MultistrainState(init_inc, start_pops), self.model_times
-        )
-        return outputs
-
-    def describe_renewal(self):
-        self.description["Renewal process"] = (
-            "Calculation of the renewal process "
-            "consists of multiplying the incidence values for the preceding days "
-            "by the reversed generation time distribution values. "
-            "This follows a standard formula, "
-            "described elsewhere by several groups,[@cori2013; @faria2021] i.e. "
-            "$$i_t = R_t\sum_{\\tau<t} i_\\tau g_{t-\\tau}$$\n"
-            "$R_t$ is calculated as the product of the proportion "
-            "of the population remaining susceptible "
-            "and the non-mechanistic random process "
-            "generated external to the renewal model. "
-            "The susceptible population is calculated by "
-            "subtracting the number of new incident cases from the "
-            "running total of susceptibles at each iteration. "
-            "If incidence exceeds the number of susceptible persons available "
-            "for infection in the model, incidence is capped at the "
-            "remaining number of susceptibles. "
-        )
+        end_state, out = lax.scan(update, MultivarState(init_inc, start_pop), self.model_times)
+        return out
 
     def renewal_func(
         self,
