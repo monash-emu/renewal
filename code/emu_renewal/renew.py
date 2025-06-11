@@ -223,29 +223,21 @@ class MultiStrainModel:
 
     def renew(
         self,
+        proc: List[float],
         mean: float,
         sd: float,
-        proc: List[float],
         init: float,
         cross_immunity: float,
-        relinfect: List[float],
         seed_rates: List[float],
-        seed_offsets: List[float],
+        relinfect: Optional[List[float]],
+        seed_offsets: Optional[List[float]],
         **kwargs,
     ) -> jnp.array:
         """Main function implementing the renewal process,
         see Notes for description.
 
         Args:
-            mean: Mean of the generation interval
-            sd: Standard deviation of the generation interval
-            proc: The values of the variable process
-            init: The starting value for the variable process
-            cross_immunity: The extent of cross-immunity
-            relinfect: The relative infectiousness of each non-starting strain
-            seed_rates: The rate of seeding for each strain
-            seed_offsets: The number of days before first data available
-                that each non-starting strain is seeded from
+            See renewal_func
 
         Returns:
             The numerical results of the analysis
@@ -400,80 +392,125 @@ class MultiStrainModel:
         cross_immunity: float,
         seed_rates: List[float],
         relinfect: Optional[List[float]],
-        seed_offsets: List[float],
+        seed_offsets: Optional[List[float]],
         **kwargs,
     ) -> ModelResult:
+        """Main function to call externally to get the renewal outputs.
+
+        Args:
+            proc: The values of the variable process
+            gen_mean: Mean of the generation interval
+            gen_sd: Standard deviation of the generation interval
+            cdr: Case detection rate (proportion)
+            ifr: Infection fatality rate (proportion)
+            rt_init: The starting value for the variable process
+            report_mean: Mean time from infection to reporting
+            report_sd: Standard deviation of time from infection to reporting
+            death_mean: Mean time from infection to death
+            death_sd: Standard deviation of time from infection to death
+            admit_mean: Mean time from infection to hospitalisation
+            admit_sd: Standard deviation of time from infection to hospitalisation
+            stay_mean: Mean time from hospitalisation to discharge
+            stay_sd: Standard deviation of time from hospitalisation to discharge
+            har: Hospital admission rate (proportion)
+
+            icu_admit_mean: ***
+            icu_admit_sd: _description_
+            icu_stay_mean: _description_
+            icu_stay_sd: _description_
+            icu_ar: _description_
+            cross_immunity: The extent of cross-immunity
+            seed_offsets: _description_
+            seed_rates: The rate of seeding for each strain
+            relinfect: The relative infectiousness of each non-starting strain
+            seed_offsets: The number of days before first data available
+                that each non-starting strain is seeded from
+
+        Returns:
+            _description_
+
+        Notes
+        -----
+
+        Once the renewal process was run to calculate incidence,
+        the other epidemiological outputs were calculated
+        using a series of convolutions.
+        Cases were calculated by convolving incidence
+        with a gamma-distributed set of delays from
+        incidence to notification, which was then
+        multiplied through by the case detection rate (a proportion).
+
+        """
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
-        outputs = self.renew(
+        out = self.renew(
+            proc,
             gen_mean,
             gen_sd,
-            proc,
             rt_init,
             cross_immunity,
-            relinfect,
             seed_rates,
+            relinfect,
             seed_offsets,
             **kwargs,
         )
-        strain_inc = jnp.array([outputs[strain] for strain in self.strains])
+        strain_inc = jnp.array([out[strain] for strain in self.strains])
         full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
-        outputs["inc"] = full_inc[self.init_length :]
+        out["inc"] = full_inc[self.init_length :]
 
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr)
-        outputs["cases"] = cases[self.init_length :]
+        out["cases"] = cases[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, 7)
-        outputs["weekly_cases"] = weekly_cases[self.init_length :]
+        out["weekly_cases"] = weekly_cases[self.init_length :]
 
         vacc_death_protect = 0.8 if self.vacc_effect else 0.0
-        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr) * (
-            1.0 - vacc_death_protect
-        )
-        outputs["deaths"] = deaths[self.init_length :]
+        rel_vacc_death = 1.0 - vacc_death_protect
+        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr) * rel_vacc_death
+        out["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, 7)
-        outputs["weekly_deaths"] = weekly_deaths[self.init_length :]
+        out["weekly_deaths"] = weekly_deaths[self.init_length :]
 
         vacc_hosp_protect = 0.6 if self.vacc_effect else 0.0
-        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har) * (
-            1.0 - vacc_hosp_protect
-        )
-        outputs["admissions"] = admissions[self.init_length :]
+        rel_vacc_hosp = 1.0 - vacc_hosp_protect
+        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har) * rel_vacc_hosp
+        out["admissions"] = admissions[self.init_length :]
         weekly_admissions = self.get_period_output_from_daily(admissions, 7)
-        outputs["weekly_admissions"] = weekly_admissions[self.init_length :]
+        out["weekly_admissions"] = weekly_admissions[self.init_length :]
         occupancy = self.get_hosp_occupancy_from_admits(admissions, stay_mean, stay_sd)
-        outputs["occupancy"] = occupancy[self.init_length :]
+        out["occupancy"] = occupancy[self.init_length :]
 
         icu_admits = self.get_output_from_inc(full_inc, icu_admit_mean, icu_admit_sd, har * icu_ar)
-        outputs["icu_admissions"] = icu_admits[self.init_length :]
+        out["icu_admissions"] = icu_admits[self.init_length :]
         icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, 7)
-        outputs["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
+        out["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
         icu_occupancy = self.get_hosp_occupancy_from_admits(icu_admits, icu_stay_mean, icu_stay_sd)
-        outputs["icu_occupancy"] = icu_occupancy[self.init_length :]
+        out["icu_occupancy"] = icu_occupancy[self.init_length :]
 
-        outputs["seropos"] = (self.pop - outputs["sus_0"]) / self.pop
-        strain_props = {f"prop_{s}": outputs[s] / outputs["inc"] for s in self.strains}
-        return outputs | strain_props
+        out["seropos"] = (self.pop - out["sus_0"]) / self.pop
+        strain_props = {f"prop_{s}": out[s] / out["inc"] for s in self.strains}
+        return out | strain_props
 
     def get_output_from_inc(
         self,
         full_inc: jnp.array,
-        report_mean: float,
-        report_sd: float,
-        cdr: float,
+        dist_mean: float,
+        dist_sd: float,
+        outcome_prop: float,
     ) -> jnp.array:
-        """Apply an observation model as a convolution to calculate an epidemiological output series.
+        """Apply an observation distribution
+        as a convolution to calculate an epidemiological output series.
 
         Args:
             full_inc: The full incidence series including the initialisation
-            report_mean: Mean delay to reporting
-            report_sd: Standard deviation of delay to reporting
-            cdr: Case detection/ascertainment proportion
+            dist_mean: Mean delay to reporting
+            dist_sd: Standard deviation of delay to reporting
+            outcome_prop: Proportion of incident episodes reaching this outcome
 
         Returns:
             Output from start of initialisation to end of model time
         """
-        densities = self.dens_obj.get_densities(self.window_len, report_mean, report_sd)
-        convolved_cases = jnp.convolve(full_inc, densities) * cdr
+        densities = self.dens_obj.get_densities(self.window_len, dist_mean, dist_sd)
+        convolved_cases = jnp.convolve(full_inc, densities) * outcome_prop
         return convolved_cases[: len(full_inc)]
 
     def describe_reporting(self):
