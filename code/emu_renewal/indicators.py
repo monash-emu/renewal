@@ -20,10 +20,6 @@ from emu_renewal.constants import (
     DELTA_INCLUSION_DATE,
     MIN_DELTA_PROP,
     DELTA_PERIOD_END,
-    ALPHA_FULL_REPLACE_DATE,
-    POST_SIM_DATE,
-    POST_SIM_DATE,
-    POST_SIM_DATE,
     BA2_PERIOD_START,
     BA2_PERIOD_END,
     BA5_PERIOD_START,
@@ -505,7 +501,7 @@ def get_specific_var_props(
     which at least {MIN_VAR_SEQS} sequences were available
     for the country considered.
     Further, we required at least {MIN_VAR_DATES} such dates be available
-    for that country's variant data to be used as a 
+    for that country's variant data to be used as a
     calibration target.
     """
     data = data[data.sum(axis=1) >= MIN_VAR_SEQS]
@@ -667,17 +663,17 @@ def get_alpha_info(
 
     Notes
     -----
-    For countries of all continents other than those 
+    For countries of all continents other than those
     in Oceania (Australia only) and Africa,
-    a target for the Alpha variant 
+    a target for the Alpha variant
     was included in our calibration algorithm.
     Calibration against data for Alpha started from the beginning
     of the simulation period (from {ALPHA_PERIOD_START}).
     The periods for calibration against the Alpha and the Delta
     variants were set so as to be mutually exclusive in time.
-    Specifically, the date to transition from calibrating 
-    against available data for the Alpha to calibrating 
-    against data for Delta was set as {ALPHA_DELTA_TRANS}. 
+    Specifically, the date to transition from calibrating
+    against available data for the Alpha to calibrating
+    against data for Delta was set as {ALPHA_DELTA_TRANS}.
     Exceptions were made for several Asian countries
     for which this transition date was set one month earlier and two countries
     of North America for which it was set six weeks later.
@@ -772,7 +768,7 @@ def get_ba2_target(
     data = extract_specific_var(var_data, "ba2")
     ba2_start = datetime.strptime(BA2_PERIOD_START)
     ba2_end = datetime.strptime(BA2_PERIOD_END)
-    mask = (ba2_start < data.index) & (data.index < ba2_end)    
+    mask = (ba2_start < data.index) & (data.index < ba2_end)
     filt_data = data[mask]
     return filt_data["ba2_prop"]
 
@@ -789,7 +785,7 @@ def get_ba5_target(
         The data
 
     Notes
-    ----- 
+    -----
     The BA.5 calibration target for Australia
     used the data available from {BA5_PERIOD_START}
     to {BA5_PERIOD_END}.
@@ -817,7 +813,7 @@ def get_ba2_info(
         - A list containing the name of the variant (if included)
         - The calibration target for BA.2 (if included)
         - A list containing the first identification date of BA.2 (if included)
-    
+
     Notes
     -----
     A calibration target for Omicron BA.2 was only included for

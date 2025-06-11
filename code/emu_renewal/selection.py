@@ -3,22 +3,27 @@ import pandas as pd
 from os import listdir as ls
 from datetime import datetime
 
-from emu_renewal.constants import OUTLIER_THRESHOLD, N_REPEATS, START_TIME, CODE_DATE_FORMAT
+from emu_renewal.constants import (
+    OUTLIER_THRESHOLD,
+    N_REPEATS,
+    DATA_QUALITY_START_TIME,
+    CODE_DATE_FORMAT,
+)
 from emu_renewal.inputs import DATA_PATH
 from emu_renewal.indicators import get_who_indicator
 from emu_renewal.outputs import add_bool_row_to_table
 from emu_renewal.run import find_run_end_time
-from emu_renewal.utils import count_max_consecutive_nans
+from emu_renewal.utils import count_repeat_nans
 
 
 def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
-    """Find the countries for which either 
+    """Find the countries for which either
     Google or Facebook mobility is available.
 
     Returns:
         - Countries for which at least one mobility domain is available
         - Table with indices for countries and Yes/No status for each mobility domain
-    
+
     Notes
     -----
     To select countries for inclusion in our analysis, we first identified all countries
@@ -43,12 +48,12 @@ def gather_who_data(
 
     Returns:
         The data
-    
+
     Notes
     -----
     Next, we considered the quality of the data for our two main WHO indicators
     which we required for inclusion in the analysis: "New_cases" and "New_deaths"
-    from the start of data availability through to the end time 
+    from the start of data availability through to the end time
     of the analysis for each country.
     """
     death_data = {}
@@ -63,9 +68,7 @@ def gather_who_data(
 
 
 def find_absent_inds(
-    death_data: pd.Series,
-    case_data: pd.Series, 
-    summary: pd.DataFrame
+    death_data: pd.Series, case_data: pd.Series, summary: pd.DataFrame
 ) -> Tuple[List[str]]:
     """Find the countries for which there is no data
     available for either of the two main indicators.
@@ -90,9 +93,7 @@ def find_absent_inds(
 
 
 def find_neg_inds(
-    death_data: pd.Series,
-    case_data: pd.Series, 
-    summary: pd.DataFrame
+    death_data: pd.Series, case_data: pd.Series, summary: pd.DataFrame
 ) -> Tuple[List[str]]:
     """Find the countries with negative values
     for either of the two main indicators.
@@ -116,9 +117,7 @@ def find_neg_inds(
 
 
 def find_outliers(
-    death_data: pd.Series,
-    case_data: pd.Series, 
-    summary: pd.DataFrame
+    death_data: pd.Series, case_data: pd.Series, summary: pd.DataFrame
 ) -> Tuple[List[str]]:
     """Find the countries with outlier values
     for either of the two main indicators.
@@ -143,14 +142,10 @@ def find_outliers(
     return death_outliers, case_outliers
 
 
-repeat_threshold = 1e-10
-
 def find_nans_repeats(
-    death_data: pd.Series,
-    case_data: pd.Series, 
-    summary: pd.DataFrame
+    deaths: pd.Series, cases: pd.Series, summary: pd.DataFrame
 ) -> Tuple[List[str]]:
-    """Find the countries to excluded based on 
+    """Find the countries to excluded based on
     consecutive NaN or repeated values.
 
     Args:
@@ -165,22 +160,23 @@ def find_nans_repeats(
 
     Notes
     -----
-    Last we excluded any countries for which several repeated values were present, 
-    or the change from each value to the subsequent reported was identical for several values. 
-    We set the threshold number of repeated values or repeated changes for exclusion at {N_REPEATS} consecutive repeats 
-    and required that these repeated values occur after {START_TIME} because 
+    Last we excluded any countries for which several repeated values were present,
+    or the change from each value to the subsequent reported was identical for several values.
+    We set the threshold number of repeated values or repeated changes for exclusion at {N_REPEATS} consecutive repeats
+    and required that these repeated values occur after {START_TIME} because
     these repeated values tended to be small and less significant for calibration prior to this date.
     """
-    start_time = datetime.strptime(START_TIME, CODE_DATE_FORMAT)
-    death_nans = [c for c, d in death_data.items() if count_max_consecutive_nans(d[d.index > start_time]) > N_REPEATS]
-    case_nans = [c for c, d in case_data.items() if count_max_consecutive_nans(d[d.index > start_time]) > N_REPEATS]
-    death_repeats = [c for c, d in death_data.items() if has_repeats(d[d.index > start_time], N_REPEATS, repeat_threshold)]
-    case_repeats = [c for c, d in case_data.items() if has_repeats(d[d.index > start_time], N_REPEATS, repeat_threshold)]
-    add_bool_row_to_table(summary, set(death_nans + case_nans + case_repeats + death_repeats), "Absent or repeat values")
-    return death_nans, case_nans, death_repeats, case_repeats
+    start = datetime.strptime(DATA_QUALITY_START_TIME, CODE_DATE_FORMAT)
+    death_nans = [c for c, d in deaths.items() if count_repeat_nans(d[d.index > start]) > N_REPEATS]
+    case_nans = [c for c, d in cases.items() if count_repeat_nans(d[d.index > start]) > N_REPEATS]
+    death_reps = [c for c, d in deaths.items() if has_reps(d[d.index > start], N_REPEATS, thresh)]
+    case_reps = [c for c, d in cases.items() if has_reps(d[d.index > start], N_REPEATS, thresh)]
+    exclusions = set(death_nans + case_nans + case_reps + death_reps)
+    add_bool_row_to_table(summary, exclusions, "Absent or repeat values")
+    return death_nans, case_nans, death_reps, case_reps
 
 
-def has_repeats(
+def has_reps(
     data: pd.Series,
     n_repeats: int,
     threshold=1e-10,
@@ -219,5 +215,3 @@ def has_outlier(
         return second == 0.0 or largest / second > threshold
     else:
         return False
-
-
