@@ -48,6 +48,15 @@ from emu_renewal.inputs import (
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
 
 
+def get_date_dict_from_str(string):
+    c_dict = {}
+    for i in string.split(", "):
+        str_parts = i.split(": ")
+        c_date = datetime.strptime(str_parts[1], CODE_DATE_FORMAT)
+        c_dict[str_parts[0]] = c_date
+    return c_dict
+
+
 def get_who_indicator(
     indicator: str,
     iso3: str,
@@ -677,6 +686,7 @@ def get_alpha_info(
     Exceptions were made for several Asian countries
     for which this transition date was set one month earlier and two countries
     of North America for which it was set six weeks later.
+    (The exceptions were {ALPHA_DELTA_EXCEPTS}.)
     If this date occurred after the end of the simulation,
     the Alpha calibration period continued to the end of the simulation.
     As with the other variants and for the seroprevalence target,
@@ -689,7 +699,8 @@ def get_alpha_info(
     data = get_var_target(var_data, continent, "alpha")
     alpha_start = datetime.strptime(ALPHA_PERIOD_START, CODE_DATE_FORMAT)
     ad_trans_req = datetime.strptime(ALPHA_DELTA_TRANS, CODE_DATE_FORMAT)
-    ad_trans = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ad_trans_req
+    ad_excepts = get_date_dict_from_str(ALPHA_DELTA_EXCEPTS)
+    ad_trans = ad_excepts[iso3] if iso3 in ad_excepts else ad_trans_req
     alpha_end = min([ad_trans, end_time]) if delta_targ else end_time
     mask = (alpha_start < data.index) & (data.index < alpha_end)
     target = get_incr_pooled_totals(data[mask], "alpha")["alpha_prop"]
@@ -736,7 +747,8 @@ def get_delta_info(
     if continent == "OC" or end_time < delta_inc_date:
         return [], {}, []
     data = get_var_target(var_data, continent, "delta")
-    delta_start = ALPHA_DELTA_EXCEPTS[iso3] if iso3 in ALPHA_DELTA_EXCEPTS else ad_trans
+    ad_excepts = get_date_dict_from_str(ALPHA_DELTA_EXCEPTS)
+    delta_start = ad_excepts[iso3] if iso3 in ad_excepts else ad_trans
     delta_end = min([delta_end_date, end_time])
     mask = (delta_start < data.index) & (data.index < delta_end)
     target = get_incr_pooled_totals(data[mask], "delta")["delta_prop"]

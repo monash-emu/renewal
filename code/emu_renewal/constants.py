@@ -21,19 +21,32 @@ DEFAULT_START_DATE = "1 June 2020"
 DEFAULT_END_DATE = "1 December 2021"
 ALPHA_PERIOD_START = "1 January 2020"
 ALPHA_DELTA_TRANS = "1 March 2021"
-ALPHA_DELTA_EXCEPTS = {
-    "AFG": datetime(2021, 2, 1),
-    "IND": datetime(2021, 2, 1),
-    "NPL": datetime(2020, 12, 1),
-    "IDN": datetime(2021, 2, 1),
-    "SAU": datetime(2021, 2, 1),
-    "OMN": datetime(2021, 2, 1),
-    "KWT": datetime(2021, 2, 1),
-    "KOR": datetime(2021, 2, 1),
-    "MYS": datetime(2021, 2, 1),
-    "HND": datetime(2021, 4, 15),
-    "PRI": datetime(2021, 4, 15),
-}
+ALPHA_DELTA_EXCEPTS = (
+    "Afghanistan: 1 February 2021, "
+    "India: 1 February 2021, "
+    "Nepal: 1 December 2020, "
+    "Indonesia: 1 February 2021, "
+    "Saudi Arabia: 1 February 2021, "
+    "Oman: 1 February 2021, "
+    "Kuwait: 1 February 2021, "
+    "South Korea: 1 February 2021, "
+    "Malaysia: 1 February 2021, "
+    "Honduras: 15 April 2021, "
+    "Puerto Rico: 15 April 2021"
+)
+# ALPHA_DELTA_EXCEPTS = {
+#     "AFG": datetime(2021, 2, 1),
+#     "IND": datetime(2021, 2, 1),
+#     "NPL": datetime(2020, 12, 1),
+#     "IDN": datetime(2021, 2, 1),
+#     "SAU": datetime(2021, 2, 1),
+#     "OMN": datetime(2021, 2, 1),
+#     "KWT": datetime(2021, 2, 1),
+#     "KOR": datetime(2021, 2, 1),
+#     "MYS": datetime(2021, 2, 1),
+#     "HND": datetime(2021, 4, 15),
+#     "PRI": datetime(2021, 4, 15),
+# }
 DELTA_INCLUSION_DATE = "1 May 2021"
 DELTA_PERIOD_END = "1 September 2021"
 BA2_PERIOD_START = "1 January 2022"
