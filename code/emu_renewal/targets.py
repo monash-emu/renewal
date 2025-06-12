@@ -99,16 +99,15 @@ class UnivariateDispersionTarget(WeightedTransformTarget):
         return self.dist(result, dispersion).log_prob(self.calibration_data).mean() * self.weight
 
 
-class StandardDispTarget(UnivariateDispersionTarget):
+class SharedDispTarget(UnivariateDispersionTarget):
+    """Normal likelihood target over the log transformed indicator, with a
+    shared dispersion parameter.
     """
-    Normal likelihood target over the log transformed indicator, with a
-    default of shared dispersion
-    """
 
-    def __init__(self, data, dispersion: str = "shared_dispersion", weight: float = None):
-        super().__init__(data, dist.Normal, dispersion, jnp.log, weight)
+    def __init__(self, data: pd.Series, weight: float):
+        super().__init__(data, dist.Normal, "shared_dispersion", jnp.log, weight)
 
 
-class StandardPropTarget(UnivariateDispersionTarget):
-    def __init__(self, data, dispersion: str = "prop_shared_disp", weight: float = None):
-        super().__init__(data, dist.Normal, dispersion, None, weight)
+class SharedPropTarget(UnivariateDispersionTarget):
+    def __init__(self, data, weight: float):
+        super().__init__(data, dist.Normal, "prop_disp", None, weight)

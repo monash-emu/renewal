@@ -52,6 +52,10 @@ ZERO_IND_REPLACEMENT = 0.5
 OUTLIER_THRESHOLD = 2
 N_REPEATS = 8
 ROUND_THRESHOLD = 1e-10
+SEVERITY_ADJS = (
+    "Low income: 0.4, Lower middle income: 0.6, Upper middle income: 0.8, High income: 1.0"
+)
+EXTRA_LOW_INC = "Venezuela"
 
 # Deaths-related
 DEATHS_WEIGHT = 20
@@ -108,3 +112,19 @@ DAYS_IN_WEEK = 7
 N_ITERS = 1000
 N_CHAINS = 8
 INIT_RADIUS = 0.1
+SEED_RATE_LOW = "1e-7"
+SEED_RATE_UP = "5e-6"
+SEED_OFF_LOW = 4.0
+SEED_OFF_UP = 90.0
+RELINF_MEAN = 1.4
+RELINF_LOW = 1
+RELINF_UP = 2.0
+RELINF_SD = 0.2
+RTINIT_SD = 0.5
+SHARED_DISP_SD = 0.5
+PROP_DISP = 0.05
+SEROPREV_DISP = 0.2
+
+# Prior-related
+DUR_MIN = 1
+DUR_REL_MAX = 2.5

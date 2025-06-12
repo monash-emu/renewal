@@ -45,7 +45,7 @@ from emu_renewal.inputs import (
     get_owid_hosp_series,
     find_decreasing_groups,
 )
-from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
+from emu_renewal.targets import SharedDispTarget, UnivariateDispersionTarget, SharedPropTarget
 
 
 def get_date_dict_from_str(
@@ -94,7 +94,7 @@ def get_deaths_target(
     iso3: str,
     start: datetime,
     end: datetime,
-) -> Tuple[int, Dict[str, StandardDispTarget]]:
+) -> Tuple[int, Dict[str, SharedDispTarget]]:
     """Get the deaths calibration target.
 
     Args:
@@ -124,7 +124,7 @@ def get_deaths_target(
     data[data == 0.0] = ZERO_IND_REPLACEMENT
     mask = (start < data.index) & (data.index < end)
     select_data = data.loc[mask]
-    target = StandardDispTarget(select_data, weight=DEATHS_WEIGHT)
+    target = SharedDispTarget(select_data, weight=DEATHS_WEIGHT)
     return len(select_data), {"weekly_deaths": target}
 
 
@@ -133,7 +133,7 @@ def get_cases_target(
     start: datetime,
     end: datetime,
     n_deaths: int,
-) -> Dict[str, StandardDispTarget]:
+) -> Dict[str, SharedDispTarget]:
     """Get the cases calibration target.
 
     Args:
@@ -169,7 +169,7 @@ def get_cases_target(
     mask = (cases_start < data.index) & (data.index < end)
     target = data.loc[mask]
     weight = DEATHS_WEIGHT * len(target) / n_deaths
-    target = StandardDispTarget(target, weight=weight)
+    target = SharedDispTarget(target, weight=weight)
     return {"weekly_cases": target}
 
 
@@ -244,7 +244,7 @@ def get_hosp_target(
     start: datetime,
     end: datetime,
     n_deaths: int,
-) -> Dict[str, StandardDispTarget]:
+) -> Dict[str, SharedDispTarget]:
     """Get the hospitalisations calibration target.
 
     Args:
@@ -272,7 +272,7 @@ def get_hosp_target(
     if select_data.empty:
         return {}
     weight = DEATHS_WEIGHT * len(select_data) / n_deaths
-    target = StandardDispTarget(select_data, weight=weight)
+    target = SharedDispTarget(select_data, weight=weight)
     return {output_name: target}
 
 
@@ -444,6 +444,9 @@ def get_seroprev_target(
     of {SEROPREV_WEIGHT} (which is an arbitrary quantity,
     but can be interpreted with reference to the deaths indicator
     weight of {DEATHS_WEIGHT}).
+    The seroprevalence target had a dispersion parameter
+    that was independent from the other targets
+    (i.e. not shared with the time series indicators).
     """
     income = get_income_group(iso3)
     if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
@@ -667,8 +670,8 @@ def get_alpha_info(
     var_data: pd.DataFrame,
     continent: str,
     end_time: datetime,
-    delta_targ: Dict[str, StandardPropTarget],
-) -> Tuple[List[str], Dict[str, StandardPropTarget], List[datetime]]:
+    delta_targ: Dict[str, SharedPropTarget],
+) -> Tuple[List[str], Dict[str, SharedPropTarget], List[datetime]]:
     """_summary_
 
     Args:
@@ -718,7 +721,7 @@ def get_alpha_info(
     mask = (alpha_start < data.index) & (data.index < alpha_end)
     target = get_incr_pooled_totals(data[mask], "alpha")["alpha_prop"]
     var_start = target.index[0]
-    return ["alpha"], {"prop_alpha": StandardPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
+    return ["alpha"], {"prop_alpha": SharedPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
 
 
 def get_delta_info(
@@ -726,7 +729,7 @@ def get_delta_info(
     var_data: pd.DataFrame,
     continent: str,
     end_time: datetime,
-) -> Tuple[List[str], Dict[str, StandardPropTarget], List[datetime]]:
+) -> Tuple[List[str], Dict[str, SharedPropTarget], List[datetime]]:
     """Get the required information relating
     to the Delta variant to run an analysis.
 
@@ -770,7 +773,7 @@ def get_delta_info(
     is_end_period = (end_time - target.index[0]).days < LATE_DELTA_TIME
     weight = LATE_DELTA_WEIGHT if is_end_period else VAR_WEIGHT
     var_start = target.index[0]
-    return ["delta"], {"prop_delta": StandardPropTarget(target, weight=weight)}, [var_start]
+    return ["delta"], {"prop_delta": SharedPropTarget(target, weight=weight)}, [var_start]
 
 
 def get_ba2_target(
@@ -826,7 +829,7 @@ def get_ba5_target(
 def get_ba2_info(
     var_data: pd.Series,
     continent: str,
-) -> Tuple[List[str], Dict[str, StandardPropTarget], List[datetime]]:
+) -> Tuple[List[str], Dict[str, SharedPropTarget], List[datetime]]:
     """Get the required information relating
     to the Omicron BA.2 variant.
 
@@ -849,18 +852,19 @@ def get_ba2_info(
         return [], {}, []
     data = get_ba2_target(var_data)
     var_start = data.index[0]
-    return ["ba2"], {"prop_ba2": StandardPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
+    return ["ba2"], {"prop_ba2": SharedPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
 
 
 def get_ba5_info(
     var_data: pd.Series,
     continent: str,
-) -> Tuple[List[str], Dict[str, StandardPropTarget], List[datetime]]:
-    """_summary_
+) -> Tuple[List[str], Dict[str, SharedPropTarget], List[datetime]]:
+    """Get the required information relating
+    to the Omicron BA.5 variant.
 
     Args:
-        var_data: _description_
-        continent: _description_
+        var_data: All the variant data for the country
+        continent: The continent identifier
 
     Returns:
         - A list containing the name of the variant (if included)
@@ -876,4 +880,4 @@ def get_ba5_info(
         return [], {}, []
     data = get_ba5_target(var_data, continent)
     var_start = data.index[0]
-    return ["ba5"], {"prop_ba5": StandardPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
+    return ["ba5"], {"prop_ba5": SharedPropTarget(data, weight=VAR_WEIGHT)}, [var_start]

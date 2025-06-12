@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import pandas as pd
 import numpy as np
 import pycountry
@@ -48,7 +48,22 @@ def get_reset_array_from_increases(
     return reset_array.astype(bool)
 
 
-def get_beta_params_from_mean_var(mu, var):
+def get_beta_params_from_mean_var(
+    mu: float,
+    sd: float,
+) -> Tuple[float]:
+    """Get the beta distribution priors
+    in the format needed by numpyro
+    from the mean and variance.
+
+    Args:
+        mu: Requested distribution mean
+        sd: Requested distribution standard deviation
+
+    Returns:
+        The a and b parameters to the beta distribution
+    """
+    var = sd**2.0
     a = mu * (mu * (1.0 - mu) / var - 1.0)
     b = (1.0 - mu) * (mu * (1.0 - mu) / var - 1.0)
     return a, b
