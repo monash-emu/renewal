@@ -34,19 +34,6 @@ ALPHA_DELTA_EXCEPTS = (
     "Honduras: 15 April 2021, "
     "Puerto Rico: 15 April 2021"
 )
-# ALPHA_DELTA_EXCEPTS = {
-#     "AFG": datetime(2021, 2, 1),
-#     "IND": datetime(2021, 2, 1),
-#     "NPL": datetime(2020, 12, 1),
-#     "IDN": datetime(2021, 2, 1),
-#     "SAU": datetime(2021, 2, 1),
-#     "OMN": datetime(2021, 2, 1),
-#     "KWT": datetime(2021, 2, 1),
-#     "KOR": datetime(2021, 2, 1),
-#     "MYS": datetime(2021, 2, 1),
-#     "HND": datetime(2021, 4, 15),
-#     "PRI": datetime(2021, 4, 15),
-# }
 DELTA_INCLUSION_DATE = "1 May 2021"
 DELTA_PERIOD_END = "1 September 2021"
 BA2_PERIOD_START = "1 January 2022"

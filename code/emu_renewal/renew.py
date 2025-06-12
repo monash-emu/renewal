@@ -244,32 +244,6 @@ class MultiStrainModel:
 
         Notes
         -----
-        A gamma-distributed generation interval 
-        was used for the renewal process.
-        The generation interval for all calculations
-        was truncated at {GEN_TRUNC_POINT} days,
-        because the density reached negligible values beyond
-        this point.
-        For all analyses, the starting population
-        minus the seeding values for the first strain
-        was assigned to the fully susceptible category.
-        Each newly emerging strain was seeded using a triangular
-        pulse of new infections that peaked according
-        to the per capita seeding rate specified.
-        Infectiousness of each variant was calculated
-        with reference to the first modelled variant strain.
-        Persons who had never previously been infected
-        with any strain were considered fully susceptible.
-        We considered partial cross immunity was provided
-        by infection with a preceding variant strain
-        to infection with subsequent strains.
-        However, previously infected persons were assumed
-        to derive complete immunity to the infecting
-        strain and to variant strains that emerged prior
-        to the infecting strain
-        (for example, past infection with Delta conferred
-        complete immunity against future infection with Alpha).
-        __RETURN__
         The new strain-specific seeding value
         was added to the most recent value for the
         strain-specific history of incidence.
@@ -296,6 +270,32 @@ class MultiStrainModel:
         to calculate the number of people infected
         from each category and transition
         them to their new states.
+        __RETURN__
+        For all analyses, the starting population
+        minus the seeding values for the first strain
+        was assigned to the fully susceptible category.
+        Each newly emerging strain was seeded using a triangular
+        pulse of new infections that peaked according
+        to the per capita seeding rate specified.
+        Infectiousness of each variant was calculated
+        with reference to the first modelled variant strain.
+        Persons who had never previously been infected
+        with any strain were considered fully susceptible.
+        We considered partial cross immunity was provided
+        by infection with a preceding variant strain
+        to infection with subsequent strains.
+        However, previously infected persons were assumed
+        to derive complete immunity to the infecting
+        strain and to variant strains that emerged prior
+        to the infecting strain
+        (for example, past infection with Delta conferred
+        complete immunity against future infection with Alpha).
+        A gamma-distributed generation interval
+        was used for the renewal process.
+        The generation interval was truncated
+        at {GEN_TRUNC_POINT} days,
+        because the density reached negligible values beyond
+        this point.
         """
         var_process = self.fit_process_curve(proc, init)
         gen_dist = GammaDens()
@@ -436,17 +436,15 @@ class MultiStrainModel:
         Once the renewal process was run to calculate incidence,
         the other epidemiological outputs were calculated
         using a series of convolution operations.
-        Total incidence was first calculated by summing 
+        Total incidence was first calculated by summing
         over strain-specific incidence.
         Cases were then calculated by convolving incidence
         with a gamma-distributed set of delays from
         incidence to notification
-        (parameterised according to the distribution mean 
-        and standard deviation),
         which was truncated after {CONV_TRUNC_POINT} days.
-        This was then multiplied through by 
+        This was then multiplied through by
         the case detection rate (a proportion)
-        and weekly cases were calculated by summing 
+        and weekly cases were calculated by summing
         over the preceding {DAYS_IN_WEEK} days.
         Deaths were similarly calculated from incidence,
         but with separate parameters governing the
@@ -482,7 +480,7 @@ class MultiStrainModel:
         admissions resulting in ICU admission.
         Hospital and ICU occupancy were obtained
         by convolving the time series of hospital and ICU
-        admissions with the complement of 
+        admissions with the complement of
         the cumulative distribution of the
         time to hospital or ICU discharge.
         Seropositivity was calculated
@@ -495,7 +493,17 @@ class MultiStrainModel:
         """
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
-        out = self.renew(proc, gen_mean, gen_sd, rt_init, cross_immunity, seed_rates, relinfect, seed_offsets, **kwargs)
+        out = self.renew(
+            proc,
+            gen_mean,
+            gen_sd,
+            rt_init,
+            cross_immunity,
+            seed_rates,
+            relinfect,
+            seed_offsets,
+            **kwargs,
+        )
 
         # Incidence
         strain_inc = jnp.array([out[strain] for strain in self.strains])
@@ -512,7 +520,10 @@ class MultiStrainModel:
         # Deaths
         vacc_death_protect = VACC_DEATH_PROTECT if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
-        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, output_dist) * rel_vacc_death
+        deaths = (
+            self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, output_dist)
+            * rel_vacc_death
+        )
         out["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
         out["weekly_deaths"] = weekly_deaths[self.init_length :]
@@ -521,7 +532,10 @@ class MultiStrainModel:
         discharge_dist = GammaDens()
         vacc_hosp_protect = VACC_HOSP_PROTECT if self.vacc_effect else 0.0
         rel_vacc_hosp = 1.0 - vacc_hosp_protect
-        admissions = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, output_dist) * rel_vacc_hosp
+        admissions = (
+            self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, output_dist)
+            * rel_vacc_hosp
+        )
         out["admissions"] = admissions[self.init_length :]
         weekly_admissions = self.get_period_output_from_daily(admissions, DAYS_IN_WEEK)
         out["weekly_admissions"] = weekly_admissions[self.init_length :]
@@ -529,11 +543,15 @@ class MultiStrainModel:
         out["occupancy"] = occupancy[self.init_length :]
 
         # ICU-related outputs
-        icu_admits = self.get_output_from_inc(full_inc, icu_admit_mean, icu_admit_sd, har * icu_ar, output_dist)
+        icu_admits = self.get_output_from_inc(
+            full_inc, icu_admit_mean, icu_admit_sd, har * icu_ar, output_dist
+        )
         out["icu_admissions"] = icu_admits[self.init_length :]
         icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, DAYS_IN_WEEK)
         out["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
-        icu_occupancy = self.get_occupancy_from_admits(icu_admits, icu_stay_mean, icu_stay_sd, discharge_dist)
+        icu_occupancy = self.get_occupancy_from_admits(
+            icu_admits, icu_stay_mean, icu_stay_sd, discharge_dist
+        )
         out["icu_occupancy"] = icu_occupancy[self.init_length :]
 
         # Seropositivity
@@ -585,9 +603,9 @@ class MultiStrainModel:
         return jnp.convolve(raw_series, windower)[: len(raw_series)]
 
     def get_occupancy_from_admits(
-        self, 
+        self,
         full_admits: jnp.array,
-        stay_mean: float, 
+        stay_mean: float,
         stay_sd: float,
         discharge_dist: Dens,
     ) -> jnp.array:

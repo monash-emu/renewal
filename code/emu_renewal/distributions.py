@@ -12,21 +12,22 @@ class Dens:
         pass
 
     def get_params():
-        """Get the parameters for the distribution type
-        """
+        """Get the parameters for the distribution type"""
         pass
 
     def get_densities():
-        """The densities for each integer increment in the distribution.
-        """
+        """The densities for each integer increment in the distribution."""
         pass
 
 
 class GammaDens(Dens):
-    """Density class for generating gamma-distributed denities.
-    """
+    """Density class for generating gamma-distributed denities."""
 
-    def get_params(self, mean: float, sd: float,) -> Dict[str, float]:
+    def get_params(
+        self,
+        mean: float,
+        sd: float,
+    ) -> Dict[str, float]:
         """See get_desc below.
 
         Args:
@@ -35,8 +36,16 @@ class GammaDens(Dens):
 
         Returns:
             The parameters
+
+        Notes
+        -----
+        The parameters to each gamma distribution
+        used in our anlaysis were parameterised by
+        analytically calculating the "a" and "scale" parameters
+        from the epidemiologically determined
+        mean and standard deviation.
         """
-        var = sd ** 2.0
+        var = sd**2.0
         scale = var / mean
         a = mean / scale
         return {"a": a, "scale": scale}
@@ -46,20 +55,3 @@ class GammaDens(Dens):
 
     def get_cum_dens(self, window_len, mean, sd):
         return jaxgamma.cdf(jnp.arange(window_len + 1), **self.get_params(mean, sd))
-
-    def get_desc(self):
-        """Get the description of this code.
-
-        Returns:
-            The description in markdown format
-        """
-        return (
-            "Probability distribution values for each day are calculated by "
-            "first finding the parameters needed to construct "
-            "a gamma distribution with mean and standard deviation "
-            "equal to those specified by the submitted parameter values. "
-            "The integrals of the probability density of this distribution "
-            "between consecutive integer values are then calculated for "
-            "later combination with the incidence time series. "
-        )
-    
