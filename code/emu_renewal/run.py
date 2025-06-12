@@ -32,13 +32,13 @@ from emu_renewal.constants import (
 from emu_renewal.inputs import (
     get_country_vacc_data,
     get_country_pop,
-    get_standard_priors,
     get_google_mobility,
     get_fb_visited_mobility,
     get_fb_singletile_mobility,
 )
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.calibration import StandardCalib
+from emu_renewal.priors import get_standard_priors
 from emu_renewal.outputs import store_outputs
 from emu_renewal import mobility
 from emu_renewal.indicators import (
@@ -170,7 +170,7 @@ def get_mobility_provider(
 
     Notes
     -----
-    For each country, we ran one analysis with 
+    For each country, we ran one analysis with
     no mobility scaling to the transmission rate.
     We ran one analysis in which Google mobility
     was used to scale the transmission rate,
@@ -180,7 +180,7 @@ def get_mobility_provider(
     if mobility data was available from Facebook.
     Although Apple mobility data was available
     and we were able to run analyses using this
-    data source, Apple's terms of use indicate 
+    data source, Apple's terms of use indicate
     that this source of data cannot be used for this purpose.
     We contacted Apple, who declined to allow
     their data to be used for this analysis.
@@ -188,9 +188,9 @@ def get_mobility_provider(
     data using a {MOBILITY_SMOOTH_PERIOD} day centred
     rolling average.
     For all analyses incorporating mobility scaling,
-    we used an exponential scaling parameter 
-    (described in more detail below) which 
-    was assigned a uniform prior over limits 
+    we used an exponential scaling parameter
+    (described in more detail below) which
+    was assigned a uniform prior over limits
     {EXP_PRIOR_LOWER} to {EXP_PRIOR_UPPER}.
     """
 
@@ -242,7 +242,9 @@ def run_calibration(
     calib = StandardCalib(model, priors, targets)
     init = calib.custom_init()
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
-    mcmc = infer.MCMC(kernel, num_chains=N_CHAINS, num_samples=N_ITERS, num_warmup=N_ITERS, progress_bar=prog_bar)
+    mcmc = infer.MCMC(
+        kernel, num_chains=N_CHAINS, num_samples=N_ITERS, num_warmup=N_ITERS, progress_bar=prog_bar
+    )
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
     return calib, mcmc
 
@@ -266,10 +268,10 @@ def run_single_country(
     Raises:
         MobilityException: Error if unable to get the mobility
             provider (assuming this is because mobility is unavailable)
-    
+
     Notes
     -----
-    Each analysis begins from {RUN_DATA_DELAY} days before the 
+    Each analysis begins from {RUN_DATA_DELAY} days before the
     first available calibration data point.
     """
 
@@ -307,7 +309,9 @@ def run_single_country(
     # Variants
     var_data = get_country_vars(iso3)
     delta_var, delta_targ, delta_seed = get_delta_info(iso3, var_data, continent, end_time)
-    alpha_var, alpha_targ, alpha_seed = get_alpha_info(iso3, var_data, continent, end_time, delta_targ)
+    alpha_var, alpha_targ, alpha_seed = get_alpha_info(
+        iso3, var_data, continent, end_time, delta_targ
+    )
     ba2_var, ba2_targ, ba2_seed = get_ba2_info(var_data, continent)
     ba5_var, ba5_targ, ba5_seed = get_ba5_info(var_data, continent)
     start_var = "ba1" if continent == "OC" else "eu"

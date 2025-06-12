@@ -1,14 +1,96 @@
 import pandas as pd
 import geopandas as gpd
-from jax import numpy as jnp
 import json
 import pycountry
-from typing import Dict, Tuple
-import yaml as yml
-from numpyro import distributions as dist
-from emu_renewal.utils import get_beta_params_from_mean_var
-from emu_renewal.constants import DATA_PATH, RAW_MOB_PATH
+from typing import Tuple
+from emu_renewal.constants import (
+    DATA_PATH,
+    RAW_MOB_PATH,
+    POP_YEAR,
+    AUST_POP_YEAR,
+    SUB_DEU_COUNTRIES,
+    SUB_GBR_COUNTRY,
+    ASSUMED_HIGH_INCOME,
+)
 from os import listdir as ls
+
+
+def get_country_pop(
+    iso3: str,
+) -> float:
+    """Get the population size to use for a specified country.
+
+    Args:
+        iso3: The country identifier
+
+    Returns:
+        The population size
+
+    Notes
+    -----
+    We used total population size estimated
+    by the World Bank where a population size was available,
+    and used the estimate provided by the United Nations
+    Department of Economic and Social Affairs otherwise.
+    """
+    try:
+        return get_worldbank_national_pop(iso3)
+    except:
+        return get_undesa_national_pop(iso3)
+
+
+def get_worldbank_national_pop(
+    iso3: str,
+) -> float:
+    """Get the population size of a country.
+
+    Args:
+        iso3: Country identifier
+
+    Returns:
+        Population size
+
+    Notes
+    -----
+    Population data were downloaded from
+    [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
+    on 1 April 2025.
+    The population size for {POP_YEAR} was used for all countries
+    except for Australia, for which the population size in {AUST_POP_YEAR} was used
+    (because of the later analysis period for this country).
+    """
+    path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
+    year = AUST_POP_YEAR if iso3 == "AUS" else POP_YEAR
+    year_str = f"{year} [YR{year}]"
+    return pd.read_csv(path, index_col="Country Code", na_values=[".."]).loc[iso3, year_str]
+
+
+def get_undesa_national_pop(iso3: str) -> float:
+    """Get UN-DESA population estimate for a single country, for 2020
+
+    Args:
+        iso3: ISO3 country code
+
+    Returns:
+        2020 UNDESA population total for country
+
+    Notes
+    -----
+    [UN DESA population data](https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/EXCEL_FILES/2_Population/WPP2024_POP_F02_1_POPULATION_5-YEAR_AGE_GROUPS_BOTH_SEXES.xlsx)
+    was downloaded on 18 March 2025 and the population data
+    needed for {POP_YEAR} used where necessary.
+    """
+    csv_path = DATA_PATH / f"population/undesa_pops_{POP_YEAR}.csv"
+    data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
+    return data.loc[iso3, "population"]
+
+
+def get_ordered_countries_by_cont(countries_by_cont, conts):
+    ordered_countries = {}
+    for cont in conts:
+        pops = {c: get_country_pop(c) for c in countries_by_cont[cont]}
+        ordered_countries[cont] = pd.Series(pops).sort_values(ascending=False).index
+    return ordered_countries
 
 
 def get_owid_hosp_series(
@@ -45,7 +127,7 @@ def process_raw_google_mobility(
 
     Notes
     -----
-    We obtained Google mobility date from 
+    We obtained Google mobility date from
     [the Google Community Mobility Reports](https://www.gstatic.com/covid19/mobility/Region_Mobility_Report_CSVs.zip)
     on 14 January 2025 and extracted national mobility estimates
     by Google mobility domain.
@@ -55,7 +137,7 @@ def process_raw_google_mobility(
     iso2 = pycountry.countries.lookup(iso3).alpha_2
     file_end = f"_{iso2}_Region_Mobility_Report.csv"
     data_files = [
-        pd.read_csv(RAW_MOB_PATH / (str(y) + file_end), index_col="date", low_memory=False) 
+        pd.read_csv(RAW_MOB_PATH / (str(y) + file_end), index_col="date", low_memory=False)
         for y in years
     ]
     all_data = pd.concat(data_files)
@@ -69,192 +151,6 @@ def process_raw_google_mobility(
     c_data = c_data.rename(lambda c: c.replace(mob_col_identifier, ""), axis=1)
 
     return c_data.sort_index()
-
-
-def get_standard_priors(
-    n_strains: int,
-    hosp_out_type: str,
-    iso3: str,
-) -> Dict[str, dist.Distribution]:
-    """Load the priors from the yml and combine with
-    standard hard-coded priors.
-
-    Args:
-        n_strains: The number of strains implemented
-        hosp_out_type: The hospital-related indicator name
-            Must be one of the keys to relevant_duration_priors below
-
-    Returns:
-        The prior distributions
-    """
-    loaded_priors = yml.safe_load(open(DATA_PATH / "config/priors.yml", "r"))
-
-    # Durations
-    duration_priors = {
-        k: dist.TruncatedNormal(v["mean"], v["sd"], low=1.0, high=v["mean"] * 2.5)
-        for k, v in loaded_priors["durations"].items()
-    }
-    universal_prior_names = [
-        "gen_mean",
-        "gen_sd",
-        "report_mean",
-        "report_sd",
-        "death_mean",
-        "death_sd",
-    ]
-    rel_durations_dict = {
-        "weekly_admissions": ["admit_mean", "admit_sd"],
-        "occupancy": ["admit_mean", "admit_sd", "stay_mean", "stay_sd"],
-        "icu_admissions": ["icu_admit_mean", "icu_admit_sd"],
-        "icu_occupancy": ["icu_admit_mean", "icu_admit_sd", "icu_stay_mean", "icu_stay_sd"],
-        "": [],
-    }
-    duration_prior_names = rel_durations_dict[hosp_out_type] + universal_prior_names
-    rel_durs = {k: v for k, v in duration_priors.items() if k in duration_prior_names}
-    irrel_durs = {k: 1.0 for k in duration_priors if k not in rel_durs}
-
-    # Proportions from summary statistics
-    income = get_income_group(iso3)
-    adjusters = {
-        "Low income": 0.4,
-        "Lower middle income": 0.6,
-        "Upper middle income": 0.8,
-        "High income": 1.0,
-    }
-    adjuster = 0.4 if iso3 == "VEN" else adjusters[income]
-    beta_from_sum = loaded_priors["beta_from_summary"]
-    beta_from_sum_dists = {}
-    for k, v in beta_from_sum.items():
-        a, b = get_beta_params_from_mean_var(v["mean"] * adjuster, v["std"] ** 2.0)
-        beta_from_sum_dists[k] = dist.Beta(a, b)
-    if hosp_out_type == "":
-        beta_from_sum_dists["har"] = 1.0
-
-    # Proportions
-    beta_priors = {
-        k: dist.Beta(v["alpha"], v["beta"])
-        for k, v in loaded_priors["beta"].items()
-        if k != "cross_immunity"
-    }
-    if "icu_" not in hosp_out_type:
-        beta_priors["icu_ar"] = 1.0
-    if hosp_out_type == "":
-        beta_priors["har"] = 1.0
-        beta_priors["icu_ar"] = 1.0
-
-    # Variant-related
-    seed_low_lim = jnp.repeat(jnp.log(1e-7), n_strains)
-    seed_up_lim = jnp.repeat(jnp.log(5e-6), n_strains)
-    seed_rate_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
-    seed_offsets_dist = dist.Uniform(
-        jnp.repeat(4.0, n_strains - 1), jnp.repeat(90.0, n_strains - 1)
-    )
-    seed_offsets_priors = seed_offsets_dist if n_strains > 1 else None
-    seed_priors = {"seed_offsets": seed_offsets_priors}
-    relinfect_means = jnp.repeat(1.4, n_strains - 1)
-    infect_dist_prior = dist.TruncatedNormal(relinfect_means, 0.2, low=1.0, high=2.0)
-    infect_dist = infect_dist_prior if n_strains > 1 else None
-    inf_priors = {"relinfect": infect_dist}
-    imm = loaded_priors["beta"]["cross_immunity"]
-    imm_prior = {"cross_immunity": dist.Beta(imm["alpha"], imm["beta"])} if n_strains > 0 else {}
-
-    # Miscellaneous
-    rt_prior = {"rt_init": dist.Normal(0.0, 0.5)}
-    disp_prior = {"shared_dispersion": dist.HalfNormal(0.5)}
-    prop_disp_prior = {"prop_shared_disp": 0.05}
-    seroprev_disp = {"seroprev_disp": 0.2}
-
-    return (
-        rel_durs
-        | irrel_durs
-        | beta_priors
-        | beta_from_sum_dists
-        | seed_rate_priors
-        | inf_priors
-        | imm_prior
-        | rt_prior
-        | disp_prior
-        | prop_disp_prior
-        | seed_priors
-        | seroprev_disp
-    )
-
-
-def get_country_pop(
-    iso3: str,
-) -> float:
-    """Get the population size to use for a specified country.
-
-    Args:
-        iso3: The country identifier
-
-    Returns:
-        The population size
-    
-    Notes
-    -----
-    We used total population size estimated
-    by the World Bank where a population size was available,
-    and used the estimate provided by the United Nations
-    Department of Economic and Social Affairs otherwise.
-    """
-    try:
-        return get_worldbank_national_pop(iso3)
-    except:
-        return get_undesa_national_pop(iso3)
-
-
-def get_worldbank_national_pop(
-    iso3: str,
-) -> float:
-    """Get the population size of a country.
-
-    Args:
-        iso3: Country identifier
-
-    Returns:
-        Population size
-
-    Notes
-    -----
-    Population data were downloaded from
-    [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
-    on 1 April 2025.
-    The population size for 2020 was used for all countries
-    except for Australia, for which the population size in 2022 was used
-    (because of the later analysis period for this country).
-    """
-    path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
-    year = 2022 if iso3 == "AUS" else 2020
-    year_str = f"{year} [YR{year}]"
-    return pd.read_csv(path, index_col="Country Code", na_values=[".."]).loc[iso3, year_str]
-
-
-def get_undesa_national_pop(iso3: str) -> float:
-    """Get UN-DESA population estimate for a single country, for 2020
-
-    Args:
-        iso3: ISO3 country code
-
-    Returns:
-        2020 UNDESA population total for country
-    
-    Notes
-    -----
-    [UN DESA population data](https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/EXCEL_FILES/2_Population/WPP2024_POP_F02_1_POPULATION_5-YEAR_AGE_GROUPS_BOTH_SEXES.xlsx)
-    was downloaded on 18 March 2025.
-    """
-    csv_path = DATA_PATH / "population/undesa_pops_2020.csv"
-    data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
-    return data.loc[iso3, "population"]
-
-
-def get_ordered_countries_by_cont(countries_by_cont, conts):
-    ordered_countries = {}
-    for cont in conts:
-        pops = {c: get_country_pop(c) for c in countries_by_cont[cont]}
-        ordered_countries[cont] = pd.Series(pops).sort_values(ascending=False).index
-    return ordered_countries
 
 
 def get_google_mobility(
@@ -294,7 +190,7 @@ def get_fb_visited_mobility(
     Notes
     -----
     We used the `all_day_bing_tiles_visited_relative_change`
-    for the first Facebook mobility analysis, 
+    for the first Facebook mobility analysis,
     and scaled transmission transmission according
     to one plus this mobility metric.
     """
@@ -314,7 +210,7 @@ def get_fb_singletile_mobility(
 
     Returns:
         The data
-    
+
     Notes
     -----
     For the second Facebook mobility analysis,
@@ -328,62 +224,34 @@ def get_fb_singletile_mobility(
     return 1.0 - mob
 
 
-def get_apple_mobility(
-    iso3: str,
-) -> pd.DataFrame:
-    """Get all fields of the Apple mobility data.
-
-    Args:
-        iso3: Country identifier
-
-    Returns:
-        The data
-    """
-    filename = "mobility/apple-mobility-test_apple_latest_apple-mobility-trends-report.csv"
-    all_data = pd.read_csv(DATA_PATH / filename, low_memory=False)
-    national_data = all_data.loc[all_data["country"].isnull()]
-    region_row = national_data["region"]
-    type_row = national_data["transportation_type"]
-    national_data.index = pd.MultiIndex.from_arrays([region_row, type_row])
-    national_data = national_data.iloc[:, 6:].T
-    national_data.index = pd.to_datetime(national_data.index)
-    countries = national_data.columns.levels[0]
-    crename_map = {
-        "Republic of Korea": "South Korea",
-        "Russia": "Russian Federation",
-        "Turkey": "Türkiye",
-    }
-    reverse_lookup = {
-        pycountry.countries.lookup(crename_map.get(c) or c).alpha_3: c for c in countries
-    }
-    country_df = national_data[reverse_lookup[iso3]].interpolate()
-    country_df /= 100.0
-    return country_df
-
-
 def get_country_vacc_data(
     iso3: str,
 ) -> pd.DataFrame:
     """Get the initial course cumulative vaccination coverage
     data for a specific country.
-    Have substituted Germany for Switzerland because these two
-    countries had almost identical profiles of vaccine doses
-    administered per person in the early phases of the roll-out.
-    Substitute Germany for Ireland based on almost identical
-    profiles, but late start for fully-vaccinated data in Ireland.
-
 
     Args:
         iso3: Country identifier
 
     Returns:
         The data
+
+    Notes
+    -----
+    We substituted Germany for {SUB_DEU_COUNTRIES} because these two
+    countries had almost identical profiles of vaccine doses
+    administered per person in the early phases of the roll-out
+    and vaccination data were not available for these two countries
+    during this period.
+    Similarly, we substituted Great Britain for {SUB_GBR_COUNTRY}
+    based on the same rationale.
     """
+    sub_deu = [pycountry.countries.lookup(c).alpha_3 for c in SUB_DEU_COUNTRIES.split(" and ")]
     if iso3 == "KOR":
         country = pycountry.countries.lookup(iso3).common_name
-    elif iso3 in ["CHE", "IRL"]:
+    elif iso3 in sub_deu:
         country = pycountry.countries.lookup("DEU").name
-    elif iso3 == "QAT":
+    elif iso3 == SUB_GBR_COUNTRY:
         country = "GBR"
     else:
         country = pycountry.countries.lookup(iso3).name
@@ -540,34 +408,50 @@ def get_income_group(
 
     Returns:
         World Bank income classification
-    
+
     Notes
     -----
-    Country income classifications were obtained from 
+    Country income classifications were obtained from
     [the World Bank](https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755).
+
     """
-    if iso3 == "GUF":
+    if iso3 == pycountry.countries.lookup(ASSUMED_HIGH_INCOME).alpha_3:
         return "High income"
     data = pd.read_excel(DATA_PATH / "income/CLASS.xlsx", index_col="Code")
     return data.loc[iso3, "Income group"]
 
 
-def get_gdps(year):
+def get_gdps(
+    year: int,
+) -> pd.Series:
+    """Get GDP estimates for each country.
+
+    Args:
+        year: The year of interest
+
+    Returns:
+        The GDPs
+
+    Notes
+    -----
+    We obtained data on GDP for each country from
+    [the World Bank](https://data.worldbank.org/indicator/NY.GDP.PCAP.CD?most_recent_year_desc=true.)
     """
-    https://data.worldbank.org/indicator/NY.GDP.PCAP.CD?most_recent_year_desc=true
-    """
-    data = pd.read_excel(
-        DATA_PATH / "income/API_NY.GDP.PCAP.CD_DS2_en_excel_v2_85284.xls", header=3, index_col=1
-    )
+    filename = "API_NY.GDP.PCAP.CD_DS2_en_excel_v2_85284.xls"
+    data = pd.read_excel(DATA_PATH / "income" / filename, header=3, index_col=1)
     return data[str(year)]
 
 
 def get_world_shp():
-    """Data obtained from:
-    https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_0_countries.zip
+    """Get shapefile for countries of the world.
 
     Returns:
         The cleaned shapefile
+
+    Notes
+    -----
+    We obtained a shapefile for the countries of the world from
+    [Natural Earth](https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_0_countries.zip).
     """
     world = gpd.read_file(DATA_PATH / "mapping/ne_10m_admin_0_countries.shp")
     for c in ["FRA", "NOR"]:

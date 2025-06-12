@@ -21,12 +21,29 @@ from emu_renewal.constants import (
 )
 from emu_renewal.process import sinterp, CosineMultiCurve
 from emu_renewal.distributions import Dens
-from emu_renewal.utils import get_combs, get_col_increases, get_reset_array_from_increases
+from emu_renewal.utils import get_col_increases, get_reset_array_from_increases
 from emu_renewal.mobility import MobilityProvider
 from emu_renewal.distributions import GammaDens
 
 
 ModelResult = dict[str, Array]
+
+
+def get_combs(n_cats: int) -> np.ndarray:
+    """For a given set of categories, work out all the possible
+    combinations of one of the categories being True or False.
+
+    Example:
+        Argument 2 would yield:
+        [[False, False], [False, True], [True, False], [True, True]]
+
+    Args:
+        n_cats: Number of categories
+
+    Returns:
+        The combinations, with each list element having n_cats entries.
+    """
+    return np.array([list(i) for i in itertools.product([False, True], repeat=n_cats)]).T
 
 
 def get_dests(

@@ -48,12 +48,25 @@ from emu_renewal.inputs import (
 from emu_renewal.targets import StandardDispTarget, UnivariateDispersionTarget, StandardPropTarget
 
 
-def get_date_dict_from_str(string):
+def get_date_dict_from_str(
+    date_info: str,
+) -> Dict[str, datetime]:
+    """Get a dictionary of dates from a
+    single string. For use with ALPHA_DELTA_EXCEPTS.
+
+    Args:
+        date_info: The string containing the countries and
+            corresponding dates as a single string.
+
+    Returns:
+        The dictionary
+    """
     c_dict = {}
-    for i in string.split(", "):
+    for i in date_info.split(", "):
         str_parts = i.split(": ")
         c_date = datetime.strptime(str_parts[1], CODE_DATE_FORMAT)
-        c_dict[str_parts[0]] = c_date
+        c = pycountry.countries.lookup(str_parts[0]).alpha_3
+        c_dict[c] = c_date
     return c_dict
 
 
