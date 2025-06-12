@@ -11,7 +11,6 @@ import arviz as az
 from numpyro import distributions as dist
 from matplotlib import pyplot as plt
 import pycountry
-from os import listdir as ls
 import yaml as yml
 import pycountry_convert as pc
 
@@ -19,10 +18,8 @@ from emu_renewal.inputs import DATA_PATH
 from emu_renewal.constants import ANALYSIS_TYPES
 from emu_renewal.inputs import (
     get_google_mobility,
-    get_apple_mobility,
     get_fb_visited_mobility,
     get_gdps,
-    get_worldbank_national_pop,
 )
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim

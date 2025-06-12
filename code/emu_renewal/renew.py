@@ -309,6 +309,10 @@ class MultiStrainModel:
         complete immunity against future infection with Alpha).
         A gamma-distributed generation interval
         was used for the renewal process.
+        This is consistent with an investigation of
+        household clusters from Germany showed that showed
+        the profile of serial intervals
+        was well matched by a gamma distribution.[@anderheiden2022]
         The generation interval was truncated
         at {GEN_TRUNC_POINT} days,
         because the density reached negligible values beyond
