@@ -114,6 +114,8 @@ def get_table_df_from_priors_dict(
     priors_df = pd.DataFrame.from_dict(priors_dict).T
     priors_df = priors_df.set_index("param_name")
     priors_df.index.name = None
+    keep_cols = [c for c in priors_df if c != "short_name"]
+    priors_df = priors_df[keep_cols]
     priors_df.columns = priors_df.columns.str.capitalize()
     return priors_df.rename(columns={"Sd": "SD"})
 
