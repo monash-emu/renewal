@@ -310,7 +310,7 @@ class FacebookMobilityBuilder:
         Args:
             iso3: ISO3 country code
             gadm_level: GADM level (1 or 2); if not supplied, will be inferred from data
-            write_csv: Write resulting data to CSV. Defaults to True.
+            write_csv: Write resulting data to CSV.
             geom_method: Type of shapely geometry to intersect (only POINT supported at present)
             force_rebuild: Rebuild existing data
             process_gadm_function: Callable to remap gadm series (unused)
@@ -320,11 +320,16 @@ class FacebookMobilityBuilder:
 
         Notes
         -----
-        For each geographic region included in the Facebook data, we calculate a population by intersecting polygons
-        with the centroid of the population data grids, then weight the resulting series by these computed populations.
-        For the small proportion of (low-population) timeseries that have missing data, this is infilled by
-        nearest neighbour interpolation.  In general these series were found to have a negligible contribution
-        to the final outputs.
+        For each geographic region included in the Facebook data, 
+        we calculated a population by intersecting polygons
+        with the centroid of the population data grids, 
+        and then weighted the resulting series 
+        by these computed populations.
+        For the small proportion of 
+        (low-population) timeseries that had missing data, 
+        this was infilled by nearest neighbour interpolation.
+        In general, these series were found 
+        to have a negligible contribution to the final outputs.
         """
         mobility_csv_path = DATA_PATH / f"mobility/{iso3}_fbmob_data.csv"
 
