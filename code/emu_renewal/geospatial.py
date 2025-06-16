@@ -305,15 +305,26 @@ class FacebookMobilityBuilder:
         force_rebuild=False,
         process_gadm_func=None,
     ) -> pd.Series:
-        """Build a mobility series for the given country (or load cached version if already present)
+        """Build a population-weighted mobility series for the given country (or load cached version if already present)
 
         Args:
             iso3: ISO3 country code
             gadm_level: GADM level (1 or 2); if not supplied, will be inferred from data
             write_csv: Write resulting data to CSV. Defaults to True.
+            geom_method: Type of shapely geometry to intersect (only POINT supported at present)
+            force_rebuild: Rebuild existing data
+            process_gadm_function: Callable to remap gadm series (unused)
 
         Returns:
-            _description_
+            Weighted timeseries
+
+        Notes
+        -----
+        For each geographic region included in the Facebook data, we calculate a population by intersecting polygons
+        with the centroid of the population data grids, then weight the resulting series by these computed populations.
+        For the small proportion of (low-population) timeseries that have missing data, this is infilled by
+        nearest neighbour interpolation.  In general these series were found to have a negligible contribution
+        to the final outputs.
         """
         mobility_csv_path = DATA_PATH / f"mobility/{iso3}_fbmob_data.csv"
 
@@ -322,6 +333,7 @@ class FacebookMobilityBuilder:
 
         country_mobility = self.fb_data.filter(pl.col("country") == iso3)
 
+        # USA doesn't use GADM - we hack in a county level FIPS shapefile for this elsewhere
         if gadm_level is None and iso3 != "USA":
             gadm_level = infer_gadm_level(country_mobility)
             logger.info(f"Inferred GADM level {gadm_level} for {iso3}")
