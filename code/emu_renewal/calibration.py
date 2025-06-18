@@ -1,6 +1,6 @@
-from jax import numpy as jnp
 import numpy as np
 import numpyro
+from jax import numpy as jnp
 from numpyro import distributions as dist
 from numpyro import infer
 from functools import partial
