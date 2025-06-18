@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime
+
 
 # Date formats
 DATE_FORMAT = "%Y%m%d_%H%M"
@@ -56,6 +56,7 @@ SEVERITY_ADJS = (
     "Low income: 0.4, Lower middle income: 0.6, Upper middle income: 0.8, High income: 1.0"
 )
 EXTRA_LOW_INC = "Venezuela"
+VARIATION_THRESHOLD = 1e-7
 
 # Deaths-related
 DEATHS_WEIGHT = 20
