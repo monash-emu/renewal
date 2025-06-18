@@ -4,6 +4,7 @@ from os import listdir as ls
 from datetime import datetime
 
 from emu_renewal.constants import OUTLIER_THRESHOLD, N_REPEATS, DATA_QUALITY_START_TIME, CODE_DATE_FORMAT, VARIATION_THRESHOLD
+from emu_renewal.document import get_exp_val_from_string
 from emu_renewal.inputs import DATA_PATH
 from emu_renewal.indicators import get_who_indicator
 from emu_renewal.outputs import add_bool_row_to_table
@@ -22,7 +23,7 @@ def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
     Notes
     -----
     To select countries for inclusion in our analysis, we first identified all countries
-    for which either Google or Facebook mobility data were available.
+    for which either Google or Facebook mobility data was available.
     """
     g_avail = [c[:3] for c in ls(DATA_PATH / "mobility") if "gmob" in c]
     fb_avail = [c[:3] for c in ls(DATA_PATH / "mobility") if "fbmob" in c]
@@ -47,7 +48,7 @@ def gather_who_data(
     Notes
     -----
     Next, we considered the quality of the data for our two main WHO indicators
-    which we required for inclusion in the analysis: "New_cases" and "New_deaths"
+    which we required for inclusion in the analysis: `New_cases` and `New_deaths`
     from the start of data availability through to the end time
     of the analysis for each country.
     """
@@ -78,7 +79,9 @@ def find_absent_inds(
 
     Notes
     -----
-    Using these data, we excluded any countries for which no deaths or cases were reported.
+    Using these data, we excluded any countries 
+    for which no deaths or cases were reported
+    throughout this data availability period.
     """
     no_deaths = [c for c, d in death_data.items() if d.size == 0 or d.max() == 0.0]
     no_cases = [c for c, d in case_data.items() if d.size == 0 or d.max() == 0.0]
@@ -103,7 +106,8 @@ def find_neg_inds(
 
     Notes
     -----
-    We also excluded any countries for which any negative values were present in the available data.
+    We also excluded any countries for which any negative values were 
+    present within the available data.
     """
     neg_deaths = [c for c, d in death_data.items() if d.min() < 0.0]
     neg_cases = [c for c, d in case_data.items() if d.min() < 0.0]
@@ -157,16 +161,17 @@ def find_nans_repeats(
     -----
     Last we excluded any countries for which several repeated values were present,
     or the change from each value to the subsequent reported was identical
-    (within {VARIATION_THRESHOLD}) for several values.
-    We set the threshold number of repeated values or repeated changes for exclusion at {N_REPEATS} consecutive repeats
+    (within ${VARIATION_THRESHOLD}$) for several consecutive values.
+    We set the threshold number of repeated values or repeated changes for exclusion at {N_REPEATS} repeats
     and required that these repeated values occur after {DATA_QUALITY_START_TIME} because
     these repeated values tended to be small and less significant for calibration prior to this date.
     """
     start = datetime.strptime(DATA_QUALITY_START_TIME, CODE_DATE_FORMAT)
     death_nans = [c for c, d in deaths.items() if count_repeat_nans(d[d.index > start]) > N_REPEATS]
     case_nans = [c for c, d in cases.items() if count_repeat_nans(d[d.index > start]) > N_REPEATS]
-    death_reps = [c for c, d in deaths.items() if has_reps(d[d.index > start], N_REPEATS, VARIATION_THRESHOLD)]
-    case_reps = [c for c, d in cases.items() if has_reps(d[d.index > start], N_REPEATS, VARIATION_THRESHOLD)]
+    thresh = get_exp_val_from_string(VARIATION_THRESHOLD)
+    death_reps = [c for c, d in deaths.items() if has_reps(d[d.index > start], N_REPEATS, thresh)]
+    case_reps = [c for c, d in cases.items() if has_reps(d[d.index > start], N_REPEATS, thresh)]
     exclusions = set(death_nans + case_nans + case_reps + death_reps)
     add_bool_row_to_table(summary, exclusions, "Absent or repeat values")
     return death_nans, case_nans, death_reps, case_reps

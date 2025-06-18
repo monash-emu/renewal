@@ -28,8 +28,9 @@ def get_country_pop(
 
     Notes
     -----
-    We used total population size estimated
-    by the World Bank where a population size was available,
+    We used the total population size estimated
+    by the World Bank where a population size was available
+    from this source,
     and used the estimate provided by the United Nations
     Department of Economic and Social Affairs otherwise.
     """
@@ -52,7 +53,7 @@ def get_worldbank_national_pop(
 
     Notes
     -----
-    Population data were downloaded from
+    Population data was downloaded from
     [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
     on 1 April 2025.
     The population size for {POP_YEAR} was used for all countries

@@ -56,7 +56,7 @@ SEVERITY_ADJS = (
     "Low income: 0.4, Lower middle income: 0.6, Upper middle income: 0.8, High income: 1.0"
 )
 EXTRA_LOW_INC = "Venezuela"
-VARIATION_THRESHOLD = 1e-7
+VARIATION_THRESHOLD = "1\\times10^-7"
 
 # Deaths-related
 DEATHS_WEIGHT = 20
