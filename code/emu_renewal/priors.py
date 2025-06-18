@@ -25,25 +25,7 @@ from emu_renewal.constants import (
 )
 from emu_renewal.inputs import get_income_group
 from emu_renewal.utils import get_beta_params_from_mean_var
-
-
-def get_float_dict_from_str(
-    float_info: str,
-) -> Dict[str, float]:
-    """Get a dictionary of floats from a single string.
-
-    Args:
-        float_info: The raw string containing the information
-
-    Returns:
-        The dictionary
-    """
-    c_dict = {}
-    for i in float_info.split(", "):
-        str_parts = i.split(": ")
-        c_date = float(str_parts[1])
-        c_dict[str_parts[0]] = c_date
-    return c_dict
+from emu_renewal.document import get_exp_val_from_string, get_float_dict_from_str
 
 
 def get_standard_priors(
@@ -85,7 +67,7 @@ def get_standard_priors(
     with {EXTRA_LOW_INC} (for which a World Bank class was not available)
     considered a low-income country for this purpose.
     The seeding rate for each variant was calibrated from
-    {SEED_RATE_LOW} to {SEED_RATE_UP} using a uniform distribution
+    ${SEED_RATE_LOW}$ to ${SEED_RATE_UP}$ using a uniform distribution
     in logarithmic space.
     The seeding offset (i.e. the time from modelled seeding
     to the first calibration data point)
@@ -165,8 +147,10 @@ def get_standard_priors(
         beta_priors["icu_ar"] = 1.0
 
     # Variant-related
-    seed_low_lim = jnp.repeat(jnp.log(float(SEED_RATE_LOW)), n_strains)
-    seed_up_lim = jnp.repeat(jnp.log(float(SEED_RATE_UP)), n_strains)
+    seed_rate_low = get_exp_val_from_string(SEED_RATE_LOW)
+    seed_low_lim = jnp.repeat(jnp.log(float(seed_rate_low)), n_strains)
+    seed_rate_up = get_exp_val_from_string(SEED_RATE_UP)
+    seed_up_lim = jnp.repeat(jnp.log(float(seed_rate_up)), n_strains)
     seed_rate_priors = {"seed_rates": dist.Uniform(seed_low_lim, seed_up_lim)}
     seed_off_low_lim = jnp.repeat(SEED_OFF_LOW, n_strains - 1)
     seed_off_up_lim = jnp.repeat(SEED_OFF_UP, n_strains - 1)
