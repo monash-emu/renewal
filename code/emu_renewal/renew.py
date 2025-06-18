@@ -266,13 +266,13 @@ class MultiStrainModel:
         was assigned to the fully susceptible category.
         __RETURN__### Seeding__RETURN__
         Each newly emerging strain was seeded using a triangular
-        pulse of new infections that peaked according
+        pulse of new infections that peaked at a rate according
         to the per capita seeding rate specified.
         At each calculation day,
         the new strain-specific seeding values
         were added to the most recent value for the
-        strain-specific history of incidence.
-        Infectiousness of each variant was specified
+        strain-specific history of incidence. Infectiousness of 
+        each variant was specified
         with reference to the first modelled variant strain.
         __RETURN__### Generation interval__RETURN__
         A gamma-distributed generation interval
@@ -287,15 +287,16 @@ class MultiStrainModel:
         this point.
         __RETURN__### Renewal process__RETURN__
         The strain-specific incidence array
-        updated for seeding was convolved with
+        updated for strain seeding was convolved with
         the generation interval distribution vector
-        to create a vector of the effective number of
-        infectious individuals.
-        These values were then multiplied by the scalar values
-        representing the variable process,
-        the mobility scaling value
-        and the relative infectiousness of each strain,
-        and divided through by the population size
+        to create an array of the effective number of
+        infectious individuals for each strain.
+        These values were then multiplied by scalar values
+        representing the variable process and
+        mobility scaling and divided through 
+        by the population size.
+        This was multiplied by the strain-specific vector for
+        the relative infectiousness of each strain
         to derive the calculated per capita rate of infection.
         We then determined the actual rate of infection
         for each strain as $1 - e^{{-r}}$
@@ -458,7 +459,8 @@ class MultiStrainModel:
 
         Notes
         -----
-        Once the renewal process was run to calculate incidence,
+        Once an iteration of the renewal process 
+        had been run to calculate incidence,
         the other epidemiological outputs were calculated
         using a series of convolution operations.
         Total incidence was first calculated by summing
@@ -470,7 +472,7 @@ class MultiStrainModel:
         This was then multiplied through by
         the case detection rate (a proportion)
         and weekly cases were calculated by summing
-        over the preceding {DAYS_IN_WEEK} days.
+        over the preceding {DAYS_IN_WEEK} days.__RETURN__
         Deaths were similarly calculated from incidence,
         but with separate parameters governing the
         time from incidence to death
@@ -485,7 +487,7 @@ class MultiStrainModel:
         death was set at {VACC_DEATH_PROTECT}
         and was not varied during calibration
         because this would have been collinear
-        with the risk of hospitalisation parameter.
+        with the risk of hospitalisation parameter.__RETURN__
         As for cases and deaths, hospitalisations
         were estimated through a convolution
         distribution with its own parameters
@@ -502,7 +504,7 @@ class MultiStrainModel:
         in ICU admission was estimated according
         to the product of the hospital admission
         fraction and the proportion of hospital
-        admissions resulting in ICU admission.
+        admissions resulting in ICU admission.__RETURN__
         Hospital and ICU occupancy were obtained
         by convolving the time series of hospital and ICU
         admissions with the complement of
@@ -511,7 +513,7 @@ class MultiStrainModel:
         For comparison to serosurveillance data, 
         seropositivity was calculated
         as the proportion of the population remaining
-        in the entirely infection-naive immunity
+        in the entirely infection-na&iuml;ve immunity
         sub-population.
         Finally, the proportion of incidence attributable
         to each variant strain was also calculated
