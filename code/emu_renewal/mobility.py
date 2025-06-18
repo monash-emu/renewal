@@ -79,7 +79,7 @@ class WeightedExpMobilityProvider(MobilityProvider):
 
         Notes
         -----
-        This approach to incorporating mobility involves
+        This mobility analysis type used
         a set of priors weighting each mobility domain
         and one further prior governing the overall
         influence of the weighted mobility estimate on transmission.

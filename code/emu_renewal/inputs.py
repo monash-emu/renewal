@@ -78,8 +78,9 @@ def get_undesa_national_pop(iso3: str) -> float:
     Notes
     -----
     [UN DESA population data](https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/EXCEL_FILES/2_Population/WPP2024_POP_F02_1_POPULATION_5-YEAR_AGE_GROUPS_BOTH_SEXES.xlsx)
-    was downloaded on 18 March 2025 and the population data
-    needed for {POP_YEAR} used where necessary.
+    was downloaded on 18 March 2025 and 
+    where UN DESA population was needed, 
+    data for {POP_YEAR} was used.
     """
     csv_path = DATA_PATH / f"population/undesa_pops_{POP_YEAR}.csv"
     data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
@@ -128,7 +129,7 @@ def process_raw_google_mobility(
 
     Notes
     -----
-    We obtained Google mobility date from
+    We obtained Google mobility data from
     [the Google Community Mobility Reports](https://www.gstatic.com/covid19/mobility/Region_Mobility_Report_CSVs.zip)
     on 14 January 2025 and extracted national mobility estimates
     by Google mobility domain.
@@ -167,7 +168,7 @@ def get_google_mobility(
 
     Notes
     -----
-    For the Google mobility analysis,
+    For this analysis,
     we used the raw value interpreted as a percentage
     plus one to scale the transmission rate.
     """
@@ -239,7 +240,8 @@ def get_country_vacc_data(
 
     Notes
     -----
-    We substituted Germany for {SUB_DEU_COUNTRIES} because these two
+    We substituted Germany's data for 
+    {SUB_DEU_COUNTRIES} because these two
     countries had almost identical profiles of vaccine doses
     administered per person in the early phases of the roll-out
     and vaccination data were not available for these two countries

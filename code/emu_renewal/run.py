@@ -138,11 +138,11 @@ def find_run_end_time(iso3: str) -> datetime:
     the end time for the analysis was calculated as
     the time that the population vaccination coverage
     passed {END_VACC_THRESHOLD}%,
-    provided that the vaccination coverage did reach this
+    provided that vaccination coverage did reach this
     value before the default end time of {DEFAULT_END_DATE}.
     Otherwise, this default end date was used instead.
     For Australia, the latest date for which
-    the Google mobility data was available was used.
+    Google mobility data was available was used.
     """
     if iso3 == "AUS":
         mob = get_google_mobility(iso3)
@@ -183,15 +183,15 @@ def get_mobility_provider(
     data source, Apple's terms of use indicate
     that this source of data cannot be used for this purpose.
     We contacted Apple, who declined to allow
-    their data to be used for this analysis.
+    their data to be used for this project.
     For all mobility sources, we smoothed the raw
-    data using a {MOBILITY_SMOOTH_PERIOD} day centred
+    data using a {MOBILITY_SMOOTH_PERIOD}-day centred
     rolling average.
     For all analyses incorporating mobility scaling,
     we used an exponential scaling parameter
     (described in more detail below) which
-    was assigned a uniform prior over limits
-    {EXP_PRIOR_LOWER} to {EXP_PRIOR_UPPER}.
+    was assigned a uniform prior over domain
+    [{EXP_PRIOR_LOWER}, {EXP_PRIOR_UPPER}].
     """
 
     # Data processing

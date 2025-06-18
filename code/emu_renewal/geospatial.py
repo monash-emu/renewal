@@ -321,13 +321,14 @@ class FacebookMobilityBuilder:
         Notes
         -----
         For each geographic region included in the Facebook data, 
-        we calculated a population by intersecting polygons
+        we estimated a population by intersecting polygons
         with the centroid of the population data grids, 
         and then weighted the resulting series 
-        by these computed populations.
+        by these calculated populations.
         For the small proportion of 
         (low-population) timeseries that had missing data, 
-        this was infilled by nearest neighbour interpolation.
+        we imputed population estimates
+        by nearest neighbour interpolation.
         In general, these series were found 
         to have a negligible contribution to the final outputs.
         """

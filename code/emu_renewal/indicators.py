@@ -109,11 +109,11 @@ def get_deaths_target(
     Notes
     -----
     The number of deaths by week reported by WHO
-    was used as the first calibration target for all countries.
+    was used as a calibration target for all included countries.
     Any values of zero in this series were replaced with a
     value of {ZERO_IND_REPLACEMENT} to enable comparison to
     modelled outputs on the log scale.
-    Deaths was the one of two indicators
+    Deaths was one of two or three time-series indicators
     for which a common dispersion parameter was used
     for the distribution comparison of the modelled value.
     The value for weighting the deaths indicator time series
@@ -148,7 +148,7 @@ def get_cases_target(
     Notes
     -----
     The number of cases by week reported by WHO
-    was used as the second calibration target for all countries.
+    was included as the second calibration target for all countries.
     Linear interpolation was used to replace missing values, and
     as for deaths, any zero values were replaced with a value of 0.5.
     We only calibrated to cases from the {CASES_START} onward,
@@ -158,7 +158,7 @@ def get_cases_target(
     been less reliable.
     Cases was the second indicator for which
     a common dispersion parameter was applied.
-    A target weight was applied to the series of cases
+    A target weight was applied to the time-series of cases
     such that the weight for each case observation point
     was the same as for each death observation.
     """
@@ -194,8 +194,8 @@ def get_owid_hosps(
 
     Notes
     -----
-    A single hospitalisation indicator used for calibration was
-    chosen using a hierarchical approach.
+    Up to one hospitalisation-related indicator 
+    for calibration was chosen using a hierarchical approach.
     In selecting the indicator, the number of new admissions was preferred
     over estimates of total bed occupancy, and total hospital
     indicators were preferred over ICU indicators.
@@ -207,7 +207,7 @@ def get_owid_hosps(
     __RETURN__5. No hospital indicator
     __RETURN____RETURN__
     That is, the highest ranked indicator was used based on data availability,
-    and no hospital indicator was incorporated if none were available.
+    and no hospital indicator was incorporated if none was available.
     """
     admits = get_owid_hosp_series("Weekly new hospital admissions", country)
     filt_admits = admits[(start < admits.index) & (admits.index < end) & (admits > 0.0)]
@@ -288,8 +288,10 @@ def get_all_seroprev() -> pd.Series:
     [SeroTracker](https://github.com/serotracker/sars-cov-2-data/raw/refs/heads/main/serotracker_dataset.csv)
     on 11 December 2024,
     with the date for each serosurvey estimate calculated as the
-    mid-point between the reported start and end dates of sampling.
-    This date was then lagged earlier by {ANTIBODY_DELAY} for the purposes
+    mid-point between the reported start and end sampling dates
+    for each survey.
+    This date was then lagged earlier by {ANTIBODY_DELAY} days
+    for the purposes
     of calibration to allow for a delay between infection
     and the subsequent development of detectable antibodies.
     """
@@ -424,7 +426,7 @@ def get_seroprev_target(
     because a comparison against early seroprevalence estimates
     would not account for waves of transmission prior to
     the start of the simulation.
-    We discarded seroprevalence estimates that were less than
+    We discarded seroprevalence estimates that fell less than
     {SEROPREV_EXTREME}% away from a value of zero or 100%.
     We also ignored seroprevalence estimates from
     low and lower middle income countries of Africa, because
@@ -445,7 +447,7 @@ def get_seroprev_target(
     but can be interpreted with reference to the deaths indicator
     weight of {DEATHS_WEIGHT}).
     The seroprevalence target had a dispersion parameter
-    that was independent from the other targets
+    that was independent of the other targets
     (i.e. not shared with the time series indicators).
     """
     income = get_income_group(iso3)
@@ -482,7 +484,7 @@ def get_country_vars(
     Reports of the number of isolates of specific variants of SARS-CoV-2
     were obtained from the
     [covariants](https://github.com/hodcroftlab/covariants/raw/refs/heads/master/cluster_tables/)
-    GitHub repository. Each variant-specific file was downloaded
+    GitHub repository. Each variant-specific file was downloaded and 
     used to create country-specific tables of the variant-specific
     counts by date.
     """
@@ -653,7 +655,7 @@ def get_var_target(
     To obtain data to use as calibration targets for
     both the Alpha and the Delta variants,
     we used the totals for the country analysed where available.
-    If data were not available for the country,
+    If data was not available for the country considered,
     we used pooled data from all the other countries
     from the same continent where available.
     """
@@ -702,10 +704,10 @@ def get_alpha_info(
     Exceptions were made for several Asian countries
     for which this transition date was set one month earlier and two countries
     of North America for which it was set six weeks later.
-    (The exceptions were {ALPHA_DELTA_EXCEPTS}.)
+    (Specifically, the exceptions were {ALPHA_DELTA_EXCEPTS}.)
     If this date occurred after the end of the simulation,
     the Alpha calibration period continued to the end of the simulation.
-    As with the other variants and for the seroprevalence target,
+    As for the other variants and for the seroprevalence target,
     decreasing values for the proportion of sequences attributable
     to Alpha were recursively pooled to ensure they were strictly increasing.
     The target weight for the Alpha target was set to be {VAR_WEIGHT}.
@@ -751,8 +753,8 @@ def get_delta_info(
     calibration fell later than {DELTA_INCLUSION_DATE}.
     Values were again pooled to ensure they were strictly increasing.
     The target weight for calibration to Delta was set to be {VAR_WEIGHT}
-    for most countries. Exceptions were made if the target for data
-    emerged towards the very end of the calibration last
+    for most countries. Exceptions were made if the target for Delta
+    began towards the very end of the calibration last
     ({LATE_DELTA_WEIGHT} days), in which case a higher weight
     (of {LATE_DELTA_WEIGHT}) was needed to capture this late emergence
     with fewer data points.
@@ -844,8 +846,7 @@ def get_ba2_info(
 
     Notes
     -----
-    A calibration target for Omicron BA.2 was only included for
-    Oceania, i.e. only Australia.
+    A calibration target for Omicron BA.2 was only included for Australia.
     As for other variants, the target weight for BA.2 was set to be {VAR_WEIGHT}.
     """
     if continent != "OC":
@@ -873,7 +874,7 @@ def get_ba5_info(
 
     Notes
     -----
-    As for BA.2, a calibration target for Omicron BA.5 was only included for Oceania.
+    As for BA.2, a calibration target for Omicron BA.5 was only included for Australia.
     As for other variants, the target weight for BA.5 was set to be {VAR_WEIGHT}.
     """
     if continent != "OC":

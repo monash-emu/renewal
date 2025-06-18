@@ -23,7 +23,7 @@ def _get_cos_curve_at_x(
     -----
     The cosine function was obtained by translating 
     and scaling a half cosine function 
-    (i.e. a cosine function on domain zero to $\pi$).
+    (i.e. a cosine function with support $[0, \pi]$).
     """
     idx = sinterp.binary_search_sum_ge(x, x_data.points) - 1
     offset = x - x_data.points[idx]

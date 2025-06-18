@@ -79,9 +79,9 @@ def find_absent_inds(
 
     Notes
     -----
-    Using these data, we excluded any countries 
+    Using this data, we excluded any countries 
     for which no deaths or cases were reported
-    throughout this data availability period.
+    throughout the data availability period.
     """
     no_deaths = [c for c, d in death_data.items() if d.size == 0 or d.max() == 0.0]
     no_cases = [c for c, d in case_data.items() if d.size == 0 or d.max() == 0.0]

@@ -228,9 +228,9 @@ class MultiStrainModel:
         This exploration was performed in log space,
         with the calibrated values for these quantities
         exponentiated before being used to scale the transmission rate.
-        Each parameter pertaining the variable process
+        Each parameter pertaining to the updates to the variable process
         was assigned the same prior centred at zero (i.e. no update),
-        and was interpreted as the change in the log-transformed
+        and so can be interpreted as the change in the log-transformed
         variable process relative to the previous value.
         """
         y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((rt_init,)), y_proc_req]))
@@ -261,11 +261,33 @@ class MultiStrainModel:
 
         Notes
         -----
-        The new strain-specific seeding value
-        was added to the most recent value for the
+        For all analyses, the starting population
+        minus the seeding values for the first strain
+        was assigned to the fully susceptible category.
+        __RETURN__### Seeding__RETURN__
+        Each newly emerging strain was seeded using a triangular
+        pulse of new infections that peaked according
+        to the per capita seeding rate specified.
+        At each calculation day,
+        the new strain-specific seeding values
+        were added to the most recent value for the
         strain-specific history of incidence.
-        This updated strain-specific incidence array
-        was then convolved with
+        Infectiousness of each variant was specified
+        with reference to the first modelled variant strain.
+        __RETURN__### Generation interval__RETURN__
+        A gamma-distributed generation interval
+        was used for the renewal process.
+        This is consistent with an investigation of
+        household clusters from Germany showed that showed
+        the profile of serial intervals
+        was well matched by a gamma distribution.[@anderheiden2022]
+        The generation interval was truncated
+        at {GEN_TRUNC_POINT} days,
+        because the density reached negligible values beyond
+        this point.
+        __RETURN__### Renewal process__RETURN__
+        The strain-specific incidence array
+        updated for seeding was convolved with
         the generation interval distribution vector
         to create a vector of the effective number of
         infectious individuals.
@@ -280,22 +302,14 @@ class MultiStrainModel:
         (where $r$ represents the calculated infection rate)
         to ensure that the per capita rate
         of infection could not exceed one.
+        __RETURN__### Immunity__RETURN__
         These rates of infection were then applied
-        to each possible past history of
-        preceding exposure to variants and
+        to each possible immunological past history of
+        preceding exposure to variant combinations and
         their associated susceptibility to infection
         to calculate the number of people infected
         from each category and transition
         them to their new states.
-        __RETURN__
-        For all analyses, the starting population
-        minus the seeding values for the first strain
-        was assigned to the fully susceptible category.
-        Each newly emerging strain was seeded using a triangular
-        pulse of new infections that peaked according
-        to the per capita seeding rate specified.
-        Infectiousness of each variant was calculated
-        with reference to the first modelled variant strain.
         Persons who had never previously been infected
         with any strain were considered fully susceptible.
         We considered partial cross immunity was provided
@@ -307,16 +321,6 @@ class MultiStrainModel:
         to the infecting strain
         (for example, past infection with Delta conferred
         complete immunity against future infection with Alpha).
-        A gamma-distributed generation interval
-        was used for the renewal process.
-        This is consistent with an investigation of
-        household clusters from Germany showed that showed
-        the profile of serial intervals
-        was well matched by a gamma distribution.[@anderheiden2022]
-        The generation interval was truncated
-        at {GEN_TRUNC_POINT} days,
-        because the density reached negligible values beyond
-        this point.
         """
         var_process = self.fit_process_curve(proc, init)
         gen_dist = GammaDens()
@@ -473,7 +477,7 @@ class MultiStrainModel:
         and with the fraction of incident episodes
         resulting in death estimated according
         to the infection fatality rate.
-        For one country (Australia),
+        For Australia,
         a reduction in the risk of death
         was applied because this analysis was performed
         after wide-scale population vaccination.
@@ -502,9 +506,10 @@ class MultiStrainModel:
         Hospital and ICU occupancy were obtained
         by convolving the time series of hospital and ICU
         admissions with the complement of
-        the cumulative distribution of the
+        the estimated cumulative distribution of the
         time to hospital or ICU discharge.
-        Seropositivity was calculated
+        For comparison to serosurveillance data, 
+        seropositivity was calculated
         as the proportion of the population remaining
         in the entirely infection-naive immunity
         sub-population.
