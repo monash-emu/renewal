@@ -56,7 +56,7 @@ SEVERITY_ADJS = (
     "Low income: 0.4, Lower middle income: 0.6, Upper middle income: 0.8, High income: 1.0"
 )
 EXTRA_LOW_INC = "Venezuela"
-VARIATION_THRESHOLD = "1\\times10^-7"
+VARIATION_THRESHOLD = "1\\times10^{-7}"
 
 # Deaths-related
 DEATHS_WEIGHT = 20
@@ -113,8 +113,8 @@ DAYS_IN_WEEK = 7
 N_ITERS = 1000
 N_CHAINS = 8
 INIT_RADIUS = 0.1
-SEED_RATE_LOW = "1\\times10^-7"
-SEED_RATE_UP = "5\\times10^-6"
+SEED_RATE_LOW = "1\\times10^{-7}"
+SEED_RATE_UP = "5\\times10^{-6}"
 SEED_OFF_LOW = 4.0
 SEED_OFF_UP = 90.0
 RELINF_MEAN = 1.4

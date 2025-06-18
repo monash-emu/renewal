@@ -15,8 +15,8 @@ def get_exp_val_from_string(
     Returns:
         The value of the number as a float
     """
-    exp_elements = num_str.split("\\times10^")
-    return float(exp_elements[0]) * 10.0 ** float(exp_elements[1])
+    exp_elements = num_str.split("\\times10^{")
+    return float(exp_elements[0]) * 10.0 ** float(exp_elements[1][:-1])
 
 
 def get_float_dict_from_str(
