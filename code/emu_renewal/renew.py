@@ -514,9 +514,9 @@ class MultiStrainModel:
         seropositivity was calculated
         as the proportion of the population remaining
         in the entirely infection-na&iuml;ve immunity
-        sub-population.
+        sub-population.ß
         Finally, the proportion of incidence attributable
-        to each variant strain was also calculated
+        to each variant strain was calculated
         from the strain-specific incidence.
         """
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])

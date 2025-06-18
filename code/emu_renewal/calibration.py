@@ -75,7 +75,7 @@ class StandardCalib:
         Notes
         -----
         For all epidemiological parameters,
-        the priors were set as described in the parameters section.
+        the priors were set as described in the parameters table.
         The dispersion parameter for the variable process
         was set to a half normal distribution with 
         standard deviation {PROC_DISP_SD}.
@@ -127,7 +127,7 @@ class StandardCalib:
         Notes
         -----
         The calibration process calibrates parameters for each
-        update point of the variable process in logarithmic space.
+        consecutive update to the variable process in logarithmic space.
         The prior distribution for the update for each period 
         of the variable process is a normal distribution
         centred at a value of zero to represent no change

@@ -238,6 +238,9 @@ def run_calibration(
     -----
     We ran each calibration over {N_CHAINS} chains
     for {N_ITERS} iterations each.
+    We used a Hamiltonian Monte Carlo inference approach
+    with the No U-Turn Sampler (NUTS) with adaptive path length 
+    and mass matrix adaptation from `numpyro`.
     """
     calib = StandardCalib(model, priors, targets)
     init = calib.custom_init()
