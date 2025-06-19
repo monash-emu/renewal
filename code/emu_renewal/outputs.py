@@ -12,7 +12,7 @@ import pickle
 from numpyro import infer
 from os import listdir as ls
 import os
-import re
+from geopandas import GeoDataFrame
 
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
@@ -321,3 +321,19 @@ def add_bool_row_to_table(
     """
     table[col_name] = table.index.isin(bool_list)
     table[col_name] = table[col_name].map({True: "Yes", False: "No"})
+
+
+def add_mob_avail_to_world(
+    world: GeoDataFrame,
+    g_avail: List[str],
+    fb_avail: List[str],
+):
+    """Add columns to world geopandas dataframe
+    for whether Google and Facebook mobility are present.
+    """
+    world["g_avail"] = world["ISO_A3"].isin(g_avail)
+    world["fb_avail"] = world["ISO_A3"].isin(fb_avail)
+    world["mob"] = "neither"
+    world.loc[world["g_avail"] == True, "mob"] = "Google"
+    world.loc[world["fb_avail"] == True, "mob"] = "FB"
+    world.loc[(world["fb_avail"] == True) & (world["g_avail"] == True), "mob"] = "both"

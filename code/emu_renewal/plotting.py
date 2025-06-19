@@ -13,6 +13,7 @@ from matplotlib import pyplot as plt
 import pycountry
 import yaml as yml
 import pycountry_convert as pc
+from geopandas import GeoDataFrame
 
 from emu_renewal.inputs import DATA_PATH
 from emu_renewal.constants import ANALYSIS_TYPES
@@ -64,6 +65,12 @@ MOB_COLOURS = {
     "g_mob": "green",
     "fb_visited_mob": "blue",
     "fb_singletile_mob": "red",
+}
+INCLUSION_COLOURS = {
+    "neither": "lightgrey",
+    "Google": "green",
+    "FB": "blue",
+    "both": "purple"
 }
 MOB_DOMAIN_MAP = {
     "retail_and_recreation": "g_mob",
@@ -799,4 +806,17 @@ def plot_mob_exp_versus_gdp(
     axes[3].set_axis_off()
     fig.tight_layout()
     plt.close()
+    return fig
+
+
+def plot_inclusion(
+    world: GeoDataFrame,
+):
+    """Plot inclusion status of countries based on mobility.
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(20, 10))
+    ax.set_xticks([])
+    ax.set_yticks([])
+    world.plot(ax=ax, color=world["mob"].map(INCLUSION_COLOURS), edgecolor="black", linewidth=0.2)
+    world[world["included"]].geometry.centroid.plot(ax=ax, color="red", marker="o", markersize=50)
     return fig

@@ -31,7 +31,7 @@ def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
     summary = pd.DataFrame(index=either_mob_avail)
     add_bool_row_to_table(summary, g_avail, "Google available")
     add_bool_row_to_table(summary, fb_avail, "FB available")
-    return either_mob_avail, summary
+    return either_mob_avail, summary, g_avail, fb_avail
 
 
 def gather_who_data(
