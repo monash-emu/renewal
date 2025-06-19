@@ -514,7 +514,7 @@ class MultiStrainModel:
         seropositivity was calculated
         as the proportion of the population remaining
         in the entirely infection-na&iuml;ve immunity
-        sub-population.ß
+        sub-population.
         Finally, the proportion of incidence attributable
         to each variant strain was calculated
         from the strain-specific incidence.
