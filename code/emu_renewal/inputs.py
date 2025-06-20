@@ -129,7 +129,7 @@ def process_raw_google_mobility(
 
     Notes
     -----
-    We obtained Google mobility data from
+    We obtained mobility data from
     [the Google Community Mobility Reports](https://www.gstatic.com/covid19/mobility/Region_Mobility_Report_CSVs.zip)
     on 14 January 2025 and extracted national mobility estimates
     by Google mobility domain.

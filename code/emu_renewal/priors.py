@@ -62,7 +62,7 @@ def get_standard_priors(
     the case detection proportion and, where applicable,
     the hospital admission proportion.
     For high-income countries, the mean value used
-    was as displayed in the table,
+    was as displayed in @tbl-betaprops,
     whereas this was reduced for other countries.
     The reductions based on income status were: {SEVERITY_ADJS},
     with {EXTRA_LOW_INC} (for which a World Bank class was not available)

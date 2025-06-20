@@ -75,7 +75,7 @@ class StandardCalib:
         Notes
         -----
         For all epidemiological parameters,
-        the priors were set as described in the parameters table.
+        the priors were set as described in @tbl-durs and @tbl-props.
         The dispersion parameter for the variable process
         was set to a half normal distribution with 
         standard deviation {PROC_DISP_SD}.

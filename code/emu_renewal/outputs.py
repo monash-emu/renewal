@@ -117,7 +117,7 @@ def get_table_df_from_priors_dict(
     keep_cols = [c for c in priors_df if c != "short_name"]
     priors_df = priors_df[keep_cols]
     priors_df.columns = priors_df.columns.str.capitalize()
-    return priors_df.rename(columns={"Sd": "SD"})
+    return priors_df.rename(columns={"Sd": "SD", "Std": "SD"})
 
 
 def get_gitinfo() -> dict[str, str]:

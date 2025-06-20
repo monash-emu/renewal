@@ -236,8 +236,8 @@ def run_calibration(
 
     Notes
     -----
-    We ran each calibration over {N_CHAINS} chains
-    for {N_ITERS} iterations each.
+    We ran the calibration algorithm for {N_ITERS} 
+    for each of {N_CHAINS}.
     We used a Hamiltonian Monte Carlo inference approach
     with the No U-Turn Sampler (NUTS) with adaptive path length 
     and mass matrix adaptation from `numpyro`.
