@@ -278,7 +278,7 @@ class MultiStrainModel:
         A gamma-distributed generation interval
         was used for the renewal process.
         This is consistent with an investigation of
-        household clusters from Germany showed that showed
+        household clusters from Germany that showed
         the profile of serial intervals
         was well matched by a gamma distribution.[@anderheiden2022]
         The generation interval was truncated
@@ -496,7 +496,7 @@ class MultiStrainModel:
         a reduction in the risk of hospitalisation
         was applied to account for vaccination.
         The relative reduction in the risk of
-        hospitalisation was set at {VACC_HOSP_PROTECT}
+        hospitalisation was set at {VACC_HOSP_PROTECT}. 
         As for cases, deaths and hospitalisations,
         the convolution of time to ICU admission
         was parameterised independently,

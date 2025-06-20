@@ -54,9 +54,10 @@ def get_standard_priors(
     and the upper truncation limit set at {DUR_REL_MAX} times
     the mean value of the prior.
     For each of the beta-distributed proportions
-    of incidence resulting in the key outputs for calibration
+    of incidence resulting in the key outputs for calibration,
     we analytically calculated the parameters to the beta
-    distribution from the desired mean and standard deviation.
+    distribution from the desired mean and standard deviation
+    for the prior that we determined from the literature. 
     These parameters comprised the infection fatality rate,
     the case detection proportion and, where applicable,
     the hospital admission proportion.
