@@ -23,7 +23,13 @@ def _get_cos_curve_at_x(
     -----
     The cosine function was obtained by translating 
     and scaling a half cosine function 
-    (i.e. a cosine function with support $[0, \pi]$).
+    (i.e. a cosine function with support $[0, \pi]$),
+    such that it intersected the starting point
+    $(t_{{1}}, y_{{1}})$ and finishing point $(t_{{2}}, y_{{2}})$
+    with a gradient of zero at both of these points.
+    This choice of fitting approach ensures that 
+    the variable process function, its derivative 
+    and its higher order derivatives are continuous.
     """
     idx = sinterp.binary_search_sum_ge(x, x_data.points) - 1
     offset = x - x_data.points[idx]

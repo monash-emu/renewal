@@ -301,8 +301,8 @@ class MultiStrainModel:
         We then determined the actual rate of infection
         for each strain as $1 - e^{{-r}}$
         (where $r$ represents the calculated infection rate)
-        to ensure that the per capita rate
-        of infection could not exceed one.
+        to ensure that the per capita risk
+        of infection could not exceed one in a time step.
         __RETURN__### Immunity__RETURN__
         These rates of infection were then applied
         to each possible immunological past history of
