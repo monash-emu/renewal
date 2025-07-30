@@ -158,8 +158,9 @@ def get_cases_target(
     been less reliable.
     Cases was the second indicator for which
     a common dispersion parameter was applied.
-    A target weight was applied to the time-series of cases
-    such that the weight for each case observation point
+    A total weight was applied to the time-series of cases
+    such that the weight for each observation (date)
+    within the cases time-series
     was the same as for each death observation.
     """
     data = get_who_indicator("New_cases", iso3)
