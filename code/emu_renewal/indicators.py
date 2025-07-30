@@ -444,7 +444,8 @@ def get_seroprev_target(
     while also maintaining plausible detection/severity parameters
     (i.e. case detection rate, hospital admission rate
     and infection fatality rate).
-    That is, we applied much lower priors for these parameters
+    That is, we applied much lower values for these 
+    detection-related parameters
     in these countries, although the modelled attack rate
     still remained well below seroprevalence estimates for
     some countries.
@@ -663,8 +664,9 @@ def get_var_target(
     Notes
     -----
     To obtain data to use as calibration targets for
+    the strain-specific proportional prevalence of
     both the Alpha and the Delta variants,
-    we used the totals for the country analysed where available.
+    we used national data for the country analysed where available.
     If data was not available for the country considered,
     we used pooled data from all the other countries
     from the same continent where available.
@@ -763,11 +765,12 @@ def get_delta_info(
     calibration fell later than {DELTA_INCLUSION_DATE}.
     Values were again pooled to ensure they were strictly increasing.
     The target weight for calibration to Delta was set to be {VAR_WEIGHT}
-    for most countries. Exceptions were made if the target for Delta
-    began towards the very end of the calibration last
-    ({LATE_DELTA_WEIGHT} days), in which case a higher weight
-    (of {LATE_DELTA_WEIGHT}) was needed to capture this late emergence
-    with fewer data points.
+    for most countries. Exceptions were made if the target time series
+    for Delta began towards the very end of the calibration (last
+    {LATE_DELTA_WEIGHT} days), in which case a higher weight
+    (of {LATE_DELTA_WEIGHT}) was needed to achieve a plausible
+    fit to the profile of the emergence of this variant with
+    fewer data points.
     """
     delta_inc_date = datetime.strptime(DELTA_INCLUSION_DATE, CODE_DATE_FORMAT)
     delta_end_date = datetime.strptime(DELTA_PERIOD_END, CODE_DATE_FORMAT)
