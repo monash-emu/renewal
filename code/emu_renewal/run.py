@@ -134,7 +134,7 @@ def find_run_end_time(iso3: str) -> datetime:
 
     Notes
     -----
-    For all countries but Australia,
+    For all countries other than Australia,
     the end time for the analysis was calculated as
     the time that the population vaccination coverage
     passed {END_VACC_THRESHOLD}%,

@@ -423,10 +423,19 @@ def get_seroprev_target(
     We compared the modelled
     proportion ever infected against the seroprevalence
     reported at least six months ({SEROPREV_START_DELAY} days)
-    after the start of the simulation,
-    because a comparison against early seroprevalence estimates
-    would not account for waves of transmission prior to
-    the start of the simulation.
+    after the start of the simulation.
+    We chose to exclude seroprevalence estimates
+    from the early months of the pandemic period because the 
+    seropositive proportions reported at this time were less
+    likely to be comparable to our model outputs.
+    This is because our modelled seroprevalence would remain
+    close to zero with plausible parameter values for 
+    some months after the start of the analysis,
+    whereas seroprevalence estimates could reach higher
+    values due to factors that include low levels of 
+    transmission prior to the analysis period and sampling bias.
+    In contrast, we considered that later seroprevalence
+    should provide a broad indication of epidemic size.
     We discarded seroprevalence estimates that fell less than
     {SEROPREV_EXTREME}% away from a value of zero or 100%.
     We also ignored seroprevalence estimates from
