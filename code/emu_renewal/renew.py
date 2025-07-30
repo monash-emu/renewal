@@ -459,10 +459,11 @@ class MultiStrainModel:
 
         Notes
         -----
-        Once an iteration of the renewal process 
-        had been run to calculate incidence,
+        Once an iteration of the renewal analysis
+        had been run to calculate incidence values over time,
         the other epidemiological outputs were calculated
-        using a series of convolution operations.
+        using a series of convolution operations
+        applied to this series.
         Total incidence was first calculated by summing
         over strain-specific incidence.
         Cases were then calculated by convolving incidence
@@ -487,7 +488,7 @@ class MultiStrainModel:
         death was set at {VACC_DEATH_PROTECT}
         and was not varied during calibration
         because this would have been collinear
-        with the risk of hospitalisation parameter.__RETURN__
+        with the risk of death parameter.__RETURN__
         As for cases and deaths, hospitalisations
         were estimated through a convolution
         distribution with its own parameters

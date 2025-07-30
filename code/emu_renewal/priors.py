@@ -68,8 +68,8 @@ def get_standard_priors(
     with {EXTRA_LOW_INC} (for which a World Bank class was not available)
     considered a low-income country for this purpose.
     The seeding rate for each variant was calibrated from
-    ${SEED_RATE_LOW}$ to ${SEED_RATE_UP}$ using a uniform distribution
-    in logarithmic space.
+    ${SEED_RATE_LOW}$ to ${SEED_RATE_UP}$ cases per day
+    using a uniform distribution in logarithmic space.
     The seeding offset (i.e. the time from modelled seeding
     to the first calibration data point)
     for each variant except for the first one simulated

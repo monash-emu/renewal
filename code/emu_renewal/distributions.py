@@ -41,7 +41,8 @@ class GammaDens(Dens):
         -----
         The parameters to each gamma distribution
         used in our anlaysis were parameterised by
-        analytically calculating the "a" and "scale" parameters
+        analytically calculating the "a" (shape) 
+        and scale parameters
         from the epidemiologically determined
         mean and standard deviation.
         """
