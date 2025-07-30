@@ -243,9 +243,10 @@ def get_country_vacc_data(
     We substituted Germany's data for 
     {SUB_DEU_COUNTRIES} because these two
     countries had almost identical profiles of vaccine doses
-    administered per person in the early phases of the roll-out
+    administered per person in the earliest phases of the roll-out
     and vaccination data were not available for these two countries
-    during this period.
+    through the period at which coverage approached the 
+    analysis start threshold.
     Similarly, we substituted Great Britain for {SUB_GBR_COUNTRY}
     based on the same rationale.
     """
