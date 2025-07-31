@@ -73,19 +73,30 @@ INCLUSION_COLOURS = {
     "FB": "blue",
     "both": "purple"
 }
-MOB_DOMAIN_MAP = {
+MOB_ANALYSIS_MAP = {
     "retail_and_recreation": "g_mob",
     "grocery_and_pharmacy": "g_mob",
     "parks": "g_mob",
     "transit_stations": "g_mob",
     "workplaces": "g_mob",
     "residential": "g_mob",
-    "fb_visited_mob": "fb_mob",
-    "fb_singletile_mob": "fb_mob",
+    "fb_visited_mob": "fb_visited_mob",
+    "fb_singletile_mob": "fb_singletile_mob",
+}
+MOB_NAME_MAP = {
+    "retail_and_recreation": "Google retail and recreation",
+    "grocery_and_pharmacy": "Google grocery and pharmacy",
+    "parks": "Google parks",
+    "transit_stations": "Google transit stations",
+    "workplaces": "Google workplaces",
+    "residential": "Google residential",
+    "fb_visited_mob": "Facebook tiles visited",
+    "fb_singletile_mob": "Facebook single tile",
 }
 MOB_SOURCE_MAP = {
     "g_mob": "Google",
-    "fb_mob": "Facebook",
+    "fb_visited_mob": "Facebook tiles visited",
+    "fb_singletile_mob": "Facebook single tile",
 }
 G_MOB_DOMAIN_CMAP = {
     "retail_and_recreation": "red",
@@ -638,11 +649,10 @@ def compare_proc_mob(
         The figure
     """
     fig, axes = get_standard_subplot(len(countries), n_cols)
-    mob_source = MOB_DOMAIN_MAP[mob_type]
+    mob_source = MOB_ANALYSIS_MAP[mob_type]
     title = (
         f"Estimated variable process (without mobility scaling) "
-        f"versus {mob_type.replace('_', ' ').replace('fb', '').replace('mob', '')} "
-        f"{MOB_SOURCE_MAP[mob_source]} mobility scaling"
+        f"versus {MOB_NAME_MAP[mob_type]} mobility scaling"
     )
     fig.suptitle(title, fontsize=14, y=1.0)
     flat_axes = axes.ravel()
@@ -660,14 +670,13 @@ def compare_proc_mob(
         # Mobility overlay
         if mob_source == "g_mob":
             mob = get_google_mobility(iso3)[mob_type]
-        elif mob_type == "fb_visited_mob":
+        elif mob_source == "fb_visited_mob":
             mob = get_fb_visited_mobility(iso3)
-        elif mob_type == "fb_singletile_mob":
+        elif mob_source == "fb_singletile_mob":
             mob = get_fb_singletile_mobility(iso3)
-        colour = MOB_COLOURS[mob_source] if mob_source == "g_mob" else MOB_COLOURS[mob_type]
         mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
         smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
-        ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
+        ax.plot(smoothed_mob.index, smoothed_mob, color=MOB_COLOURS[mob_source])
         ax.set_title(country)
 
     # Switch off unused axes
