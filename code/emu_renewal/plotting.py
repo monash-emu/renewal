@@ -99,11 +99,11 @@ MOB_SOURCE_MAP = {
     "fb_singletile_mob": "Facebook single tile",
 }
 G_MOB_DOMAIN_CMAP = {
-    "retail_and_recreation": "red",
-    "grocery_and_pharmacy": "purple",
-    "parks": "green",
-    "transit_stations": "black",
-    "workplaces": "blue",
+    "retail_and_recreation": "darkgoldenrod",
+    "grocery_and_pharmacy": "midnightblue",
+    "parks": "darkgreen",
+    "transit_stations": "dimgrey",
+    "workplaces": "indigo",
     "residential": "brown",
 }
 A_MOB_DOMAIN_CMAP = {
@@ -674,7 +674,8 @@ def compare_proc_mob(
             mob = get_fb_singletile_mobility(iso3)
         mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
         smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
-        ax.plot(smoothed_mob.index, smoothed_mob, color=MOB_COLOURS[mob_source])
+        colour = G_MOB_DOMAIN_CMAP[mob_type] if mob_source == "g_mob" else MOB_COLOURS[mob_type]
+        ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
         ax.set_title(country)
 
     # Switch off unused axes
