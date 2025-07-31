@@ -667,7 +667,8 @@ def get_var_target(
     the strain-specific proportional prevalence of
     both the Alpha and the Delta variants,
     we used national data for the country analysed where available.
-    If data was not available for the country considered,
+    If data was not available for the country considered
+    or if all values for the proportion of the variant were one,
     we used pooled data from all the other countries
     from the same continent where available.
     """
