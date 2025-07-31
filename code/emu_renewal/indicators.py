@@ -810,8 +810,8 @@ def get_ba2_target(
     to {BA2_PERIOD_END}.
     """
     data = extract_specific_var(var_data, "ba2")
-    ba2_start = datetime.strptime(BA2_PERIOD_START)
-    ba2_end = datetime.strptime(BA2_PERIOD_END)
+    ba2_start = datetime.strptime(BA2_PERIOD_START, CODE_DATE_FORMAT)
+    ba2_end = datetime.strptime(BA2_PERIOD_END, CODE_DATE_FORMAT)
     mask = (ba2_start < data.index) & (data.index < ba2_end)
     filt_data = data[mask]
     return filt_data["ba2_prop"]
@@ -835,8 +835,8 @@ def get_ba5_target(
     to {BA5_PERIOD_END}.
     """
     data = extract_specific_var(var_data, "ba5")
-    ba5_start = datetime.strptime(BA5_PERIOD_START)
-    ba5_end = datetime.strptime(BA5_PERIOD_END)
+    ba5_start = datetime.strptime(BA5_PERIOD_START, CODE_DATE_FORMAT)
+    ba5_end = datetime.strptime(BA5_PERIOD_END, CODE_DATE_FORMAT)
     mask = (ba5_start < data.index) & (data.index < ba5_end)
     filt_data = data[mask]
     return filt_data["ba5_prop"]
@@ -893,6 +893,6 @@ def get_ba5_info(
     """
     if continent != "OC":
         return [], {}, []
-    data = get_ba5_target(var_data, continent)
+    data = get_ba5_target(var_data)
     var_start = data.index[0]
     return ["ba5"], {"prop_ba5": SharedPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
