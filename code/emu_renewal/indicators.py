@@ -120,7 +120,7 @@ def get_deaths_target(
     was set to {DEATHS_WEIGHT}.
     """
     data = get_who_indicator("New_deaths", iso3)
-    data = data.interpolate(method="linear").fillna(0.0)
+    # data = data.interpolate(method="linear").fillna(0.0)
     data[data == 0.0] = ZERO_IND_REPLACEMENT
     mask = (start < data.index) & (data.index < end)
     select_data = data.loc[mask]
@@ -164,8 +164,8 @@ def get_cases_target(
     was the same as for each death observation.
     """
     data = get_who_indicator("New_cases", iso3)
-    data = data.interpolate(method="linear").fillna(0.0)
-    data[data == 0.0] = 0.5
+    # data = data.interpolate(method="linear").fillna(0.0)
+    data[data == 0.0] = ZERO_IND_REPLACEMENT
     cases_start = max([datetime.strptime(CASES_START, CODE_DATE_FORMAT), start])
     mask = (cases_start < data.index) & (data.index < end)
     target = data.loc[mask]
