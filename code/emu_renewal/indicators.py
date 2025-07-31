@@ -672,7 +672,7 @@ def get_var_target(
     from the same continent where available.
     """
     data = extract_specific_var(var_data, var_name)
-    if data is None:
+    if data is None or all(data[f"{var_name}_prop"] == 1.0):
         cont_data = get_continent_data(continent, var_name)
         return get_continent_vars(cont_data, var_name)
     else:
@@ -686,7 +686,8 @@ def get_alpha_info(
     end_time: datetime,
     delta_targ: Dict[str, SharedPropTarget],
 ) -> Tuple[List[str], Dict[str, SharedPropTarget], List[datetime]]:
-    """_summary_
+    """Get the required information relating
+    to the Alpha variant to run an analysis.
 
     Args:
         iso3: The country identifier
