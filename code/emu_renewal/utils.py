@@ -5,6 +5,8 @@ import pycountry
 import pycountry_convert as pc
 import arviz as az
 
+from emu_renewal.inputs import get_google_mobility, get_fb_visited_mobility, get_fb_singletile_mobility
+
 
 def get_col_increases(
     input_array: np.array,
@@ -125,3 +127,31 @@ def count_repeat_nans(
     is_nan = data.isna()
     consecutive_nans = is_nan.groupby((is_nan != is_nan.shift()).cumsum()).cumsum()
     return consecutive_nans.max()
+
+
+def get_mob_avail_countries(
+    countries: List[str],
+    mob_source: str,
+) -> List[str]:
+    """Find whether mobility is available for a group of countries.
+
+    Args:
+        countries: The countries to find if mobility is present for
+        mob_source: The mobility analysis type
+
+    Returns:
+        The sub-set of the submitted countries for which mobility is available
+    """
+    avail_countries = []
+    mob_func_map = {
+        "g_mob": get_google_mobility,
+        "fb_singletile_mob": get_fb_singletile_mobility,
+        "fb_visited_mob": get_fb_visited_mobility,
+    }
+    for iso3 in countries:
+        try:
+            mob_func_map[mob_source](iso3)
+            avail_countries.append(iso3)
+        except:
+            continue
+    return avail_countries

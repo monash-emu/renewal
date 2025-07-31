@@ -650,10 +650,8 @@ def compare_proc_mob(
     """
     fig, axes = get_standard_subplot(len(countries), n_cols)
     mob_source = MOB_ANALYSIS_MAP[mob_type]
-    title = (
-        f"Estimated variable process (without mobility scaling) "
-        f"versus {MOB_NAME_MAP[mob_type]} mobility scaling"
-    )
+    mob_name = MOB_NAME_MAP[mob_type]
+    title = f"Estimated variable process (without mobility scaling) versus {mob_name} mobility"
     fig.suptitle(title, fontsize=14, y=1.0)
     flat_axes = axes.ravel()
     for c, iso3 in enumerate(countries):
