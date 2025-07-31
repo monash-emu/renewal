@@ -181,7 +181,7 @@ def plot_multianalysis_fit(
         a_spaghs = spaghs[analysis]
         for o, out in enumerate(ordered_targets):
             ax = axes[o, a]
-            a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.15, alpha=0.5)
+            a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.1, alpha=0.1)
             target = targets[out]
             ax.plot(target.index, target, linewidth=0.0, marker=".")
             plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
