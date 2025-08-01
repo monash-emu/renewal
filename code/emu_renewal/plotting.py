@@ -501,7 +501,6 @@ def plot_mob_weights_by_country(
     mob_type: str,
     mobility: Dict[str, pd.DataFrame],
     title: str,
-    normalise=False,
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
     of the mobility domains implemented for the Google
@@ -512,33 +511,35 @@ def plot_mob_weights_by_country(
         mob_type: Mobility type considered
         mobility: The mobility data by country
         title: Title for figure
-        normalise: Whether to normalise the weights to sum to one
 
     Returns:
         The figure
     """
-    palette = G_MOB_DOMAIN_CMAP if mob_type == "g_mob" else A_MOB_DOMAIN_CMAP
-    fig, axes = get_standard_subplot(len(mobility), 4)
+    fig, axes = get_standard_subplot(len(mobility) + 1, 4)
     fig.suptitle(title, fontsize=14, y=1.0)
     flat_axes = axes.ravel()
+    linewidth = 2.0
     for c, iso3 in enumerate(mobility):
         c_path = job_path / iso3
         country = pycountry.countries.lookup(iso3).name
         idata = az.from_netcdf(c_path / f"{mob_type}/idata_filtered.nc")
         weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
-        if normalise:
-            weights = weights.div(weights.sum(axis=1), axis=0)
         weights.columns = mobility[iso3].columns
         ax = flat_axes[c]
-        sns.kdeplot(weights, fill=True, alpha=0.05, linewidth=2.0, ax=ax, palette=palette)
+        sns.kdeplot(weights, fill=True, alpha=0.05, linewidth=linewidth, ax=ax, palette=G_MOB_DOMAIN_CMAP)
         ax.set_yticks([])
         ax.set_ylabel("")
         ax.set_title(country)
-        if c < len(mobility) - 1:
-            ax.get_legend().remove()
+        ax.get_legend().remove()
+
+    # Include axis just for legend
+    legend_ax = flat_axes[c + 1]
+    sns.kdeplot(weights, linewidth=linewidth, ax=legend_ax, palette=G_MOB_DOMAIN_CMAP)
+    for line in legend_ax.lines:
+        line.remove()
 
     # Switch off unused axes
-    for ax in flat_axes[c + 1 :]:
+    for ax in flat_axes[c + 1:]:
         ax.set_axis_off()
 
     fig.tight_layout()
