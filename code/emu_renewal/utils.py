@@ -156,3 +156,20 @@ def get_mob_avail_countries(
         except:
             continue
     return avail_countries
+
+
+def split_list_into_segments(
+    l: list, 
+    segment_length: int,
+) -> List[list]:
+    """Split a list into groups of equal size until
+    the last one which contains whatever is left over.
+
+    Args:
+        l: The list to split
+        segment_length: The size of the segments
+
+    Returns:
+        The list segments
+    """
+    return [l[i: i + segment_length] for i in range(0, len(l), segment_length)]

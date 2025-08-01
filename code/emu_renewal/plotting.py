@@ -389,7 +389,7 @@ def plot_proc_comparison(
         cont_name: Name of the continent considered
         path: Path to the analyses
     """
-    fig, axes = get_standard_subplot(len(countries), n_cols)
+    fig, axes = plt.subplots(3, 3, figsize=[12, 14])
     title = f"Comparisons of variable process scaling under each mobility assumption, {cont_name}"
     fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
