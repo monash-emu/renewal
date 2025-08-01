@@ -112,12 +112,12 @@ A_MOB_DOMAIN_CMAP = {
     "walking": "green",
 }
 CONT_CMAP = {
-    "AS": "yellow",
-    "NA": "green",
-    "SA": "purple",
-    "OC": "red",
     "AF": "black",
+    "AS": "yellow",
     "EU": "blue",
+    "NA": "green",
+    "OC": "red",
+    "SA": "purple",
 }
 
 
@@ -398,7 +398,8 @@ def plot_proc_comparison(
         ax = flat_axes[c]
         ax.set_title(country)
         analyses = [i.parts[-1] for i in (path / iso3).iterdir() if i.is_dir()]
-        for a in analyses:
+        sorted_analyses = [a for a in MOB_COLOURS if a in analyses]
+        for a in sorted_analyses:
             colour = MOB_COLOURS[a]
             quants = procs[iso3][a].quantile([0.05, 0.5, 0.95], axis=1).T
             ax.plot(quants.index, quants[0.5], color=colour, label=AN_ABBREVS[a], linewidth=2.0)

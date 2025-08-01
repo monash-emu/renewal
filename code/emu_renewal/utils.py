@@ -109,7 +109,8 @@ def get_countries_by_continent(
             result[cont].append(c)
         else:
             result[cont] = [c]
-    return result
+    sorted_result = {cont: sorted(result[cont]) for cont in sorted(result)}
+    return sorted_result
 
 
 def count_repeat_nans(
