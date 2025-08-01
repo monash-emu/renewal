@@ -89,6 +89,22 @@ def get_param_dim(
     return dims[0] if dims else 1
 
 
+def sort_countries_by_name(
+    countries: List[str],
+) -> List[str]:
+    """Sort a list of country ISO3 codes according
+    to the alphabetical order of the country name.
+
+    Args:
+        countries: The to sort
+
+    Returns:
+        The sorted list of country codes
+    """
+    sorted_country_names = sorted([pycountry.countries.lookup(c).name for c in countries])
+    return [pycountry.countries.lookup(c).alpha_3 for c in sorted_country_names]
+
+
 def get_countries_by_continent(
     countries: List[str],
 ) -> Dict[str, List[str]]:
@@ -109,8 +125,7 @@ def get_countries_by_continent(
             result[cont].append(c)
         else:
             result[cont] = [c]
-    sorted_result = {cont: sorted(result[cont]) for cont in sorted(result)}
-    return sorted_result
+    return {cont: sort_countries_by_name(result[cont]) for cont in sorted(result)}
 
 
 def count_repeat_nans(
