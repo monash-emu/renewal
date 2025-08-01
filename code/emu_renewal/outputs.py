@@ -19,6 +19,7 @@ from estival.sampling import tools as esamp
 
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
+from emu_renewal.plotting import MOB_COLOURS
 
 plt.style.use("ggplot")
 
@@ -273,7 +274,9 @@ def get_param_vals_by_analysis(
     for a in analyses:
         idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
         param_df.append(idata.posterior[param_name].to_series())
-    return pd.concat(param_df, axis=1, keys=analyses)
+    result = pd.concat(param_df, axis=1, keys=analyses)
+    ordered_cols = [c for c in MOB_COLOURS if c in result.columns]
+    return result[ordered_cols]
 
 
 def get_completed_chains(job_path):
