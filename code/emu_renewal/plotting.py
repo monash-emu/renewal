@@ -674,7 +674,12 @@ def compare_proc_mob(
             mob = get_fb_visited_mobility(iso3)
         elif mob_source == "fb_singletile_mob":
             mob = get_fb_singletile_mobility(iso3)
+
         mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
+        if mobility.isna().sum() / len(mobility) > 0.5:
+            mob_name = MOB_NAME_MAP[mob_type]
+            msg = f"Note, {mob_name} largely missing for {country} during the analysis period."
+            display(Markdown(msg))
         smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
         colour = G_MOB_DOMAIN_CMAP[mob_type] if mob_source == "g_mob" else MOB_COLOURS[mob_type]
         ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
