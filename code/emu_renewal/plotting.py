@@ -26,6 +26,7 @@ from emu_renewal.inputs import (
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim
 from IPython.display import display, Markdown
+from matplotlib.lines import Line2D
 
 plt.style.use("ggplot")
 
@@ -533,10 +534,10 @@ def plot_mob_weights_by_country(
         ax.get_legend().remove()
 
     # Include axis just for legend
-    legend_ax = flat_axes[c + 1]
-    sns.kdeplot(weights, linewidth=linewidth, ax=legend_ax, palette=G_MOB_DOMAIN_CMAP)
-    for line in legend_ax.lines:
-        line.remove()
+    labels = [l.replace("_", " ") for l in G_MOB_DOMAIN_CMAP]
+    colours = [col.get_facecolor()[0] for col in ax.collections]
+    handles = [Line2D([0], [0], color=color, linewidth=4.0, alpha=1.0, label=label) for color, label in zip(colours, labels)]
+    flat_axes[c + 1].legend(handles=handles, loc="center")
 
     # Switch off unused axes
     for ax in flat_axes[c + 1:]:
