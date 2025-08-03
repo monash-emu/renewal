@@ -126,3 +126,5 @@ other:
     short_name: variable process initial value
   shared_dispersion:
     short_name: shared target dispersion
+  dispersion_proc:
+    short_name: variable process dispersion
