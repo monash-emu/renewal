@@ -24,7 +24,7 @@ from emu_renewal.inputs import (
     get_gdps,
 )
 from emu_renewal.calibration import StandardCalib
-from emu_renewal.utils import get_param_dim
+from emu_renewal.utils import get_param_dim, sort_countries_by_name
 from IPython.display import display, Markdown
 from matplotlib.lines import Line2D
 
@@ -853,3 +853,56 @@ def plot_inclusion(
     world.plot(ax=ax, color=world["mob"].map(INCLUSION_COLOURS), edgecolor="black", linewidth=0.2)
     world[world["included"]].geometry.centroid.plot(ax=ax, color="red", marker="o", markersize=50)
     return fig
+
+
+def get_detailed_param_results(
+    job_path: Path,
+    countries: List[str],
+    param: str,
+) -> tuple:
+    """Plot the distributions of a particular parameter
+    (currently just used for the mob_exp) parameter,
+    and collate its mean over mobility types.
+
+    Args:
+        job_path: Path for the runs
+        countries: The countries to analyse
+        param: The name of the parameter
+
+    Returns:
+        The figure and the table of means by mobility type
+    """
+    mob_types = [k for k in AN_ABBREVS if k != "no_mob"]
+    i_datas = {}
+    table_info = {}
+    for mob_type in mob_types:
+        idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
+        i_datas[mob_type] = idatas
+    all_countries = sort_countries_by_name({key for subdict in i_datas.values() for key in subdict})
+    fig, axes = get_standard_subplot(len(all_countries), 4)
+    flat_axes = axes.ravel()
+    table_info = pd.DataFrame(columns=mob_types)
+    for c, country in enumerate(all_countries):
+        country_name = pycountry.countries.lookup(country).name
+        c_ax = flat_axes[c]
+        for mob_type in mob_types:
+            m_idatas = i_datas[mob_type]
+            colour = MOB_COLOURS[mob_type]
+            if country in m_idatas:
+                c_idata = m_idatas[country]
+                post_plot = az.plot_posterior(c_idata, var_names=param, ax=c_ax, point_estimate=None, hdi_prob="hide", color=colour)
+                line_data = post_plot.get_lines()[-1]
+                post_plot.fill_between(line_data.get_xdata(), line_data.get_ydata(), alpha=0.1, color=MOB_COLOURS[mob_type])
+                mean = az.summary(c_idata, var_names=param, kind="stats")["mean"].values[0]
+                table_info.loc[country_name, mob_type] = mean
+        c_ax.set_title(country_name)
+        c_ax.set_xlim([0.0, 2.0])
+        c_ax.set_xticks(np.linspace(0.0, 2.0, 5))
+        c_ax.tick_params(labelsize=9)
+    stats_table = pd.DataFrame(table_info)
+    stats_table = stats_table.mask(stats_table.isna(), "no analysis")
+    stats_table = stats_table.rename(columns=ANALYSIS_NAMES)
+    for a in range(c + 1, len(flat_axes)):
+        flat_axes[a].set_axis_off()
+    fig.tight_layout()
+    return fig, stats_table
