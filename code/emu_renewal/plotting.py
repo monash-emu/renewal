@@ -101,10 +101,10 @@ MOB_SOURCE_MAP = {
 }
 G_MOB_DOMAIN_CMAP = {
     "retail_and_recreation": "darkgoldenrod",
-    "grocery_and_pharmacy": "midnightblue",
+    "grocery_and_pharmacy": "darkblue",
     "parks": "darkgreen",
     "transit_stations": "dimgrey",
-    "workplaces": "indigo",
+    "workplaces": "purple",
     "residential": "brown",
 }
 A_MOB_DOMAIN_CMAP = {
@@ -536,8 +536,8 @@ def plot_mob_weights_by_country(
     # Include axis just for legend
     labels = [l.replace("_", " ") for l in G_MOB_DOMAIN_CMAP]
     colours = [col.get_facecolor()[0] for col in ax.collections]
-    handles = [Line2D([0], [0], color=color, linewidth=4.0, alpha=1.0, label=label) for color, label in zip(colours, labels)]
-    flat_axes[c + 1].legend(handles=handles, loc="center")
+    handles = [Line2D([0], [0], color=col, linewidth=4.0, alpha=1.0, label=l) for col, l in zip(colours, labels)]
+    flat_axes[c + 1].legend(handles=handles, loc="center", title="mobility locations")
 
     # Switch off unused axes
     for ax in flat_axes[c + 1:]:
@@ -726,6 +726,7 @@ def get_idatas_for_mob_type(
 def plot_param_posts_for_countries(
     param: str,
     idatas: Dict[str, az.InferenceData],
+    fv_idatas: Dict[str, az.InferenceData],
     n_cols: int,
 ) -> plt.figure:
     """Plot the posteriors of a specified
@@ -737,20 +738,35 @@ def plot_param_posts_for_countries(
 
     Returns:
         The figure
+        The high-density intervals
+        The means
     """
+    means = {}
+    hdis = {}
     fig, axes = get_standard_subplot(len(idatas), n_cols)
     axes = axes.ravel()
+    for c, iso3 in enumerate(idatas):
+        ax=axes[c]
+        fv_idata = fv_idatas[iso3]
+        post_plot = az.plot_posterior(fv_idata, var_names=param, ax=ax, point_estimate=None, hdi_prob="hide")
+
     for c, iso3 in enumerate(idatas):
         idata = idatas[iso3]
         country = pycountry.countries.lookup(iso3).name
         ax = axes[c]
-        az.plot_posterior(idata.posterior[param], ax=ax)
+        post_plot = az.plot_posterior(idata, var_names=param, ax=ax, point_estimate=None, hdi_prob="hide")
+        line_data = post_plot.get_lines()[0]
+        post_plot.fill_between(line_data.get_xdata(), line_data.get_ydata(), alpha=0.2)
+        ax.set_xlim([0.0, 2.0])
         ax.set_title(country)
+        means[iso3] = az.summary(idata, var_names="mob_exp", kind="stats")["mean"].values[0]
+        hdis[iso3] = az.hdi(idata, var_names="mob_exp", hdi_prob=0.95).to_pandas()[param]
+
     for a in range(c + 1, len(axes)):
         axes[a].set_axis_off()
     fig.tight_layout()
     plt.close()
-    return fig
+    return fig, means, hdis
 
 
 def get_mob_exp_gdp_df(
