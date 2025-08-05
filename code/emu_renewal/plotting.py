@@ -479,12 +479,11 @@ def plot_kde_comparison(
 def get_cont_mobility(cont, countries_by_cont, mob_type):
     mob = {}
     no_mob_countries = []
-    get_mob = get_google_mobility if mob_type == "g_mob" else get_apple_mobility
     for c in countries_by_cont[cont]:
         country = pycountry.countries.lookup(c).name
         try:
-            c_mob = get_mob(c)
-            # Don't include one country (Guinea Bissau) with locations missing
+            c_mob = get_google_mobility(c)
+            # Don't include one country (Guinea-Bissau) with locations missing
             if c_mob.isnull().all().any():
                 no_mob_countries.append(country)
             else:
