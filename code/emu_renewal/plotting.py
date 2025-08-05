@@ -492,7 +492,6 @@ def plot_mob_weights_by_country(
     job_path: Path,
     mob_type: str,
     mobility: Dict[str, pd.DataFrame],
-    title: str,
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
     of the mobility domains implemented for the Google
@@ -502,13 +501,11 @@ def plot_mob_weights_by_country(
         job_path: Path for the runs
         mob_type: Mobility type considered
         mobility: The mobility data by country
-        title: Title for figure
 
     Returns:
         The figure
     """
     fig, axes = get_standard_subplot(len(mobility) + 1, 4)
-    fig.suptitle(title, fontsize=14, y=1.0)
     flat_axes = axes.ravel()
     linewidth = 2.0
     for c, iso3 in enumerate(mobility):
