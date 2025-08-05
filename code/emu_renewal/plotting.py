@@ -22,6 +22,7 @@ from emu_renewal.inputs import (
     get_fb_visited_mobility,
     get_fb_singletile_mobility,
     get_gdps,
+    get_country_pop,
 )
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim, sort_countries_by_name
@@ -830,13 +831,18 @@ def plot_mob_exp_versus_gdp(
             data=plot_df,
             sizes=(10, 200),
             ax=ax,
-            legend=False,
             palette=CONT_CMAP,
         )
         ax.set_title(mob_name)
         ax.set_ylabel("mobility exponent")
         ax.set_xlabel("GDP per capita")
-    axes[3].set_axis_off()
+        handles, labels = ax.get_legend_handles_labels()
+        ax.get_legend().remove()
+
+    ax = axes[-1]
+    ax.legend(handles=handles, labels=labels, loc="center", ncol=2)
+    ax.axis("off")
+
     fig.tight_layout()
     plt.close()
     return fig
