@@ -23,6 +23,7 @@ from emu_renewal.inputs import (
     get_fb_singletile_mobility,
     get_gdps,
     get_country_pop,
+    get_world_shp,
 )
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim, sort_countries_by_name
@@ -695,34 +696,6 @@ def compare_proc_mob(
     return fig
 
 
-def get_idatas_for_mob_type(
-    job_path: Path,
-    countries: List[str],
-    mob_type: str,
-) -> Dict[str, az.InferenceData]:
-    """Collate all the inference data objects for
-    a requested group of countries.
-
-    Args:
-        job_path: Path for the runs
-        countries: Countries identifiers
-        mob_type: Mobility type considered
-
-    Returns:
-        The inference data objects
-    """
-    country_idatas = {}
-    unavailable_countries = []
-    for iso3 in countries:
-        country = pycountry.countries.lookup(iso3).name
-        try:
-            path = job_path / iso3 / mob_type / "idata_filtered.nc"
-            country_idatas[iso3] = az.from_netcdf(path)
-        except:
-            unavailable_countries.append(country)
-    return country_idatas, unavailable_countries
-
-
 def plot_param_posts_for_countries(
     param: str,
     idatas: Dict[str, az.InferenceData],
@@ -922,40 +895,62 @@ def get_detailed_param_results(
     return fig, stats_table
 
 
-def plot_world_country_outline(
-    world: GeoDataFrame,
-) -> tuple:
+def plot_world_country_outline() -> tuple:
     """Create a blank figure of the countries of the world
     from a countries geopandas dataframe.
-
-    Args:
-        world: The input dataframe
 
     Returns:
         The figure and its single axis
     """
+    world = get_world_shp()
+    world["geometry"] = world.simplify(tolerance=0.1)
     fig, ax = plt.subplots(1, 1, figsize=(16, 6))
     ax.set_xticks([])
     ax.set_yticks([])
     world.boundary.plot(ax=ax, color="black", linewidth=0.2)
-    return fig, ax
+    return fig, ax, world
+
+
+def get_idatas_for_mob_type(
+    job_path: Path,
+    countries: List[str],
+    mob_type: str,
+) -> Dict[str, az.InferenceData]:
+    """Collate all the inference data objects for
+    a requested group of countries.
+
+    Args:
+        job_path: Path for the runs
+        countries: Countries identifiers
+        mob_type: Mobility type considered
+
+    Returns:
+        The inference data objects
+    """
+    country_idatas = {}
+    unavailable_countries = []
+    for iso3 in countries:
+        country = pycountry.countries.lookup(iso3).name
+        try:
+            path = job_path / iso3 / mob_type / "idata_filtered.nc"
+            country_idatas[iso3] = az.from_netcdf(path)
+        except:
+            unavailable_countries.append(country)
+    return country_idatas, unavailable_countries
 
 
 def plot_prop_improve(
     prop_improve: Dict[str, float], 
-    mob_type: str, 
-    world: GeoDataFrame,
 ):
     """Plot the proportion of analyses that are an improvement
     over the no mobility analysis based on the dispersion parameter.
 
     Args:
         prop_improve: The proportions by country
-        mob_type: The mobility type
-        world: The geopandas dataframe to use for plotting
     """
-    _, ax = plot_world_country_outline(world)
-    ax.set_title(MOB_SOURCE_MAP[mob_type])
-    mob_str = f"{mob_type}_improve"
-    world[mob_str] = world["ISO_A3"].map(prop_improve)
-    world.plot(column=mob_str, ax=ax, cmap="coolwarm", legend=True, missing_kwds={"color": "0.975"}, vmin=0.0, vmax=1.0)
+    _, ax, world = plot_world_country_outline()
+    world["prop_improve"] = world["ISO_A3"].map(prop_improve)
+    mob_avail = world[world["prop_improve"].notna()]
+    mob_unavail = world[world["prop_improve"].isna()]
+    mob_avail.plot(column="prop_improve", ax=ax, cmap="coolwarm", legend=True, vmin=0.0, vmax=1.0)
+    mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
