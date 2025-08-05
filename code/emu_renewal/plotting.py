@@ -439,7 +439,6 @@ def get_param_medians(
 def plot_kde_comparison(
     data: Dict[str, pd.DataFrame],
     title: str,
-    alpha: float = 0.1,
 ):
     """Plot the comparison of the kernel density of some
     repeatedly sampled quantity (posterior or parameter)
@@ -448,7 +447,6 @@ def plot_kde_comparison(
     Args:
         data: The values of interest for each country
         title: Title to go above the whole figure
-        alpha: Depth of the shading of the patches
     """
     fig, axes = get_standard_subplot(len(data), 4)
     fig.suptitle(title, fontsize=15)
@@ -459,7 +457,7 @@ def plot_kde_comparison(
         ax = flat_axes[c]
         ax.set_title(country_name)
         colours = [MOB_COLOURS[a] for a in data[country].columns]
-        sns.kdeplot(likes, fill=True, ax=ax, palette=colours, alpha=alpha)
+        sns.kdeplot(likes, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5)
         ax.set_yticks([])
         ax.set_ylabel("")
 
@@ -904,9 +902,6 @@ def plot_world_country_outline() -> tuple:
     ax.set_yticks([])
     world.boundary.plot(ax=ax, color="black", linewidth=0.2)
     return fig, ax, world
-
-
-
 
 
 def plot_prop_improve(
