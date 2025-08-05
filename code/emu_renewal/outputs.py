@@ -13,13 +13,14 @@ from numpyro import infer
 from os import listdir as ls
 import os
 from geopandas import GeoDataFrame
+import pycountry
 
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
+from emu_renewal.constants import MOB_COLOURS
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
-from emu_renewal.plotting import MOB_COLOURS
 
 plt.style.use("ggplot")
 
@@ -353,3 +354,31 @@ def get_prop_improve(
             mob_posts = np.random.permutation(c_posts[mob_type].values)
             prop_improve[c] = pd.Series(no_mob_posts > mob_posts).astype(int).mean()
     return prop_improve
+
+
+def get_idatas_for_mob_type(
+    job_path: Path,
+    countries: List[str],
+    mob_type: str,
+) -> Dict[str, az.InferenceData]:
+    """Collate all the inference data objects for
+    a requested group of countries.
+
+    Args:
+        job_path: Path for the runs
+        countries: Countries identifiers
+        mob_type: Mobility type considered
+
+    Returns:
+        The inference data objects
+    """
+    country_idatas = {}
+    unavailable_countries = []
+    for iso3 in countries:
+        country = pycountry.countries.lookup(iso3).name
+        try:
+            path = job_path / iso3 / mob_type / "idata_filtered.nc"
+            country_idatas[iso3] = az.from_netcdf(path)
+        except:
+            unavailable_countries.append(country)
+    return country_idatas, unavailable_countries

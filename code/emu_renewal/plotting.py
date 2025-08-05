@@ -15,7 +15,7 @@ import yaml as yml
 import pycountry_convert as pc
 from geopandas import GeoDataFrame
 
-from emu_renewal.constants import ANALYSIS_TYPES
+from emu_renewal.constants import ANALYSIS_TYPES, MOB_COLOURS
 from emu_renewal.inputs import (
     DATA_PATH,
     get_google_mobility,
@@ -25,6 +25,7 @@ from emu_renewal.inputs import (
     get_country_pop,
     get_world_shp,
 )
+from emu_renewal.outputs import get_idatas_for_mob_type
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim, sort_countries_by_name
 from IPython.display import display, Markdown
@@ -63,12 +64,6 @@ VAR_NAME_MAP = {
     "delta": "Delta",
     "ba2": "BA.2",
     "ba5": "BA.5",
-}
-MOB_COLOURS = {
-    "no_mob": "black",
-    "g_mob": "green",
-    "fb_visited_mob": "blue",
-    "fb_singletile_mob": "red",
 }
 INCLUSION_COLOURS = {
     "neither": "lightgrey",
@@ -911,32 +906,7 @@ def plot_world_country_outline() -> tuple:
     return fig, ax, world
 
 
-def get_idatas_for_mob_type(
-    job_path: Path,
-    countries: List[str],
-    mob_type: str,
-) -> Dict[str, az.InferenceData]:
-    """Collate all the inference data objects for
-    a requested group of countries.
 
-    Args:
-        job_path: Path for the runs
-        countries: Countries identifiers
-        mob_type: Mobility type considered
-
-    Returns:
-        The inference data objects
-    """
-    country_idatas = {}
-    unavailable_countries = []
-    for iso3 in countries:
-        country = pycountry.countries.lookup(iso3).name
-        try:
-            path = job_path / iso3 / mob_type / "idata_filtered.nc"
-            country_idatas[iso3] = az.from_netcdf(path)
-        except:
-            unavailable_countries.append(country)
-    return country_idatas, unavailable_countries
 
 
 def plot_prop_improve(

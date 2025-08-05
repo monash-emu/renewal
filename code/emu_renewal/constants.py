@@ -129,3 +129,12 @@ SEROPREV_DISP = 0.2
 # Prior-related
 DUR_MIN = 1
 DUR_REL_MAX = 2.5
+
+
+
+MOB_COLOURS = {
+    "no_mob": "black",
+    "g_mob": "green",
+    "fb_visited_mob": "blue",
+    "fb_singletile_mob": "red",
+}
