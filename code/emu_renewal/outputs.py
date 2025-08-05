@@ -297,17 +297,6 @@ def get_completed_chains(job_path):
     return pd.concat(completion_lists, keys=countries, axis=1)
 
 
-def get_prop_improve(mob_type, countries, job_path):
-    param = "dispersion_proc"
-    prop_improve = {}
-    for c in countries:
-        c_posts = get_param_vals_by_analysis(param, job_path / c)
-        if mob_type in c_posts:
-            c_posts[mob_type] = np.random.permutation(c_posts[mob_type].values)
-            prop_improve[c] = pd.Series(c_posts["no_mob"] > c_posts[mob_type]).astype(int).mean()
-    return prop_improve
-
-
 def add_bool_row_to_table(
     table: pd.DataFrame,
     bool_list: List[str],
@@ -340,3 +329,27 @@ def add_mob_avail_to_world(
     world.loc[world["g_avail"] == True, "mob"] = "Google"
     world.loc[world["fb_avail"] == True, "mob"] = "FB"
     world.loc[(world["fb_avail"] == True) & (world["g_avail"] == True), "mob"] = "both"
+
+
+def get_prop_improve(
+    disp_posts: Dict[str, pd.DataFrame],
+    mob_type: str,
+) -> Dict[str, float]:
+    """Find the proportion of results from a particular run that
+    have a lower dispersion parameter than for the no mobility analysis.
+
+    Args:
+        disp_posts: The posteriors of the dispersion parameter by country and analysis
+        mob_type: The mobility analysis of interest
+
+    Returns:
+        The proportions by country
+    """
+    prop_improve = {}
+    for c in disp_posts:
+        c_posts = disp_posts[c]
+        no_mob_posts = c_posts["no_mob"]
+        if mob_type in c_posts:
+            mob_posts = np.random.permutation(c_posts[mob_type].values)
+            prop_improve[c] = pd.Series(no_mob_posts > mob_posts).astype(int).mean()
+    return prop_improve

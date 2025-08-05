@@ -15,9 +15,9 @@ import yaml as yml
 import pycountry_convert as pc
 from geopandas import GeoDataFrame
 
-from emu_renewal.inputs import DATA_PATH
 from emu_renewal.constants import ANALYSIS_TYPES
 from emu_renewal.inputs import (
+    DATA_PATH,
     get_google_mobility,
     get_fb_visited_mobility,
     get_fb_singletile_mobility,
@@ -921,3 +921,42 @@ def get_detailed_param_results(
         flat_axes[a].set_axis_off()
     fig.tight_layout()
     return fig, stats_table
+
+
+def plot_world_country_outline(
+    world: GeoDataFrame,
+) -> tuple:
+    """Create a blank figure of the countries of the world
+    from a countries geopandas dataframe.
+
+    Args:
+        world: The input dataframe
+
+    Returns:
+        The figure and its single axis
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(16, 6))
+    ax.set_xticks([])
+    ax.set_yticks([])
+    world.boundary.plot(ax=ax, color="black", linewidth=0.2)
+    return fig, ax
+
+
+def plot_prop_improve(
+    prop_improve: Dict[str, float], 
+    mob_type: str, 
+    world: GeoDataFrame,
+):
+    """Plot the proportion of analyses that are an improvement
+    over the no mobility analysis based on the dispersion parameter.
+
+    Args:
+        prop_improve: The proportions by country
+        mob_type: The mobility type
+        world: The geopandas dataframe to use for plotting
+    """
+    _, ax = plot_world_country_outline(world)
+    ax.set_title(MOB_SOURCE_MAP[mob_type])
+    mob_str = f"{mob_type}_improve"
+    world[mob_str] = world["ISO_A3"].map(prop_improve)
+    world.plot(column=mob_str, ax=ax, cmap="coolwarm", legend=True, missing_kwds={"color": "0.975"}, vmin=0.0, vmax=1.0)
