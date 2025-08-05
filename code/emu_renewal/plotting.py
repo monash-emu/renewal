@@ -438,7 +438,6 @@ def get_param_medians(
 
 def plot_kde_comparison(
     data: Dict[str, pd.DataFrame],
-    title: str,
 ):
     """Plot the comparison of the kernel density of some
     repeatedly sampled quantity (posterior or parameter)
@@ -446,10 +445,8 @@ def plot_kde_comparison(
 
     Args:
         data: The values of interest for each country
-        title: Title to go above the whole figure
     """
     fig, axes = get_standard_subplot(len(data), 4)
-    fig.suptitle(title, fontsize=15)
     flat_axes = axes.ravel()
     for c, (country, likes) in enumerate(data.items()):
         likes = likes.rename(columns=AN_ABBREVS)
