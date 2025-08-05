@@ -382,3 +382,24 @@ def get_idatas_for_mob_type(
         except:
             unavailable_countries.append(country)
     return country_idatas, unavailable_countries
+
+
+def get_param_mean_by_country(
+    job_path: Path, 
+    param: str, 
+    mob_type: str,
+) -> Dict[str, float]:
+    """Get the mean of the parameter posterior for each
+    country analysed under a particular mobility approach.
+
+    Args:
+        job_path: Path for the runs
+        param: Name of the parameter
+        mob_type: Mobility analysis type
+
+    Returns:
+        The parameter mean by country
+    """
+    countries = ls(job_path)
+    i_datas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
+    return {c: az.summary(i_datas[c], var_names=param, kind="stats")["mean"].values[0] for c in i_datas}

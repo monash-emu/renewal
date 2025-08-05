@@ -36,8 +36,8 @@ plt.style.use("ggplot")
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
     "g_mob": "Google mobility",
-    "fb_visited_mob": "FB tiles visited",
-    "fb_singletile_mob": "FB single tile mobility",
+    "fb_visited_mob": "Facebook tiles visited",
+    "fb_singletile_mob": "Facebook single tile mobility",
 }
 AN_ABBREVS = {
     "no_mob": "none",
@@ -923,4 +923,23 @@ def plot_prop_improve(
     mob_avail = world[world["prop_improve"].notna()]
     mob_unavail = world[world["prop_improve"].isna()]
     mob_avail.plot(column="prop_improve", ax=ax, cmap="coolwarm", legend=True, vmin=0.0, vmax=1.0)
+    mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
+
+
+def plot_vals_map(
+    vals: Dict[str, float], 
+    colour_map: str,
+):
+    """Plot the values provided by country
+    onto a map of the world.
+
+    Args:
+        vals: The values by country
+        colour_map: matplotlib colour map
+    """
+    _, ax, world = plot_world_country_outline()
+    world["vals"] = world["ISO_A3"].map(vals)
+    mob_avail = world[world["vals"].notna()]
+    mob_unavail = world[world["vals"].isna()]
+    mob_avail.plot(ax=ax, column=mob_avail["vals"], cmap=colour_map, legend=True, vmin=0.0, vmax=2.0)
     mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
