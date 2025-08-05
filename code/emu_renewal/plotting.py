@@ -797,8 +797,10 @@ def get_mob_exp_gdp_df(
     quants["gdp"]["VEN"] = (
         42.84e9 / quants["pop"]["VEN"]
     )  # Assume Venezuela's GDP was 42.84 billion in 2020
-    quants["cont"] = {
-        c: pc.country_alpha2_to_continent_code(pycountry.countries.lookup(c).alpha_2)
+    quants["continent"] = {
+        c: pc.convert_continent_code_to_continent_name(
+            pc.country_alpha2_to_continent_code(pycountry.countries.lookup(c).alpha_2)
+        )
         for c in countries
     }
     return pd.DataFrame(quants)
@@ -820,25 +822,32 @@ def plot_mob_exp_versus_gdp(
     fig, axs = plt.subplots(2, 2, figsize=[12, 9])
     axes = axs.ravel()
     analyses = {k: v for k, v in ANALYSIS_NAMES.items() if k != "no_mob"}
+    quants_df["population (millions)"] = quants_df["pop"] / 1e6
+    quants_df["GDP per capita (thousand USD)"] = quants_df["gdp"] / 1e3
+    cont_name_cmap = {
+        pc.convert_continent_code_to_continent_name(k): v for 
+        k, v in CONT_CMAP.items()
+    }
     for m, (mob_type, mob_name) in enumerate(analyses.items()):
-        plot_df = quants_df[["gdp", mob_type, "pop", "cont"]].dropna()
+        plot_df = quants_df[["GDP per capita (thousand USD)", mob_type, "population (millions)", "continent"]].dropna()
         ax = axes[m]
         sns.scatterplot(
-            x="gdp",
+            x="GDP per capita (thousand USD)",
             y=mob_type,
-            size="pop",
-            hue="cont",
+            size="population (millions)",
+            hue="continent",
             data=plot_df,
-            sizes=(10, 200),
+            sizes=(50, 1000),
             ax=ax,
-            palette=CONT_CMAP,
+            palette=cont_name_cmap,
+            alpha=0.6,
         )
         ax.set_title(mob_name)
         ax.set_ylabel("mobility exponent")
-        ax.set_xlabel("GDP per capita")
         handles, labels = ax.get_legend_handles_labels()
         ax.get_legend().remove()
 
+    # Last axis contains only the legend
     ax = axes[-1]
     ax.legend(handles=handles, labels=labels, loc="center", ncol=2)
     ax.axis("off")
