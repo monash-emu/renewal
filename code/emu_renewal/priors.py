@@ -142,10 +142,10 @@ def get_standard_priors(
         if k != "cross_immunity"
     }
     if "icu_" not in hosp_out_type:
-        beta_priors["icu_ar"] = 1.0
+        beta_priors["icuar"] = 1.0
     if hosp_out_type == "":
         beta_priors["har"] = 1.0
-        beta_priors["icu_ar"] = 1.0
+        beta_priors["icuar"] = 1.0
 
     # Variant-related
     seed_rate_low = get_exp_val_from_string(SEED_RATE_LOW)

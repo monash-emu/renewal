@@ -417,7 +417,7 @@ class MultiStrainModel:
         icu_admit_sd: float,
         icu_stay_mean: float,
         icu_stay_sd: float,
-        icu_ar: float,
+        icuar: float,
         cross_immunity: float,
         seed_rates: List[float],
         relinfect: Optional[List[float]],
@@ -446,7 +446,7 @@ class MultiStrainModel:
             icu_admit_sd: Standard deviation of time from infectino to ICU admission
             icu_stay_mean: Mean time from ICU admission to ICU discharge
             icu_stay_sd: Standard deviation of time from ICU admission to ICU discharge
-            icu_ar: Risk if admission to ICU given admission to hospital
+            icuar: ICU admission rate (proportion)
             cross_immunity: The extent of cross-immunity
             seed_offsets: Time before first strain data that strain seeding begins
             seed_rates: The rate of seeding for each strain
@@ -572,9 +572,7 @@ class MultiStrainModel:
         out["occupancy"] = occupancy[self.init_length :]
 
         # ICU-related outputs
-        icu_admits = self.get_output_from_inc(
-            full_inc, icu_admit_mean, icu_admit_sd, har * icu_ar, output_dist
-        )
+        icu_admits = self.get_output_from_inc(full_inc, icu_admit_mean, icu_admit_sd, icuar, output_dist)
         out["icu_admissions"] = icu_admits[self.init_length :]
         icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, DAYS_IN_WEEK)
         out["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
