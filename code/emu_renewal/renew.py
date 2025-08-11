@@ -16,8 +16,6 @@ from emu_renewal.constants import (
     GEN_TRUNC_POINT,
     CONV_TRUNC_POINT,
     DAYS_IN_WEEK,
-    VACC_DEATH_PROTECT,
-    VACC_HOSP_PROTECT,
 )
 from emu_renewal.process import sinterp, CosineMultiCurve
 from emu_renewal.distributions import Dens
@@ -422,6 +420,8 @@ class MultiStrainModel:
         seed_rates: List[float],
         relinfect: Optional[List[float]],
         seed_offsets: Optional[List[float]],
+        vacc_protect_hosp: float,
+        vacc_protect_death: float,
         **kwargs,
     ) -> ModelResult:
         """Main function to call externally to get the renewal outputs.
@@ -547,7 +547,7 @@ class MultiStrainModel:
         out["weekly_cases"] = weekly_cases[self.init_length :]
 
         # Deaths
-        vacc_death_protect = VACC_DEATH_PROTECT if self.vacc_effect else 0.0
+        vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
         death_dists = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, output_dist)
         deaths = death_dists * rel_vacc_death
@@ -557,7 +557,7 @@ class MultiStrainModel:
 
         # Hospital-related outputs
         discharge_dist = GammaDens()
-        vacc_hosp_protect = VACC_HOSP_PROTECT if self.vacc_effect else 0.0
+        vacc_hosp_protect = vacc_protect_hosp if self.vacc_effect else 0.0
         rel_vacc_hosp = 1.0 - vacc_hosp_protect
         admit_dists = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, output_dist)
         admissions = admit_dists * rel_vacc_hosp

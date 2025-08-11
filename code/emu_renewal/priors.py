@@ -166,6 +166,9 @@ def get_standard_priors(
     imm_prior = {"cross_immunity": dist.Beta(imm["alpha"], imm["beta"])} if n_strains > 0 else {}
 
     # Miscellaneous
+    fixed_params = loaded_priors["fixed"]
+    vacc_protect_hosp = {"vacc_protect_hosp": fixed_params["vacc_protect_hosp"]}
+    vacc_protect_death = {"vacc_protect_death": fixed_params["vacc_protect_death"]}
     rt_prior = {"rt_init": dist.Normal(0.0, RTINIT_SD)}
     disp_prior = {"shared_dispersion": dist.HalfNormal(SHARED_DISP_SD)}
     prop_disp_prior = {"prop_disp": PROP_DISP}
@@ -184,4 +187,6 @@ def get_standard_priors(
         | prop_disp_prior
         | seed_priors
         | seroprev_disp
+        | vacc_protect_hosp
+        | vacc_protect_death
     )

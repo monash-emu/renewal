@@ -115,6 +115,9 @@ beta:
     param_name: Cross immunity
     short_name: cross immunity
     evidence: A meta-analysis found that protection against re-infection declined with time and varied with the variant considered, but was estimated at 78.6% (95% uncertainty interval 49.8 to 93.6%).[@covidforecasting2023] Our previous analysis of Australia's epidemic rapid succession of Omicron waves found high levels of immune escape.[@trauer2024]
+fixed:
+  vacc_protect_hosp: 0.5
+  vacc_protect_death: 0.67
 other:
   relinfect:
     short_name: relative infectiousness

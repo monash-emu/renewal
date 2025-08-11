@@ -88,8 +88,6 @@ ANTIBODY_DELAY = 14
 # Vaccination-related
 END_VACC_THRESHOLD = 5
 START_VACC_THRESHOLD_AUS = 90
-VACC_DEATH_PROTECT = 0.8
-VACC_HOSP_PROTECT = 0.6
 SUB_DEU_COUNTRIES = "Switzerland and Ireland"
 SUB_GBR_COUNTRY = "Qatar"
 
@@ -129,8 +127,6 @@ SEROPREV_DISP = 0.2
 # Prior-related
 DUR_MIN = 1
 DUR_REL_MAX = 2.5
-
-
 
 MOB_COLOURS = {
     "no_mob": "black",
