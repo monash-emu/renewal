@@ -4,7 +4,7 @@ durations:
     sd: 0.75
     param_name: Generation time mean (days)
     short_name: generation time, mean
-    evidence: We used analyses of case-contact transmission pairs from multiple different contexts for SARS-CoV-2 as the main evidence to quantify the mean generation time. Early case-contact data at the origin of the pandemic in Wuhan estimated a mean of around seven days prior to the implementation of population-wide public health and social measures, such as expanded contact tracing and movement restrictions. This led to a notable contraction of the mean generation time to around four to five days after these interventions had been implemented.[@chen2022] This study also found marked differences between the generation time and serial interval, due to changes in the epidemic that were sufficiently rapid to result in differences in the incubation period between infectors and infectees. Values of around four to five days are also consistent with an analysis from early 2020 from Tianjin, China and Singapore, in which estimates of the serial interval estimates were closer to that of the generation time[@ganyani2020]. Estimates of the serial interval from household clusters in Germany[@anderheiden2022] also found that values of four to five days were appropriate for wild-type, Alpha and Delta SARS-CoV-2 variants, although these appeared less applicable to Omicron. Estimates from close contacts in Spain similarly placed the serial interval of the Delta variant at around five days. [@delaguilamejia2022] A systematic review and meta-analysis of this area found more studies estimating the serial interval than the generation time, with mean estimates for the serial interval of 4.82 days, 3.59 days and 3.47 days for wild-type, Alpha and Delta respectively.[@xu2023] Estimates for the generation time were similar, but with wider confidence limits. A rapid review of on serial intervals found similar results.[@madewell2023] Results of individual studies from these systematic reviews estimated mean values for the serial interval from below three days to above six days. We therefore chose a prior distribution for the mean generation time of 4.25 days, with a standard deviation of 0.75 days.
+    evidence: We used analyses of case-contact transmission pairs from multiple contexts for SARS-CoV-2 as the main evidence to quantify the generation time distribution. Case-contact data from the origin of the pandemic in Wuhan estimated a mean generation time of around seven days prior to the scaling up of population-wide public health and social measures, such as expanded contact tracing and movement restrictions. This led to a notable contraction of the mean generation time to around four to five days after these interventions had been implemented.[@chen2022] This study also found marked differences between the generation time and serial interval, due to changes in the epidemic that were sufficiently rapid to result in differences in the incubation period between infectors and infectees. Values of around four to five days are also consistent with an analysis from early 2020 from Tianjin, China and Singapore, in which estimates of the serial interval estimates were close to that of the generation time[@ganyani2020].  Estimates of the serial interval from household clusters in Germany[@anderheiden2022] also found that values of four to five days were appropriate for wild-type, Alpha and Delta SARS-CoV-2 variants, although these appeared less applicable to Omicron. Estimates from close contacts in Spain[@delaguilamejia2022] similarly placed the serial interval of the Delta variant at around five days, while an early study from China similarly placed the mean serial interval for wild-type SARS-CoV-2 at around four to five days.[@he2020]  A systematic review and meta-analysis of this topic found more studies estimating the serial interval than the generation time, with mean estimates for the serial interval of 4.82 days, 3.59 days and 3.47 days reported for wild-type, Alpha and Delta respectively.[@xu2023] Estimates for the generation time from this review were similar, but with wider confidence limits. A rapid review of serial intervals from a different research group reported similar findings.[@madewell2023] There was notable variation in these findings, with results of individual studies from these systematic reviews estimating mean values for the serial interval of less than three days to more than six days. We therefore chose a prior distribution for the mean generation time of 4.25 days, with a standard deviation of 0.75 days.
   gen_sd:
     mean: 2.0
     sd: 0.5
@@ -16,13 +16,13 @@ durations:
     sd: 0.5
     param_name: Infection to reporting mean (days)
     short_name: time to notification, mean
-    evidence: This delay incorporates the incubation period and the time from symptom onset to presentation to the health care system. The incubation period for COVID-19 has been estimated at five to seven days. We have previously estimated the delay from symptom onset to notification to be four days in the Australian context.[@trauer2024; @golding2023]
+    evidence: This delay incorporates the incubation period and the time from symptom onset to presentation to the health care system. The incubation period for COVID-19 has been estimated at five to seven days. We have previously estimated the delay from symptom onset to notification to be four days in the Australian context.[@trauer2025; @golding2023]
   report_sd: 
     mean: 3.0
     sd: 0.5
     param_name: Infection to reporting standard deviation (days)
     short_name: time to notification, SD
-    evidence: Our previous estimate of four days for the time to reporting from symptom onset[@trauer2024] was associated with a standard deviation of two days.
+    evidence: Our previous estimate of four days for the time to reporting from symptom onset[@trauer2025] was associated with a standard deviation of two days.
   death_mean: 
     mean: 20.5
     sd: 5.0
@@ -89,7 +89,7 @@ beta_from_summary:
     std: 0.1
     param_name: Case detection proportion
     short_name: case detection proportion
-    evidence: An early analysis from France of the proportion of cases detected estimated that 38% (95% confidence interval 35 to 44%) of cases were detected.[@pullano2020] This is consistent with our estimate that one in two to six cases were detected from the early stages of Australia's Omicron outbreak.[@trauer2024] Nevertheless, this quantity is difficult to determine with confidence and is likely highly context-dependent, hence our broad prior.
+    evidence: An early analysis from France of the proportion of cases detected estimated that 38% (95% confidence interval 35 to 44%) of cases were detected.[@pullano2020] This is consistent with our estimate that one in two to six cases were detected from the early stages of Australia's Omicron outbreak.[@trauer2025] Nevertheless, this quantity is difficult to determine with confidence and is likely highly context-dependent, hence our broad prior.
   har:
     mean: 0.0339
     std: 0.0059
@@ -114,7 +114,7 @@ beta:
     beta: 10.0
     param_name: Cross immunity
     short_name: cross immunity
-    evidence: A meta-analysis found that protection against re-infection declined with time and varied with the variant considered, but was estimated at 78.6% (95% uncertainty interval 49.8 to 93.6%).[@covidforecasting2023] Our previous analysis of Australia's epidemic rapid succession of Omicron waves found high levels of immune escape.[@trauer2024]
+    evidence: A meta-analysis found that protection against re-infection declined with time and varied with the variant considered, but was estimated at 78.6% (95% uncertainty interval 49.8 to 93.6%).[@covidforecasting2023] Our previous analysis of Australia's epidemic rapid succession of Omicron waves found high levels of immune escape.[@trauer2025]
 fixed:
   vacc_protect_hosp: 0.5
   vacc_protect_death: 0.67
