@@ -549,10 +549,8 @@ class MultiStrainModel:
         # Deaths
         vacc_death_protect = VACC_DEATH_PROTECT if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
-        deaths = (
-            self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, output_dist)
-            * rel_vacc_death
-        )
+        death_dists = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, output_dist)
+        deaths = death_dists * rel_vacc_death
         out["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
         out["weekly_deaths"] = weekly_deaths[self.init_length :]
@@ -561,10 +559,8 @@ class MultiStrainModel:
         discharge_dist = GammaDens()
         vacc_hosp_protect = VACC_HOSP_PROTECT if self.vacc_effect else 0.0
         rel_vacc_hosp = 1.0 - vacc_hosp_protect
-        admissions = (
-            self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, output_dist)
-            * rel_vacc_hosp
-        )
+        admit_dists = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, output_dist)
+        admissions = admit_dists * rel_vacc_hosp
         out["admissions"] = admissions[self.init_length :]
         weekly_admissions = self.get_period_output_from_daily(admissions, DAYS_IN_WEEK)
         out["weekly_admissions"] = weekly_admissions[self.init_length :]
@@ -576,9 +572,7 @@ class MultiStrainModel:
         out["icu_admissions"] = icu_admits[self.init_length :]
         icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, DAYS_IN_WEEK)
         out["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
-        icu_occupancy = self.get_occupancy_from_admits(
-            icu_admits, icu_stay_mean, icu_stay_sd, discharge_dist
-        )
+        icu_occupancy = self.get_occupancy_from_admits(icu_admits, icu_stay_mean, icu_stay_sd, discharge_dist)
         out["icu_occupancy"] = icu_occupancy[self.init_length :]
 
         # Seropositivity
