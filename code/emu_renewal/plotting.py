@@ -15,7 +15,7 @@ import yaml as yml
 import pycountry_convert as pc
 from geopandas import GeoDataFrame
 
-from emu_renewal.constants import ANALYSIS_TYPES, MOB_COLOURS
+from emu_renewal.constants import ANALYSIS_TYPES, MOB_COLOURS, DUR_MIN, DUR_REL_MAX
 from emu_renewal.inputs import (
     DATA_PATH,
     get_google_mobility,
@@ -352,6 +352,60 @@ def plot_beta_priors(
         ax.set_title(dist_name, size=12)
         ax.set_yticks([])
     return fig.tight_layout()
+
+
+
+def plot_duration_params(
+    duration_params: Dict[str, dict],
+):
+    """Plot the duration parameter priors, including the generation time
+    and the various delays used in convolutions.
+
+    Args:
+        duration_params: The duration parameters loaded from the priors yaml
+    """
+    mean_xmax = 30.0
+    sd_xmax = 15.0
+    dur_param_types = [p.rsplit("_", 1)[0] for p in duration_params]
+    dur_types = list(dict.fromkeys(dur_param_types))  # Using set() loses the ordering of this list
+    
+    fig, axes = plt.subplots(len(dur_types), 2, figsize=(15, 18), width_ratios=[2, 1])
+    for d, dur in enumerate(dur_types):
+
+        # Extract prior values
+        mean_param = duration_params[dur + "_mean"]
+        sd_param = duration_params[dur + "_sd"]
+        mean_mean = mean_param["mean"]
+        sd_mean = sd_param["mean"]
+
+        # Get the distributions        
+        mean_prior = dist.TruncatedNormal(mean_mean, mean_param["sd"], low=DUR_MIN, high=mean_mean * DUR_REL_MAX)
+        sd_prior = dist.TruncatedNormal(sd_mean, sd_param["sd"], low=DUR_MIN, high=sd_mean * DUR_REL_MAX)
+        
+        # Calculate the values
+        mean_x_vals = np.linspace(0.0, mean_xmax, 1000)
+        sd_x_vals = np.linspace(0.0, sd_xmax, 1000)
+        mean_y_vals = np.exp(mean_prior.log_prob(mean_x_vals))
+        sd_y_vals = np.exp(sd_prior.log_prob(sd_x_vals))
+
+        # Plot mean        
+        mean_ax = axes[d, 0]
+        mean_ax.fill_between(mean_x_vals, mean_y_vals / max(mean_y_vals), color="0.8")
+        mean_ax.plot(mean_x_vals, mean_y_vals / max(mean_y_vals), color="k", linewidth=2.0)
+        mean_ax.set_title(mean_param["param_name"].replace(" (days)", ""))
+        mean_ax.set_xlabel("days")
+        mean_ax.set_yticks([])
+        
+        # Plot SD
+        sd_ax = axes[d, 1]
+        sd_ax.fill_between(sd_x_vals, sd_y_vals / max(sd_y_vals), color="0.8")
+        sd_ax.plot(sd_x_vals, sd_y_vals / max(sd_y_vals), color="k", linewidth=2.0)
+        sd_ax.set_title(sd_param["param_name"].replace(" (days)", ""))
+        sd_ax.set_xlabel("days")
+        sd_ax.set_yticks([])
+        
+    fig.tight_layout()
+
 
 
 def plot_proc_comparison(
