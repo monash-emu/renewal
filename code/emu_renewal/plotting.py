@@ -27,7 +27,7 @@ from emu_renewal.inputs import (
 )
 from emu_renewal.outputs import get_idatas_for_mob_type
 from emu_renewal.calibration import StandardCalib
-from emu_renewal.utils import get_param_dim, sort_countries_by_name
+from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var
 from IPython.display import display, Markdown
 from matplotlib.lines import Line2D
 
@@ -329,29 +329,27 @@ def plot_imm_props(
     return spagh[choice(runs)].plot.area()
 
 
-def plot_beta_priors(
-    priors,
-) -> plt.figure:
-    """Plot the beta-distributed priors.
-
-    Args:
-        priors: The raw priors dictionary
-
-    Returns:
-        The plot
-    """
-    beta_vals = priors["beta"].values()
-    beta_priors = {v["param_name"]: dist.Beta(v["alpha"], v["beta"]) for v in beta_vals}
-    fig, axes = plt.subplots(2, 2)
-    flat_axes = axes.ravel()
-    for i, dist_name, distri in [[i, d[0], d[1]] for i, d in enumerate(beta_priors.items())]:
-        upper_lim = distri.icdf(0.999) if distri.icdf(0.999) < 0.3 else 1.0
-        x_vals = np.linspace(0.0, upper_lim, 100)
-        ax = flat_axes[i]
-        ax.plot(x_vals, np.exp(distri.log_prob(x_vals)))
-        ax.set_title(dist_name, size=12)
+def plot_beta_priors(priors):
+    fig, axes = plt.subplots(len(priors), 1, figsize=(15, 11))
+    for p, (param_name, param) in enumerate(priors.items()):
+    
+        # Get the distribution
+        a, b = get_beta_params_from_mean_var(param["mean"], param["std"])
+        distri = dist.Beta(a, b)
+    
+        # Calculate the values
+        max_val = 1.0 if param_name in ["cdr", "cross_immunity"] else 0.05
+        x_vals = np.linspace(0.0, max_val, 1000)
+        y_vals = np.exp(distri.log_prob(x_vals))
+    
+        # Plot
+        ax = axes[p]
+        ax.set_title(param["param_name"])
+        ax.fill_between(x_vals, y_vals, color="0.8")
+        ax.plot(x_vals, y_vals, color="k", linewidth=2.0)
         ax.set_yticks([])
-    return fig.tight_layout()
+    
+    fig.tight_layout()
 
 
 
@@ -390,16 +388,16 @@ def plot_duration_params(
 
         # Plot mean        
         mean_ax = axes[d, 0]
-        mean_ax.fill_between(mean_x_vals, mean_y_vals / max(mean_y_vals), color="0.8")
-        mean_ax.plot(mean_x_vals, mean_y_vals / max(mean_y_vals), color="k", linewidth=2.0)
+        mean_ax.fill_between(mean_x_vals, mean_y_vals, color="0.8")
+        mean_ax.plot(mean_x_vals, mean_y_vals, color="k", linewidth=2.0)
         mean_ax.set_title(mean_param["param_name"].replace(" (days)", ""))
         mean_ax.set_xlabel("days")
         mean_ax.set_yticks([])
         
         # Plot SD
         sd_ax = axes[d, 1]
-        sd_ax.fill_between(sd_x_vals, sd_y_vals / max(sd_y_vals), color="0.8")
-        sd_ax.plot(sd_x_vals, sd_y_vals / max(sd_y_vals), color="k", linewidth=2.0)
+        sd_ax.fill_between(sd_x_vals, sd_y_vals, color="0.8")
+        sd_ax.plot(sd_x_vals, sd_y_vals, color="k", linewidth=2.0)
         sd_ax.set_title(sd_param["param_name"].replace(" (days)", ""))
         sd_ax.set_xlabel("days")
         sd_ax.set_yticks([])

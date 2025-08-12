@@ -225,7 +225,7 @@ durations:
       this prior distribution and assigned a standard deviation for the spread of this parameter of 0.5 days.
 beta_from_summary:
   cdr:
-    mean: 0.38
+    mean: 0.4
     std: 0.1
     param_name: Case detection proportion
     short_name: case detection proportion
@@ -241,46 +241,9 @@ beta_from_summary:
       \newline\newline
       Given the difficulty in determining an appropriate prior for this parameter and the likelihood that the quantity is highly setting-dependent, 
       we selected a broad prior distribution for this parameter.
-  har:
-    mean: 0.0339
-    std: 0.0059
-    param_name: Infection hospitalisation proportion
-    short_name: hospital admission proportion
-    evidence: This quantity was estimated to be 3.39% (credible interval 2.79 to 3.97%) from 
-      officially reported data in England prior to the marked declines that occurred as population-wide vaccination was rolled out.[@ward2024] 
-      An analysis from Indiana, USA estimated a value of 2.1% overall (credible interval 1.6 to 3.0%), 
-      with substantial variation by demographic factors, particularly age.[@menachemi2021] 
-      A study from the USA estimated that one in three adults aged 70 years and above who were infected were hospitalised,
-      while one in 21.6 infections in those aged 18 to 49 years resulted in hospitalisation.[@deng2025]
-      \newline\newline
-      As such, we chose a central estimate for this parameter of 3%.
-  ifr:
-    mean: 0.0079
-    std: 0.0012
-    param_name: Infection fatality proportion
-    short_name: infection fatality proportion
-    evidence: An analysis that integrated serosurveillance with age-specific death rates from 45 countries estimated 
-      an infection fatality rate of 0.79% (credible interval 0.68 to 0.92%) for the reference population distribution of France.[@odriscoll2021] 
-      Other groups have found similar estimates using a combination of modelling and serosurvey results, including an overall IFR estimated at 0.49 to 2.53%.[@brazeau2022] 
-      The analysis from England of the hospitalisation risk estimated a peak infection fatality risk of 0.97% in January 2021, which fell to 0.06% by April 2022.[@ward2024]
-      \newline\newline
-      We selected a prior distribution with a central estimate of 0.8%. 
-      Our prior estimate is relatively broadly distributed and so should be applicable to a range of higher income settings.
-  icuar:
-    mean: 0.0079
-    std: 0.0012
-    param_name: ICU admission proportion
-    short_name: ICU admission proportion
-    evidence: The analysis from Indiana cited above found an infection ICU admission risk of 0.51% (credible interval 0.38% to 0.70%).[@ menachemi2021] 
-      An analysis from Chile found a risk of ICU admission given infection of 0.33, 1.18, 3.59 and 7.18% for 
-      the age groups under 40, 40 to 49, 50 to 59 and 60 to 69 respectively.[@saure2023] 
-      A systematic review and meta-analysis from early in the pandemic period found that 32% of hospital admissions resulted in ICU admission.[@abate2020]
-      \newline\newline
-      We therefore chose a central estimate for this parameter of 1%.
-beta:
   cross_immunity:
-    alpha: 10.0
-    beta: 10.0
+    mean: 0.5
+    std: 0.1
     param_name: Cross immunity
     short_name: cross immunity
     evidence: A pre-print describing a large dataset from the USA in 2020 found 
@@ -292,6 +255,40 @@ beta:
       with the past infecting variant and time from infection appearing to modify the extent of protection.[@hu2024] 
       A systematic review and meta-regression of reinfections with Omicron variants found that protection from previous infections waned to 
       lower levels (25%) by 12 months from infection.[@bobrovitz2023]
+  har:
+    mean: 0.03
+    std: 0.006
+    param_name: Infection hospitalisation proportion
+    short_name: hospital admission proportion
+    evidence: This quantity was estimated to be 3.39% (credible interval 2.79 to 3.97%) from 
+      officially reported data in England prior to the marked declines that occurred as population-wide vaccination was rolled out.[@ward2024] 
+      An analysis from Indiana, USA estimated a value of 2.1% overall (credible interval 1.6 to 3.0%), 
+      with substantial variation by demographic factors, particularly age.[@menachemi2021] 
+      A study from the USA estimated that one in three adults aged 70 years and above who were infected were hospitalised,
+      while one in 21.6 infections in those aged 18 to 49 years resulted in hospitalisation.[@deng2025]
+  ifr:
+    mean: 0.008
+    std: 0.001
+    param_name: Infection fatality proportion
+    short_name: infection fatality proportion
+    evidence: An analysis that integrated serosurveillance with age-specific death rates from 45 countries estimated 
+      an infection fatality rate of 0.79% (credible interval 0.68 to 0.92%) for the reference population distribution of France.[@odriscoll2021] 
+      Other groups have found similar estimates using a combination of modelling and serosurvey results, including an overall IFR estimated at 0.49 to 2.53%.[@brazeau2022] 
+      The analysis from England of the hospitalisation risk estimated a peak infection fatality risk of 0.97% in January 2021, which fell to 0.06% by April 2022.[@ward2024]
+      \newline\newline
+      We selected a prior distribution with a central estimate of 0.8%. 
+      Our prior estimate is relatively broadly distributed and so should be applicable to a range of higher income settings.
+  icuar:
+    mean: 0.01
+    std: 0.001
+    param_name: ICU admission proportion
+    short_name: ICU admission proportion
+    evidence: The analysis from Indiana cited above found an infection ICU admission risk of 0.51% (credible interval 0.38% to 0.70%).[@ menachemi2021] 
+      An analysis from Chile found a risk of ICU admission given infection of 0.33, 1.18, 3.59 and 7.18% for 
+      the age groups under 40, 40 to 49, 50 to 59 and 60 to 69 respectively.[@saure2023] 
+      A systematic review and meta-analysis from early in the pandemic period found that 32% of hospital admissions resulted in ICU admission.[@abate2020]
+      \newline\newline
+      We therefore chose a central estimate for this parameter of 1%.
 fixed:
   vacc_protect_hosp: 0.5
   vacc_protect_death: 0.67
