@@ -29,11 +29,9 @@ durations:
       A rapid review of serial intervals from a different research group reported similar findings.[@madewell2023] 
       There was notable variation in these findings, with results of individual studies from these systematic reviews estimating mean values for 
       the serial interval of less than three days to more than six days.
-      \newline\newline
-      We therefore chose a prior distribution for the mean generation time of 4.25 days, with a standard deviation of 0.75 days.
   gen_sd:
     mean: 2.0
-    sd: 0.5
+    sd: 0.4
     param_name: Generation time standard deviation (days)
     short_name: generation time, SD
     evidence: For the standard deviation of the generation interval, we generally used the same sources of evidence as for the mean.
@@ -41,8 +39,6 @@ durations:
       rather than reporting the standard deviations of the data of the individual studies, making these results less applicable to this parameter.
       \newline\newline
       In studies that reported standard deviations, estimates included two to four days for early Wuhan [@chen2022] and 1.5 to 2.5 days from Tianjin and Singapore.[@ganyani2020]
-      \newline\newline
-      As such, we chose a prior estimate for the standard deviation of the generation time of two days, with a distribution standard deviation of 0.4 days.
   report_mean:
     mean: 8.0
     sd: 0.5
@@ -87,7 +83,7 @@ durations:
       Given this background, we considered that a standard deviation for the time from infection to case notification of three days was plausible, 
       and set the standard deviation for the prior of this parameter distribution to 0.5 days.
   death_mean: 
-    mean: 20.5
+    mean: 22.0
     sd: 5.0
     param_name: Infection to death mean (days)
     short_name: time to death, mean
@@ -102,10 +98,11 @@ durations:
       A cohort study from a north-eastern state of Brazil found a median 19 days from symptom onset to death.[@sousa2020] 
       An analysis of deaths from Victoria, Australia over the course of 2020 found a mean time to death of 18.1 days.[@marschner2021]
       \newline\newline
-      We therefore considered 17 days to be a reasonable estimate for the time from symptom onset to death, which we increased by five days to account for the time from infection to symptom onset.
+      We therefore considered 17 days to be a reasonable estimate for the time from symptom onset to death, 
+      which we increased by five days to account for the time from infection to symptom onset.
   death_sd:
-    mean: 5.0
-    sd: 2.5
+    mean: 3.0
+    sd: 0.5
     param_name: Infection to death standard deviation (days)
     short_name: time to death, SD
     evidence: The first single centre study from Wuhan cited above reported an interquartile range which spanned nine days,[@zhang2020] 
@@ -117,7 +114,7 @@ durations:
       although inflated slightly to account for the uncertainty in the incubation period. 
       We therefore set this parameter to three days, with a standard deviation to the distribution of 0.5 days.
   admit_mean:
-    mean: 8.6
+    mean: 10.0
     sd: 3.0
     param_name: Infection to hospitalisation mean (days)
     short_name: time to admission, mean
@@ -128,10 +125,12 @@ durations:
       while a study from Belgium reported the mean duration from symptom onset to hospitalisation to be 5.6 days.[@faes2020] 
       The final report of the ISARIC collaboration reported a mean of 5.4 days from symptom onset to admission.[@isaric2023]
       \newline\newline
-      Given this evidence, we chose a mean value for the time from infection to death prior of five days. As for the time from infection to death parameter, we inflated this by five days to allow for the incubation period.
+      Given this evidence, we chose a mean value for the time from infection to death prior of five days. 
+      As for the time from infection to hospital admission parameter, 
+      we inflated this by five days to allow for the incubation period.
   admit_sd: 
-    mean: 5.0
-    sd: 2.0
+    mean: 2.0
+    sd: 0.5
     param_name: Infection to hospitalisation standard deviation (days)
     short_name: time to admission, SD
     evidence: The early study of cases from China reported an interquartile range that spanned four days,[@huang2020] 
@@ -142,8 +141,8 @@ durations:
       As with previous parameters, we selected a prior standard deviation of slightly more than one quarter of the spread in the data in the constituent studies. 
       We therefore chose a central estimate for this standard deviation parameter of two days, with a standard deviation to this distribution of 0.5 days.
   stay_mean:
-    mean: 15.0
-    sd: 2.5
+    mean: 10.0
+    sd: 3.0
     param_name: Hospital stay duration mean (days)
     short_name: hospitalisation duration, mean
     evidence: An analysis of surveillance data from Belgium reported a mean length of hospital stay of 11.0 days,[@faes2020] 
@@ -157,11 +156,9 @@ durations:
       Another systematic review undertaken later in the pandemic period found similar durations, with a mean length of stay of 15.35 days.[@alimohamadi2022]
       \newline\newline
       The final report of the ISARIC collaboration reported a mean 9.7 days (median seven days) length of hospital stay.[@isaric2023]
-      \newline\newline
-      We therefore implemented a prior distribution for hospital admission duration with a mean estimate of ten days.
   stay_sd:
-    mean: 7.92
-    sd: 2.5
+    mean: 2.5
+    sd: 0.5
     param_name: Hospital stay duration standard deviation (days)
     short_name: hospitalisation duration, SD
     evidence: The analysis from Belgium cited above reported an interquartile range that spanned ten days,[@faes2020] 
@@ -173,8 +170,8 @@ durations:
       As such, we implemented a standard deviation for hospital admission duration of 2.5 days, 
       with a standard deviation to this parameter prior of 0.5 days.
   icu_admit_mean:
-    mean: 11.4
-    sd: 7.0
+    mean: 12.0
+    sd: 3.0
     param_name: Infection to ICU admission mean (days)
     short_name: time to ICU admission, mean
     evidence: A single centre study from Wuhan found a median duration from symptom onset to ICU admission of 9.5 days,[@yang2020] 
@@ -185,10 +182,11 @@ durations:
       The final report from the ISARIC collaboration estimated a mean time from symptom onset to hospital admission of 5.4 days and 
       a mean time from hospital admission to ICU admission of 1.8 days.[@isaric2023]
       \newline\newline
-      Given this evidence, we implemented a mean for our prior distribution of time from infection to ICU admission of eight days.
+      Given this evidence, we implemented a mean for our prior distribution of time from infection to ICU admission of seven days
+      to allow for a five day incubation period.
   icu_admit_sd: 
-    mean: 5.0
-    sd: 2.0
+    mean: 2.5
+    sd: 0.5
     param_name: Infection to ICU admission standard deviation (days)
     short_name: time to ICU admission, SD
     evidence: The single centre study from Wuhan cited above reported an interquartile range around 
@@ -203,7 +201,7 @@ durations:
       We therefore implemented a standard deviation for our time from infection to ICU admission parameter of 2.5 days, 
       with a standard deviation to this distribution of 0.5 days.
   icu_stay_mean:
-    mean: 7.0
+    mean: 10.0
     sd: 3.0
     param_name: ICU stay duration mean (days)
     short_name: ICU duration, mean
@@ -216,8 +214,8 @@ durations:
       \newline\newline
       We therefore chose a mean for the prior distribution of the duration of ICU stay of ten days.
   icu_stay_sd:
-    mean: 5.0
-    sd: 2.5
+    mean: 2.5
+    sd: 0.5
     param_name: ICU stay duration standard deviation (days)
     short_name: ICU duration, SD
     evidence: The study from multiple regions of Brazil reported an interquartile range that spanned eight days,[@desouza2020] 
