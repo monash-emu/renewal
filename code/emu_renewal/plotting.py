@@ -330,7 +330,7 @@ def plot_imm_props(
 
 
 def plot_beta_priors(priors):
-    fig, axes = plt.subplots(len(priors), 1, figsize=(15, 11))
+    fig, axes = plt.subplots(len(priors), 1, figsize=(15, 15))
     for p, (param_name, param) in enumerate(priors.items()):
     
         # Get the distribution
@@ -344,13 +344,13 @@ def plot_beta_priors(priors):
     
         # Plot
         ax = axes[p]
-        ax.set_title(param["param_name"])
+        ax.set_title(param["param_name"], fontsize=24)
         ax.fill_between(x_vals, y_vals, color="0.8")
         ax.plot(x_vals, y_vals, color="k", linewidth=2.0)
+        ax.tick_params(axis="both", labelsize=20) 
         ax.set_yticks([])
     
     fig.tight_layout()
-
 
 
 def plot_duration_params(
@@ -390,20 +390,21 @@ def plot_duration_params(
         mean_ax = axes[d, 0]
         mean_ax.fill_between(mean_x_vals, mean_y_vals, color="0.8")
         mean_ax.plot(mean_x_vals, mean_y_vals, color="k", linewidth=2.0)
-        mean_ax.set_title(mean_param["param_name"].replace(" (days)", ""))
-        mean_ax.set_xlabel("days")
+        mean_ax.set_title(mean_param["param_name"].replace(" (days)", ""), fontsize=22)
+        mean_ax.set_xlabel("days", fontsize=18)
+        mean_ax.tick_params(axis="both", labelsize=18)
         mean_ax.set_yticks([])
         
         # Plot SD
         sd_ax = axes[d, 1]
         sd_ax.fill_between(sd_x_vals, sd_y_vals, color="0.8")
         sd_ax.plot(sd_x_vals, sd_y_vals, color="k", linewidth=2.0)
-        sd_ax.set_title(sd_param["param_name"].replace(" (days)", ""))
-        sd_ax.set_xlabel("days")
+        sd_ax.set_title(sd_param["param_name"].replace(" (days)", ""), fontsize=22)
+        sd_ax.set_xlabel("days", fontsize=18)
+        sd_ax.tick_params(axis="both", labelsize=18) 
         sd_ax.set_yticks([])
         
     fig.tight_layout()
-
 
 
 def plot_proc_comparison(
