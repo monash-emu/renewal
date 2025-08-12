@@ -354,23 +354,6 @@ def plot_beta_priors(
     return fig.tight_layout()
 
 
-def plot_progress_priors(priors, xmax, leg=True):
-    fig, axes = plt.subplots(2, 1)
-    x_vals = np.linspace(0.0, xmax, 1000)
-    for k, v in priors.items():
-        row = 0 if "mean" in k else 1
-        label = k.split("_")[0] if row == 0 else None
-        y_vals = np.exp(v.log_prob(x_vals))
-        axes[row].plot(x_vals, y_vals / max(y_vals), label=label)
-    axes[0].set_title("Mean", size=12)
-    axes[0].set_yticks([])
-    axes[1].set_title("SD", size=12)
-    axes[1].set_yticks([])
-    if leg:
-        fig.legend()
-    return fig.tight_layout()
-
-
 def plot_proc_comparison(
     procs: Dict[str, pd.DataFrame],
     countries: List[str],
