@@ -313,6 +313,17 @@ fixed:
 other:
   relinfect:
     short_name: relative infectiousness
+    evidence: For the relative infectiousness of the Alpha variant of SARS-CoV-2 compared to preceding strains, 
+      a study of household contacts in Japan found a transmissibility of 1.9 to 2.3 times,[@tanaka2021] 
+      while another such study from Norway round a secondary attack rate that was 1.81-fold higher.[@julin2021] 
+      Another study from Norway employing data obtained from contact tracing round an increase in the secondary attack rate of 60% in households, 
+      but 24% across all close contacts.[@lindstrom2022]
+      \newline\newline
+      Regarding the relative infectiousness of the Delta variant compared to Alpha, 
+      the adjusted odds ratio for transmission was found to be 1.70 (95% credible interval 1.48 to 1.95) 
+      in a national case-control study from England.[@allen2022] 
+      Contact tracing data from Spain found a relative risk of transmission of 1.32 
+      (95% confidence interval 1.13 to 1.53) for Delta versus Alpha.[@trobajo2022]
   seed_offsets:
     short_name: seeding offset
   seed_rates:
