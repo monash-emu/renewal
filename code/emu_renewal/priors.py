@@ -122,30 +122,23 @@ def get_standard_priors(
     rel_durs = {k: v for k, v in duration_priors.items() if k in duration_prior_names}
     irrel_durs = {k: 1.0 for k in duration_priors if k not in rel_durs}
 
-    # Proportions from summary statistics
+    # Proportions
     income = get_income_group(iso3)
     adjusters = get_float_dict_from_str(SEVERITY_ADJS)
     extra_low_inc = pycountry.countries.lookup(EXTRA_LOW_INC).alpha_3
     adjuster = 0.4 if iso3 == extra_low_inc else adjusters[income]
-    beta_from_sum = loaded_priors["beta_from_summary"]
-    beta_from_sum_dists = {}
-    for k, v in beta_from_sum.items():
+    beta_reqs = loaded_priors["beta_from_summary"]
+    betas_to_drop = [] if n_strains > 1 else ["cross_immunity"]
+    rel_betas = {k: v for k, v in beta_reqs.items() if k not in betas_to_drop}
+    irrel_betas = {k: 1.0 for k in beta_reqs if k in betas_to_drop}
+    beta_dists = {}
+    for k, v in rel_betas.items():
         a, b = get_beta_params_from_mean_var(v["mean"] * adjuster, v["std"])
-        beta_from_sum_dists[k] = dist.Beta(a, b)
-    if hosp_out_type == "":
-        beta_from_sum_dists["har"] = 1.0
-
-    # Proportions
-    beta_priors = {
-        k: dist.Beta(v["alpha"], v["beta"])
-        for k, v in loaded_priors["beta"].items()
-        if k != "cross_immunity"
-    }
+        beta_dists[k] = dist.Beta(a, b)
     if "icu_" not in hosp_out_type:
-        beta_priors["icuar"] = 1.0
+        beta_dists["icuar"] = 1.0
     if hosp_out_type == "":
-        beta_priors["har"] = 1.0
-        beta_priors["icuar"] = 1.0
+        beta_dists["har"] = 1.0
 
     # Variant-related
     seed_rate_low = get_exp_val_from_string(SEED_RATE_LOW)
@@ -162,8 +155,6 @@ def get_standard_priors(
     infect_dist_prior = dist.TruncatedNormal(relinf_mean, RELINF_SD, low=RELINF_LOW, high=RELINF_UP)
     infect_dist = infect_dist_prior if n_strains > 1 else None
     inf_priors = {"relinfect": infect_dist}
-    imm = loaded_priors["beta"]["cross_immunity"]
-    imm_prior = {"cross_immunity": dist.Beta(imm["alpha"], imm["beta"])} if n_strains > 0 else {}
 
     # Miscellaneous
     fixed_params = loaded_priors["fixed"]
@@ -177,11 +168,10 @@ def get_standard_priors(
     return (
         rel_durs
         | irrel_durs
-        | beta_priors
-        | beta_from_sum_dists
+        | beta_dists
+        | irrel_betas
         | seed_rate_priors
         | inf_priors
-        | imm_prior
         | rt_prior
         | disp_prior
         | prop_disp_prior
