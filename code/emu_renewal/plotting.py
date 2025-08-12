@@ -364,7 +364,7 @@ def plot_duration_params(
     """
     mean_xmax = 30.0
     sd_xmax = 15.0
-    dur_param_types = [p.rsplit("_", 1)[0] for p in duration_params]
+    dur_param_types = [p.rsplit("_", 1)[0] for p in duration_params if p != "gen_mean_oc"]
     dur_types = list(dict.fromkeys(dur_param_types))  # Using set() loses the ordering of this list
     
     fig, axes = plt.subplots(len(dur_types), 2, figsize=(15, 18), width_ratios=[2, 1])

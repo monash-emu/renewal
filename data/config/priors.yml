@@ -29,6 +29,19 @@ durations:
       A rapid review of serial intervals from a different research group reported similar findings.[@madewell2023] 
       There was notable variation in these findings, with results of individual studies from these systematic reviews estimating mean values for 
       the serial interval of less than three days to more than six days.
+  gen_mean_oc:
+    mean: 3.0
+    sd: 0.75
+    param_name: Generation time mean (days), Oceania
+    short_name: generation time, mean
+    evidence: An analysis from China estimated that the generation time fell from 
+      5.2 days to 2.2 days over the course of an Omicron outbreak in Hangzhou in 2022.[@xin2023] 
+      The systematic review of generation times by variant cited above estimated 
+      a mean generation time of 2.96 days (95% confidence interval 2.54 to 3.38 days).[@xu2023] 
+      A rapid review and meta-analysis of generation times by variant found 
+      a pooled estimate of 3.3 days for Omicron.[@madewell2023]
+      \newline\newline
+      As such, we chose a generation interval mean for the Australia analysis of three days.
   gen_sd:
     mean: 2.0
     sd: 0.4

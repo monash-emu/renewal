@@ -103,6 +103,8 @@ def get_standard_priors(
         k: dist.TruncatedNormal(v["mean"], v["sd"], low=DUR_MIN, high=v["mean"] * DUR_REL_MAX)
         for k, v in loaded_priors["durations"].items()
     }
+    if iso3 == "AUS":
+        duration_priors["gen_mean"] = duration_priors["gen_mean_oc"]
     universal_prior_names = [
         "gen_mean",
         "gen_sd",
@@ -111,6 +113,7 @@ def get_standard_priors(
         "death_mean",
         "death_sd",
     ]
+    print(duration_priors)
     rel_durations_dict = {
         "weekly_admissions": ["admit_mean", "admit_sd"],
         "occupancy": ["admit_mean", "admit_sd", "stay_mean", "stay_sd"],
