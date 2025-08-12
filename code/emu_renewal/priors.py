@@ -158,8 +158,8 @@ def get_standard_priors(
 
     # Miscellaneous
     fixed_params = loaded_priors["fixed"]
-    vacc_protect_hosp = {"vacc_protect_hosp": fixed_params["vacc_protect_hosp"]}
-    vacc_protect_death = {"vacc_protect_death": fixed_params["vacc_protect_death"]}
+    vacc_protect_hosp = {"vacc_protect_hosp": fixed_params["vacc_protect_hosp"]["value"]}
+    vacc_protect_death = {"vacc_protect_death": fixed_params["vacc_protect_death"]["value"]}
     rt_prior = {"rt_init": dist.Normal(0.0, RTINIT_SD)}
     disp_prior = {"shared_dispersion": dist.HalfNormal(SHARED_DISP_SD)}
     prop_disp_prior = {"prop_disp": PROP_DISP}

@@ -290,8 +290,26 @@ beta:
       \newline\newline
       We therefore chose a central estimate for this parameter of 1%.
 fixed:
-  vacc_protect_hosp: 0.5
-  vacc_protect_death: 0.67
+  vacc_protect_hosp:
+    value: 0.5
+    param_name: Vaccination protection against hospitalisation
+    evidence: The first estimate of the efficacy of BNT162b2 mRNA vaccine that was widely used in Australia, 
+      found a total efficacy of 95% protection against COVID-19.[@polack2020]
+      \newline\newline
+      However, protection against infection will be captured by scaling the modelled transmission parameters, 
+      including the variable process. 
+      As such, the evidence needed for this quantity is the real-world reduction in the risk of hospitalisation and death given infection.
+      \newline\newline
+      Estimates of the real-world protection of vaccination against SARS-CoV-2 infections found 
+      85% protection (95% confidence interval 81 to 89%) against infection, 
+      but higher protection against severe outcomes, 
+      including hospitalisation (93%), ICU admission (98%) and death (95%).[@liu2021]
+      \newline\newline
+      As such, we estimated the reduction in hospitalisation given infection to be 50%.
+  vacc_protect_death: 
+    value: 0.67
+    param_name: Vaccination protection against death
+    evidence: Using the same evidence as for the protection against hospitalisation, we estimated this parameter at 67%.
 other:
   relinfect:
     short_name: relative infectiousness
