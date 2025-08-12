@@ -127,7 +127,7 @@ def get_standard_priors(
     adjusters = get_float_dict_from_str(SEVERITY_ADJS)
     extra_low_inc = pycountry.countries.lookup(EXTRA_LOW_INC).alpha_3
     adjuster = 0.4 if iso3 == extra_low_inc else adjusters[income]
-    beta_reqs = loaded_priors["beta_from_summary"]
+    beta_reqs = loaded_priors["beta"]
     betas_to_drop = [] if n_strains > 1 else ["cross_immunity"]
     rel_betas = {k: v for k, v in beta_reqs.items() if k not in betas_to_drop}
     irrel_betas = {k: 1.0 for k in beta_reqs if k in betas_to_drop}

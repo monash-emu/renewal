@@ -223,7 +223,7 @@ durations:
       \newline\newline
       We therefore chose a standard deviation of 2.5 days for 
       this prior distribution and assigned a standard deviation for the spread of this parameter of 0.5 days.
-beta_from_summary:
+beta:
   cdr:
     mean: 0.4
     std: 0.1
