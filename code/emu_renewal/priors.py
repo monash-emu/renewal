@@ -113,7 +113,6 @@ def get_standard_priors(
         "death_mean",
         "death_sd",
     ]
-    print(duration_priors)
     rel_durations_dict = {
         "weekly_admissions": ["admit_mean", "admit_sd"],
         "occupancy": ["admit_mean", "admit_sd", "stay_mean", "stay_sd"],
