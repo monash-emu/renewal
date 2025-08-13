@@ -296,7 +296,7 @@ beta:
     std: 0.001
     param_name: ICU admission proportion
     short_name: ICU admission proportion
-    evidence: The analysis from Indiana cited above found an infection ICU admission risk of 0.51% (credible interval 0.38% to 0.70%).[@ menachemi2021] 
+    evidence: The analysis from Indiana cited above found an infection ICU admission risk of 0.51% (credible interval 0.38% to 0.70%).[@menachemi2021] 
       An analysis from Chile found a risk of ICU admission given infection of 0.33, 1.18, 3.59 and 7.18% for 
       the age groups under 40, 40 to 49, 50 to 59 and 60 to 69 respectively.[@saure2023] 
       A systematic review and meta-analysis from early in the pandemic period found that 32% of hospital admissions resulted in ICU admission.[@abate2020]
