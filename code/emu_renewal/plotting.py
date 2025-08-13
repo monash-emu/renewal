@@ -286,23 +286,29 @@ def plot_prior_multipost(
     for p in params:
 
         # Posteriors
-        for a in idatas:
+        analyses = [a for a in ANALYSIS_NAMES if a in idatas]
+        for a in analyses:
             idata = idatas[a]
-            ax = axes[n_ax:]
             colour =[MOB_COLOURS[a]]
-            az.plot_density(idata, ax=ax, hdi_prob=0.99, colors=colour, var_names=p)
+            az.plot_density(idata, ax=axes[n_ax:], hdi_prob=0.99, colors=colour, var_names=p)
+    
+            # Legend
+            if p == params[-1]:
+                ax = axes[n_ax]
+                line = ax.get_lines()[-3]
+                line.set_label(ANALYSIS_NAMES[a])
+                ax.legend()
 
         # Prior
         p_dim = get_param_dim(p, idata)
         for d in range(p_dim):
-            axis = axes[n_ax]
-            axis.legend()
-            x_vals = np.linspace(*axis.get_xlim(), 100)
+            ax = axes[n_ax]
+            x_vals = np.linspace(*ax.get_xlim(), 100)
             y_vals = get_prior_vals_from_dist(x_vals, priors[p], d)
-            axis.fill_between(x_vals, y_vals, color="k", alpha=0.2)
+            ax.fill_between(x_vals, y_vals, color="k", alpha=0.2)
             display_name = get_param_display_name(p, p_dim, d, var_names, prior_info)
-            axis.set_title(display_name)
-            plt.setp(axis.xaxis.get_majorticklabels(), fontsize=10)
+            ax.set_title(display_name)
+            plt.setp(ax.xaxis.get_majorticklabels(), fontsize=10)
             n_ax += 1
 
     # Suppress unused axes
