@@ -24,7 +24,7 @@
 #SBATCH --mail-type=FAIL
 
 # Set this to the range of values that will be received in your script
-# e.g. --array=1-4
+# e.g. --array=1-1
 # will result in 4 jobs, receiving 1, 2, 3, 4 respectively
 
 #SBATCH --array=1-2
