@@ -1,6 +1,6 @@
 import json
 import sys
-
+ 
 from emu_renewal.inputs import DATA_PATH
 from emu_renewal.constants import ANALYSIS_TYPES, BASE_PATH
 from emu_renewal.run import run_single_country, MobilityException, get_logger, jax_config_cpu_only
