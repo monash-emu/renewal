@@ -485,7 +485,8 @@ class MultiStrainModel:
         was applied because this analysis was performed
         after wide-scale population vaccination.
         The relative reduction in the risk of
-        death was set at {VACC_DEATH_PROTECT}
+        death was set according to the "Vaccination protection
+        against death" parameter
         and was not varied during calibration
         because this would have been collinear
         with the risk of death parameter.__RETURN__
@@ -497,7 +498,8 @@ class MultiStrainModel:
         a reduction in the risk of hospitalisation
         was applied to account for vaccination.
         The relative reduction in the risk of
-        hospitalisation was set at {VACC_HOSP_PROTECT}. 
+        hospitalisation was set according to the "Vaccination
+        protection against hospitalisation" parameter. 
         As for cases, deaths and hospitalisations,
         the convolution of time to ICU admission
         was parameterised independently,
