@@ -15,7 +15,7 @@ if __name__ == "__main__":
     country_path = BASE_PATH / "outputs" / task / c
     country_path.mkdir(parents=True, exist_ok=True)
     logger = get_logger(country_path / "run.log")
-    for mob_type in ANALYSIS_TYPES:
+    for mob_type in ["fb_singletile_mob"]:
         try:
             run_single_country(c, mob_type, task, logger=logger)
         except MobilityException as e:
