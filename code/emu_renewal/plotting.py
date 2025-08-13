@@ -287,13 +287,16 @@ def plot_prior_multipost(
 
         # Posteriors
         for a in idatas:
-            post = idatas[a].posterior[p]
-            az.plot_density(post, ax=axes[n_ax:], hdi_prob=0.99, colors=[MOB_COLOURS[a]])
+            idata = idatas[a]
+            ax = axes[n_ax:]
+            colour =[MOB_COLOURS[a]]
+            az.plot_density(idata, ax=ax, hdi_prob=0.99, colors=colour, var_names=p)
 
         # Prior
         p_dim = get_param_dim(p, idata)
         for d in range(p_dim):
             axis = axes[n_ax]
+            axis.legend()
             x_vals = np.linspace(*axis.get_xlim(), 100)
             y_vals = get_prior_vals_from_dist(x_vals, priors[p], d)
             axis.fill_between(x_vals, y_vals, color="k", alpha=0.2)
