@@ -340,7 +340,7 @@ other:
   seed_offsets:
     short_name: seeding offset
   seed_rates:
-    short_name: seeding rate
+    short_name: log seeding rate
   rt_init:
     short_name: variable process initial value
   shared_dispersion:
