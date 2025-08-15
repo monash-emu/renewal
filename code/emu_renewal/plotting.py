@@ -977,3 +977,69 @@ def plot_vals_map(
     mob_unavail = world[world["vals"].isna()]
     mob_avail.plot(ax=ax, column=mob_avail["vals"], cmap=colour_map, legend=True, vmin=0.0, vmax=2.0)
     mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
+
+
+SHORT_MOB_NAMES = {
+    "retail_and_recreation": "retail/rec",
+    "grocery_and_pharmacy": "groc/pharm",
+    "parks": "parks",
+    "transit_stations": "transit",
+    "workplaces": "work",
+    "residential": "resi",
+    "fb_visited_mob": "FB visit",
+    "fb_singletile_mob": "FB tile",
+}
+
+
+def plot_select_proc_mob(
+    job_path: Path, 
+    panels: List[List[List[str]]],
+) -> plt.figure:
+    """Plot selected comparisons between mobility
+    and modelled variable process.
+
+    Args:
+        job_path: Path for the runs
+        panels: The comparisons to plot
+
+    Returns:
+        The figure
+    """
+    fig, axes = plt.subplots(4, 8, figsize=(13, 8))
+    for c, col in enumerate(panels):
+        for r, row in enumerate(col):  
+    
+            # Gather data
+            mob_type, country = row
+            iso3 = pycountry.countries.lookup(country).alpha_3
+            country_name = "Russian Fed." if iso3 == "RUS" else country
+            mob_source = mob_type if mob_type.startswith("fb_") else "g_mob"
+            mob_source_name = SHORT_MOB_NAMES[mob_type]
+    
+            # Plot variable process
+            proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
+            centiles = proc_samples.quantile([0.05, 0.5, 0.95], axis=1).T
+            ax = axes[r, c]
+            ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
+            ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
+    
+            # Plot mobility
+            if mob_source == "g_mob":
+                mob = get_google_mobility(iso3)[mob_type]
+            elif mob_source == "fb_visited_mob":
+                mob = get_fb_visited_mobility(iso3)
+            elif mob_source == "fb_singletile_mob":
+                mob = get_fb_singletile_mobility(iso3)
+            mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
+            smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
+            colour = G_MOB_DOMAIN_CMAP[mob_type] if mob_source == "g_mob" else MOB_COLOURS[mob_type]
+            ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
+    
+            # Finish cosmetics
+            ax.set_title(f"{country_name}, {mob_source_name}", fontsize=10.5)
+            ax.set_xticks([])
+            ax.set_yticks([])
+    fig.tight_layout()
+
+    plt.close()
+    return fig
