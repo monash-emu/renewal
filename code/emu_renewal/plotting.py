@@ -989,6 +989,10 @@ SHORT_MOB_NAMES = {
     "fb_visited_mob": "FB visit",
     "fb_singletile_mob": "FB tile",
 }
+SHORT_COUNTRY_NAMES = {
+    "Russian Federation": "Russian Fed",
+    "Dominican Republic": "Dominican Rep"
+}
 
 
 def plot_select_proc_mob(
@@ -1005,14 +1009,14 @@ def plot_select_proc_mob(
     Returns:
         The figure
     """
-    fig, axes = plt.subplots(4, 8, figsize=(13, 8))
+    fig, axes = plt.subplots(4, 8, figsize=(14, 8))
     for c, col in enumerate(panels):
         for r, row in enumerate(col):  
     
             # Gather data
             mob_type, country = row
             iso3 = pycountry.countries.lookup(country).alpha_3
-            country_name = "Russian Fed." if iso3 == "RUS" else country
+            country_name = SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
             mob_source = mob_type if mob_type.startswith("fb_") else "g_mob"
             mob_source_name = SHORT_MOB_NAMES[mob_type]
     
@@ -1036,7 +1040,7 @@ def plot_select_proc_mob(
             ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
     
             # Finish cosmetics
-            ax.set_title(f"{country_name}, {mob_source_name}", fontsize=10.5)
+            ax.set_title(f"{country_name}, {mob_source_name}", fontsize=10)
             ax.set_xticks([])
             ax.set_yticks([])
     fig.tight_layout()
