@@ -446,7 +446,7 @@ def plot_proc_comparison(
             colour = MOB_COLOURS[a]
             quants = procs[iso3][a].quantile([0.05, 0.5, 0.95], axis=1).T
             ax.plot(quants.index, quants[0.5], color=colour, label=AN_ABBREVS[a], linewidth=2.0)
-            ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.2, color=colour)
+            ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.1, color=colour)
         ax.legend()
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
