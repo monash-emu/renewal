@@ -36,7 +36,7 @@ plt.style.use("ggplot")
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
     "g_mob": "Google mobility",
-    "fb_visited_mob": "Facebook tiles visited",
+    "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",
 }
 AN_ABBREVS = {
