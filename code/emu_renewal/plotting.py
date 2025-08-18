@@ -10,6 +10,8 @@ from plotly.subplots import make_subplots
 import arviz as az
 from numpyro import distributions as dist
 from matplotlib import pyplot as plt
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import Normalize
 import pycountry
 import yaml as yml
 import pycountry_convert as pc
@@ -25,7 +27,7 @@ from emu_renewal.inputs import (
     get_country_pop,
     get_world_shp,
 )
-from emu_renewal.outputs import get_idatas_for_mob_type
+from emu_renewal.outputs import get_idatas_for_mob_type, get_prop_improve
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var
 from IPython.display import display, Markdown
@@ -1017,4 +1019,63 @@ def plot_select_proc_mob(
     fig.tight_layout()
 
     plt.close()
+    return fig
+
+
+def plot_dispersion_analysis(
+    disp_posts: Dict[str, pd.DataFrame],
+):
+    """Plot the analysis of strength of evidence
+    that including mobility is an improvement based on
+    the dispersion posterior results.
+
+    Args:
+        disp_posts: The results for the dispersion posteriors
+    """
+    plt.style.use("default")
+    world = get_world_shp()
+    
+    fig, axes = plt.subplots(2, 2, figsize=(20, 8), constrained_layout=True)
+    flat_axes = axes.ravel()
+    
+    # Strength of evidence for each mobility type panels
+    for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1:]):
+    
+        # Find the proportion of runs for which including mobility scaling is an improvement
+        prop_improve = get_prop_improve(disp_posts, analysis)
+        world["prop_improve"] = world["ISO_A3"].map(prop_improve)
+        mob_avail = world[world["prop_improve"].notna()]
+        mob_unavail = world[world["prop_improve"].isna()]
+    
+        # Plot the proportion improvements
+        ax = flat_axes[a]
+        ax.set_title(analysis_name)
+        mob_avail.plot(column="prop_improve", ax=ax, cmap="coolwarm", legend=True, vmin=0.0, vmax=1.0)
+        mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
+    
+    # Best mobility approach
+    best_mob = {c: disp_posts[c].mean().idxmin() for c in disp_posts}
+    world["best_mob"] = world["ISO_A3"].map(best_mob)
+    world["best_mob_colour"] = world["best_mob"].map(MOB_COLOURS | {"no_mob": "0.45"})
+    mob_avail = world[world["best_mob_colour"].notna()]
+    mob_unavail = world[world["best_mob_colour"].isna()]
+    
+    # Plot the best mobility approach
+    ax = flat_axes[-1]
+    
+    # Dummy colour bar to get axis in right position with constrained layout
+    sm = ScalarMappable(norm=Normalize(vmin=0, vmax=1))
+    cb = fig.colorbar(sm, ax=ax)
+    cb.ax.set_visible(False)
+    
+    mob_avail.plot(ax=ax, color=mob_avail["best_mob_colour"])
+    mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
+    ax.set_title("best analysis approach")
+    
+    # Cosmetics for all panels
+    for ax in flat_axes:
+        world.boundary.plot(ax=ax, color="black", linewidth=0.2)
+        ax.set_xticks([])
+        ax.set_yticks([])
+    
     return fig
