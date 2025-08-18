@@ -935,29 +935,11 @@ def plot_world_country_outline() -> tuple:
         The figure and its single axis
     """
     world = get_world_shp()
-    world["geometry"] = world.simplify(tolerance=0.1)
     fig, ax = plt.subplots(1, 1, figsize=(16, 6))
     ax.set_xticks([])
     ax.set_yticks([])
     world.boundary.plot(ax=ax, color="black", linewidth=0.2)
     return fig, ax, world
-
-
-def plot_prop_improve(
-    prop_improve: Dict[str, float], 
-):
-    """Plot the proportion of analyses that are an improvement
-    over the no mobility analysis based on the dispersion parameter.
-
-    Args:
-        prop_improve: The proportions by country
-    """
-    _, ax, world = plot_world_country_outline()
-    world["prop_improve"] = world["ISO_A3"].map(prop_improve)
-    mob_avail = world[world["prop_improve"].notna()]
-    mob_unavail = world[world["prop_improve"].isna()]
-    mob_avail.plot(column="prop_improve", ax=ax, cmap="coolwarm", legend=True, vmin=0.0, vmax=1.0)
-    mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
 
 
 def plot_vals_map(

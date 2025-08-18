@@ -461,4 +461,5 @@ def get_world_shp():
     for c in ["FRA", "NOR"]:
         country = pycountry.countries.lookup(c).name
         world.loc[world["ADMIN"] == country, "ISO_A3"] = c
+    world["geometry"] = world.simplify(tolerance=0.1)
     return world
