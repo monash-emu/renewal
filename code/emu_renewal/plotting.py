@@ -27,7 +27,7 @@ from emu_renewal.inputs import (
     get_country_pop,
     get_world_shp,
 )
-from emu_renewal.outputs import get_idatas_for_mob_type, get_prop_improve
+from emu_renewal.outputs import get_idatas_for_mob_type, get_prop_improve, get_param_mean_by_country
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var
 from IPython.display import display, Markdown
@@ -1024,13 +1024,15 @@ def plot_select_proc_mob(
 
 def plot_dispersion_analysis(
     disp_posts: Dict[str, pd.DataFrame],
-):
+) -> plt.figure:
     """Plot the analysis of strength of evidence
     that including mobility is an improvement based on
     the dispersion posterior results.
 
     Args:
         disp_posts: The results for the dispersion posteriors
+    Returns:
+        The figure
     """
     plt.style.use("default")
     world = get_world_shp()
@@ -1078,4 +1080,47 @@ def plot_dispersion_analysis(
         ax.set_xticks([])
         ax.set_yticks([])
     
+    return fig
+
+
+def plot_mob_exp_analysis(
+    job_path: Path,
+) -> plt.figure:
+    """Plot the mobility exponent parameters to multi-panel
+    plot by mobility analysis type.
+
+    Args:
+        job_path: Path for the runs
+
+    Returns:
+        The figure
+    """
+    plt.style.use("default")
+    world = get_world_shp()
+    
+    fig, axes = plt.subplots(2, 2, figsize=(20, 8), constrained_layout=True)
+    flat_axes = axes.ravel()
+    
+    # Strength of effect under each mobility assumption
+    for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1:]):
+    
+        # Find the mobility exponent estimate by country
+        vals = get_param_mean_by_country(job_path, "mob_exp", analysis)
+        world["vals"] = world["ISO_A3"].map(vals)
+        mob_avail = world[world["vals"].notna()]
+        mob_unavail = world[world["vals"].isna()]
+    
+        # Plot the values
+        ax = flat_axes[a]
+        colour_map = MOB_COLOURS[analysis].capitalize() + "s"
+        mob_avail.plot(ax=ax, column=mob_avail["vals"], cmap=colour_map, legend=True, vmin=0.0, vmax=2.0)
+        mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
+        
+        # Cosmetics
+        ax.set_xticks([])
+        ax.set_yticks([])
+        world.boundary.plot(ax=ax, color="black", linewidth=0.2)
+        ax.set_title(analysis_name)
+    
+    flat_axes[-1].set_visible(False)
     return fig
