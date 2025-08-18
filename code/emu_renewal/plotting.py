@@ -927,21 +927,6 @@ def get_detailed_param_results(
     return fig, stats_table
 
 
-def plot_world_country_outline() -> tuple:
-    """Create a blank figure of the countries of the world
-    from a countries geopandas dataframe.
-
-    Returns:
-        The figure and its single axis
-    """
-    world = get_world_shp()
-    fig, ax = plt.subplots(1, 1, figsize=(16, 6))
-    ax.set_xticks([])
-    ax.set_yticks([])
-    world.boundary.plot(ax=ax, color="black", linewidth=0.2)
-    return fig, ax, world
-
-
 def plot_vals_map(
     vals: Dict[str, float], 
     colour_map: str,
@@ -953,7 +938,11 @@ def plot_vals_map(
         vals: The values by country
         colour_map: matplotlib colour map
     """
-    _, ax, world = plot_world_country_outline()
+    world = get_world_shp()
+    _, ax = plt.subplots(1, 1, figsize=(16, 6))
+    ax.set_xticks([])
+    ax.set_yticks([])
+    world.boundary.plot(ax=ax, color="black", linewidth=0.2)
     world["vals"] = world["ISO_A3"].map(vals)
     mob_avail = world[world["vals"].notna()]
     mob_unavail = world[world["vals"].isna()]
