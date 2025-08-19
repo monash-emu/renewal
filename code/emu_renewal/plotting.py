@@ -5,6 +5,7 @@ import numpy as np
 from random import choice
 import pandas as pd
 import seaborn as sns
+from scipy.stats import gaussian_kde
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 import arviz as az
@@ -536,50 +537,58 @@ def get_cont_mobility(cont, countries_by_cont, mob_type):
 
 
 def plot_mob_weights_by_country(
-    job_path: Path,
-    mob_type: str,
-    mobility: Dict[str, pd.DataFrame],
+    job_path: Path, 
+    countries: List[str],
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
-    of the mobility domains implemented for the Google
-    or Apple mobility analyses.
+    of the mobility domains implemented for the Google analysis.
 
     Args:
         job_path: Path for the runs
-        mob_type: Mobility type considered
-        mobility: The mobility data by country
+        countries: The countries to plot
 
     Returns:
         The figure
     """
-    fig, axes = get_standard_subplot(len(mobility) + 1, 4)
+    x_vals = np.linspace(-0.1, 1.1, 200)
+    fig, axes = get_standard_subplot(len(countries) + 1, 4)
     flat_axes = axes.ravel()
-    linewidth = 2.0
-    for c, iso3 in enumerate(mobility):
-        c_path = job_path / iso3
-        country = pycountry.countries.lookup(iso3).name
-        idata = az.from_netcdf(c_path / f"{mob_type}/idata_filtered.nc")
+    for c, iso3 in enumerate(countries):
+    
+        # Get mobility
+        mob = get_google_mobility(iso3)
+    
+        # Get weights
+        idata = az.from_netcdf(job_path / iso3 / "g_mob/idata_filtered.nc")
         weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
-        weights.columns = mobility[iso3].columns
+        weights.columns = mob.columns
+    
+        # Plot
         ax = flat_axes[c]
-        sns.kdeplot(weights, fill=True, alpha=0.05, linewidth=linewidth, ax=ax, palette=G_MOB_DOMAIN_CMAP)
+        for l in weights.columns:
+            colour = G_MOB_DOMAIN_CMAP[l]
+            kde = gaussian_kde(weights[l])
+            ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=l, color=colour)
+            ax.fill_between(x_vals, kde(x_vals), alpha=0.1, color=colour)
+    
+        # Extra cosmetics
+        country_name = pycountry.countries.lookup(iso3).name
+        ax.set_title(country_name)    
         ax.set_yticks([])
-        ax.set_ylabel("")
-        ax.set_title(country)
-        ax.get_legend().remove()
+        legend = ax.legend()
+        legend.set_visible(False)
+    
+    # Legend on blank axis
+    handles, labels = flat_axes[0].get_legend_handles_labels()
+    flat_axes[c + 1].legend(handles=handles, labels=labels)
+    
+    # Turn off unused axes
+    for a in range(c + 1, len(flat_axes)):
+        ax = flat_axes[a]
+        ax.axis("off")
 
-    # Include axis just for legend
-    labels = [l.replace("_", " ") for l in G_MOB_DOMAIN_CMAP]
-    colours = [col.get_facecolor()[0] for col in ax.collections]
-    handles = [Line2D([0], [0], color=col, linewidth=4.0, alpha=1.0, label=l) for col, l in zip(colours, labels)]
-    flat_axes[c + 1].legend(handles=handles, loc="center", title="mobility locations")
-
-    # Switch off unused axes
-    for ax in flat_axes[c + 1:]:
-        ax.set_axis_off()
-
-    fig.tight_layout()
     plt.close()
+    fig.tight_layout()
     return fig
 
 
