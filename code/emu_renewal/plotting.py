@@ -1065,7 +1065,7 @@ def plot_dispersion_analysis(
         ax = flat_axes[a]
         ax.set_title(analysis_name)
         mob_avail.plot(column="prop_improve", ax=ax, cmap="coolwarm", legend=True, vmin=0.0, vmax=1.0)
-        mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
+        mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
     
     # Best mobility approach
     best_mob = {c: disp_posts[c].mean().idxmin() for c in disp_posts}
@@ -1126,7 +1126,7 @@ def plot_mob_exp_analysis(
         ax = flat_axes[a]
         colour_map = MOB_COLOURS[analysis].capitalize() + "s"
         mob_avail.plot(ax=ax, column=mob_avail["vals"], cmap=colour_map, legend=True, vmin=0.0, vmax=2.0)
-        mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
+        mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
         
         # Cosmetics
         ax.set_xticks([])
