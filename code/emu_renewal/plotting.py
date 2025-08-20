@@ -571,7 +571,8 @@ def plot_mob_weights_by_country(
         for l in weights.columns:
             colour = G_MOB_DOMAIN_CMAP[l]
             kde = gaussian_kde(weights[l])
-            ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=l, color=colour)
+            label = l.replace("_", " ")
+            ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
             ax.fill_between(x_vals, kde(x_vals), alpha=0.1, color=colour)
     
         # Extra cosmetics
