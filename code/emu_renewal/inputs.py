@@ -457,9 +457,8 @@ def get_world_shp():
     We obtained a shapefile for the countries of the world from
     [Natural Earth](https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_0_countries.zip).
     """
-    world = gpd.read_file(DATA_PATH / "mapping/ne_10m_admin_0_countries.shp")
+    world = gpd.read_file(DATA_PATH / "mapping/ne_110m_admin_0_countries.shp")
     for c in ["FRA", "NOR"]:
         country = pycountry.countries.lookup(c).name
         world.loc[world["ADMIN"] == country, "ISO_A3"] = c
-    world["geometry"] = world.simplify(tolerance=0.1)
     return world

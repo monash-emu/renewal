@@ -961,7 +961,7 @@ def plot_vals_map(
     mob_avail = world[world["vals"].notna()]
     mob_unavail = world[world["vals"].isna()]
     mob_avail.plot(ax=ax, column=mob_avail["vals"], cmap=colour_map, legend=True, vmin=0.0, vmax=2.0)
-    mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
+    mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
 
 
 SHORT_MOB_NAMES = {
@@ -1083,7 +1083,7 @@ def plot_dispersion_analysis(
     cb.ax.set_visible(False)
     
     mob_avail.plot(ax=ax, color=mob_avail["best_mob_colour"])
-    mob_unavail.plot(ax=ax, color="w", hatch="///", alpha=0.04)
+    mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
     ax.set_title("best analysis approach")
     
     # Cosmetics for all panels
