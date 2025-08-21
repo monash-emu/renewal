@@ -939,6 +939,7 @@ def get_detailed_param_results(
     for a in range(c + 1, len(flat_axes)):
         flat_axes[a].set_axis_off()
     fig.tight_layout()
+    plt.close()
     return fig, stats_table
 
 
