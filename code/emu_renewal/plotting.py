@@ -32,7 +32,6 @@ from emu_renewal.outputs import get_idatas_for_mob_type, get_prop_improve, get_p
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var
 from IPython.display import display, Markdown
-from matplotlib.lines import Line2D
 
 plt.style.use("ggplot")
 
@@ -106,11 +105,6 @@ G_MOB_DOMAIN_CMAP = {
     "transit_stations": "dimgrey",
     "workplaces": "purple",
     "residential": "brown",
-}
-A_MOB_DOMAIN_CMAP = {
-    "driving": "red",
-    "transit": "blue",
-    "walking": "green",
 }
 CONT_CMAP = {
     "AF": "black",
