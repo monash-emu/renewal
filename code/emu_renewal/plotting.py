@@ -45,7 +45,6 @@ from emu_renewal.inputs import (
     get_world_shp,
 )
 from emu_renewal.outputs import get_idatas_for_mob_type, get_prop_improve, get_param_mean_by_country
-from emu_renewal.calibration import StandardCalib
 from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var
 from IPython.display import display, Markdown
 
@@ -73,15 +72,15 @@ def get_standard_subplot(
 
 def plot_analysis_fit(
     spaghetti: pd.DataFrame,
-    calib_data: StandardCalib,
-    out_req: list[str],
+    targets: Dict[str, pd.Series],
+    out_req: List[str],
 ) -> go.Figure:
     """Plot model outputs and compare against targets where available.
 
     Args:
         spaghetti: Output of run_for_spaghetti
-        calib_data: _description_
-        out_req: _description_
+        targets: Calibration targets
+        out_req: Names of the outputs for plotting
 
     Returns:
         The figure
@@ -100,8 +99,8 @@ def plot_analysis_fit(
         for col in spaghetti[out].columns:
             line = go.Scatter(x=spaghetti.index, y=spaghetti[out][col], line=out_style)
             fig.add_trace(line, row=o + 1, col=1)
-        if out in calib_data:
-            target = calib_data[out]
+        if out in targets:
+            target = targets[out]
             target_scatter = go.Scatter(x=target.index, y=target, mode="markers", line=targ_style)
             fig.add_trace(target_scatter, row=o + 1, col=1)
     return fig
