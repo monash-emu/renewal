@@ -378,6 +378,9 @@ def plot_proc_comparison(
         countries: Names of the countries
         cont_name: Name of the continent considered
         path: Path to the analyses
+        
+    Returns:
+        The figure
     """
     fig, axes = plt.subplots(3, 3, figsize=[12, 14])
     flat_axes = axes.ravel()
@@ -407,45 +410,27 @@ def plot_proc_comparison(
     return fig
 
 
-def get_param_medians(
-    param_vals: Dict[str, pd.DataFrame],
-    countries: List[str],
-) -> pd.DataFrame:
-    """Get median values for a parameter
-    for presentation as a table.
-
-    Args:
-        param_vals: The parameter values by country
-        countries: Names of the countries
-
-    Returns:
-        The formatted table
-    """
-    medians = pd.DataFrame()
-    for country in countries:
-        medians[country] = param_vals[country].median()
-    to_country_name = lambda c: pycountry.countries.lookup(c).name
-    medians = medians.rename(columns=to_country_name)
-    return medians.T
-
-
 def plot_kde_comparison(
     data: Dict[str, pd.DataFrame],
-):
+) -> plt.figure:
     """Plot the comparison of the kernel density of some
     repeatedly sampled quantity (posterior or parameter)
     for each analysis type by country.
 
     Args:
         data: The values of interest for each country
+
+    Returns:
+        The figure
     """
     fig, axes = get_standard_subplot(len(data), 4)
     flat_axes = axes.ravel()
+
+    # Plot the density distribtion by country
     for c, (country, likes) in enumerate(data.items()):
         likes = likes.rename(columns=AN_ABBREVS)
-        country_name = pycountry.countries.lookup(country).name
         ax = flat_axes[c]
-        ax.set_title(country_name)
+        ax.set_title(pycountry.countries.lookup(country).name)
         colours = [MOB_COLOURS[a] for a in data[country].columns]
         sns.kdeplot(likes, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5)
         ax.set_yticks([])
