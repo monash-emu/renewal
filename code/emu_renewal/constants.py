@@ -215,3 +215,17 @@ CONT_CMAP = {
     "OC": "red",
     "SA": "purple",
 }
+SHORT_MOB_NAMES = {
+    "retail_and_recreation": "retail/rec",
+    "grocery_and_pharmacy": "groc/pharm",
+    "parks": "parks",
+    "transit_stations": "transit",
+    "workplaces": "work",
+    "residential": "resi",
+    "fb_visited_mob": "FB visit",
+    "fb_singletile_mob": "FB tile",
+}
+SHORT_COUNTRY_NAMES = {
+    "Russian Federation": "Russian Fed",
+    "Dominican Republic": "Dominican Rep"
+}

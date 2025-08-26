@@ -32,6 +32,8 @@ from emu_renewal.constants import (
     MOB_NAME_MAP,
     G_MOB_DOMAIN_CMAP,
     CONT_CMAP,
+    SHORT_MOB_NAMES,
+    SHORT_COUNTRY_NAMES,
 )
 from emu_renewal.inputs import (
     DATA_PATH,
@@ -902,22 +904,6 @@ def plot_vals_map(
     mob_unavail = world[world["vals"].isna()]
     mob_avail.plot(ax=ax, column=mob_avail["vals"], cmap=colour_map, legend=True, vmin=0.0, vmax=2.0)
     mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
-
-
-SHORT_MOB_NAMES = {
-    "retail_and_recreation": "retail/rec",
-    "grocery_and_pharmacy": "groc/pharm",
-    "parks": "parks",
-    "transit_stations": "transit",
-    "workplaces": "work",
-    "residential": "resi",
-    "fb_visited_mob": "FB visit",
-    "fb_singletile_mob": "FB tile",
-}
-SHORT_COUNTRY_NAMES = {
-    "Russian Federation": "Russian Fed",
-    "Dominican Republic": "Dominican Rep"
-}
 
 
 def plot_select_proc_mob(
