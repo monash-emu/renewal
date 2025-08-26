@@ -157,13 +157,13 @@ def find_run_end_time(iso3: str) -> datetime:
 
 def get_mobility_provider(
     iso3: str,
-    mob_type: str,
+    mob_req: str,
 ) -> mobility.MobilityProvider:
     """Get the appropriate mobility provider object.
 
     Args:
         iso3: Country identifier
-        mob_type: Mobility approach
+        mob_req: Mobility approach
 
     Returns:
         The mobility provider
@@ -194,6 +194,13 @@ def get_mobility_provider(
     [{EXP_PRIOR_LOWER}, {EXP_PRIOR_UPPER}].
     """
 
+    if mob_req.endswith("_noexp"):
+        mob_type = mob_req[:-6]
+        mob_exp = False
+    else:
+        mob_type = mob_req
+        mob_exp = True
+
     # Data processing
     if mob_type == "no_mob":
         return mobility.NoMobilityProvider()
@@ -206,7 +213,8 @@ def get_mobility_provider(
     smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
     # Priors
-    exp_prior = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
+    mob_exp_param = dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER) if mob_exp else 1.0
+    exp_prior = {"mob_exp": mob_exp_param}
     if mob_type == "g_mob":
         n_domains = len(mob.columns)
         weight_prior = {"mob_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
