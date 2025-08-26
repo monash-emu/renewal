@@ -1,6 +1,7 @@
 from typing import List, Dict
 from pathlib import Path
 import warnings
+import yaml as yml
 import numpy as np
 from random import choice
 import pandas as pd
@@ -14,7 +15,6 @@ from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 import pycountry
-import yaml as yml
 import pycountry_convert as pc
 from geopandas import GeoDataFrame
 
@@ -265,19 +265,18 @@ def plot_prior_multipost(
 def plot_imm_props(
     spaghetti: pd.DataFrame,
 ) -> go.Figure:
-    """Plot susceptible population proportions from randomly selected run.
+    """Plot susceptible population proportions from 
+    a randomly selected run from calibratin spaghetti.
 
     Args:
         spaghetti: Spaghetti
 
     Returns:
-        Figure
+        The figure
     """
-    n_strains = len([i for i in set(spaghetti.columns.get_level_values(0)) if "prop_" in i])
-    spagh = spaghetti[[f"sus_{i}" for i in range(2**n_strains)]]
-    spagh.columns = spagh.columns.swaplevel()
-    runs = list(set(spagh.columns.get_level_values(0)))
-    return spagh[choice(runs)].plot.area()
+    imm_groups = sorted([c for c in set(spaghetti.columns.get_level_values(0)) if c.startswith("sus_")])
+    run = choice(spaghetti.columns.get_level_values(1))
+    return spaghetti.xs(run, axis=1, level=1)[imm_groups].plot.area()
 
 
 def plot_beta_priors(priors):
