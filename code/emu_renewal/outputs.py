@@ -19,6 +19,7 @@ from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
 from emu_renewal.constants import MOB_COLOURS
+from emu_renewal.inputs import get_google_mobility, get_fb_visited_mobility, get_fb_singletile_mobility
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
 

@@ -600,10 +600,7 @@ def compare_proc_versus_mobility(proc_centiles, mob_types, mob_source="google"):
         centiles = proc_centiles[country]
         c_ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
         c_ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
-        if mob_source == "google":
-            mob = get_google_mobility(country)
-        elif mob_source == "apple":
-            mob = get_apple_mobility(country)
+        mob = get_google_mobility(country)
         mobility = mob.loc[mob.index < centiles.index[-1]]
         for mob_type in mob_types:
             c_ax.plot(mobility.index, mobility[mob_type], label=mob_type)
@@ -1131,4 +1128,64 @@ def plot_mob_exp_analysis(
         ax.set_title(analysis_name)
     
     flat_axes[-1].set_visible(False)
+    return fig
+
+
+def get_proc_mob_corr(
+    job_path: Path, 
+    iso3: str, 
+    mob_type: str,
+):
+    """Find the correlation between the variable process parameter 
+    and the mobility domain estimates.
+
+    Args:
+        job_path: Path for the runs
+        iso3: The country identifier
+        mob_location: The Google mobility location
+
+    Returns:
+        Correlation value
+    """
+    no_mob_path = job_path / iso3 / "no_mob"
+    procs = pd.read_hdf(no_mob_path / "spaghetti.h5", key="spaghetti")["process"]
+    mob_source = MOB_ANALYSIS_MAP[mob_type]
+    if mob_source == "g_mob":
+        mob = get_google_mobility(iso3)[mob_type]
+    elif mob_source == "fb_visited_mob":
+        mob = get_fb_visited_mobility(iso3)
+    elif mob_source == "fb_singletile_mob":
+        mob = get_fb_singletile_mobility(iso3)
+    combined_df = pd.DataFrame(
+        {
+            "mob": mob,
+            "proc": procs.median(axis=1),
+        }
+    ).dropna()
+    return combined_df.corr()["proc"]["mob"]
+
+
+def plot_proc_mob_corr(
+    corrs: Dict[str, float],
+) -> plt.figure:
+    """Plot the correlations found by the prceding function.
+
+    Args:
+        corrs: The correlations
+
+    Returns:
+        The figure
+    """
+    plt.style.use("default")
+    world = get_world_shp()
+    fig, ax = plt.subplots(1, 1, figsize=[15.5, 6])
+    world["corrs"] = world["ISO_A3"].map(corrs)
+    corr_avail = world[world["corrs"].notna()]
+    corr_unavail = world[world["corrs"].isna()]
+    corr_avail.plot(ax=ax, column=corr_avail["corrs"], cmap="coolwarm", legend=True, vmin=-1.0, vmax=1.0)
+    corr_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    world.boundary.plot(ax=ax, color="black", linewidth=0.2)
+    plt.close()
     return fig
