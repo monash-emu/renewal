@@ -279,7 +279,14 @@ def plot_imm_props(
     return spaghetti.xs(run, axis=1, level=1)[imm_groups].plot.area()
 
 
-def plot_beta_priors(priors):
+def plot_beta_priors(
+    priors: Dict[str, dict],
+):
+    """Plot the beta-distributed prior distributions
+
+    Args:
+        priors: The beta-distributed priors
+    """
     fig, axes = plt.subplots(len(priors), 1, figsize=(15, 15))
     for p, (param_name, param) in enumerate(priors.items()):
     
@@ -362,7 +369,6 @@ def plot_proc_comparison(
     countries: List[str],
     cont_name: str,
     path: Path,
-    n_cols: int,
 ) -> plt.Figure:
     """Plot the comparison of the variable processes
     across analysis types.
@@ -374,13 +380,14 @@ def plot_proc_comparison(
         path: Path to the analyses
     """
     fig, axes = plt.subplots(3, 3, figsize=[12, 14])
+    flat_axes = axes.ravel()
     title = f"Comparisons of variable process scaling under each mobility assumption, {cont_name}"
     fig.suptitle(title, fontsize=15)
-    flat_axes = axes.ravel()
+
+    # Plot results by country
     for c, iso3 in enumerate(countries):
-        country = pycountry.countries.lookup(iso3).name
         ax = flat_axes[c]
-        ax.set_title(country)
+        ax.set_title(pycountry.countries.lookup(iso3).name)
         analyses = [i.parts[-1] for i in (path / iso3).iterdir() if i.is_dir()]
         sorted_analyses = [a for a in MOB_COLOURS if a in analyses]
         for a in sorted_analyses:
