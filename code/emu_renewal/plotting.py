@@ -194,21 +194,21 @@ def plot_prior_post(
 
 
 def plot_prior_multipost(
+    iso3: str,
+    var_names: List[str],
+    priors: Dict[str, dist.Distribution],
     idatas: Dict[str, az.InferenceData],
     n_cols: int,
-    priors: Dict[str, dist.Distribution],
-    var_names: List[str],
-    iso3: str,
 ):
     """Plot comparison of parameter prior distribution
     to posterior from each mobility analysis type.
 
     Args:
+        iso3: Country identifier
+        var_names: Names of the variables to plot
+        priors: The prior distributions
         idatas: The calibration results for each analysis type
         n_cols: Number of columns for figure
-        priors: The prior distributions
-        var_names: Names of the variables to plot
-        iso3: Country identifier
     """
 
     # Preparation
