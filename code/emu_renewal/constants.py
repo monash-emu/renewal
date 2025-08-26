@@ -134,3 +134,84 @@ MOB_COLOURS = {
     "fb_visited_mob": "blue",
     "fb_singletile_mob": "red",
 }
+
+# Plotting and outputs
+ANALYSIS_NAMES = {
+    "no_mob": "no mobility",
+    "g_mob": "Google mobility",
+    "fb_visited_mob": "Facebook tiles visited mobility",
+    "fb_singletile_mob": "Facebook single tile mobility",
+}
+AN_ABBREVS = {
+    "no_mob": "none",
+    "g_mob": "Google",
+    "fb_visited_mob": "FB tiles visited",
+    "fb_singletile_mob": "FB single tile",
+}
+TARGET_TYPES = {
+    "weekly_cases": "weekly cases",
+    "weekly_deaths": "weekly deaths",
+    "weekly_admissions": "weekly admissions",
+    "occupancy": "hospital occupancy",
+    "icu_weekly_admissions": "ICU weekly admissions",
+    "icu_occupancy": "ICU occupancy",
+    "prop_alpha": "proportion Alpha",
+    "prop_delta": "proportion Delta",
+    "prop_ba2": "proportion BA.2",
+    "prop_ba5": "proportion BA.5",
+    "seropos": "seroprevalence",
+}
+VAR_NAME_MAP = {
+    "start": "starting strain",
+    "alpha": "Alpha",
+    "delta": "Delta",
+    "ba2": "BA.2",
+    "ba5": "BA.5",
+}
+INCLUSION_COLOURS = {
+    "neither": "lightgrey",
+    "Google": "green",
+    "FB": "blue",
+    "both": "purple"
+}
+MOB_ANALYSIS_MAP = {
+    "retail_and_recreation": "g_mob",
+    "grocery_and_pharmacy": "g_mob",
+    "parks": "g_mob",
+    "transit_stations": "g_mob",
+    "workplaces": "g_mob",
+    "residential": "g_mob",
+    "fb_visited_mob": "fb_visited_mob",
+    "fb_singletile_mob": "fb_singletile_mob",
+}
+MOB_NAME_MAP = {
+    "retail_and_recreation": "Google retail and recreation",
+    "grocery_and_pharmacy": "Google grocery and pharmacy",
+    "parks": "Google parks",
+    "transit_stations": "Google transit stations",
+    "workplaces": "Google workplaces",
+    "residential": "Google residential",
+    "fb_visited_mob": "Facebook tiles visited",
+    "fb_singletile_mob": "Facebook single tile",
+}
+MOB_SOURCE_MAP = {
+    "g_mob": "Google",
+    "fb_visited_mob": "Facebook tiles visited",
+    "fb_singletile_mob": "Facebook single tile",
+}
+G_MOB_DOMAIN_CMAP = {
+    "retail_and_recreation": "darkgoldenrod",
+    "grocery_and_pharmacy": "darkblue",
+    "parks": "darkgreen",
+    "transit_stations": "dimgrey",
+    "workplaces": "purple",
+    "residential": "brown",
+}
+CONT_CMAP = {
+    "AF": "black",
+    "AS": "yellow",
+    "EU": "blue",
+    "NA": "green",
+    "OC": "red",
+    "SA": "purple",
+}
