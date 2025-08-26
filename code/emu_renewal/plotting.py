@@ -156,30 +156,27 @@ def plot_multianalysis_fit(
 
 
 def plot_prior_post(
-    idata: az.InferenceData,
+    iso3: str,
     req_vars: List[str],
     priors: List[dist.Distribution],
-    iso3: str,
-    req_grid=None,
-    req_size=None,
+    idata: az.InferenceData,
 ) -> plt.figure:
     """Plot comparison of calibration posterior estimates
     for parameters against their prior distributions.
 
     Args:
-        idata: Calibration inference data
+        iso3: The country identifier
         req_vars: Names of the parameters to plot
         priors: Prior distributions for the parameters
-        req_grid: Dimensions of the subplot
-        req_size: Figure size request
+        idata: Calibration inference data
 
     Returns:
         The figure
     """
     country = pycountry.countries.lookup(iso3).name
-    grid = req_grid if req_grid else [1, len(req_vars)]
-    size = req_size if req_size else None
-    fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=size)
+    n_rows = int(np.ceil(len(priors) / 2)) + 2
+    grid = [n_rows, 2]
+    fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=[10, 40])
     for ax in fig.ravel():
         ax_limits = ax.get_xlim()
         param = ax.title.get_text().split("\n")[0]
