@@ -45,7 +45,7 @@ DATA_QUALITY_START_TIME = "1 April 2020"
 # Population-related
 POP_YEAR = 2020
 AUST_POP_YEAR = 2022
-ASSUMED_HIGH_INCOME = "French Guiana"
+ASSUMED_HIGH_INCOME = ["GUF", "MTQ"]
 
 # General indicator-related
 ZERO_IND_REPLACEMENT = 0.5

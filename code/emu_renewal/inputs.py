@@ -447,7 +447,7 @@ def get_income_group(
     [the World Bank](https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755).
 
     """
-    if iso3 == pycountry.countries.lookup(ASSUMED_HIGH_INCOME).alpha_3:
+    if iso3 in ASSUMED_HIGH_INCOME:
         return "High income"
     data = pd.read_excel(DATA_PATH / "income/CLASS.xlsx", index_col="Code")
     return data.loc[iso3, "Income group"]
