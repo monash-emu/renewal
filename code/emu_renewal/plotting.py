@@ -445,27 +445,6 @@ def plot_kde_comparison(
     return fig
 
 
-def get_cont_mobility(cont, countries_by_cont, mob_type):
-    mob = {}
-    no_mob_countries = []
-    for c in countries_by_cont[cont]:
-        country = pycountry.countries.lookup(c).name
-        try:
-            c_mob = get_google_mobility(c)
-            # Don't include one country (Guinea-Bissau) with locations missing
-            if c_mob.isnull().all().any():
-                no_mob_countries.append(country)
-            else:
-                mob[c] = c_mob
-        except:
-            no_mob_countries.append(country)
-    if no_mob_countries:
-        mob_str = AN_ABBREVS[mob_type]
-        countries_str = ", ".join(no_mob_countries)
-        display(Markdown(f"No {mob_str} mobility available for {countries_str}."))
-    return mob
-
-
 def plot_mob_weights_by_country(
     job_path: Path, 
     countries: List[str],

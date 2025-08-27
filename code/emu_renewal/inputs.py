@@ -2,7 +2,7 @@ import pandas as pd
 import geopandas as gpd
 import json
 import pycountry
-from typing import Tuple
+from typing import Tuple, List, Dict
 from emu_renewal.constants import (
     DATA_PATH,
     RAW_MOB_PATH,
@@ -176,6 +176,34 @@ def get_google_mobility(
     g_mob = pd.read_csv(DATA_PATH / filename, index_col=0)
     g_mob.index = pd.to_datetime(g_mob.index)
     return 1.0 + g_mob / 100.0
+
+
+def get_cont_g_mob(
+    countries: List[str],
+) -> Dict[str, pd.DataFrame]:
+    """Collate the Google mobility data
+    for a list of countries.
+
+    Args:
+        countries: The country identifiers
+
+    Returns:
+        The mobility data
+    """
+    mob = {}
+    no_mob_countries = []
+    for iso3 in countries:
+        try:
+            c_mob = get_google_mobility(iso3)
+            # Don't include country (Guinea-Bissau) with locations missing
+            if c_mob.isnull().all().any():
+                no_mob_countries.append(iso3)
+            else:
+                mob[iso3] = c_mob
+        except:
+            no_mob_countries.append(iso3)
+
+    return mob, no_mob_countries
 
 
 def get_fb_visited_mobility(
