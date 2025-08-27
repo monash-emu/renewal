@@ -54,6 +54,7 @@ from emu_renewal.indicators import (
     get_country_vars,
 )
 from emu_renewal.targets import Target
+from emu_renewal.utils import get_cont_of_country
 
 
 def get_logger(log_file: Path = None):
@@ -113,8 +114,7 @@ def find_run_start_time(
     deaths_data = get_who_indicator("New_deaths", iso3)
     per_capita_deaths = deaths_data / pop
     start = per_capita_deaths.index[per_capita_deaths.gt(DEATHS_START_THRESHOLD / 1e6)].min()
-    iso2 = pycountry.countries.lookup(iso3).alpha_2
-    cont = pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(iso2)
+    cont = get_cont_of_country(iso3)
     if cont == "OC":
         vacc_data = get_country_vacc_data("AUS")
         norm_vacc_data = vacc_data / vacc_data.iloc[-1]
@@ -146,11 +146,7 @@ def find_run_end_time(iso3: str) -> datetime:
     For Australia, the latest date for which
     Google mobility data was available was used.
     """
-    iso2 = pycountry.countries.lookup(iso3).alpha_2
-    if iso2 == "TL":
-        cont = "none"
-    else:
-        cont = pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(iso2)
+    cont = get_cont_of_country(iso3)
     if cont == "OC":
         try:
             mob = get_google_mobility(iso3)

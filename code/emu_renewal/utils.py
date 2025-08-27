@@ -188,3 +188,23 @@ def split_list_into_segments(
         The list segments
     """
     return [l[i: i + segment_length] for i in range(0, len(l), segment_length)]
+
+
+def get_cont_of_country(
+    iso3: str,
+) -> str:
+    """Use pycountry_convert to get the continent code
+    for a country without producing an error if none is available.
+
+    Args:
+        iso3: The country identifier
+
+    Returns:
+        The continent identifier
+    """
+    try:
+        iso2 = pycountry.countries.lookup(iso3).alpha_2
+        return pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(iso2)
+    except KeyError:
+        return "NOCONT"
+    
