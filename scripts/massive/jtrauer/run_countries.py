@@ -8,7 +8,8 @@ from emu_renewal.run import run_single_country, MobilityException, get_logger, j
 
 if __name__ == "__main__":
     jax_config_cpu_only()
-    countries = json.load(open(DATA_PATH / f"config/included.json", "r"))
+    countries = ['LUX', 'EST', 'MTQ', 'SVK', 'BFA', 'LKA']
+    # countries = json.load(open(DATA_PATH / f"config/included.json", "r"))
     task = sys.argv[1]
     array_task_id = int(sys.argv[2])
     c = countries[array_task_id - 1]  # Convert to Python indexing
