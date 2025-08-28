@@ -58,6 +58,9 @@ def gather_who_data(
     which we required for inclusion in the analysis: `New_cases` and `New_deaths`
     from the start of data availability through to the end time
     of the analysis for each country.
+    We considered data quality from {DATA_QUALITY_START_TIME_OC}
+    for countries of Oceania and from {DATA_QUALITY_START_TIME}
+    for the countries of all other continents.
     """
     death_data = {}
     case_data = {}
@@ -82,15 +85,15 @@ def gather_who_data(
 
 
 def find_absent_inds(
-    death_data: pd.Series, 
-    case_data: pd.Series, 
+    deaths: pd.Series, 
+    cases: pd.Series, 
     summary: pd.DataFrame,
 ) -> Tuple[List[str]]:
     """Find the countries for which there is no data
     available for either of the two main indicators.
 
     Args:
-        death_data, case_data: Output of gather_who_data
+        deaths, cases: Output of gather_who_data
         summary: Second output of get_mob_avail_countries
 
     Returns:
@@ -101,23 +104,25 @@ def find_absent_inds(
     -----
     Using this data, we excluded any countries 
     for which no deaths or cases were reported
-    throughout the data availability period.
+    throughout this data availability period.
     """
-    no_deaths = [c for c, d in death_data.items() if d.empty or d.max() == 0.0 or all(d.isna())]
-    no_cases = [c for c, d in case_data.items() if d.empty or d.max() == 0.0 or all (d.isna())]
+    no_deaths = [c for c, d in deaths.items() if d.empty or d.max() == 0.0 or all(d.isna())]
+    no_cases = [c for c, d in cases.items() if d.empty or d.max() == 0.0 or all (d.isna())]
     add_bool_row_to_table(summary, no_deaths, "No death data")
     add_bool_row_to_table(summary, no_cases, "No case data")
     return no_deaths, no_cases
 
 
 def find_neg_inds(
-    death_data: pd.Series, case_data: pd.Series, summary: pd.DataFrame
+    deaths: pd.Series, 
+    cases: pd.Series, 
+    summary: pd.DataFrame,
 ) -> Tuple[List[str]]:
     """Find the countries with negative values
     for either of the two main indicators.
 
     Args:
-        death_data, case_data: Output of gather_who_data
+        deaths, cases: Output of gather_who_data
         summary: Second output of get_mob_avail_countries
 
     Returns:
@@ -129,8 +134,8 @@ def find_neg_inds(
     We also excluded any countries for which any negative values were 
     present within the available data.
     """
-    neg_deaths = [c for c, d in death_data.items() if d.min() < 0.0]
-    neg_cases = [c for c, d in case_data.items() if d.min() < 0.0]
+    neg_deaths = [c for c, d in deaths.items() if d.min() < 0.0]
+    neg_cases = [c for c, d in cases.items() if d.min() < 0.0]
     add_bool_row_to_table(summary, set(neg_deaths + neg_cases), "Negative values present")
     return neg_deaths, neg_cases
 
@@ -172,7 +177,7 @@ def find_nans_repeats(
     consecutive NaN or repeated values.
 
     Args:
-        death_data, case_data: Output of gather_who_data
+        deaths, cases: Output of gather_who_data
         summary: Second output of get_mob_avail_countries
 
     Returns:
@@ -183,12 +188,16 @@ def find_nans_repeats(
 
     Notes
     -----
-    Last we excluded any countries for which several repeated values were present,
-    or the change from each value to the subsequent reported was identical
-    (within ${VARIATION_THRESHOLD}$) for several consecutive values.
-    We set the threshold number of repeated values or repeated changes for exclusion at {N_REPEATS} repeats
-    and required that these repeated values occur after {DATA_QUALITY_START_TIME} because
-    these repeated values tended to be small and less significant for calibration prior to this date.
+    Last we excluded any countries for which multiple consecutive
+    missing values were present in the surveillance data
+    because it was unclear whether these should be interpreted as
+    unavailable or as zeroes.
+    Similarly, we excluded any countries (which affected only one country)
+    for which repeated identical values were present
+    (defined as changes within ${VARIATION_THRESHOLD}$).
+    For both consecutive missing values and consecutive repeated values,
+    we set the threshold for the number of observations for exclusion
+    to be {N_REPEATS}.
     """
     death_nans = [c for c, d in deaths.items() if count_repeat_nans(d) > N_REPEATS]
     case_nans = [c for c, d in cases.items() if count_repeat_nans(d) > N_REPEATS]
