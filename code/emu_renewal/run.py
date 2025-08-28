@@ -288,8 +288,7 @@ def run_single_country(
 
     # Country identifiers
     iso3 = pycountry.countries.lookup(country).alpha_3
-    iso2 = pycountry.countries.lookup(country).alpha_2
-    continent = pc.country_alpha2_to_continent_code(iso2)
+    continent = get_cont_of_country(iso3)
 
     # Logging
     logger = logger or logging.getLogger()
