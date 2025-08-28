@@ -190,12 +190,14 @@ def find_nans_repeats(
     and required that these repeated values occur after {DATA_QUALITY_START_TIME} because
     these repeated values tended to be small and less significant for calibration prior to this date.
     """
-    start = datetime.strptime(DATA_QUALITY_START_TIME, CODE_DATE_FORMAT)
-    death_nans = [c for c, d in deaths.items() if count_repeat_nans(d[d.index > start]) > N_REPEATS]
-    case_nans = [c for c, d in cases.items() if count_repeat_nans(d[d.index > start]) > N_REPEATS]
+    death_nans = [c for c, d in deaths.items() if count_repeat_nans(d) > N_REPEATS]
+    case_nans = [c for c, d in cases.items() if count_repeat_nans(d) > N_REPEATS]
+    
+    # Excludes Nicaragua that has many ones at the end (so not worth a separate function)
     thresh = get_exp_val_from_string(VARIATION_THRESHOLD)
-    death_reps = [c for c, d in deaths.items() if has_reps(d[d.index > start], N_REPEATS, thresh)]
-    case_reps = [c for c, d in cases.items() if has_reps(d[d.index > start], N_REPEATS, thresh)]
+    death_reps = [c for c, d in deaths.items() if has_reps(d, N_REPEATS, thresh)]
+    case_reps = [c for c, d in cases.items() if has_reps(d, N_REPEATS, thresh)]
+
     exclusions = set(death_nans + case_nans + case_reps + death_reps)
     add_bool_row_to_table(summary, exclusions, "Absent or repeat values")
     return death_nans, case_nans, death_reps, case_reps
