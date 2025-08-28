@@ -3,13 +3,20 @@ import pandas as pd
 from os import listdir as ls
 from datetime import datetime
 
-from emu_renewal.constants import OUTLIER_THRESHOLD, N_REPEATS, DATA_QUALITY_START_TIME, CODE_DATE_FORMAT, VARIATION_THRESHOLD
+from emu_renewal.constants import (
+    OUTLIER_THRESHOLD, 
+    N_REPEATS, 
+    DATA_QUALITY_START_TIME, 
+    DATA_QUALITY_START_TIME_OC, 
+    CODE_DATE_FORMAT, 
+    VARIATION_THRESHOLD,
+)
 from emu_renewal.document import get_exp_val_from_string
 from emu_renewal.inputs import DATA_PATH
 from emu_renewal.indicators import get_who_indicator
 from emu_renewal.outputs import add_bool_row_to_table
 from emu_renewal.run import find_run_end_time
-from emu_renewal.utils import count_repeat_nans
+from emu_renewal.utils import count_repeat_nans, get_cont_of_country
 
 
 def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
@@ -166,12 +173,29 @@ def find_nans_repeats(
     and required that these repeated values occur after {DATA_QUALITY_START_TIME} because
     these repeated values tended to be small and less significant for calibration prior to this date.
     """
-    start = datetime.strptime(DATA_QUALITY_START_TIME, CODE_DATE_FORMAT)
-    death_nans = [c for c, d in deaths.items() if count_repeat_nans(d[d.index > start]) > N_REPEATS]
-    case_nans = [c for c, d in cases.items() if count_repeat_nans(d[d.index > start]) > N_REPEATS]
     thresh = get_exp_val_from_string(VARIATION_THRESHOLD)
-    death_reps = [c for c, d in deaths.items() if has_reps(d[d.index > start], N_REPEATS, thresh)]
-    case_reps = [c for c, d in cases.items() if has_reps(d[d.index > start], N_REPEATS, thresh)]
+    death_nans = []
+    death_reps = []
+    case_nans = []
+    case_reps = []
+    for c in deaths:
+        start_time = DATA_QUALITY_START_TIME if c in ["AUS", "NZ"] else DATA_QUALITY_START_TIME
+        start = datetime.strptime(start_time, CODE_DATE_FORMAT)
+
+        death_data = deaths[c]
+        filt_deaths = death_data[death_data.index > start]
+        if count_repeat_nans(filt_deaths) > N_REPEATS:
+            death_nans.append(c)
+        if has_reps(filt_deaths, N_REPEATS, thresh):
+            death_reps.append(c)
+
+        case_data = cases[c]
+        filt_cases = case_data[case_data.index > start]
+        if count_repeat_nans(filt_cases) > N_REPEATS:
+            case_nans.append(c)
+        if has_reps(filt_cases, N_REPEATS, thresh):
+            case_nans.append(c)
+
     exclusions = set(death_nans + case_nans + case_reps + death_reps)
     add_bool_row_to_table(summary, exclusions, "Absent or repeat values")
     return death_nans, case_nans, death_reps, case_reps
