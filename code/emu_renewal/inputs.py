@@ -12,6 +12,7 @@ from emu_renewal.constants import (
     SUB_GBR_COUNTRY,
     ASSUMED_HIGH_INCOME,
 )
+from emu_renewal.utils import get_cont_of_country
 from os import listdir as ls
 
 
@@ -61,7 +62,7 @@ def get_worldbank_national_pop(
     (because of the later analysis period for this country).
     """
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
-    year = AUST_POP_YEAR if iso3 == "AUS" else POP_YEAR
+    year = AUST_POP_YEAR if get_cont_of_country(iso3) == "OC" else POP_YEAR
     year_str = f"{year} [YR{year}]"
     return pd.read_csv(path, index_col="Country Code", na_values=[".."]).loc[iso3, year_str]
 

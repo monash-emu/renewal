@@ -24,7 +24,7 @@ from emu_renewal.constants import (
     SEROPREV_DISP,
 )
 from emu_renewal.inputs import get_income_group
-from emu_renewal.utils import get_beta_params_from_mean_var
+from emu_renewal.utils import get_beta_params_from_mean_var, get_cont_of_country
 from emu_renewal.document import get_exp_val_from_string, get_float_dict_from_str
 
 
@@ -103,7 +103,7 @@ def get_standard_priors(
         k: dist.TruncatedNormal(v["mean"], v["sd"], low=DUR_MIN, high=v["mean"] * DUR_REL_MAX)
         for k, v in loaded_priors["durations"].items()
     }
-    if iso3 == "AUS":
+    if get_cont_of_country(iso3) == "OC":
         duration_priors["gen_mean"] = duration_priors["gen_mean_oc"]
     universal_prior_names = [
         "gen_mean",
