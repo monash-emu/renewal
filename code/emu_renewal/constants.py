@@ -51,7 +51,7 @@ ASSUMED_HIGH_INCOME = "French Guiana"
 # General indicator-related
 ZERO_IND_REPLACEMENT = 0.5
 OUTLIER_THRESHOLD = 2
-N_REPEATS = 8
+N_REPEATS = 14
 ROUND_THRESHOLD = 1e-10
 SEVERITY_ADJS = (
     "Low income: 0.4, Lower middle income: 0.6, Upper middle income: 0.8, High income: 1.0"

@@ -62,16 +62,29 @@ def gather_who_data(
     death_data = {}
     case_data = {}
     for c in countries:
+
+        # Find data quality start and analysis end times
+        cont = get_cont_of_country(c)
+        start_time = DATA_QUALITY_START_TIME_OC if cont == "OC" else DATA_QUALITY_START_TIME
+        start = datetime.strptime(start_time, CODE_DATE_FORMAT)
         end_time = find_run_end_time(c)
-        data = get_who_indicator("New_deaths", c)
-        death_data[c] = data[data.index < end_time]
-        data = get_who_indicator("New_cases", c)
-        case_data[c] = data[data.index < end_time]
+
+        # Get deaths and cases data
+        deaths = get_who_indicator("New_deaths", c)
+        filter = (start < deaths.index) & (deaths.index < end_time)
+        death_data[c] = deaths[filter]
+
+        cases = get_who_indicator("New_cases", c)
+        filter = (start < cases.index) & (cases.index < end_time)
+        case_data[c] = cases[filter]
+
     return death_data, case_data
 
 
 def find_absent_inds(
-    death_data: pd.Series, case_data: pd.Series, summary: pd.DataFrame
+    death_data: pd.Series, 
+    case_data: pd.Series, 
+    summary: pd.DataFrame,
 ) -> Tuple[List[str]]:
     """Find the countries for which there is no data
     available for either of the two main indicators.
@@ -90,8 +103,8 @@ def find_absent_inds(
     for which no deaths or cases were reported
     throughout the data availability period.
     """
-    no_deaths = [c for c, d in death_data.items() if d.size == 0 or d.max() == 0.0]
-    no_cases = [c for c, d in case_data.items() if d.size == 0 or d.max() == 0.0]
+    no_deaths = [c for c, d in death_data.items() if d.empty or d.max() == 0.0 or all(d.isna())]
+    no_cases = [c for c, d in case_data.items() if d.empty or d.max() == 0.0 or all (d.isna())]
     add_bool_row_to_table(summary, no_deaths, "No death data")
     add_bool_row_to_table(summary, no_cases, "No case data")
     return no_deaths, no_cases
@@ -123,13 +136,15 @@ def find_neg_inds(
 
 
 def find_outliers(
-    death_data: pd.Series, case_data: pd.Series, summary: pd.DataFrame
+    deaths: pd.Series, 
+    cases: pd.Series, 
+    summary: pd.DataFrame,
 ) -> Tuple[List[str]]:
     """Find the countries with outlier values
     for either of the two main indicators.
 
     Args:
-        death_data, case_data: Output of gather_who_data
+        deaths, cases: Outputs of gather_who_data
         summary: Second output of get_mob_avail_countries
 
     Returns:
@@ -142,14 +157,16 @@ def find_outliers(
     which we defined as a single value that was more than {OUTLIER_THRESHOLD}
     times greater than the next highest estimate present during the analysis period.
     """
-    death_outliers = [c for c, d in death_data.items() if has_outlier(d, OUTLIER_THRESHOLD)]
-    case_outliers = [c for c, d in case_data.items() if has_outlier(d, OUTLIER_THRESHOLD)]
+    death_outliers = [c for c, d in deaths.items() if has_outlier(d, OUTLIER_THRESHOLD)]
+    case_outliers = [c for c, d in cases.items() if has_outlier(d, OUTLIER_THRESHOLD)]
     add_bool_row_to_table(summary, set(death_outliers + case_outliers), "Outlier values present")
     return death_outliers, case_outliers
 
 
 def find_nans_repeats(
-    deaths: pd.Series, cases: pd.Series, summary: pd.DataFrame
+    deaths: pd.Series, 
+    cases: pd.Series, 
+    summary: pd.DataFrame,
 ) -> Tuple[List[str]]:
     """Find the countries to excluded based on
     consecutive NaN or repeated values.
@@ -173,29 +190,12 @@ def find_nans_repeats(
     and required that these repeated values occur after {DATA_QUALITY_START_TIME} because
     these repeated values tended to be small and less significant for calibration prior to this date.
     """
+    start = datetime.strptime(DATA_QUALITY_START_TIME, CODE_DATE_FORMAT)
+    death_nans = [c for c, d in deaths.items() if count_repeat_nans(d[d.index > start]) > N_REPEATS]
+    case_nans = [c for c, d in cases.items() if count_repeat_nans(d[d.index > start]) > N_REPEATS]
     thresh = get_exp_val_from_string(VARIATION_THRESHOLD)
-    death_nans = []
-    death_reps = []
-    case_nans = []
-    case_reps = []
-    for c in deaths:
-        start_time = DATA_QUALITY_START_TIME if c in ["AUS", "NZ"] else DATA_QUALITY_START_TIME
-        start = datetime.strptime(start_time, CODE_DATE_FORMAT)
-
-        death_data = deaths[c]
-        filt_deaths = death_data[death_data.index > start]
-        if count_repeat_nans(filt_deaths) > N_REPEATS:
-            death_nans.append(c)
-        if has_reps(filt_deaths, N_REPEATS, thresh):
-            death_reps.append(c)
-
-        case_data = cases[c]
-        filt_cases = case_data[case_data.index > start]
-        if count_repeat_nans(filt_cases) > N_REPEATS:
-            case_nans.append(c)
-        if has_reps(filt_cases, N_REPEATS, thresh):
-            case_nans.append(c)
-
+    death_reps = [c for c, d in deaths.items() if has_reps(d[d.index > start], N_REPEATS, thresh)]
+    case_reps = [c for c, d in cases.items() if has_reps(d[d.index > start], N_REPEATS, thresh)]
     exclusions = set(death_nans + case_nans + case_reps + death_reps)
     add_bool_row_to_table(summary, exclusions, "Absent or repeat values")
     return death_nans, case_nans, death_reps, case_reps
