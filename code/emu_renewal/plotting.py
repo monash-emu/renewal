@@ -947,7 +947,7 @@ def get_proc_mob_corr(
     Args:
         job_path: Path for the runs
         iso3: The country identifier
-        mob_location: The Google mobility location
+        mob_type: The Google mobility location
 
     Returns:
         Correlation value
@@ -955,12 +955,7 @@ def get_proc_mob_corr(
     no_mob_path = job_path / iso3 / "no_mob"
     procs = pd.read_hdf(no_mob_path / "spaghetti.h5", key="spaghetti")["process"]
     mob_source = MOB_ANALYSIS_MAP[mob_type]
-    if mob_source == "g_mob":
-        mob = get_google_mobility(iso3)[mob_type]
-    elif mob_source == "fb_visited_mob":
-        mob = get_fb_visited_mobility(iso3)
-    elif mob_source == "fb_singletile_mob":
-        mob = get_fb_singletile_mobility(iso3)
+    mob = get_requested_mob(iso3, mob_source, mob_type)
     combined_df = pd.DataFrame(
         {
             "mob": mob,
