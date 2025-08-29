@@ -5,7 +5,7 @@
 #SBATCH --account=sh30
 
 # The maximum allowed time for a job to run
-#SBATCH --time=08:00:00
+#SBATCH --time=10:00:00
 
 # 
 #SBATCH --ntasks=1
