@@ -621,52 +621,6 @@ def compare_proc_mob(
     return fig
 
 
-def plot_param_posts_for_countries(
-    param: str,
-    idatas: Dict[str, az.InferenceData],
-    fv_idatas: Dict[str, az.InferenceData],
-    n_cols: int,
-) -> plt.figure:
-    """Plot the posteriors of a specified
-    parameter from inference data objects by country.
-
-    Args:
-        idatas: The inference data objects, output of get_idatas_for_mob_type
-        n_cols: Number of columns for figure
-
-    Returns:
-        The figure
-        The high-density intervals
-        The means
-    """
-    means = {}
-    hdis = {}
-    fig, axes = get_standard_subplot(len(idatas), n_cols)
-    axes = axes.ravel()
-    for c, iso3 in enumerate(idatas):
-        ax=axes[c]
-        fv_idata = fv_idatas[iso3]
-        post_plot = az.plot_posterior(fv_idata, var_names=param, ax=ax, point_estimate=None, hdi_prob="hide")
-
-    for c, iso3 in enumerate(idatas):
-        idata = idatas[iso3]
-        country = pycountry.countries.lookup(iso3).name
-        ax = axes[c]
-        post_plot = az.plot_posterior(idata, var_names=param, ax=ax, point_estimate=None, hdi_prob="hide")
-        line_data = post_plot.get_lines()[0]
-        post_plot.fill_between(line_data.get_xdata(), line_data.get_ydata(), alpha=0.2)
-        ax.set_xlim([0.0, 2.0])
-        ax.set_title(country)
-        means[iso3] = az.summary(idata, var_names="mob_exp", kind="stats")["mean"].values[0]
-        hdis[iso3] = az.hdi(idata, var_names="mob_exp", hdi_prob=0.95).to_pandas()[param]
-
-    for a in range(c + 1, len(axes)):
-        axes[a].set_axis_off()
-    fig.tight_layout()
-    plt.close()
-    return fig, means, hdis
-
-
 def get_mob_exp_gdp_df(
     job_path: Path,
     countries: List[str],
@@ -756,8 +710,14 @@ def plot_mob_exp_versus_gdp(
 
 def plot_inclusion(
     world: GeoDataFrame,
-):
+) -> plt.figure:
     """Plot inclusion status of countries based on mobility.
+
+    Args:
+        world: Countries of the world Geopandas dataframe
+
+    Returns:
+        The figure
     """
     fig, ax = plt.subplots(1, 1, figsize=(20, 10))
     ax.set_xticks([])
