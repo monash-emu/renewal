@@ -793,56 +793,6 @@ def get_delta_info(
     return ["delta"], {"prop_delta": SharedPropTarget(target, weight=weight)}, [var_start]
 
 
-def get_ba2_target(
-    var_data,
-) -> pd.Series:
-    """Get the proportion data for Omicron BA.2.
-
-    Args:
-        var_data: All the variant data for the country
-
-    Returns:
-        The data
-
-    Notes
-    -----
-    The BA.2 calibration target for Australia
-    used the data available from {BA2_PERIOD_START}
-    to {BA2_PERIOD_END}.
-    """
-    data = extract_specific_var(var_data, "ba2")
-    ba2_start = datetime.strptime(BA2_PERIOD_START, CODE_DATE_FORMAT)
-    ba2_end = datetime.strptime(BA2_PERIOD_END, CODE_DATE_FORMAT)
-    mask = (ba2_start < data.index) & (data.index < ba2_end)
-    filt_data = data[mask]
-    return filt_data["ba2_prop"]
-
-
-def get_ba5_target(
-    var_data,
-) -> pd.Series:
-    """Get the proportion data for Omicron BA.5.
-
-    Args:
-        var_data: All the variant data for the country
-
-    Returns:
-        The data
-
-    Notes
-    -----
-    The BA.5 calibration target for Australia
-    used the data available from {BA5_PERIOD_START}
-    to {BA5_PERIOD_END}.
-    """
-    data = extract_specific_var(var_data, "ba5")
-    ba5_start = datetime.strptime(BA5_PERIOD_START, CODE_DATE_FORMAT)
-    ba5_end = datetime.strptime(BA5_PERIOD_END, CODE_DATE_FORMAT)
-    mask = (ba5_start < data.index) & (data.index < ba5_end)
-    filt_data = data[mask]
-    return filt_data["ba5_prop"]
-
-
 def get_ba2_info(
     var_data: pd.Series,
     continent: str,
@@ -861,12 +811,19 @@ def get_ba2_info(
 
     Notes
     -----
-    A calibration target for Omicron BA.2 was only included for Australia.
+    A calibration target for Omicron BA.2 was only included for Oceania.
     As for other variants, the target weight for BA.2 was set to be {VAR_WEIGHT}.
+    The BA.2 calibration target for countries of Oceania
+    used the data available from {BA2_PERIOD_START}
+    to {BA2_PERIOD_END}.
     """
     if continent != "OC":
         return [], {}, []
-    data = get_ba2_target(var_data)
+    data = get_var_target(var_data, continent, "ba2")
+    ba2_start = datetime.strptime(BA2_PERIOD_START, CODE_DATE_FORMAT)
+    ba2_end = datetime.strptime(BA2_PERIOD_END, CODE_DATE_FORMAT)
+    mask = (ba2_start < data.index) & (data.index < ba2_end)
+    data = data[mask]["ba2_prop"]
     var_start = data.index[0]
     return ["ba2"], {"prop_ba2": SharedPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
 
@@ -889,11 +846,18 @@ def get_ba5_info(
 
     Notes
     -----
-    As for BA.2, a calibration target for Omicron BA.5 was only included for Australia.
+    As for BA.2, a calibration target for Omicron BA.5 was only included for Oceania.
     As for other variants, the target weight for BA.5 was set to be {VAR_WEIGHT}.
+    The BA.5 calibration target for countries of Oceania
+    used the data available from {BA5_PERIOD_START}
+    to {BA5_PERIOD_END}.
     """
     if continent != "OC":
         return [], {}, []
-    data = get_ba5_target(var_data)
+    data = get_var_target(var_data, continent, "ba5")
+    ba5_start = datetime.strptime(BA5_PERIOD_START, CODE_DATE_FORMAT)
+    ba5_end = datetime.strptime(BA5_PERIOD_END, CODE_DATE_FORMAT)
+    mask = (ba5_start < data.index) & (data.index < ba5_end)
+    data = data[mask]["ba5_prop"]
     var_start = data.index[0]
     return ["ba5"], {"prop_ba5": SharedPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
