@@ -738,7 +738,7 @@ def get_detailed_param_results(
 
     Args:
         job_path: Path for the runs
-        countries: The countries to analyse
+        countries: The country identifiers
         param: The name of the parameter
 
     Returns:
@@ -746,7 +746,6 @@ def get_detailed_param_results(
     """
     mob_types = [k for k in AN_ABBREVS if k != "no_mob"]
     i_datas = {}
-    table_info = {}
     for mob_type in mob_types:
         idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
         i_datas[mob_type] = idatas
@@ -754,54 +753,34 @@ def get_detailed_param_results(
     fig, axes = get_standard_subplot(len(all_countries), 4)
     flat_axes = axes.ravel()
     table_info = pd.DataFrame(columns=mob_types)
+    
     for c, country in enumerate(all_countries):
         country_name = pycountry.countries.lookup(country).name
-        c_ax = flat_axes[c]
+        ax = flat_axes[c]
         for mob_type in mob_types:
             m_idatas = i_datas[mob_type]
             colour = MOB_COLOURS[mob_type]
             if country in m_idatas:
                 c_idata = m_idatas[country]
-                post_plot = az.plot_posterior(c_idata, var_names=param, ax=c_ax, point_estimate=None, hdi_prob="hide", color=colour)
+                post_plot = az.plot_posterior(c_idata, var_names=param, ax=ax, point_estimate=None, hdi_prob="hide", color=colour)
                 line_data = post_plot.get_lines()[-1]
                 post_plot.fill_between(line_data.get_xdata(), line_data.get_ydata(), alpha=0.1, color=MOB_COLOURS[mob_type])
                 mean = az.summary(c_idata, var_names=param, kind="stats")["mean"].values[0]
                 table_info.loc[country_name, mob_type] = mean
-        c_ax.set_title(country_name)
-        c_ax.set_xlim([0.0, 2.0])
-        c_ax.set_xticks(np.linspace(0.0, 2.0, 5))
-        c_ax.tick_params(labelsize=9)
-    stats_table = pd.DataFrame(table_info)
-    stats_table = stats_table.mask(stats_table.isna(), "no analysis")
-    stats_table = stats_table.rename(columns=ANALYSIS_NAMES)
+        ax.set_title(country_name)
+        ax.set_xlim([0.0, 2.0])
+        ax.set_xticks(np.linspace(0.0, 2.0, 5))
+        ax.tick_params(labelsize=9)
+    
+    table_info = table_info.mask(table_info.isna(), "no analysis")
+    table_info = table_info.rename(columns=ANALYSIS_NAMES)
+    
     for a in range(c + 1, len(flat_axes)):
         flat_axes[a].set_axis_off()
+
     fig.tight_layout()
     plt.close()
-    return fig, stats_table
-
-
-def plot_vals_map(
-    vals: Dict[str, float], 
-    colour_map: str,
-):
-    """Plot the values provided by country
-    onto a map of the world.
-
-    Args:
-        vals: The values by country
-        colour_map: matplotlib colour map
-    """
-    world = get_world_shp()
-    _, ax = plt.subplots(1, 1, figsize=(16, 6))
-    ax.set_xticks([])
-    ax.set_yticks([])
-    world.boundary.plot(ax=ax, color="black", linewidth=0.2)
-    world["vals"] = world["ISO_A3"].map(vals)
-    mob_avail = world[world["vals"].notna()]
-    mob_unavail = world[world["vals"].isna()]
-    mob_avail.plot(ax=ax, column=mob_avail["vals"], cmap=colour_map, legend=True, vmin=0.0, vmax=2.0)
-    mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
+    return fig, table_info
 
 
 def plot_select_proc_mob(
