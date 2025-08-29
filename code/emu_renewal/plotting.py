@@ -448,21 +448,18 @@ def plot_kde_comparison(
 def plot_mob_weights_by_country(
     job_path: Path, 
     countries: List[str],
-    fig: plt.figure,
-    axes: plt.axis,
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
     of the mobility domains implemented for the Google analysis.
 
     Args:
         job_path: Path for the runs
-        countries: The countries to plot
-        fig: The figure to plot on
-        axes: The axes to plot on
+        countries: The countries identifiers
 
     Returns:
         The figure
     """
+    fig, axes = get_standard_subplot(len(countries) + 1, 4)
     x_vals = np.linspace(-0.1, 1.1, 200)
     flat_axes = axes.ravel()
     for c, iso3 in enumerate(countries):
