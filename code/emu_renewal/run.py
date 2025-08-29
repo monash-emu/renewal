@@ -20,7 +20,7 @@ from emu_renewal.constants import (
     DEFAULT_END_DATE,
     DEFAULT_START_DATE,
     END_VACC_THRESHOLD,
-    START_VACC_THRESHOLD_AUS,
+    START_VACC_THRESHOLD_OC,
     DEATHS_START_THRESHOLD,
     MOBILITY_SMOOTH_PERIOD,
     EXP_PRIOR_LOWER,
@@ -108,7 +108,7 @@ def find_run_start_time(
     However, if this threshold was not reached by {DEFAULT_START_DATE},
     the simulation commenced at this default time instead.
     For Australia, the simulation commenced from
-    the time that vaccination reached {START_VACC_THRESHOLD_AUS}%
+    the time that vaccination reached {START_VACC_THRESHOLD_OC}%
     of its final value.
     """
     deaths_data = get_who_indicator("New_deaths", iso3)
@@ -118,14 +118,17 @@ def find_run_start_time(
     if cont == "OC":
         vacc_data = get_country_vacc_data(iso3)
         norm_vacc_data = vacc_data / vacc_data.iloc[-1]
-        return norm_vacc_data[norm_vacc_data.gt(START_VACC_THRESHOLD_AUS / 100.0)].idxmin()
+        return norm_vacc_data[norm_vacc_data.gt(START_VACC_THRESHOLD_OC / 100.0)].idxmin()
     elif pd.isna(start) or start > datetime.strptime(DEFAULT_START_DATE, CODE_DATE_FORMAT):
         return datetime.strptime(DEFAULT_START_DATE, CODE_DATE_FORMAT)
     else:
         return start
 
 
-def find_run_end_time(iso3: str) -> datetime:
+def find_run_end_time(
+    iso3: str,
+    mob_type: str,
+) -> datetime:
     """Find the end time for the analysis.
 
     Args:
@@ -147,12 +150,12 @@ def find_run_end_time(iso3: str) -> datetime:
     Google mobility data was available was used.
     """
     cont = get_cont_of_country(iso3)
-    if cont == "OC":
-        try:
-            mob = get_google_mobility(iso3)
-            return mob.index[-1].to_pydatetime()
-        except:
-            pass
+    if cont == "OC" and "fb_" in mob_type:
+        mob = get_fb_visited_mobility(iso3)
+        return mob.index[-1].to_pydatetime()
+    elif cont == "OC":
+        mob = get_google_mobility(iso3)
+        return mob.index[-1].to_pydatetime()
     vacc_data = get_country_vacc_data(iso3)
     default_end_time = datetime.strptime(DEFAULT_END_DATE, CODE_DATE_FORMAT)
     if vacc_data.empty or vacc_data.max() < END_VACC_THRESHOLD:
@@ -201,7 +204,7 @@ def get_mobility_provider(
     """
 
     # Data processing
-    if mob_type == "no_mob":
+    if mob_type in ["no_mob", "fb_no_mob"]:
         return mobility.NoMobilityProvider()
     elif mob_type == "g_mob":
         mob = get_google_mobility(iso3)
@@ -303,7 +306,7 @@ def run_single_country(
     # Population size and analysis time
     pop = get_country_pop(iso3)
     data_start = find_run_start_time(pop, iso3)
-    end_time = find_run_end_time(iso3)
+    end_time = find_run_end_time(iso3, mob_type)
     run_start = data_start - timedelta(RUN_DATA_DELAY)
     start_str = run_start.strftime(DATE_FORMAT)
     end_str = data_start.strftime(DATE_FORMAT)
