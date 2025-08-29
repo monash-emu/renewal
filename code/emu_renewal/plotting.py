@@ -40,6 +40,7 @@ from emu_renewal.inputs import (
     get_google_mobility,
     get_fb_visited_mobility,
     get_fb_singletile_mobility,
+    get_requested_mob,
     get_gdps,
     get_country_pop,
     get_world_shp,
@@ -565,15 +566,6 @@ def plot_mob_weights_by_country(
     return fig
 
 
-def get_requested_mob(iso3, mob_source, mob_type):
-    if mob_source == "g_mob":
-        return get_google_mobility(iso3)[mob_type]
-    elif mob_source == "fb_visited_mob":
-        return get_fb_visited_mobility(iso3)
-    elif mob_source == "fb_singletile_mob":
-        return get_fb_singletile_mobility(iso3)
-
-
 def compare_proc_mob(
     job_path: Path,
     countries: List[str],
@@ -600,6 +592,7 @@ def compare_proc_mob(
     for c, iso3 in enumerate(countries):
         ax = flat_axes[c]
         country = pycountry.countries.lookup(iso3).name
+        ax.set_title(country)
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
         # Variable process plotting
@@ -618,7 +611,6 @@ def compare_proc_mob(
         smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
         colour = G_MOB_DOMAIN_CMAP[mob_type] if mob_source == "g_mob" else MOB_COLOURS[mob_type]
         ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
-        ax.set_title(country)
 
     # Switch off unused axes
     for ax in flat_axes[c + 1 :]:
@@ -885,12 +877,7 @@ def plot_select_proc_mob(
             ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
     
             # Plot mobility
-            if mob_source == "g_mob":
-                mob = get_google_mobility(iso3)[mob_type]
-            elif mob_source == "fb_visited_mob":
-                mob = get_fb_visited_mobility(iso3)
-            elif mob_source == "fb_singletile_mob":
-                mob = get_fb_singletile_mobility(iso3)
+            mob = get_requested_mob(iso3, mob_source, mob_type)
             mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
             smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
             colour = G_MOB_DOMAIN_CMAP[mob_type] if mob_source == "g_mob" else MOB_COLOURS[mob_type]

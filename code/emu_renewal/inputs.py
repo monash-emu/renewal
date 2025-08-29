@@ -255,6 +255,30 @@ def get_fb_singletile_mobility(
     return 1.0 - mob
 
 
+def get_requested_mob(
+    iso3: str, 
+    mob_source: str, 
+    mob_type: str,
+) -> pd.DataFrame:
+    """Get the mobility data based on the type
+    source and type of data being requested.
+
+    Args:
+        iso3: The country identifier
+        mob_source: The source, either Google or a Facebook type
+        mob_type: The Google location
+
+    Returns:
+        The mobility data
+    """
+    if mob_source == "g_mob":
+        return get_google_mobility(iso3)[mob_type]
+    elif mob_source == "fb_visited_mob":
+        return get_fb_visited_mobility(iso3)
+    elif mob_source == "fb_singletile_mob":
+        return get_fb_singletile_mobility(iso3)
+    
+
 def get_country_vacc_data(
     iso3: str,
 ) -> pd.DataFrame:
