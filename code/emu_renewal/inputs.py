@@ -376,7 +376,7 @@ def pool_totals(
 
 def get_incr_pooled_totals(
     data: pd.DataFrame,
-    var_name: str = "prealpha",
+    var_name: str,
 ) -> pd.DataFrame:
     """Combines the two preceding functions
     to get the totals after pooling to remove
