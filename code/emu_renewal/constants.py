@@ -42,6 +42,7 @@ BA5_PERIOD_START = "1 April 2022"
 BA5_PERIOD_END = "1 September 2022"
 DATA_QUALITY_START_TIME = "1 April 2020"
 DATA_QUALITY_START_TIME_OC = "1 November 2021"
+NO_CONT_COUNTRIES = ["ATA", "ATF", "ESH", "PCN", "SXM", "TLS", "UMI", "VAT"]
 
 # Population-related
 POP_YEAR = 2020

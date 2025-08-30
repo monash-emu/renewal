@@ -38,6 +38,7 @@ from emu_renewal.constants import (
     MIN_VAR_DATES,
     PREALPHA_IDENTIFIERS,
     BA2_IDENTIFIER,
+    NO_CONT_COUNTRIES,
 )
 from emu_renewal.inputs import (
     get_income_group,
@@ -46,6 +47,7 @@ from emu_renewal.inputs import (
     find_decreasing_groups,
 )
 from emu_renewal.targets import SharedDispTarget, UnivariateDispersionTarget, SharedPropTarget
+from emu_renewal.utils import get_cont_of_country
 
 
 def get_date_dict_from_str(
@@ -621,12 +623,10 @@ def get_continent_data(
     Returns:
         The data by country of the continent of interest
     """
-    no_cont_countries = ["AQ", "TF", "EH", "PN", "SX", "TL", "UM", "VA"]
-    countries = [c for c in pycountry.countries if c.alpha_2 not in no_cont_countries]
+    countries = [c.alpha_3 for c in pycountry.countries if c.alpha_3 not in NO_CONT_COUNTRIES]
     cont_data = {}
-    for c in countries:
-        if pc.country_alpha2_to_continent_code(c.alpha_2) == cont:
-            iso3 = c.alpha_3
+    for iso3 in countries:
+        if get_cont_of_country(iso3) == cont:
             var_data = get_country_vars(iso3)
             cont_data[iso3] = extract_specific_var(var_data, var)
     return cont_data
