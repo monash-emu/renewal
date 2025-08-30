@@ -2,8 +2,8 @@ from typing import List, Tuple, Dict, Union
 from datetime import datetime, timedelta
 import pandas as pd
 import pycountry
-from numpyro import distributions as dist
 import pycountry_convert as pc
+from numpyro import distributions as dist
 from os import listdir as ls
 
 from emu_renewal.constants import (
@@ -210,32 +210,45 @@ def get_owid_hosps(
     That is, the highest ranked indicator was used based on data availability,
     and no hospital indicator was incorporated if none was available.
     """
+
+    # Gather indicators
     admits = get_owid_hosp_series("Weekly new hospital admissions", country)
     filt_admits = admits[(start < admits.index) & (admits.index < end) & (admits > 0.0)]
+
     occup = get_owid_hosp_series("Daily hospital occupancy", country)
     filt_occup = occup[(start < occup.index) & (occup.index < end)]
+
     icu_admits = get_owid_hosp_series("Weekly new ICU admissions", country)
     filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
+
     icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
     filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
+
+    # Hierarchically return the best one
     if not filt_admits.empty and country in ALREADY_WEEKLY_ADMIT_COUNTRIES:
         weekly_admits = filt_admits.dropna()
         return weekly_admits, "weekly_admissions"
+
     elif not filt_admits.empty:
         weekly_admits = filt_admits.rolling(7).mean()[::7].dropna()
         return weekly_admits, "weekly_admissions"
+
     elif not filt_occup.empty and country in ALREADY_WEEKLY_OCCUP_COUNTRIES:
         weekly_occup = filt_occup.dropna()
         return weekly_occup, "occupancy"
+
     elif not filt_occup.empty:
         weekly_occup = filt_occup.rolling(7).mean()[::7].dropna()
         return weekly_occup, "occupancy"
+
     elif not filt_icu_admits.empty:
         weekly_icu_admits = filt_icu_admits.rolling(7).mean()[::7].dropna()
         return weekly_icu_admits, "icu_weekly_admissions"
+
     elif not filt_icu_occup.empty:
         weekly_icu_occup = filt_icu_occup.rolling(7).mean()[::7].dropna()
         return weekly_icu_occup, "icu_occupancy"
+
     else:
         return None, ""
 
@@ -403,9 +416,9 @@ def get_seroprev_pooled_totals(
 
 def get_seroprev_target(
     iso3: str,
+    continent: str,
     start: datetime,
     end: datetime,
-    continent: str,
 ) -> Dict[str, UnivariateDispersionTarget]:
     """Construct the seroprevalence calibration target.
 

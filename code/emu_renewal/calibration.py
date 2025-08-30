@@ -1,14 +1,14 @@
+from warnings import warn
 import numpy as np
+from functools import partial
 import numpyro
 from jax import numpy as jnp
 from numpyro import distributions as dist
 from numpyro import infer
-from functools import partial
-from warnings import warn
 
+from emu_renewal.constants import INIT_RADIUS, PROC_DISP_SD
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.targets import Target
-from emu_renewal.constants import INIT_RADIUS, PROC_DISP_SD
 
 
 ParamDict = dict[str, dist.Distribution | float]

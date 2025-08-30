@@ -4,7 +4,6 @@ import pyproj
 import pandas as pd
 import polars as pl
 import numpy as np
-import pycountry
 import shapely as shp
 import json
 import urllib.request

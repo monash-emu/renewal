@@ -320,7 +320,7 @@ def run_single_country(
     n_deaths, deaths_targ = get_deaths_target(iso3, data_start, end_time)
     cases_targ = get_cases_target(iso3, data_start, end_time, n_deaths)
     hosp_targ = get_hosp_target(iso3, data_start, end_time, n_deaths)
-    seroprev_targ = get_seroprev_target(iso3, data_start, end_time, continent)
+    seroprev_targ = get_seroprev_target(iso3, continent, data_start, end_time)
 
     # Variants
     var_data = get_country_vars(iso3)

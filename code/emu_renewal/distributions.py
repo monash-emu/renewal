@@ -28,7 +28,8 @@ class GammaDens(Dens):
         mean: float,
         sd: float,
     ) -> Dict[str, float]:
-        """See get_desc below.
+        """Get parameters to a gamma distribution
+        based on the summary statistics.
 
         Args:
             mean: Requested mean
@@ -46,7 +47,7 @@ class GammaDens(Dens):
         from the epidemiologically determined
         mean and standard deviation.
         """
-        var = sd**2.0
+        var = sd ** 2.0
         scale = var / mean
         a = mean / scale
         return {"a": a, "scale": scale}
