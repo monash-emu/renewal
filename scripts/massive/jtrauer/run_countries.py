@@ -9,7 +9,8 @@ from emu_renewal.utils import get_cont_of_country
 
 if __name__ == "__main__":
     jax_config_cpu_only()
-    countries = json.load(open(DATA_PATH / f"config/included.json", "r"))
+    # countries = json.load(open(DATA_PATH / f"config/included.json", "r"))
+    countries = ["BGD", "MDA"]
     task = sys.argv[1]
     array_task_id = int(sys.argv[2])
     c = countries[array_task_id - 1]  # Convert to Python indexing
@@ -17,7 +18,8 @@ if __name__ == "__main__":
     country_path.mkdir(parents=True, exist_ok=True)
     logger = get_logger(country_path / "run.log")
     cont = get_cont_of_country(c)
-    analyses = ANALYSIS_TYPES + ["fb_no_mob"] if cont == "OC" else ANALYSIS_TYPES
+    # analyses = ANALYSIS_TYPES + ["fb_no_mob"] if cont == "OC" else ANALYSIS_TYPES
+    analyses = ["fb_singletile_mob"]
     for mob_type in analyses:
         try:
             run_single_country(c, mob_type, task, logger=logger)
