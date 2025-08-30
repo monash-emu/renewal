@@ -739,17 +739,27 @@ def get_alpha_info(
     to Alpha were recursively pooled to ensure they were strictly increasing.
     The target weight for the Alpha target was set to be {VAR_WEIGHT}.
     """
+
+    # Don't apply Alpha for Oceania or Africa
     if continent in ["OC", "AF"]:
         return [], {}, []
+
+    # Get the Alpha data    
     data = get_var_target(var_data, continent, "alpha")
+    
+    # Find the start and end times for the Alpha period
     alpha_start = datetime.strptime(ALPHA_PERIOD_START, CODE_DATE_FORMAT)
     ad_trans_req = datetime.strptime(ALPHA_DELTA_TRANS, CODE_DATE_FORMAT)
     ad_excepts = get_date_dict_from_str(ALPHA_DELTA_EXCEPTS)
     ad_trans = ad_excepts[iso3] if iso3 in ad_excepts else ad_trans_req
     alpha_end = min([ad_trans, end_time]) if delta_targ else end_time
+
+    # Filter and ensure strictly increasing    
     mask = (alpha_start < data.index) & (data.index < alpha_end)
     target = get_incr_pooled_totals(data[mask], "alpha")["alpha_prop"]
     var_start = target.index[0]
+
+    # Three pieces of information needed for analysis  
     return ["alpha"], {"prop_alpha": SharedPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
 
 
@@ -787,15 +797,21 @@ def get_delta_info(
     fit to the profile of the emergence of this variant with
     fewer data points.
     """
+
+    # Find the Delta periods
     delta_inc_date = datetime.strptime(DELTA_INCLUSION_DATE, CODE_DATE_FORMAT)
     delta_end_date = datetime.strptime(DELTA_PERIOD_END, CODE_DATE_FORMAT)
     ad_trans = datetime.strptime(ALPHA_DELTA_TRANS, CODE_DATE_FORMAT)
     if continent == "OC" or end_time < delta_inc_date:
         return [], {}, []
     data = get_var_target(var_data, continent, "delta")
+
+    # Manually override for selected countries
     ad_excepts = get_date_dict_from_str(ALPHA_DELTA_EXCEPTS)
     delta_start = ad_excepts[iso3] if iso3 in ad_excepts else ad_trans
     delta_end = min([delta_end_date, end_time])
+
+    # Get the data and ensure strictly increasing
     mask = (delta_start < data.index) & (data.index < delta_end)
     target = get_incr_pooled_totals(data[mask], "delta")["delta_prop"]
     if target is None or target.empty or max(target) < MIN_DELTA_PROP:
@@ -803,6 +819,8 @@ def get_delta_info(
     is_end_period = (end_time - target.index[0]).days < LATE_DELTA_TIME
     weight = LATE_DELTA_WEIGHT if is_end_period else VAR_WEIGHT
     var_start = target.index[0]
+
+    # Three pieces of information needed for analysis
     return ["delta"], {"prop_delta": SharedPropTarget(target, weight=weight)}, [var_start]
 
 
@@ -830,14 +848,22 @@ def get_ba2_info(
     used the data available from {BA2_PERIOD_START}
     to {BA2_PERIOD_END}.
     """
+
+    # Only for Oceania
     if continent != "OC":
         return [], {}, []
+
+    # Get data
     data = get_var_target(var_data, continent, "ba2")
+
+    # Filter by date
     ba2_start = datetime.strptime(BA2_PERIOD_START, CODE_DATE_FORMAT)
     ba2_end = datetime.strptime(BA2_PERIOD_END, CODE_DATE_FORMAT)
     mask = (ba2_start < data.index) & (data.index < ba2_end)
     data = data[mask]["ba2_prop"]
     var_start = data.index[0]
+
+    # Three pieces of information needed for analysis
     return ["ba2"], {"prop_ba2": SharedPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
 
 
@@ -865,12 +891,20 @@ def get_ba5_info(
     used the data available from {BA5_PERIOD_START}
     to {BA5_PERIOD_END}.
     """
+
+    # Only for Oceania
     if continent != "OC":
         return [], {}, []
+
+    # Get data
     data = get_var_target(var_data, continent, "ba5")
+
+    # Filter by date
     ba5_start = datetime.strptime(BA5_PERIOD_START, CODE_DATE_FORMAT)
     ba5_end = datetime.strptime(BA5_PERIOD_END, CODE_DATE_FORMAT)
     mask = (ba5_start < data.index) & (data.index < ba5_end)
     data = data[mask]["ba5_prop"]
     var_start = data.index[0]
+
+    # Three pieces of information needed for analysis
     return ["ba5"], {"prop_ba5": SharedPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
