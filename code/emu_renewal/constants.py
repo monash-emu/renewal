@@ -46,7 +46,7 @@ NO_CONT_COUNTRIES = ["ATA", "ATF", "ESH", "PCN", "SXM", "TLS", "UMI", "VAT"]
 
 # Population-related
 POP_YEAR = 2020
-AUST_POP_YEAR = 2022
+OC_POP_YEAR = 2022
 ASSUMED_HIGH_INCOME = "French Guiana, Martinique"
 
 # General indicator-related

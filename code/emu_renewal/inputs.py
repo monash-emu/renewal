@@ -7,7 +7,7 @@ from emu_renewal.constants import (
     DATA_PATH,
     RAW_MOB_PATH,
     POP_YEAR,
-    AUST_POP_YEAR,
+    OC_POP_YEAR,
     SUB_DEU_COUNTRIES,
     SUB_GBR_COUNTRY,
     ASSUMED_HIGH_INCOME,
@@ -62,12 +62,14 @@ def get_worldbank_national_pop(
     (because of the later analysis period for this country).
     """
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
-    year = AUST_POP_YEAR if get_cont_of_country(iso3) == "OC" else POP_YEAR
+    year = OC_POP_YEAR if get_cont_of_country(iso3) == "OC" else POP_YEAR
     year_str = f"{year} [YR{year}]"
     return pd.read_csv(path, index_col="Country Code", na_values=[".."]).loc[iso3, year_str]
 
 
-def get_undesa_national_pop(iso3: str) -> float:
+def get_undesa_national_pop(
+    iso3: str,
+) -> float:
     """Get UN-DESA population estimate for a single country, for 2020
 
     Args:
@@ -86,14 +88,6 @@ def get_undesa_national_pop(iso3: str) -> float:
     csv_path = DATA_PATH / f"population/undesa_pops_{POP_YEAR}.csv"
     data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
     return data.loc[iso3, "population"]
-
-
-def get_ordered_countries_by_cont(countries_by_cont, conts):
-    ordered_countries = {}
-    for cont in conts:
-        pops = {c: get_country_pop(c) for c in countries_by_cont[cont]}
-        ordered_countries[cont] = pd.Series(pops).sort_values(ascending=False).index
-    return ordered_countries
 
 
 def get_owid_hosp_series(
@@ -201,7 +195,7 @@ def get_cont_g_mob(
                 no_mob_countries.append(iso3)
             else:
                 mob[iso3] = c_mob
-        except:
+        except FileNotFoundError:
             no_mob_countries.append(iso3)
 
     return mob, no_mob_countries
@@ -319,41 +313,6 @@ def get_country_vacc_data(
     return data.loc[data["Entity"] == country, col_name]
 
 
-def get_all_var_data() -> dict:
-    """Get the downloaded NextClade data
-    for all strains listed in VAR_NAMES.
-
-    Returns:
-        Data in raw form
-    """
-    var_names = [v.split(".json")[0] for v in ls(DATA_PATH / "nextclade") if v.startswith("2")]
-    return {v: json.load(open(DATA_PATH / f"nextclade/{v}.json", "r")) for v in var_names}
-
-
-def find_increasing_groups(
-    data: pd.Series,
-) -> Tuple[pd.DatetimeIndex]:
-    """Find the indexes at which a series
-    (which is supposed to be generally decreasing)
-    is increasing.
-
-    Args:
-        data: The data
-
-    Returns:
-        Two lists of indexes with the same length
-            representing the starts and the ends of the
-            increasing sections of the series
-    """
-    inc_elements = (data.diff() > 0.0).astype(int)
-    group_limits = inc_elements.diff().shift(-1).fillna(0.0)
-    if inc_elements.iloc[-1] == 1:
-        group_limits.iloc[-1] = -1.0
-    starts = group_limits[group_limits == 1.0].index
-    ends = group_limits[group_limits == -1.0].index
-    return starts, ends
-
-
 def find_decreasing_groups(
     data: pd.Series,
 ) -> Tuple[pd.DatetimeIndex]:
@@ -365,7 +324,7 @@ def find_decreasing_groups(
         data: The data
 
     Returns:
-        Two lists of indexes with the same length
+        Two lists of indices with the same length
             representing the starts and the ends of the
             decreasing sections of the series
     """
@@ -390,9 +349,9 @@ def pool_totals(
 
     Args:
         starts: Starts of the increasing periods,
-            the output from find_increasing_groups
+            the output from find_decreasing_groups
         ends: Ends of the increasing periods,
-            the output from find_increasing_groups
+            the output from find_decreasing_groups
         data: The unadjusted data
 
     Returns:
@@ -413,26 +372,6 @@ def pool_totals(
     # Make sure indices fall on the start of a date
     new_data.index = new_data.index.round("D")
     return new_data.sort_index()
-
-
-def get_pooled_totals(
-    data: pd.DataFrame,
-    var_name: str = "prealpha",
-) -> pd.DataFrame:
-    """Combines the two preceding functions
-
-    to get the totals after pooling for increases in the data.
-
-    Args:
-        data: The unadjusted data
-
-    Returns:
-        The adjusted data
-    """
-    while not data[f"{var_name}_prop"].is_monotonic_decreasing:
-        starts, ends = find_increasing_groups(data[f"{var_name}_prop"])
-        data = pool_totals(starts, ends, data, var_name)
-    return data
 
 
 def get_incr_pooled_totals(
