@@ -559,8 +559,8 @@ def plot_mob_weights_by_country(
         ax = flat_axes[a]
         ax.axis("off")
 
-    plt.close()
     fig.tight_layout()
+    plt.close()
     return fig
 
 
