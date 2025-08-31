@@ -18,7 +18,7 @@ import pycountry
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
-from emu_renewal.constants import MOB_COLOURS
+from emu_renewal.constants import MOB_COLOURS, N_SAMPLES
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
 
@@ -122,7 +122,13 @@ def get_table_df_from_priors_dict(
     return priors_df.rename(columns={"Sd": "SD", "Std": "SD"})
 
 
-def get_gitinfo() -> dict[str, str]:
+def get_gitinfo() -> Dict[str, str]:
+    """Get the git-related information for the current
+    local repository state.
+
+    Returns:
+        The branch name and commit SHA
+    """
     import emu_renewal
 
     rpath = Path(emu_renewal.__path__[0]).parent.parent
@@ -136,7 +142,6 @@ def store_outputs(
     model: MultiStrainModel,
     calib: StandardCalib,
     mcmc: infer.MCMC,
-    n_samples=50,
 ):
     """Store model and calibration characteristics and results in standard formats.
 
@@ -145,13 +150,12 @@ def store_outputs(
         model: Renewal model
         calib: Calibration object
         mcmc: MCMC object
-        n_samples: Number of samples to extract for spaghetti
     """
     idata_full = az.from_numpyro(mcmc)
     idata_full.to_netcdf(out_dir / "idata_full.nc")
 
-    likelihood = pd.DataFrame(mcmc.get_extra_fields(True)["potential_energy"]).T
-    likelihood = 0.0 - likelihood
+    energy = pd.DataFrame(mcmc.get_extra_fields(True)["potential_energy"]).T
+    likelihood = 0.0 - energy
     likelihood.to_hdf(out_dir / "likelihood.h5", key="likelihood")
 
     ll_chain_mean = likelihood.mean()
@@ -165,7 +169,7 @@ def store_outputs(
     idata_filtered = idata_full.sel(chain=good_chains)
     idata_filtered.to_netcdf(out_dir / "idata_filtered.nc")
 
-    idata_sampled = az.extract(idata_filtered, num_samples=n_samples)
+    idata_sampled = az.extract(idata_filtered, num_samples=N_SAMPLES)
     sample_params = esamp.xarray_to_sampleiterator(idata_sampled)
     spaghetti = get_spagh_df_from_dict(run_for_spaghetti(calib, sample_params))
     spaghetti.to_hdf(out_dir / "spaghetti.h5", key="spaghetti")
@@ -181,57 +185,8 @@ def store_outputs(
     json.dump(get_gitinfo(), open(out_dir / "gitinfo.json", "w"))
 
 
-def get_country_posteriors(
-    path: Path,
-    countries: List[str],
-) -> Dict[str, pd.DataFrame]:
-    """Get dataframes containing the posterior
-    values for a combination of countries
-    and analysis types.
-
-    Args:
-        path: Parent path for all runs
-        countries: The names of the countries of interest
-
-    Returns:
-        The posterior dataframes
-    """
-    likes = {}
-    for c in countries:
-        country_path = path / c
-        c_likes = []
-        analyses = ls(country_path)
-        for a in analyses:
-            idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
-            c_likes.append(idata["sample_stats"]["lp"].to_pandas().T)
-        likes[c] = -pd.concat(c_likes, keys=analyses, axis=1)
-    return likes
-
-
-def get_all_like_comps(
-    country_path: Path,
-) -> pd.DataFrame:
-    """Get the likelihood components and
-    the overall likelihood for a set of runs.
-
-    Args:
-        country_path: Location of the country analyses
-
-    Returns:
-        The collated likelihood components by analysis
-    """
-    analyses = ls(country_path)
-    likes_by_analysis = []
-    for analysis in analyses:
-        idata = az.from_netcdf(country_path / analysis / "idata_filtered.nc")
-        all_likes = idata["log_likelihood"].to_dataframe()
-        all_likes["total_ll"] = -idata["sample_stats"]["lp"].to_dataframe()
-        likes_by_analysis.append(all_likes)
-    return pd.concat(likes_by_analysis, axis=1, keys=analyses)
-
-
 def get_country_procs(
-    path: Path,
+    job_path: Path,
     countries: List[str],
 ) -> Dict[str, pd.DataFrame]:
     """Get dataframes containing the variable process
@@ -247,7 +202,7 @@ def get_country_procs(
     """
     procs = {}
     for c in countries:
-        c_path = path / c
+        c_path = job_path / c
         c_procs = []
         analyses = [i[1] for i in os.walk(c_path)][0]
         for a in analyses:
@@ -257,8 +212,8 @@ def get_country_procs(
 
 
 def get_param_vals_by_analysis(
-    param_name: str,
-    country_path: Path,
+    param: str,
+    c_path: Path,
 ) -> pd.DataFrame:
     """Get dataframe of accepted parameter values
     by analysis for a particular parameter and country.
@@ -271,10 +226,10 @@ def get_param_vals_by_analysis(
         The posterior estimates
     """
     param_df = []
-    analyses = [d.name for d in os.scandir(country_path) if d.is_dir()]
+    analyses = [d.name for d in os.scandir(c_path) if d.is_dir()]
     for a in analyses:
-        idata = az.from_netcdf(country_path / a / "idata_filtered.nc")
-        param_df.append(idata.posterior[param_name].to_series())
+        idata = az.from_netcdf(c_path / a / "idata_filtered.nc")
+        param_df.append(idata.posterior[param].to_series())
     result = pd.concat(param_df, axis=1, keys=analyses)
     ordered_cols = [c for c in MOB_COLOURS if c in result.columns]
     return result[ordered_cols]
