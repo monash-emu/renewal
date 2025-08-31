@@ -131,21 +131,20 @@ N_SAMPLES = 50
 DUR_MIN = 1
 DUR_REL_MAX = 2.5
 
-MOB_COLOURS = {
+# Plotting and outputs
+MOB_SOURCE_COLOURS = {
     "no_mob": "black",
     "g_mob": "green",
     "fb_visited_mob": "blue",
     "fb_singletile_mob": "red",
 }
-
-# Plotting and outputs
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
     "g_mob": "Google mobility",
     "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",
 }
-AN_ABBREVS = {
+MOB_SOURCE_ABBREVS = {
     "no_mob": "none",
     "g_mob": "Google",
     "fb_visited_mob": "FB tiles visited",
@@ -177,7 +176,7 @@ INCLUSION_COLOURS = {
     "FB": "blue",
     "both": "purple"
 }
-MOB_ANALYSIS_MAP = {
+MOB_LOCATION_SOURCE_MAP = {
     "retail_and_recreation": "g_mob",
     "grocery_and_pharmacy": "g_mob",
     "parks": "g_mob",
@@ -187,7 +186,7 @@ MOB_ANALYSIS_MAP = {
     "fb_visited_mob": "fb_visited_mob",
     "fb_singletile_mob": "fb_singletile_mob",
 }
-MOB_NAME_MAP = {
+MOB_LOCATION_NAME_MAP = {
     "retail_and_recreation": "Google retail and recreation",
     "grocery_and_pharmacy": "Google grocery and pharmacy",
     "parks": "Google parks",
@@ -202,7 +201,7 @@ MOB_SOURCE_MAP = {
     "fb_visited_mob": "Facebook tiles visited",
     "fb_singletile_mob": "Facebook single tile",
 }
-G_MOB_DOMAIN_CMAP = {
+G_MOB_LOCATION_CMAP = {
     "retail_and_recreation": "darkgoldenrod",
     "grocery_and_pharmacy": "darkblue",
     "parks": "darkgreen",
@@ -218,7 +217,7 @@ CONT_CMAP = {
     "OC": "red",
     "SA": "purple",
 }
-SHORT_MOB_NAMES = {
+MOB_LOCATION_ABBREVS = {
     "retail_and_recreation": "retail/rec",
     "grocery_and_pharmacy": "groc/pharm",
     "parks": "parks",

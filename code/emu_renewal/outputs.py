@@ -18,7 +18,7 @@ import pycountry
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
-from emu_renewal.constants import MOB_COLOURS, N_SAMPLES
+from emu_renewal.constants import MOB_SOURCE_COLOURS, N_SAMPLES
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.utils import get_subdirs
@@ -232,7 +232,7 @@ def get_param_vals_by_analysis(
         idata = az.from_netcdf(c_path / a / "idata_filtered.nc")
         param_df.append(idata.posterior[param].to_series())
     result = pd.concat(param_df, axis=1, keys=analyses)
-    ordered_cols = [c for c in MOB_COLOURS if c in result.columns]
+    ordered_cols = [c for c in MOB_SOURCE_COLOURS if c in result.columns]
     return result[ordered_cols]
 
 

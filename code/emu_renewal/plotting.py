@@ -21,18 +21,18 @@ from geopandas import GeoDataFrame
 from emu_renewal.constants import (
     ANALYSIS_TYPES, 
     ANALYSIS_NAMES, 
-    AN_ABBREVS, 
-    MOB_COLOURS,
-    MOB_ANALYSIS_MAP,
+    MOB_SOURCE_ABBREVS, 
+    MOB_SOURCE_COLOURS,
+    MOB_LOCATION_SOURCE_MAP,
     DUR_MIN, 
     DUR_REL_MAX,
     TARGET_TYPES,
     VAR_NAME_MAP,
     INCLUSION_COLOURS,
-    MOB_NAME_MAP,
-    G_MOB_DOMAIN_CMAP,
+    MOB_LOCATION_NAME_MAP,
+    G_MOB_LOCATION_CMAP,
     CONT_CMAP,
-    SHORT_MOB_NAMES,
+    MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
 )
 from emu_renewal.inputs import (
@@ -295,7 +295,7 @@ def plot_prior_multipost(
         analyses = [a for a in ANALYSIS_NAMES if a in idatas]
         for a in analyses:
             idata = idatas[a]
-            colour =[MOB_COLOURS[a]]
+            colour =[MOB_SOURCE_COLOURS[a]]
             az.plot_density(idata, ax=axes[n_ax:], hdi_prob=0.99, colors=colour, var_names=p)
     
             # Legend
@@ -456,11 +456,11 @@ def plot_proc_comparison(
         ax = flat_axes[c]
         ax.set_title(pycountry.countries.lookup(iso3).name)
         analyses = [i.parts[-1] for i in (path / iso3).iterdir() if i.is_dir()]
-        sorted_analyses = [a for a in MOB_COLOURS if a in analyses]
+        sorted_analyses = [a for a in MOB_SOURCE_COLOURS if a in analyses]
         for a in sorted_analyses:
-            colour = MOB_COLOURS[a]
+            colour = MOB_SOURCE_COLOURS[a]
             quants = procs[iso3][a].quantile([0.05, 0.5, 0.95], axis=1).T
-            ax.plot(quants.index, quants[0.5], color=colour, label=AN_ABBREVS[a], linewidth=2.0)
+            ax.plot(quants.index, quants[0.5], color=colour, label=MOB_SOURCE_ABBREVS[a], linewidth=2.0)
             ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.1, color=colour)
         ax.legend()
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
@@ -492,10 +492,10 @@ def plot_kde_comparison(
 
     # Plot the density distribtion by country
     for c, (country, likes) in enumerate(data.items()):
-        likes = likes.rename(columns=AN_ABBREVS)
+        likes = likes.rename(columns=MOB_SOURCE_ABBREVS)
         ax = flat_axes[c]
         ax.set_title(pycountry.countries.lookup(country).name)
-        colours = [MOB_COLOURS[a] for a in data[country].columns]
+        colours = [MOB_SOURCE_COLOURS[a] for a in data[country].columns]
         sns.kdeplot(likes, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5)
         ax.set_yticks([])
         ax.set_ylabel("")
@@ -539,7 +539,7 @@ def plot_mob_weights_by_country(
         # Plot
         ax = flat_axes[c]
         for l in weights.columns:
-            colour = G_MOB_DOMAIN_CMAP[l]
+            colour = G_MOB_LOCATION_CMAP[l]
             kde = gaussian_kde(weights[l])
             label = l.replace("_", " ")
             ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
@@ -584,8 +584,8 @@ def compare_proc_mob(
         The figure
     """
     fig, axes = get_standard_subplot(len(countries), n_cols)
-    mob_source = MOB_ANALYSIS_MAP[mob_type]
-    mob_name = MOB_NAME_MAP[mob_type]
+    mob_source = MOB_LOCATION_SOURCE_MAP[mob_type]
+    mob_name = MOB_LOCATION_NAME_MAP[mob_type]
     title = f"Estimated variable process (without mobility scaling) versus {mob_name} mobility"
     fig.suptitle(title, fontsize=14, y=1.0)
     flat_axes = axes.ravel()
@@ -605,11 +605,11 @@ def compare_proc_mob(
         mob = get_requested_mob(iso3, mob_source, mob_type)
         mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
         if mobility.isna().sum() / len(mobility) > 0.5:
-            mob_name = MOB_NAME_MAP[mob_type]
+            mob_name = MOB_LOCATION_NAME_MAP[mob_type]
             msg = f"Note, {mob_name} largely missing for {country} during the analysis period."
             display(Markdown(msg))
         smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
-        colour = G_MOB_DOMAIN_CMAP[mob_type] if mob_source == "g_mob" else MOB_COLOURS[mob_type]
+        colour = G_MOB_LOCATION_CMAP[mob_type] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_type]
         ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
 
     # Switch off unused axes
@@ -744,7 +744,7 @@ def get_detailed_param_results(
     Returns:
         The figure and the table of means by mobility type
     """
-    mob_types = [k for k in AN_ABBREVS if k != "no_mob"]
+    mob_types = [k for k in MOB_SOURCE_ABBREVS if k != "no_mob"]
     i_datas = {}
     for mob_type in mob_types:
         idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
@@ -759,12 +759,12 @@ def get_detailed_param_results(
         ax = flat_axes[c]
         for mob_type in mob_types:
             m_idatas = i_datas[mob_type]
-            colour = MOB_COLOURS[mob_type]
+            colour = MOB_SOURCE_COLOURS[mob_type]
             if country in m_idatas:
                 c_idata = m_idatas[country]
                 post_plot = az.plot_posterior(c_idata, var_names=param, ax=ax, point_estimate=None, hdi_prob="hide", color=colour)
                 line_data = post_plot.get_lines()[-1]
-                post_plot.fill_between(line_data.get_xdata(), line_data.get_ydata(), alpha=0.1, color=MOB_COLOURS[mob_type])
+                post_plot.fill_between(line_data.get_xdata(), line_data.get_ydata(), alpha=0.1, color=MOB_SOURCE_COLOURS[mob_type])
                 mean = az.summary(c_idata, var_names=param, kind="stats")["mean"].values[0]
                 table_info.loc[country_name, mob_type] = mean
         ax.set_title(country_name)
@@ -806,7 +806,7 @@ def plot_select_proc_mob(
             iso3 = pycountry.countries.lookup(country).alpha_3
             country_name = SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
             mob_source = mob_type if mob_type.startswith("fb_") else "g_mob"
-            mob_source_name = SHORT_MOB_NAMES[mob_type]
+            mob_source_name = MOB_LOCATION_ABBREVS[mob_type]
     
             # Plot variable process
             proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
@@ -819,7 +819,7 @@ def plot_select_proc_mob(
             mob = get_requested_mob(iso3, mob_source, mob_type)
             mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
             smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
-            colour = G_MOB_DOMAIN_CMAP[mob_type] if mob_source == "g_mob" else MOB_COLOURS[mob_type]
+            colour = G_MOB_LOCATION_CMAP[mob_type] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_type]
             ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
     
             # Finish cosmetics
@@ -868,7 +868,7 @@ def plot_dispersion_analysis(
     # Best mobility approach
     best_mob = {c: disp_posts[c].mean().idxmin() for c in disp_posts}
     world["best_mob"] = world["ISO_A3"].map(best_mob)
-    world["best_mob_colour"] = world["best_mob"].map(MOB_COLOURS | {"no_mob": "0.45"})
+    world["best_mob_colour"] = world["best_mob"].map(MOB_SOURCE_COLOURS | {"no_mob": "0.45"})
     mob_avail = world[world["best_mob_colour"].notna()]
     mob_unavail = world[world["best_mob_colour"].isna()]
     
@@ -922,7 +922,7 @@ def plot_mob_exp_analysis(
     
         # Plot the values
         ax = flat_axes[a]
-        colour_map = MOB_COLOURS[analysis].capitalize() + "s"
+        colour_map = MOB_SOURCE_COLOURS[analysis].capitalize() + "s"
         mob_avail.plot(ax=ax, column=mob_avail["vals"], cmap=colour_map, legend=True, vmin=0.0, vmax=2.0)
         mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
         
@@ -954,7 +954,7 @@ def get_proc_mob_corr(
     """
     no_mob_path = job_path / iso3 / "no_mob"
     procs = pd.read_hdf(no_mob_path / "spaghetti.h5", key="spaghetti")["process"]
-    mob_source = MOB_ANALYSIS_MAP[mob_type]
+    mob_source = MOB_LOCATION_SOURCE_MAP[mob_type]
     mob = get_requested_mob(iso3, mob_source, mob_type)
     combined_df = pd.DataFrame(
         {
