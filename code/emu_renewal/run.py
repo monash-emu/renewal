@@ -2,7 +2,6 @@ from typing import Dict, Tuple
 from datetime import datetime, timedelta
 from socket import gethostname
 import pycountry
-import pycountry_convert as pc
 import logging
 from numpyro import distributions as dist
 from numpyro import infer
@@ -133,6 +132,7 @@ def find_run_end_time(
 
     Args:
         iso3: The country identifier
+        mob_type: The mobility approach
 
     Returns:
         The date at which to end the analysis period

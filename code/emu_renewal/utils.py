@@ -65,7 +65,7 @@ def get_beta_params_from_mean_var(
     Returns:
         The a and b parameters to the beta distribution
     """
-    var = sd**2.0
+    var = sd ** 2.0
     a = mu * (mu * (1.0 - mu) / var - 1.0)
     b = (1.0 - mu) * (mu * (1.0 - mu) / var - 1.0)
     return a, b
@@ -112,15 +112,14 @@ def get_countries_by_continent(
     dictionary according to the continent they are from.
 
     Args:
-        countries: List of ISO3 codes
+        countries: List of ISO3 identifiers
 
     Returns:
         The dictionary with keys for each continent present
     """
     result = {}
     for c in countries:
-        iso2 = pycountry.countries.lookup(c).alpha_2
-        cont = pc.country_alpha2_to_continent_code(iso2)
+        cont = get_cont_of_country(c)
         if cont in result:
             result[cont].append(c)
         else:

@@ -374,11 +374,11 @@ class MultiStrainModel:
             calc_inf_rates = contributions * proc_val * mob_val * relinfect / self.pop
             # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
-            # Effective susceptibles (array, n_strains by 2**n_strains)
+            # Effective susceptibles (array, n_strains by 2 ** n_strains)
             effect_suscepts = suscept_levels * state.suscept
-            # Apply infection rates across susceptible categories (array, n_strains by 2**n_strains)
+            # Apply infection rates across susceptible categories (array, n_strains by 2 ** n_strains)
             actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
-            # Population distribution (vector, 2**n_strains)
+            # Population distribution (vector, 2 ** n_strains)
             suscept = state.suscept
             # Move susceptibles to recovered categories
             for s in range(self.n_strains):
@@ -600,6 +600,7 @@ class MultiStrainModel:
             dist_mean: Mean delay to reporting
             dist_sd: Standard deviation of delay to reporting
             outcome_prop: Proportion of incident episodes reaching this outcome
+            output_dist: The output distribution
 
         Returns:
             Output from start of initialisation to end of model time
