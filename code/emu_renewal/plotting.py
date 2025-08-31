@@ -223,7 +223,7 @@ def get_flat_priors() -> Dict[str, str]:
     Returns:
         The flattened prior information
     """
-    loaded_priors = yml.safe_load(open(DATA_PATH / "config/priors.yml", "r"))
+    loaded_priors = yml.safe_load(open(DATA_PATH / "evidence/priors.yml", "r"))
     flat_priors = {}
     for v in loaded_priors.values():
         flat_priors.update(v)
