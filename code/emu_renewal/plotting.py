@@ -800,11 +800,11 @@ def plot_select_proc_mob(
         for r, row in enumerate(col):  
     
             # Gather data
-            mob_source, country = row
+            mob_location, country = row
             iso3 = pycountry.countries.lookup(country).alpha_3
             country_name = SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
-            mob_source = mob_source if mob_source.startswith("fb_") else "g_mob"
-            mob_source_name = MOB_LOCATION_ABBREVS[mob_source]
+            mob_source = mob_location if mob_location.startswith("fb_") else "g_mob"
+            mob_source_name = MOB_LOCATION_ABBREVS[mob_location]
     
             # Plot variable process
             proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
@@ -814,10 +814,10 @@ def plot_select_proc_mob(
             ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
     
             # Plot mobility
-            mob = get_requested_mob(iso3, mob_source, mob_source)
+            mob = get_requested_mob(iso3, mob_source, mob_location)
             mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
             smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
-            colour = G_MOB_LOCATION_CMAP[mob_source] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_source]
+            colour = G_MOB_LOCATION_CMAP[mob_location] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_source]
             ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
     
             # Finish cosmetics
