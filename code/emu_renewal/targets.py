@@ -83,7 +83,6 @@ class UnivariateDispersionTarget(WeightedTransformTarget):
             dispersion: Key of sampled parameter to use as dispersion
             transform: Optional function to apply to both data and input
         """
-
         super().__init__(data, transform, weight)
 
         self.data = data
