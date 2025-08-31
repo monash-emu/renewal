@@ -96,7 +96,7 @@ def get_standard_priors(
     all seroprevalence targets
     was set at {SEROPREV_DISP}.
     """
-    loaded_priors = yml.safe_load(open(DATA_PATH / "config/priors.yml", "r"))
+    loaded_priors = yml.safe_load(open(DATA_PATH / "evidence/priors.yml", "r"))
 
     # Durations
     duration_priors = {
