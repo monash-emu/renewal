@@ -277,7 +277,7 @@ def add_mob_avail_to_world(
 
 def get_prop_improve(
     disp_posts: Dict[str, pd.DataFrame],
-    mob_type: str,
+    mob_source: str,
 ) -> Dict[str, float]:
     """Find the proportion of results from a particular run that
     have a lower dispersion parameter than for the no mobility analysis.
@@ -293,8 +293,8 @@ def get_prop_improve(
     for c in disp_posts:
         c_posts = disp_posts[c]
         no_mob_posts = c_posts["no_mob"]
-        if mob_type in c_posts:
-            mob_posts = np.random.permutation(c_posts[mob_type].values)
+        if mob_source in c_posts:
+            mob_posts = np.random.permutation(c_posts[mob_source].values)
             prop_improve[c] = pd.Series(no_mob_posts > mob_posts).astype(int).mean()
     return prop_improve
 
@@ -302,7 +302,7 @@ def get_prop_improve(
 def get_idatas_for_mob_type(
     job_path: Path,
     countries: List[str],
-    mob_type: str,
+    mob_source: str,
 ) -> Dict[str, az.InferenceData]:
     """Collate all the inference data objects for
     a requested group of countries.
@@ -310,7 +310,7 @@ def get_idatas_for_mob_type(
     Args:
         job_path: Path for the runs
         countries: Countries identifiers
-        mob_type: Mobility type considered
+        mob_source: Mobility type considered
 
     Returns:
         The inference data objects
@@ -320,7 +320,7 @@ def get_idatas_for_mob_type(
     for iso3 in countries:
         country = pycountry.countries.lookup(iso3).name
         try:
-            path = job_path / iso3 / mob_type / "idata_filtered.nc"
+            path = job_path / iso3 / mob_source / "idata_filtered.nc"
             country_idatas[iso3] = az.from_netcdf(path)
         except FileNotFoundError:
             unavailable_countries.append(country)
@@ -330,7 +330,7 @@ def get_idatas_for_mob_type(
 def get_param_mean_by_country(
     job_path: Path, 
     param: str, 
-    mob_type: str,
+    mob_source: str,
 ) -> Dict[str, float]:
     """Get the mean of the parameter posterior for each
     country analysed under a particular mobility approach.
@@ -338,11 +338,11 @@ def get_param_mean_by_country(
     Args:
         job_path: Path for the runs
         param: Name of the parameter
-        mob_type: Mobility analysis type
+        mob_source: Mobility analysis type
 
     Returns:
         The parameter mean by country
     """
     countries = ls(job_path)
-    i_datas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
+    i_datas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
     return {c: az.summary(i_datas[c], var_names=param, kind="stats")["mean"].values[0] for c in i_datas}

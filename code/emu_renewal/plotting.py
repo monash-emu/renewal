@@ -38,8 +38,6 @@ from emu_renewal.constants import (
 from emu_renewal.inputs import (
     DATA_PATH,
     get_google_mobility,
-    get_fb_visited_mobility,
-    get_fb_singletile_mobility,
     get_requested_mob,
     get_gdps,
     get_country_pop,
@@ -570,22 +568,22 @@ def compare_proc_mob(
     job_path: Path,
     countries: List[str],
     n_cols: int,
-    mob_type: str,
+    mob_location: str,
 ) -> plt.Figure:
-    """Plot comparison of variable process to mobility domain.
+    """Plot comparison of variable process to mobility location.
 
     Args:
         job_path: Path for the runs
         countries: Requested countries to plot
         n_cols: Number of subplot columns for the figure
-        mob_type: The name of the mobility domain (from MOB_DOMAIN_MAP above)
+        mob_location: The name of the mobility location
 
     Returns:
         The figure
     """
     fig, axes = get_standard_subplot(len(countries), n_cols)
-    mob_source = MOB_LOCATION_SOURCE_MAP[mob_type]
-    mob_name = MOB_LOCATION_NAME_MAP[mob_type]
+    mob_source = MOB_LOCATION_SOURCE_MAP[mob_location]
+    mob_name = MOB_LOCATION_NAME_MAP[mob_location]
     title = f"Estimated variable process (without mobility scaling) versus {mob_name} mobility"
     fig.suptitle(title, fontsize=14, y=1.0)
     flat_axes = axes.ravel()
@@ -602,14 +600,14 @@ def compare_proc_mob(
         ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
 
         # Mobility
-        mob = get_requested_mob(iso3, mob_source, mob_type)
+        mob = get_requested_mob(iso3, mob_source, mob_location)
         mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
         if mobility.isna().sum() / len(mobility) > 0.5:
-            mob_name = MOB_LOCATION_NAME_MAP[mob_type]
+            mob_name = MOB_LOCATION_NAME_MAP[mob_location]
             msg = f"Note, {mob_name} largely missing for {country} during the analysis period."
             display(Markdown(msg))
         smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
-        colour = G_MOB_LOCATION_CMAP[mob_type] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_type]
+        colour = G_MOB_LOCATION_CMAP[mob_location] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_location]
         ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
 
     # Switch off unused axes
@@ -744,29 +742,29 @@ def get_detailed_param_results(
     Returns:
         The figure and the table of means by mobility type
     """
-    mob_types = [k for k in MOB_SOURCE_ABBREVS if k != "no_mob"]
+    mob_sources = [k for k in MOB_SOURCE_ABBREVS if k != "no_mob"]
     i_datas = {}
-    for mob_type in mob_types:
-        idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
-        i_datas[mob_type] = idatas
+    for mob_source in mob_sources:
+        idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
+        i_datas[mob_source] = idatas
     all_countries = sort_countries_by_name({key for subdict in i_datas.values() for key in subdict})
     fig, axes = get_standard_subplot(len(all_countries), 4)
     flat_axes = axes.ravel()
-    table_info = pd.DataFrame(columns=mob_types)
+    table_info = pd.DataFrame(columns=mob_sources)
     
     for c, country in enumerate(all_countries):
         country_name = pycountry.countries.lookup(country).name
         ax = flat_axes[c]
-        for mob_type in mob_types:
-            m_idatas = i_datas[mob_type]
-            colour = MOB_SOURCE_COLOURS[mob_type]
+        for mob_source in mob_sources:
+            m_idatas = i_datas[mob_source]
+            colour = MOB_SOURCE_COLOURS[mob_source]
             if country in m_idatas:
                 c_idata = m_idatas[country]
                 post_plot = az.plot_posterior(c_idata, var_names=param, ax=ax, point_estimate=None, hdi_prob="hide", color=colour)
                 line_data = post_plot.get_lines()[-1]
-                post_plot.fill_between(line_data.get_xdata(), line_data.get_ydata(), alpha=0.1, color=MOB_SOURCE_COLOURS[mob_type])
+                post_plot.fill_between(line_data.get_xdata(), line_data.get_ydata(), alpha=0.1, color=MOB_SOURCE_COLOURS[mob_source])
                 mean = az.summary(c_idata, var_names=param, kind="stats")["mean"].values[0]
-                table_info.loc[country_name, mob_type] = mean
+                table_info.loc[country_name, mob_source] = mean
         ax.set_title(country_name)
         ax.set_xlim([0.0, 2.0])
         ax.set_xticks(np.linspace(0.0, 2.0, 5))
@@ -802,11 +800,11 @@ def plot_select_proc_mob(
         for r, row in enumerate(col):  
     
             # Gather data
-            mob_type, country = row
+            mob_source, country = row
             iso3 = pycountry.countries.lookup(country).alpha_3
             country_name = SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
-            mob_source = mob_type if mob_type.startswith("fb_") else "g_mob"
-            mob_source_name = MOB_LOCATION_ABBREVS[mob_type]
+            mob_source = mob_source if mob_source.startswith("fb_") else "g_mob"
+            mob_source_name = MOB_LOCATION_ABBREVS[mob_source]
     
             # Plot variable process
             proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
@@ -816,10 +814,10 @@ def plot_select_proc_mob(
             ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
     
             # Plot mobility
-            mob = get_requested_mob(iso3, mob_source, mob_type)
+            mob = get_requested_mob(iso3, mob_source, mob_source)
             mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
             smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
-            colour = G_MOB_LOCATION_CMAP[mob_type] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_type]
+            colour = G_MOB_LOCATION_CMAP[mob_source] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_source]
             ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
     
             # Finish cosmetics
@@ -939,7 +937,7 @@ def plot_mob_exp_analysis(
 def get_proc_mob_corr(
     job_path: Path, 
     iso3: str, 
-    mob_type: str,
+    mob_location: str,
 ):
     """Find the correlation between the variable process parameter 
     and the mobility domain estimates.
@@ -947,15 +945,15 @@ def get_proc_mob_corr(
     Args:
         job_path: Path for the runs
         iso3: The country identifier
-        mob_type: The Google mobility location
+        mob_location: The Google mobility location
 
     Returns:
         Correlation value
     """
     no_mob_path = job_path / iso3 / "no_mob"
     procs = pd.read_hdf(no_mob_path / "spaghetti.h5", key="spaghetti")["process"]
-    mob_source = MOB_LOCATION_SOURCE_MAP[mob_type]
-    mob = get_requested_mob(iso3, mob_source, mob_type)
+    mob_source = MOB_LOCATION_SOURCE_MAP[mob_location]
+    mob = get_requested_mob(iso3, mob_source, mob_location)
     combined_df = pd.DataFrame(
         {
             "mob": mob,

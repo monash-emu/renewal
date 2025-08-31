@@ -126,13 +126,13 @@ def find_run_start_time(
 
 def find_run_end_time(
     iso3: str,
-    mob_type: str,
+    mob_source: str,
 ) -> datetime:
     """Find the end time for the analysis.
 
     Args:
         iso3: The country identifier
-        mob_type: The mobility approach
+        mob_source: The mobility approach
 
     Returns:
         The date at which to end the analysis period
@@ -150,7 +150,7 @@ def find_run_end_time(
     Google mobility data was available was used.
     """
     cont = get_cont_of_country(iso3)
-    if cont == "OC" and "fb_" in mob_type:
+    if cont == "OC" and "fb_" in mob_source:
         mob = get_fb_visited_mobility(iso3)
         return mob.index[-1].to_pydatetime()
     elif cont == "OC":
@@ -169,13 +169,13 @@ def find_run_end_time(
 
 def get_mobility_provider(
     iso3: str,
-    mob_type: str,
+    mob_source: str,
 ) -> mobility.MobilityProvider:
     """Get the appropriate mobility provider object.
 
     Args:
         iso3: Country identifier
-        mob_type: Mobility approach
+        mob_source: Mobility approach
 
     Returns:
         The mobility provider
@@ -207,26 +207,26 @@ def get_mobility_provider(
     """
 
     # Data processing
-    if mob_type in ["no_mob", "fb_no_mob"]:
+    if mob_source in ["no_mob", "fb_no_mob"]:
         return mobility.NoMobilityProvider()
-    elif mob_type == "g_mob":
+    elif mob_source == "g_mob":
         mob = get_google_mobility(iso3)
-    elif mob_type == "fb_visited_mob":
+    elif mob_source == "fb_visited_mob":
         mob = get_fb_visited_mobility(iso3)
-    elif mob_type == "fb_singletile_mob":
+    elif mob_source == "fb_singletile_mob":
         mob = get_fb_singletile_mobility(iso3)
     smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
     # Priors
     exp_prior = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
-    if mob_type == "g_mob":
+    if mob_source == "g_mob":
         n_domains = len(mob.columns)
         weight_prior = {"mob_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
         return mobility.WeightedExpMobilityProvider(smoothed_mob, weight_prior | exp_prior)
-    elif mob_type in ["fb_visited_mob", "fb_singletile_mob"]:
+    elif mob_source in ["fb_visited_mob", "fb_singletile_mob"]:
         return mobility.SingleSeriesExpMobilityProvider(smoothed_mob, exp_prior)
     else:
-        raise Exception(f"No provider available for analysis type {mob_type}")
+        raise Exception(f"No provider available for analysis type {mob_source}")
 
 
 def run_calibration(
@@ -268,7 +268,7 @@ def run_calibration(
 
 def run_single_country(
     country: str,
-    mob_type: str,
+    mob_source: str,
     task_name: str,
     prog_bar=False,
     logger=None,
@@ -277,7 +277,7 @@ def run_single_country(
 
     Args:
         country: The country identifier
-        mob_type: The mobility analysis type
+        mob_source: The mobility analysis type
         task_name: Identifier for the set of tasks
         prog_bar: Whether to display the progress bar
         logger: The logging object
@@ -300,7 +300,7 @@ def run_single_country(
     logger = logger or logging.getLogger()
     logger.info(f"\n________________________\nRunning job at {task_name}")
     logger.info(f"Country: {iso3}")
-    logger.info(f"Mobility approach: {mob_type}")
+    logger.info(f"Mobility approach: {mob_source}")
     commit = git.Repo(search_parent_directories=True).head
     logger.info(f"Git commit hash: {commit.object.hexsha}")
     logger.info(f"Commit message: {commit.reference.commit.message}")
@@ -309,7 +309,7 @@ def run_single_country(
     # Population size and analysis time
     pop = get_country_pop(iso3)
     data_start = find_run_start_time(pop, iso3)
-    end_time = find_run_end_time(iso3, mob_type)
+    end_time = find_run_end_time(iso3, mob_source)
     run_start = data_start - timedelta(RUN_DATA_DELAY)
     start_str = run_start.strftime(DATE_FORMAT)
     end_str = data_start.strftime(DATE_FORMAT)
@@ -337,9 +337,9 @@ def run_single_country(
 
     # Mobility
     try:
-        mob_provider = get_mobility_provider(iso3, mob_type)
+        mob_provider = get_mobility_provider(iso3, mob_source)
     except Exception as e:
-        msg = f"{mob_type} mobility not available"
+        msg = f"{mob_source} mobility not available"
         raise MobilityException(msg)
     if mob_provider.mob_end:
         end_time = min([end_time, mob_provider.mob_end])
@@ -363,8 +363,8 @@ def run_single_country(
     calib, mcmc = run_calibration(model, priors, targets, prog_bar)
 
     # Outputs
-    out_path = BASE_PATH / "outputs" / task_name / country / mob_type
+    out_path = BASE_PATH / "outputs" / task_name / country / mob_source
     out_path.mkdir(parents=True, exist_ok=True)
     logger.info(f"Writing to: {out_path}")
     store_outputs(out_path, model, calib, mcmc)
-    logger.info(f"Completed {task_name}/{country}/{mob_type}")
+    logger.info(f"Completed {task_name}/{country}/{mob_source}")
