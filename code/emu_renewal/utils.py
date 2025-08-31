@@ -1,4 +1,6 @@
 from typing import List, Dict, Tuple
+from pathlib import Path
+import os
 import pandas as pd
 import numpy as np
 import pycountry
@@ -178,3 +180,16 @@ def get_cont_of_country(
     except KeyError:
         return "NOCONT"
     
+
+def get_subdirs(
+    path: Path,
+) -> List[str]:
+    """Get the subdirectories of a folder.
+
+    Args:
+        path: The path to the folder
+
+    Returns:
+        The names (only) of the subdirectories
+    """
+    return [d.name for d in os.scandir(path) if d.is_dir()]

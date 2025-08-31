@@ -21,6 +21,7 @@ from estival.sampling import tools as esamp
 from emu_renewal.constants import MOB_COLOURS, N_SAMPLES
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
+from emu_renewal.utils import get_subdirs
 
 plt.style.use("ggplot")
 
@@ -204,7 +205,7 @@ def get_country_procs(
     for c in countries:
         c_path = job_path / c
         c_procs = []
-        analyses = [i[1] for i in os.walk(c_path)][0]
+        analyses = get_subdirs(c_path)
         for a in analyses:
             c_procs.append(pd.read_hdf(c_path / a / "spaghetti.h5")["process"])
         procs[c] = pd.concat(c_procs, keys=analyses, axis=1)
@@ -226,31 +227,13 @@ def get_param_vals_by_analysis(
         The posterior estimates
     """
     param_df = []
-    analyses = [d.name for d in os.scandir(c_path) if d.is_dir()]
+    analyses = get_subdirs(c_path)
     for a in analyses:
         idata = az.from_netcdf(c_path / a / "idata_filtered.nc")
         param_df.append(idata.posterior[param].to_series())
     result = pd.concat(param_df, axis=1, keys=analyses)
     ordered_cols = [c for c in MOB_COLOURS if c in result.columns]
     return result[ordered_cols]
-
-
-def get_completed_chains(job_path):
-    completion_lists = []
-    countries = ls(job_path)
-    for c in countries:
-        c_path = job_path / c
-        analyses = ls(c_path)
-        c_complete = pd.DataFrame(columns=analyses)
-        for a in analyses:
-            a_path = c_path / a
-            all_idata = az.from_netcdf(a_path / "idata_full.nc")
-            filt_idata = az.from_netcdf(a_path / "idata_filtered.nc")
-            all_chains = all_idata["posterior"]["chain"].data
-            completed_chains = filt_idata["posterior"]["chain"].data
-            c_complete[a] = [c in completed_chains for c in all_chains]
-        completion_lists.append(c_complete)
-    return pd.concat(completion_lists, keys=countries, axis=1)
 
 
 def add_bool_row_to_table(

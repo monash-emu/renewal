@@ -2,7 +2,6 @@ from typing import List, Tuple, Dict, Union
 from datetime import datetime, timedelta
 import pandas as pd
 import pycountry
-import pycountry_convert as pc
 from numpyro import distributions as dist
 from os import listdir as ls
 
