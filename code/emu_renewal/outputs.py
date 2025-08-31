@@ -238,7 +238,7 @@ def get_param_vals_by_analysis(
 
 def add_bool_row_to_table(
     table: pd.DataFrame,
-    bool_list: List[str],
+    bool_list: List[bool],
     col_name: str,
 ):
     """Add a column to a table based on its index
@@ -261,6 +261,11 @@ def add_mob_avail_to_world(
 ):
     """Add columns to world geopandas dataframe
     for whether Google and Facebook mobility are present.
+
+    Args:
+        world: The world geopandas dataframe
+        g_avail: Whether Google mobility available
+        fb_avail: Whether Facebook mobility available
     """
     world["g_avail"] = world["ISO_A3"].isin(g_avail)
     world["fb_avail"] = world["ISO_A3"].isin(fb_avail)
@@ -317,7 +322,7 @@ def get_idatas_for_mob_type(
         try:
             path = job_path / iso3 / mob_type / "idata_filtered.nc"
             country_idatas[iso3] = az.from_netcdf(path)
-        except:
+        except FileNotFoundError:
             unavailable_countries.append(country)
     return country_idatas, unavailable_countries
 
