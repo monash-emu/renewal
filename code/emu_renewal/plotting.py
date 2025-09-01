@@ -17,6 +17,7 @@ from matplotlib.colors import Normalize
 import pycountry
 import pycountry_convert as pc
 from geopandas import GeoDataFrame
+from IPython.display import display, Markdown
 
 from emu_renewal.constants import (
     ANALYSIS_TYPES, 
@@ -44,8 +45,8 @@ from emu_renewal.inputs import (
     get_world_shp,
 )
 from emu_renewal.outputs import get_idatas_for_mob_type, get_prop_improve, get_param_mean_by_country
-from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var
-from IPython.display import display, Markdown
+from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var, get_cont_of_country
+
 
 plt.style.use("ggplot")
 
@@ -122,12 +123,15 @@ def plot_multianalysis_fit(
         The figure
     """
     country = pycountry.countries.lookup(iso3).name
+    cont = get_cont_of_country(iso3)
     msg = ".*axis already has a converter set*"
     warnings.filterwarnings("ignore", message=msg)
     pd.options.plotting.backend = "matplotlib"
     n_analyses = len(spaghs)
     n_targs = len(targets)
     ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
+    if cont == "OC":
+        ordered_analyses += ["fb_no_mob"]
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
     fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharey="row")
     fig.suptitle(f"Fit to data, {country}", fontsize=20, y=1.0)

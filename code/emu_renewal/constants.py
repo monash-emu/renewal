@@ -110,7 +110,7 @@ CONV_TRUNC_POINT = 50
 DAYS_IN_WEEK = 7
 
 # Calibration-related
-N_ITERS = 10000
+N_ITERS = 1000
 N_CHAINS = 8
 INIT_RADIUS = 0.1
 SEED_RATE_LOW = "1\\times10^{-7}"
@@ -137,12 +137,14 @@ MOB_SOURCE_COLOURS = {
     "g_mob": "green",
     "fb_visited_mob": "blue",
     "fb_singletile_mob": "red",
+    "fb_no_mob": "grey",
 }
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
     "g_mob": "Google mobility",
     "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",
+    "fb_no_mob": "Facebook no mobility",
 }
 MOB_SOURCE_ABBREVS = {
     "no_mob": "none",
