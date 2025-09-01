@@ -137,6 +137,7 @@ def plot_multianalysis_fit(
     fig.suptitle(f"Fit to data, {country}", fontsize=20, y=1.0)
     for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
+        analysis_name = ANALYSIS_NAMES[analysis] if len(ordered_analyses) < 4 else MOB_SOURCE_ABBREVS[analysis]
         for o, out in enumerate(ordered_targets):
             ax = axes[o, a]
             a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.1, alpha=0.1)
@@ -144,7 +145,7 @@ def plot_multianalysis_fit(
             ax.plot(target.index, target, linewidth=0.0, marker=".")
             plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
             if o == 0:
-                ax.set_title(ANALYSIS_NAMES[analysis], fontsize=15)
+                ax.set_title(analysis_name, fontsize=15)
             if a == 0:
                 ax.set_ylabel(TARGET_TYPES[out], fontsize=15)
             ymax = ax.get_ylim()[1]

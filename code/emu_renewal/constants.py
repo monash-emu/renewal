@@ -151,6 +151,7 @@ MOB_SOURCE_ABBREVS = {
     "g_mob": "Google",
     "fb_visited_mob": "FB tiles visited",
     "fb_singletile_mob": "FB single tile",
+    "fb_no_mob": "FB baseline",
 }
 TARGET_TYPES = {
     "weekly_cases": "weekly cases",
