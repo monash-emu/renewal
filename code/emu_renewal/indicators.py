@@ -560,14 +560,15 @@ def get_specific_var_props(
     rel_cols = [c for c in rel_cols if c in data.columns]
     vals = data[rel_cols].sum(axis=1)
     totals = data.sum(axis=1)
+    var_prop_name = f"{var_name}_prop"
     country_df = pd.DataFrame(
         {
             var_name: vals,
             "totals": totals,
-            f"{var_name}_prop": vals / totals,
+            var_prop_name: vals / totals,
         }
     )
-    country_df
+    country_df = country_df[country_df[var_prop_name] > 0.0]
     if len(country_df) > MIN_VAR_DATES:
         return country_df
 
