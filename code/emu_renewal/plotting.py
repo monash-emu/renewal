@@ -278,8 +278,8 @@ def plot_prior_multipost(
     idata = idatas["no_mob"]
     prior_info = get_flat_priors()
     params = [p for p in prior_info if "proc" not in p and p in idata.posterior]
-    n_params = sum([get_param_dim(p, idata) for p in params])
-    n_rows = int(np.ceil(n_params / n_cols))
+    n_axes = sum([get_param_dim(p, idata) for p in params]) + 1
+    n_rows = int(np.ceil(n_axes / n_cols))
     height = 2.0 + n_rows * 2.5
 
     # Plotting
@@ -302,6 +302,8 @@ def plot_prior_multipost(
                 line = ax.get_lines()[-3]
                 line.set_label(ANALYSIS_NAMES[a])
                 ax.legend()
+                handles, labels = ax.get_legend_handles_labels()
+                ax.get_legend().remove()
 
         # Prior
         p_dim = get_param_dim(p, idata)
@@ -314,6 +316,10 @@ def plot_prior_multipost(
             ax.set_title(display_name)
             plt.setp(ax.xaxis.get_majorticklabels(), fontsize=10)
             n_ax += 1
+
+    # Show legend
+    ax = axes[n_ax]
+    ax.legend(handles=handles, labels=labels, loc="center")
 
     # Suppress unused axes
     for a in range(n_ax, len(axes)):
