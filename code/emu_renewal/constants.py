@@ -206,7 +206,7 @@ MOB_SOURCE_MAP = {
 }
 G_MOB_LOCATION_CMAP = {
     "retail_and_recreation": "darkgoldenrod",
-    "grocery_and_pharmacy": "darkblue",
+    "grocery_and_pharmacy": "teal",
     "parks": "darkgreen",
     "transit_stations": "dimgrey",
     "workplaces": "purple",
