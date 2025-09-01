@@ -1,1 +1,0 @@
-['GHA', 'HKG', 'IMN', 'MAC', 'USA']
