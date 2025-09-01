@@ -172,7 +172,15 @@ def get_cont_of_country(
 
     Returns:
         The continent identifier
+
+    Notes
+    -----
+    Given the profile and timing of its epidemic,
+    Singapore was included with the Oceania countries
+    throughout the following analyses.
     """
+    if iso3 == "SGP":
+        return "OC"
     try:
         iso2 = pycountry.countries.lookup(iso3).alpha_2
         return pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(iso2)
