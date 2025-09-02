@@ -841,6 +841,15 @@ def plot_select_proc_mob(
     return fig
 
 
+def get_median_ratios(dists, mob_source):
+    median_ratios = {}
+    for c in dists:
+        c_ratios = dists[c]
+        if mob_source in c_ratios:
+            median_ratios[c] = c_ratios.median()[mob_source]
+    return median_ratios
+
+
 def plot_dispersion_analysis(
     disp_posts: Dict[str, pd.DataFrame],
 ) -> plt.figure:
@@ -863,15 +872,18 @@ def plot_dispersion_analysis(
     for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1: -1]):
 
         # Find the proportion of runs for which including mobility scaling is an improvement
-        prop_improve = get_prop_improve(disp_posts, analysis)
-        world["prop_improve"] = world["ISO_A3"].map(prop_improve)
+        # prop_improve = get_prop_improve(disp_posts, analysis)
+
+        median_ratios = get_median_ratios(disp_posts, analysis)
+
+        world["prop_improve"] = world["ISO_A3"].map(median_ratios)
         mob_avail = world[world["prop_improve"].notna()]
         mob_unavail = world[world["prop_improve"].isna()]
     
         # Plot the proportion improvements
         ax = flat_axes[a]
         ax.set_title(analysis_name)
-        mob_avail.plot(column="prop_improve", ax=ax, cmap="coolwarm", legend=True, vmin=0.0, vmax=1.0)
+        mob_avail.plot(column="prop_improve", ax=ax, cmap="coolwarm_r", legend=True, vmin=0.45, vmax=1.45)
         mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
     
     # Best mobility approach
@@ -921,7 +933,7 @@ def plot_mob_exp_analysis(
     flat_axes = axes.ravel()
     
     # Strength of effect under each mobility assumption
-    for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1:]):
+    for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1: -1]):
     
         # Find the mobility exponent estimate by country
         vals = get_param_mean_by_country(job_path, "mob_exp", analysis)

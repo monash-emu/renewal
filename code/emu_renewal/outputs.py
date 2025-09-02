@@ -348,3 +348,31 @@ def get_param_mean_by_country(
     countries = ls(job_path)
     i_datas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
     return {c: az.summary(i_datas[c], var_names=param, kind="stats")["mean"].values[0] for c in i_datas}
+
+
+def get_ratios_from_disps(
+    disp_posts: Dict[str, pd.DataFrame],
+) -> Dict[str, pd.DataFrame]:
+    """Find the ratio of the variable process dispersion parameters
+    under the mobility analyses compared to the relevant baseline.
+
+    Args:
+        disp_posts: Output of get_param_vals_by_analysis 
+            with "dispersion_proc" as first argument
+            (i.e. process dispersion samples by analysis)
+
+    Returns:
+        The ratios by country
+    """
+    ratios = {}
+    for c in disp_posts:
+        disp_post = disp_posts[c]
+        ratio_df = pd.DataFrame()
+        if "g_mob" in disp_post:
+            ratio_df["g_mob"] = disp_post["g_mob"] / disp_post["no_mob"]
+        if "fb_visited_mob" in disp_post:
+            fb_ref = "fb_no_mob" if "fb_no_mob" in disp_post else "no_mob"
+            ratio_df["fb_visited_mob"] = disp_post["fb_visited_mob"] / disp_post[fb_ref]
+            ratio_df["fb_singletile_mob"] = disp_post["fb_singletile_mob"] / disp_post[fb_ref]        
+        ratios[c] = ratio_df
+    return ratios
