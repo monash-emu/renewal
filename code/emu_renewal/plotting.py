@@ -860,8 +860,8 @@ def plot_dispersion_analysis(
     flat_axes = axes.ravel()
     
     # Strength of evidence for each mobility type panels
-    for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1:]):
-    
+    for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1: -1]):
+
         # Find the proportion of runs for which including mobility scaling is an improvement
         prop_improve = get_prop_improve(disp_posts, analysis)
         world["prop_improve"] = world["ISO_A3"].map(prop_improve)
