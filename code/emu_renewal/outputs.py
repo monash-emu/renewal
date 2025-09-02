@@ -280,7 +280,8 @@ def get_prop_improve(
     mob_source: str,
 ) -> Dict[str, float]:
     """Find the proportion of results from a particular run that
-    have a lower dispersion parameter than for the no mobility analysis.
+    have a lower dispersion parameter than a randomly selected run 
+    from the no mobility analysis.
 
     Args:
         disp_posts: The posteriors of the dispersion parameter by country and analysis
@@ -297,6 +298,32 @@ def get_prop_improve(
             mob_posts = np.random.permutation(c_posts[mob_source].values)
             prop_improve[c] = pd.Series(no_mob_posts > mob_posts).astype(int).mean()
     return prop_improve
+
+
+def get_prop_improve_median(
+    disp_posts: Dict[str, pd.DataFrame],
+    mob_source: str,
+) -> Dict[str, float]:
+    """Find the proportion of results from a particular run that
+    have a lower dispersion parameter than 
+    the median value of the no mobility analysis.
+
+    Args:
+        disp_posts: The posteriors of the dispersion parameter by country and analysis
+        mob_type: The mobility analysis of interest
+
+    Returns:
+        The proportions by country
+    """
+    prop_improve_median = {}
+    for c in disp_posts:
+        c_posts = disp_posts[c]
+        no_mob_median = c_posts["no_mob"].median()
+        
+        if mob_source in c_posts:
+            mob_posts = c_posts[mob_source]
+            prop_improve_median[c] = (mob_posts < no_mob_median).sum() / len(mob_posts)
+    return prop_improve_median
 
 
 def get_idatas_for_mob_type(

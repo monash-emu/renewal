@@ -44,7 +44,7 @@ from emu_renewal.inputs import (
     get_country_pop,
     get_world_shp,
 )
-from emu_renewal.outputs import get_idatas_for_mob_type, get_prop_improve, get_param_mean_by_country
+from emu_renewal.outputs import get_idatas_for_mob_type, get_prop_improve_median, get_param_mean_by_country
 from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var, get_cont_of_country
 
 
@@ -863,7 +863,7 @@ def plot_dispersion_analysis(
     for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1: -1]):
 
         # Find the proportion of runs for which including mobility scaling is an improvement
-        prop_improve = get_prop_improve(disp_posts, analysis)
+        prop_improve = get_prop_improve_median(disp_posts, analysis)
         world["prop_improve"] = world["ISO_A3"].map(prop_improve)
         mob_avail = world[world["prop_improve"].notna()]
         mob_unavail = world[world["prop_improve"].isna()]
