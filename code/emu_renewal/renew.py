@@ -336,7 +336,7 @@ class MultiStrainModel:
         start_relinfect = jnp.array([1.0])
         relinfect = 1.0 if relinfect is None else jnp.concat([start_relinfect, relinfect])
 
-        # Cross immunity if previously infected with another strain, complete immunity if infected with same strain
+        # Cross immunity, start with partial cross immunity
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
         # Complete susceptibility if never infected before
         suscept_levels = suscept_levels.at[:, 0].set(1.0)
