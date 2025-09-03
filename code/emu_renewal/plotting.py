@@ -469,7 +469,7 @@ def plot_proc_comparison(
         sorted_analyses = [a for a in MOB_SOURCE_COLOURS if a in analyses]
         for a in sorted_analyses:
             colour = MOB_SOURCE_COLOURS[a]
-            quants = procs[iso3][a].quantile([0.05, 0.5, 0.95], axis=1).T
+            quants = procs[iso3][a].quantile([0.025, 0.5, 0.975], axis=1).T
             ax.plot(quants.index, quants[0.5], color=colour, label=MOB_SOURCE_ABBREVS[a], linewidth=2.0)
             ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.1, color=colour)
         ax.legend()
@@ -607,7 +607,7 @@ def compare_proc_mob(
 
         # Variable process plotting
         proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
-        centiles = proc_samples.quantile([0.05, 0.5, 0.95], axis=1).T
+        centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
         ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
 
@@ -673,7 +673,7 @@ def compare_proc_weighted_gmob(
         weights = params.sample(n_samples)
         norm_weights = weights.div(weights.sum(axis=1), axis=0)
         mob_results = (norm_weights @ smoothed_mob.T).T
-        mob_quants = mob_results.quantile([0.05, 0.5, 0.95], axis=1).T
+        mob_quants = mob_results.quantile([0.025, 0.5, 0.975], axis=1).T
     
         # Plot the weighted Google mobility distribution
         ax.plot(mob_quants[0.5], color="green")
@@ -681,7 +681,7 @@ def compare_proc_weighted_gmob(
     
         # Get the variable process
         proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
-        centiles = proc_samples.quantile([0.05, 0.5, 0.95], axis=1).T
+        centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
     
         # Variable process plotting
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
@@ -884,7 +884,7 @@ def plot_select_proc_mob(
     
             # Plot variable process
             proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
-            centiles = proc_samples.quantile([0.05, 0.5, 0.95], axis=1).T
+            centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
             ax = axes[r, c]
             ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
             ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
