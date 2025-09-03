@@ -945,35 +945,6 @@ def plot_mob_exp_analysis(
     return fig
 
 
-def get_proc_mob_corr(
-    job_path: Path, 
-    iso3: str, 
-    mob_location: str,
-):
-    """Find the correlation between the variable process parameter 
-    and the mobility domain estimates.
-
-    Args:
-        job_path: Path for the runs
-        iso3: The country identifier
-        mob_location: The Google mobility location
-
-    Returns:
-        Correlation value
-    """
-    no_mob_path = job_path / iso3 / "no_mob"
-    procs = pd.read_hdf(no_mob_path / "spaghetti.h5", key="spaghetti")["process"]
-    mob_source = MOB_LOCATION_SOURCE_MAP[mob_location]
-    mob = get_requested_mob(iso3, mob_source, mob_location)
-    combined_df = pd.DataFrame(
-        {
-            "mob": mob,
-            "proc": procs.median(axis=1),
-        }
-    ).dropna()
-    return combined_df.corr()["proc"]["mob"]
-
-
 def plot_proc_mob_corr(
     corrs: Dict[str, float],
 ) -> plt.figure:
