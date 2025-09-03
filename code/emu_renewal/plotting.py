@@ -855,22 +855,13 @@ def plot_dispersion_analysis(
     """
     plt.style.use("default")
     world = get_world_shp()
-    
-
-    from matplotlib.colors import TwoSlopeNorm
-
-    norm = TwoSlopeNorm(vmin=0.4, vcenter=1.0, vmax=1.4)
-
-
     fig, axes = plt.subplots(2, 2, figsize=(20, 8), constrained_layout=True)
     flat_axes = axes.ravel()
     
     # Strength of evidence for each mobility type panels
     for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1: -1]):
 
-        # Find the proportion of runs for which including mobility scaling is an improvement
-        # prop_improve = get_prop_improve(disp_posts, analysis)
-
+        # Find median ratio of the mobility approach to the baseline
         median_ratios = get_median_ratios(disp_posts, analysis)
 
         world["prop_improve"] = world["ISO_A3"].map(median_ratios)
@@ -880,7 +871,7 @@ def plot_dispersion_analysis(
         # Plot the proportion improvements
         ax = flat_axes[a]
         ax.set_title(analysis_name)
-        mob_avail.plot(column="prop_improve", ax=ax, cmap="RdGy", legend=True, norm=norm)
+        mob_avail.plot(column="prop_improve", ax=ax, cmap="RdGy", legend=True, vmin=0.4, vmax=1.6)
         mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
     
     # Best mobility approach
