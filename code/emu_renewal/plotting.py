@@ -471,7 +471,7 @@ def plot_proc_comparison(
             colour = MOB_SOURCE_COLOURS[a]
             quants = procs[iso3][a].quantile([0.025, 0.5, 0.975], axis=1).T
             ax.plot(quants.index, quants[0.5], color=colour, label=MOB_SOURCE_ABBREVS[a], linewidth=2.0)
-            ax.fill_between(quants.index, quants[0.05], quants[0.95], alpha=0.1, color=colour)
+            ax.fill_between(quants.index, quants[0.025], quants[0.975], alpha=0.1, color=colour)
         ax.legend()
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
@@ -609,7 +609,7 @@ def compare_proc_mob(
         proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
-        ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
+        ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy")
 
         # Mobility
         mob = get_requested_mob(iso3, mob_source, mob_location)
@@ -677,7 +677,7 @@ def compare_proc_weighted_gmob(
     
         # Plot the weighted Google mobility distribution
         ax.plot(mob_quants[0.5], color="green")
-        ax.fill_between(mob_quants.index, mob_quants[0.05], mob_quants[0.95], alpha=0.2, color="green")
+        ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.2, color="green")
     
         # Get the variable process
         proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
@@ -685,7 +685,7 @@ def compare_proc_weighted_gmob(
     
         # Variable process plotting
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
-        ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
+        ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
         
     for ax in flat_axes[c + 1 :]:
@@ -887,7 +887,7 @@ def plot_select_proc_mob(
             centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
             ax = axes[r, c]
             ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
-            ax.fill_between(centiles.index, centiles[0.05], centiles[0.95], alpha=0.2, color="navy")
+            ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy")
     
             # Plot mobility
             mob = get_requested_mob(iso3, mob_source, mob_location)
