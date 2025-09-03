@@ -376,3 +376,26 @@ def get_ratios_from_disps(
             ratio_df["fb_singletile_mob"] = disp_post["fb_singletile_mob"] / disp_post[fb_ref]        
         ratios[c] = ratio_df
     return ratios
+
+
+def get_median_ratios(
+    dists: Dict[str, pd.DataFrame], 
+    mob_source: str,
+) -> Dict[str, float]:
+    """Get the median ratio of the variable process
+    dispersion parameter sample under a mobility 
+    analysis to the equivalent baseline.
+
+    Args:
+        dists: The output from get_ratios_from_disps
+        mob_source: The mobility type
+
+    Returns:
+        The ratio values by country
+    """
+    median_ratios = {}
+    for c in dists:
+        c_ratios = dists[c]
+        if mob_source in c_ratios:
+            median_ratios[c] = c_ratios.median()[mob_source]
+    return median_ratios

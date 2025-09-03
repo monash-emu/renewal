@@ -44,7 +44,7 @@ from emu_renewal.inputs import (
     get_country_pop,
     get_world_shp,
 )
-from emu_renewal.outputs import get_idatas_for_mob_type, get_prop_improve, get_param_mean_by_country
+from emu_renewal.outputs import get_idatas_for_mob_type, get_param_mean_by_country, get_median_ratios
 from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var, get_cont_of_country
 
 
@@ -841,15 +841,6 @@ def plot_select_proc_mob(
     return fig
 
 
-def get_median_ratios(dists, mob_source):
-    median_ratios = {}
-    for c in dists:
-        c_ratios = dists[c]
-        if mob_source in c_ratios:
-            median_ratios[c] = c_ratios.median()[mob_source]
-    return median_ratios
-
-
 def plot_dispersion_analysis(
     disp_posts: Dict[str, pd.DataFrame],
 ) -> plt.figure:
@@ -865,6 +856,12 @@ def plot_dispersion_analysis(
     plt.style.use("default")
     world = get_world_shp()
     
+
+    from matplotlib.colors import TwoSlopeNorm
+
+    norm = TwoSlopeNorm(vmin=0.4, vcenter=1.0, vmax=1.4)
+
+
     fig, axes = plt.subplots(2, 2, figsize=(20, 8), constrained_layout=True)
     flat_axes = axes.ravel()
     
@@ -883,7 +880,7 @@ def plot_dispersion_analysis(
         # Plot the proportion improvements
         ax = flat_axes[a]
         ax.set_title(analysis_name)
-        mob_avail.plot(column="prop_improve", ax=ax, cmap="coolwarm_r", legend=True, vmin=0.45, vmax=1.45)
+        mob_avail.plot(column="prop_improve", ax=ax, cmap="RdGy", legend=True, norm=norm)
         mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
     
     # Best mobility approach
