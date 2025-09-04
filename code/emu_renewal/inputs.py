@@ -58,7 +58,8 @@ def get_worldbank_national_pop(
     [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
     on 1 April 2025.
     The population size for {POP_YEAR} was used for all countries
-    except for Australia, for which the population size in {OC_POP_YEAR} was used
+    except for Singapore and countries of Oceania, 
+    for which the population size in {OC_POP_YEAR} was used
     (because of the later analysis period for this country).
     """
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"

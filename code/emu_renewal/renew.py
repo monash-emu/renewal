@@ -157,7 +157,7 @@ class MultiStrainModel:
             strains: Names of the variants to be implemented
             seed_times: Times to seed each variant (including the first one)
             mobility: The mobility time series to scale transmission with
-            vacc_effect: Whether to reduce severity based on vaccination effects (for Australia)
+            vacc_effect: Whether to reduce severity based on vaccination effects
         """
         self.strains = strains
         self.start_strain = strains[0]

@@ -41,7 +41,7 @@ durations:
       A rapid review and meta-analysis of generation times by variant found 
       a pooled estimate of 3.3 days for Omicron.[@madewell2023]
       \newline\newline
-      As such, we chose a generation interval mean for the Australia analysis of three days.
+      As such, we chose a generation interval mean for the Singapore and Oceania analyses of three days.
   gen_sd:
     mean: 2.0
     sd: 0.4

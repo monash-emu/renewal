@@ -106,7 +106,7 @@ def find_run_start_time(
     deaths per million population.
     However, if this threshold was not reached by {DEFAULT_START_DATE},
     the simulation commenced at this default time instead.
-    For Australia, the simulation commenced from
+    For Singapore and countries of Oceania, the simulation commenced from
     the time that vaccination reached {START_VACC_THRESHOLD_OC}%
     of its final value.
     """
@@ -139,14 +139,15 @@ def find_run_end_time(
 
     Notes
     -----
-    For all countries other than Australia,
+    For all countries other than Singapore 
+    and countries of Oceania,
     the end time for the analysis was calculated as
     the time that the population vaccination coverage
     passed {END_VACC_THRESHOLD}%,
     provided that vaccination coverage did reach this
     value before the default end time of {DEFAULT_END_DATE}.
     Otherwise, this default end date was used instead.
-    For Australia, the latest date for which
+    For Singapore and Oceania, the latest date for which
     Google mobility data was available was used.
     """
     cont = get_cont_of_country(iso3)

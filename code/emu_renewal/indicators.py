@@ -465,7 +465,8 @@ def get_seroprev_target(
     in these countries, although the modelled attack rate
     still remained well below seroprevalence estimates for
     some countries.
-    Last, we ignored seroprevalence estimates for Australia,
+    Last, we ignored seroprevalence estimates for 
+    Singapore and countries of Oceania,
     for which the analysis was run largely through 2022,
     during which time seroprevalence values were much higher.
     For countries for which seroprevalence calibration targets
