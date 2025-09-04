@@ -1,6 +1,7 @@
 from typing import List, Dict, Tuple
 from pathlib import Path
 import os
+from os import listdir as ls
 import pandas as pd
 import numpy as np
 import pycountry
@@ -200,3 +201,25 @@ def get_subdirs(
         The names (only) of the subdirectories
     """
     return [d.name for d in os.scandir(path) if d.is_dir()]
+
+
+def get_countries_with_mob_source(
+    job_path: Path, 
+    mob_source: str,
+) -> List[str]:
+    """Find all the countries in a path that have an analysis
+    available for a particular analysis type.
+
+    Args:
+        job_path: Path for the runs
+        mob_source: The mobility analysis type
+
+    Returns:
+        The list of countries
+    """
+    all_countries = ls(job_path)
+    mob_countries = []
+    for c in all_countries:
+        if mob_source in [i.parts[-1] for i in (job_path / c).iterdir()]:
+            mob_countries.append(c)
+    return mob_countries
