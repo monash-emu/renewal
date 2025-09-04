@@ -818,7 +818,7 @@ def get_detailed_param_results(
     Returns:
         The figure and the table of means by mobility type
     """
-    mob_sources = [k for k in MOB_SOURCE_ABBREVS if k != "no_mob"]
+    mob_sources = [k for k in MOB_SOURCE_ABBREVS if "no_mob" not in k]
     i_datas = {}
     for mob_source in mob_sources:
         idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
