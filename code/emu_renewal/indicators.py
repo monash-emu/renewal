@@ -114,9 +114,11 @@ def get_deaths_target(
     Any values of zero in this series were replaced with a
     value of {ZERO_IND_REPLACEMENT} to enable comparison to
     modelled outputs on the log scale.
+    The log of the reported target for deaths was compared
+    against the log of the modelled value with a normal distribution.
     Deaths was one of two or three time-series indicators
     for which a common dispersion parameter was used
-    for the distribution comparison of the modelled value.
+    for this normal distribution for the target comparison.
     The value for weighting the deaths indicator time series
     was set to {DEATHS_WEIGHT}.
     """
@@ -472,8 +474,9 @@ def get_seroprev_target(
     but can be interpreted with reference to the deaths indicator
     weight of {DEATHS_WEIGHT}).
     The seroprevalence target had a dispersion parameter
-    that was independent of the other targets
-    (i.e. not shared with the time series indicators).
+    that was normally distributed and independent of 
+    the dispersion parameters for the other targets
+    and was not shared with the time series indicators.
     """
     income = get_income_group(iso3)
     if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
@@ -717,8 +720,8 @@ def get_alpha_info(
 
     Notes
     -----
-    For countries of all continents other than those
-    in Oceania (Australia only) and Africa,
+    For countries of all continents other than Singapore and 
+    countries of Oceania and Africa,
     a target for the Alpha variant
     was included in our calibration algorithm.
     Calibration against data for Alpha started from the beginning
@@ -737,6 +740,11 @@ def get_alpha_info(
     As for the other variants and for the seroprevalence target,
     decreasing values for the proportion of sequences attributable
     to Alpha were recursively pooled to ensure they were strictly increasing.
+    Comparison of the log of the target estimate against 
+    the log of the modelled value was undertaken using 
+    a normal distribution with a single dispersion parameter
+    that applied to all modelled variants 
+    (but was independent of the time series dispersion).
     The target weight for the Alpha target was set to be {VAR_WEIGHT}.
     """
 
@@ -785,7 +793,7 @@ def get_delta_info(
 
     Notes
     -----
-    For all countries other than Australia,
+    For countries other than those of Oceania and Singapore,
     the Delta variant was included if the end date of the
     calibration fell later than {DELTA_INCLUSION_DATE}.
     Values were again pooled to ensure they were strictly increasing.
