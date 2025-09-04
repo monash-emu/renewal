@@ -480,7 +480,7 @@ class MultiStrainModel:
         and with the fraction of incident episodes
         resulting in death estimated according
         to the infection fatality rate.
-        For Australia,
+        For Singapore and countries of Oceania,
         a reduction in the risk of death
         was applied because this analysis was performed
         after wide-scale population vaccination.
@@ -494,7 +494,7 @@ class MultiStrainModel:
         were estimated through a convolution
         distribution with its own parameters
         and a hospital admission fraction.
-        As for the approach to deaths for Australia,
+        As for the approach to deaths for Oceania,
         a reduction in the risk of hospitalisation
         was applied to account for vaccination.
         The relative reduction in the risk of
