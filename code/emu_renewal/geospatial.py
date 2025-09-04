@@ -303,6 +303,7 @@ class FacebookMobilityBuilder:
         geom_method=shp.GeometryType.POINT,
         force_rebuild=False,
         process_gadm_func=None,
+        single_tile=False,
     ) -> pd.Series:
         """Build a population-weighted mobility series for the given country (or load cached version if already present)
 
@@ -319,19 +320,22 @@ class FacebookMobilityBuilder:
 
         Notes
         -----
-        For each geographic region included in the Facebook data, 
+        For each geographic region included in the Facebook data,
         we estimated a population by intersecting polygons
-        with the centroid of the population data grids, 
-        and then weighted the resulting series 
+        with the centroid of the population data grids,
+        and then weighted the resulting series
         by these calculated populations.
-        For the small proportion of 
-        (low-population) timeseries that had missing data, 
+        For the small proportion of
+        (low-population) timeseries that had missing data,
         we imputed population estimates
         by nearest neighbour interpolation.
-        In general, these series were found 
+        In general, these series were found
         to have a negligible contribution to the final outputs.
         """
-        mobility_csv_path = DATA_PATH / f"mobility/{iso3}_fbmob_data.csv"
+        if single_tile:
+            mobility_csv_path = DATA_PATH / f"mobility/{iso3}_fbsingletile_data.csv"
+        else:
+            mobility_csv_path = DATA_PATH / f"mobility/{iso3}_fbmob_data.csv"
 
         if iso3 not in self.fb_data["country"]:
             raise Exception(f"No Facebook data for {iso3}")
@@ -364,8 +368,13 @@ class FacebookMobilityBuilder:
         )
         logger.info(pop_info)
 
+        if single_tile:
+            data_col = "all_day_ratio_single_tile_users"
+        else:
+            data_col = "all_day_bing_tiles_visited_relative_change"
+
         regional_df, weighted_country_mob = mobility_from_population(
-            country_mobility, iso3, gadm_level, pop_dict
+            country_mobility, iso3, gadm_level, pop_dict, data_col
         )
 
         if write_csv:
