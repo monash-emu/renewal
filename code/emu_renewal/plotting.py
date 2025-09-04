@@ -711,7 +711,7 @@ def get_mob_exp_gdp_df(
         The data
     """
     quants = {}
-    analyses = [a for a in ANALYSIS_NAMES if a != "no_mob"]
+    analyses = [a for a in ANALYSIS_NAMES if "no_mob" not in a]
     for mob_type in analyses:
         idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
         quants[mob_type] = {
@@ -746,7 +746,7 @@ def plot_mob_exp_versus_gdp(
     """
     fig, axs = plt.subplots(2, 2, figsize=[12, 9])
     axes = axs.ravel()
-    analyses = {k: v for k, v in ANALYSIS_NAMES.items() if k != "no_mob"}
+    analyses = {k: v for k, v in ANALYSIS_NAMES.items() if "no_mob" not in k}
     quants_df["population (millions)"] = quants_df["pop"] / 1e6
     quants_df["GDP per capita (thousand USD)"] = quants_df["gdp"] / 1e3
     cont_name_cmap = {

@@ -373,6 +373,8 @@ def get_ratios_from_disps(
         if "fb_visited_mob" in disp_post:
             fb_ref = "fb_no_mob" if "fb_no_mob" in disp_post else "no_mob"
             ratio_df["fb_visited_mob"] = disp_post["fb_visited_mob"] / disp_post[fb_ref]
+        if "fb_singletile_mob" in disp_post:
+            fb_ref = "fb_no_mob" if "fb_no_mob" in disp_post else "no_mob"
             ratio_df["fb_singletile_mob"] = disp_post["fb_singletile_mob"] / disp_post[fb_ref]        
         ratios[c] = ratio_df
     return ratios
