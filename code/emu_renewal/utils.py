@@ -223,3 +223,32 @@ def get_countries_with_mob_source(
         if mob_source in [i.parts[-1] for i in (job_path / c).iterdir()]:
             mob_countries.append(c)
     return mob_countries
+
+
+def get_country_short_name(
+    iso3: str,
+) -> str:
+    """Get a shorter name for countries with
+    long names to facilitate some plots.
+
+    Args:
+        iso3: The country identifier
+
+    Returns:
+        The abbreviated name
+    """
+    info = pycountry.countries.lookup(iso3)
+    abbrevs = {
+        "GBR": "UK",
+        "ARE": "UAE",
+        "RUS": "Russia",
+        "DOM": "Domin. Rep.",
+        "BIH": "Bosnia Herz",
+        "AFG": "Afghan.",
+    }
+    if iso3 in abbrevs:
+        return abbrevs[iso3]
+    elif hasattr(info, "common_name"):
+        return info.common_name
+    else:
+        return info.name
