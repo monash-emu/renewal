@@ -1034,3 +1034,89 @@ def plot_proc_mob_corr(
     world.boundary.plot(ax=ax, color="black", linewidth=0.2)
     plt.close()
     return fig
+
+
+COUNTRY_GROUPINGS = {
+    "North America": [
+        "CAN", "USA", 
+        "MEX", "SLV", "HND", "CRI", "PAN", 
+        "DOM", "HTI", "JAM", "PRI", "ABW", "BHS"
+    ],
+    "South America": [
+        "VEN", "COL", "GUY", "SUR", "GUF",
+        "BRA", "PRY", "URY", "ARG", "CHL", "PER"
+    ],
+    "Western Europe": [
+        "IRL", "GBR",
+        "FRA", "BEL", "LUX", "NLD",
+        "CHE"
+    ],
+    "Northern Europe": [
+        "DNK", "NOR", "SWE", "FIN",
+        "EST", "LVA", "LTU"
+    ],
+    "Southern Europe": [
+        "PRT", "ESP", "ITA", "MLT",
+        "SVN", "HRV", "BIH", "SRB",
+        "MKD", "ALB", "GRC"
+    ],
+    "Eastern Europe": [
+        "POL", "CZE", "SVK", "HUN",
+        "ROU", "BGR",
+        "BLR", "UKR", "MDA",
+        "RUS"
+    ],
+    "Northern Africa": [
+        "MAR", "DZA", "TUN", "LBY", "EGY"
+    ],
+    "West Africa": [
+        "CPV", "SEN", "GNB", "GIN",
+        "LBR", "CIV", "TGO", "BEN", "BFA", "MLI", "NGA"
+    ],
+    "Southern Africa": [
+        "ZAF", "LSO", "ZWE", "ZMB", "MWI", "MOZ", "AGO", "MDG"
+    ],
+    "Central & East Africa": [
+        "STP", "GNQ", "GAB", "COG",
+        "CMR", 
+        "RWA", "KEN", "ETH"
+    ],
+    "Western Asia": [
+        "TUR", "GEO",
+        "LBN", "ISR", "JOR",
+        "IRQ", "YEM",
+        "SAU", "KWT", "BHR", "QAT", "ARE", "OMN"
+    ],
+    "Southern Asia": [
+        "AFG", "PAK", "IND", "NPL", "LKA", "BGD"
+    ],
+    "Eastern/South-eastern Asia": [
+        "JPN", "KOR",
+        "PHL", "MYS", "IDN"
+    ],
+    "Oceania, Singpore": [
+        "AUS", "NZL", "FJI", "SGP",
+    ],
+}
+
+
+def get_avail_groupings(
+    avail_countries: List[str],
+) -> Dict[str, List[str]]:
+    """Get the countries from the above grouping scheme
+    that are actually available.
+
+    Args:
+        avail_countries: The countries that are available
+
+    Returns:
+        The revised grouping
+    """
+    avail_grouping = {}
+    for region, countries in COUNTRY_GROUPINGS.items():
+        cs = [c for c in countries if c in avail_countries]
+
+        # Don't include the region if there are no countries
+        if cs:
+            avail_grouping[region] = cs
+    return avail_grouping
