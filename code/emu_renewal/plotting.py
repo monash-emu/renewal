@@ -878,7 +878,7 @@ def plot_exponent_dispersion_comparison(
         )
     
         # Plot
-        sns.scatterplot(x="dispersion ratio", y="mobility exponent", hue="GDP per capita", size="population (millions)", data=plot_df, sizes=(25, 500), ax=ax)
+        sns.scatterplot(x="dispersion ratio", y="mobility exponent", hue="GDP per capita", size="population (millions)", data=plot_df, sizes=(25, 500), ax=ax, edgecolors="k")
         handles, labels = ax.get_legend_handles_labels()
         ax.get_legend().remove()
     
