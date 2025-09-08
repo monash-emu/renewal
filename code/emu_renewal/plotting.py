@@ -929,18 +929,18 @@ def plot_dispersion_analysis(
         # Find median ratio of the mobility approach to the baseline
         median_ratios = get_median_ratios(disp_posts, analysis)
 
-        world["prop_improve"] = world["ISO_A3"].map(median_ratios)
-        mob_avail = world[world["prop_improve"].notna()]
-        mob_unavail = world[world["prop_improve"].isna()]
+        world["disp_ratio"] = world["ISO_A3"].map(median_ratios)
+        mob_avail = world[world["disp_ratio"].notna()]
+        mob_unavail = world[world["disp_ratio"].isna()]
     
         # Plot the proportion improvements
         ax = flat_axes[a]
         ax.set_title(analysis_name)
-        mob_avail.plot(column="prop_improve", ax=ax, cmap="RdGy", legend=True, vmin=0.4, vmax=1.6)
+        mob_avail.plot(column="disp_ratio", ax=ax, cmap="RdGy_r", legend=True, vmin=0.4, vmax=1.6)
         mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
     
     # Best mobility approach
-    best_mob = {c: disp_posts[c].mean().idxmin() for c in disp_posts}
+    best_mob = {c: disp_posts[c].mean().idxmax() for c in disp_posts}
     world["best_mob"] = world["ISO_A3"].map(best_mob)
     world["best_mob_colour"] = world["best_mob"].map(MOB_SOURCE_COLOURS | {"no_mob": "0.45"})
     mob_avail = world[world["best_mob_colour"].notna()]

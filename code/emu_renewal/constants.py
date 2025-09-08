@@ -135,8 +135,8 @@ DUR_REL_MAX = 2.5
 MOB_SOURCE_COLOURS = {
     "no_mob": "black",
     "g_mob": "green",
-    "fb_visited_mob": "blue",
-    "fb_singletile_mob": "red",
+    "fb_visited_mob": "red",
+    "fb_singletile_mob": "blue",
     "fb_no_mob": "grey",
 }
 ANALYSIS_NAMES = {
