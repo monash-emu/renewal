@@ -35,7 +35,6 @@ from emu_renewal.constants import (
     CONT_CMAP,
     MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
-    MOBILITY_SMOOTH_PERIOD,
 )
 from emu_renewal.inputs import (
     DATA_PATH,
@@ -44,6 +43,9 @@ from emu_renewal.inputs import (
     get_gdps,
     get_country_pop,
     get_world_shp,
+    get_g_mob_weight_posts,
+    get_g_mob_quants,
+    get_smoothed_trunc_g_mob,
 )
 from emu_renewal.outputs import get_idatas_for_mob_type, get_param_mean_by_country, get_median_ratios
 from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var, get_cont_of_country
@@ -660,28 +662,22 @@ def compare_proc_weighted_gmob(
         ax.set_title(pycountry.countries.lookup(iso3).name)
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
     
+        # Get the variable process
+        proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
+        centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
+
         # Get the mobility data
-        mob = get_google_mobility(iso3)
-        smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
+        smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
     
-        # Get the mobility location weights
-        idata = az.from_netcdf(job_path / iso3 / "g_mob/idata_filtered.nc")
-        params = idata.posterior["mob_weights"].to_dataframe().unstack(level=-1)
-        params.columns = G_MOB_LOCATION_CMAP
-    
-        # Apply the weights to generate the new set of time series and get quantiles
-        weights = params.sample(n_samples)
-        norm_weights = weights.div(weights.sum(axis=1), axis=0)
-        mob_results = (norm_weights @ smoothed_mob.T).T
-        mob_quants = mob_results.quantile([0.025, 0.5, 0.975], axis=1).T
+        # Get the Google mobility weight posteriors and quantiles of weighted series
+        params = get_g_mob_weight_posts(job_path / iso3)
+        mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
     
         # Plot the weighted Google mobility distribution
         ax.plot(mob_quants[0.5], color="green")
         ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.2, color="green")
     
-        # Get the variable process
-        proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
-        centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
+
     
         # Variable process plotting
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
@@ -694,6 +690,70 @@ def compare_proc_weighted_gmob(
     fig.tight_layout()
     plt.close()
     return fig
+
+
+def plot_select_proc_mob(
+    job_path: Path, 
+    panels: List[List[List[str]]],
+    n_samples: int,
+) -> plt.figure:
+    """Plot selected comparisons between mobility
+    and modelled variable process.
+
+    Args:
+        job_path: Path for the runs
+        panels: The comparisons to plot
+
+    Returns:
+        The figure
+    """
+    fig, axes = plt.subplots(4, 9, figsize=(14, 8))
+    for c, col in enumerate(panels):
+        for r, row in enumerate(col):
+
+            # Gather data
+            mob_location, country = row
+            iso3 = pycountry.countries.lookup(country).alpha_3
+            country_name = SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
+            mob_source = mob_location if mob_location.startswith("fb_") else "g_mob"
+            mob_source_name = MOB_LOCATION_ABBREVS[mob_location]
+
+            # Plot variable process
+            proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
+            centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
+            ax = axes[r, c]
+            ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
+            ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy")
+
+            if "weighted" in mob_location:
+                
+                # Get the mobility data
+                smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
+                
+                # Get the Google mobility weight posteriors and quantiles of weighted series
+                params = get_g_mob_weight_posts(job_path / iso3)
+                mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
+                
+                # Plot the weighted Google mobility distribution
+                ax.plot(mob_quants[0.5], color="green")
+                ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.2, color="green")
+
+            else:
+                mob = get_requested_mob(iso3, mob_source, mob_location)
+                mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
+                smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
+                colour = G_MOB_LOCATION_CMAP[mob_location] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_source]
+                ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
+
+            # Finish cosmetics
+            ax.set_title(f"{country_name}, {mob_source_name}", fontsize=10)
+            ax.set_xticks([])
+            ax.set_yticks([])
+    fig.tight_layout()
+
+    plt.close()
+    return fig
+
 
 def get_mob_exp_gdp_df(
     job_path: Path,
@@ -855,55 +915,6 @@ def get_detailed_param_results(
     fig.tight_layout()
     plt.close()
     return fig, table_info
-
-
-def plot_select_proc_mob(
-    job_path: Path, 
-    panels: List[List[List[str]]],
-) -> plt.figure:
-    """Plot selected comparisons between mobility
-    and modelled variable process.
-
-    Args:
-        job_path: Path for the runs
-        panels: The comparisons to plot
-
-    Returns:
-        The figure
-    """
-    fig, axes = plt.subplots(4, 8, figsize=(14, 8))
-    for c, col in enumerate(panels):
-        for r, row in enumerate(col):  
-    
-            # Gather data
-            mob_location, country = row
-            iso3 = pycountry.countries.lookup(country).alpha_3
-            country_name = SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
-            mob_source = mob_location if mob_location.startswith("fb_") else "g_mob"
-            mob_source_name = MOB_LOCATION_ABBREVS[mob_location]
-    
-            # Plot variable process
-            proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
-            centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
-            ax = axes[r, c]
-            ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
-            ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy")
-    
-            # Plot mobility
-            mob = get_requested_mob(iso3, mob_source, mob_location)
-            mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
-            smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
-            colour = G_MOB_LOCATION_CMAP[mob_location] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_source]
-            ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
-    
-            # Finish cosmetics
-            ax.set_title(f"{country_name}, {mob_source_name}", fontsize=10)
-            ax.set_xticks([])
-            ax.set_yticks([])
-    fig.tight_layout()
-
-    plt.close()
-    return fig
 
 
 def plot_dispersion_analysis(

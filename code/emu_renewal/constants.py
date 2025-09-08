@@ -227,6 +227,7 @@ MOB_LOCATION_ABBREVS = {
     "transit_stations": "transit",
     "workplaces": "work",
     "residential": "resi",
+    "weighted_g_mob": "weighted",
     "fb_visited_mob": "FB visit",
     "fb_singletile_mob": "FB tile",
 }

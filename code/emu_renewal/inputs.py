@@ -1,6 +1,8 @@
+from pathlib import Path
+from datetime import datetime
 import pandas as pd
 import geopandas as gpd
-import json
+import arviz as az
 import pycountry
 from typing import Tuple, List, Dict
 from emu_renewal.constants import (
@@ -11,6 +13,8 @@ from emu_renewal.constants import (
     SUB_DEU_COUNTRIES,
     SUB_GBR_COUNTRY,
     ASSUMED_HIGH_INCOME,
+    G_MOB_LOCATION_CMAP,
+    MOBILITY_SMOOTH_PERIOD,
 )
 from emu_renewal.utils import get_cont_of_country
 from os import listdir as ls
@@ -456,3 +460,63 @@ def get_world_shp():
         country = pycountry.countries.lookup(c).name
         world.loc[world["ADMIN"] == country, "ISO_A3"] = c
     return world
+
+
+def get_smoothed_trunc_g_mob(
+    iso3: str, 
+    start: datetime, 
+    finish: datetime,
+) -> pd.DataFrame:
+    """Get the smoothed, truncated Google mobility data
+
+    Args:
+        iso3: The country identifier
+        start: The start time of the period of interest
+        finish: The end time of the period of interest
+
+    Returns:
+        The mobility data
+    """
+    mob = get_google_mobility(iso3)
+    smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
+    return smoothed_mob[(start < smoothed_mob.index) & (smoothed_mob.index < finish)]
+
+
+def get_g_mob_weight_posts(
+    c_path: Path,
+) -> pd.DataFrame:
+    """Get a dataframe of the mobility weights
+    applied to the Google data.
+
+    Args:
+        c_path: The country path for the analyses
+
+    Returns:
+        The mobility weights
+    """
+    idata = az.from_netcdf(c_path / "g_mob/idata_filtered.nc")
+    params = idata.posterior["mob_weights"].to_dataframe().unstack(level=-1)
+    params.columns = G_MOB_LOCATION_CMAP
+    return params
+
+
+def get_g_mob_quants(
+    smoothed_mob: pd.DataFrame, 
+    params: pd.DataFrame, 
+    n_samples: int,
+) -> pd.DataFrame:
+    """Get the quantiles of the weighted Google
+    mobility time series.
+
+    Args:
+        smoothed_mob: The mobility data
+        params: The output of get_g_mob_weight_posts above
+        n_samples: The number of samples to estimate quantiles
+
+    Returns:
+        The quantiles of the weighted series
+    """
+    weights = params.sample(n_samples)
+    norm_weights = weights.div(weights.sum(axis=1), axis=0)
+    mob_results = (norm_weights @ smoothed_mob.T).T
+    return mob_results.quantile([0.025, 0.5, 0.975], axis=1).T
