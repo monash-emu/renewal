@@ -979,6 +979,8 @@ def plot_dispersion_analysis(
     Returns:
         The figure
     """
+    marker_size = 15
+
     plt.style.use("default")
     world = get_world_shp()
     fig, axes = plt.subplots(2, 2, figsize=(20, 8), constrained_layout=True)
@@ -999,6 +1001,10 @@ def plot_dispersion_analysis(
         ax.set_title(analysis_name)
         mob_avail.plot(column="disp_ratio", ax=ax, cmap="RdGy_r", legend=True, vmin=0.4, vmax=1.6)
         mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
+        world["small"] = world.geometry.area < 2.5
+        world["centroid"] = world.geometry.centroid
+        centroids = world[world["small"]].set_geometry("centroid")
+        centroids.plot(ax=ax, markersize=marker_size, column="disp_ratio", cmap="RdGy_r", vmin=0.4, vmax=1.6, edgecolor="black", linewidth=0.5, zorder=3)
     
     # Best mobility approach
     best_mob = {c: disp_posts[c].mean().idxmax() for c in disp_posts}
@@ -1006,9 +1012,10 @@ def plot_dispersion_analysis(
     world["best_mob_colour"] = world["best_mob"].map(MOB_SOURCE_COLOURS | {"no_mob": "0.45"})
     mob_avail = world[world["best_mob_colour"].notna()]
     mob_unavail = world[world["best_mob_colour"].isna()]
-    
+   
     # Plot the best mobility approach
     ax = flat_axes[-1]
+    ax.set_title("best analysis approach")
     
     # Dummy colour bar to get axis in right position with constrained layout
     sm = ScalarMappable(norm=Normalize(vmin=0, vmax=1))
@@ -1017,7 +1024,7 @@ def plot_dispersion_analysis(
     
     mob_avail.plot(ax=ax, color=mob_avail["best_mob_colour"])
     mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
-    ax.set_title("best analysis approach")
+    centroids.plot(ax=ax, markersize=marker_size, color=mob_avail["best_mob_colour"], vmin=0.4, vmax=1.6, edgecolor="black", linewidth=0.5, zorder=3)
     
     # Cosmetics for all panels
     for ax in flat_axes:
