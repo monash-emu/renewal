@@ -13,7 +13,9 @@ from plotly.subplots import make_subplots
 import arviz as az
 from numpyro import distributions as dist
 from matplotlib import pyplot as plt
+from matplotlib.pyplot import subplots
 from matplotlib.cm import ScalarMappable
+from matplotlib.pyplot import get_cmap
 from matplotlib.colors import Normalize
 import pycountry
 import pycountry_convert as pc
@@ -49,8 +51,7 @@ from emu_renewal.inputs import (
     get_smoothed_trunc_g_mob,
 )
 from emu_renewal.outputs import get_idatas_for_mob_type, get_param_mean_by_country, get_median_ratios
-from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var, get_cont_of_country
-
+from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var, get_cont_of_country, get_country_short_name
 
 plt.style.use("ggplot")
 
@@ -843,7 +844,20 @@ def plot_mob_exp_versus_gdp(
     return fig
 
 
-def plot_exponent_dispersion_comparison(job_path, ratio_dists):
+def plot_exponent_dispersion_comparison(
+    job_path: Path, 
+    ratio_dists: Dict[str, pd.DataFrame],
+) -> plt.figure:
+    """Scatter the mobility exponent against
+    the change in the variable process dispersion.
+
+    Args:
+        job_path: Path for the runs
+        ratio_dists: The posteriors of the dispersion ratio
+
+    Returns:
+        The figure
+    """
     fig, axs = plt.subplots(2, 2, figsize=[12, 9])
     flat_axes = axs.ravel()
     all_countries = ls(job_path)
@@ -1167,3 +1181,31 @@ def get_avail_groupings(
         if cs:
             avail_grouping[region] = cs
     return avail_grouping
+
+
+def plot_mob_exp_violins(mob_source, mob_exp_df, ratios):
+    fig, axes = subplots(3, 5, figsize=[12, 12], sharey=True)
+    flat_axes = axes.ravel()
+    
+    norm = Normalize(vmin=min(ratios.values()), vmax=max(ratios.values()))
+    cmap = get_cmap(MOB_SOURCE_COLOURS[mob_source].capitalize() + "s")
+    palette = {c: cmap(norm(v)) for c, v in ratios.items()}
+    
+    grouping = get_avail_groupings(mob_exp_df.columns)
+    for r, (region, countries) in enumerate(grouping.items()):
+        ax = flat_axes[r]
+        ax.set_title(region)
+        plot_df = mob_exp_df[countries]
+        plot_df.columns = plot_df.columns.map(get_country_short_name)
+        sns.violinplot(plot_df, ax=ax, palette=palette)
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=90)
+    
+    ax = flat_axes[r + 1]
+    sm = ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])
+    fig.colorbar(sm, ax=ax, location="left")
+    ax.remove()
+    
+    fig.tight_layout()
+    plt.close()
+    return fig
