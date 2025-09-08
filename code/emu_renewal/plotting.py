@@ -1,6 +1,7 @@
 from typing import List, Dict
 from pathlib import Path
 import warnings
+from os import listdir as ls
 import yaml as yml
 import numpy as np
 from random import choice
@@ -837,6 +838,41 @@ def plot_mob_exp_versus_gdp(
     ax.legend(handles=handles, labels=labels, loc="center", ncol=2)
     ax.axis("off")
 
+    fig.tight_layout()
+    plt.close()
+    return fig
+
+
+def plot_exponent_dispersion_comparison(job_path, ratio_dists):
+    fig, axs = plt.subplots(2, 2, figsize=[12, 9])
+    flat_axes = axs.ravel()
+    all_countries = ls(job_path)
+    analyses = {k: v for k, v in ANALYSIS_NAMES.items() if "no_mob" not in k}
+    for m, (mob_source, mob_name) in enumerate(analyses.items()):
+        ax = flat_axes[m]
+        ax.set_title(mob_name)
+    
+        # Gather data
+        idatas, _ = get_idatas_for_mob_type(job_path, all_countries, mob_source)
+        plot_df = pd.DataFrame(
+            {
+                "mobility exponent": {c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()},
+                "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
+                "GDP per capita": get_gdps(2020),
+                "population (millions)": {c: get_country_pop(c) / 1e6 for c in all_countries},
+            }
+        )
+    
+        # Plot
+        sns.scatterplot(x="dispersion ratio", y="mobility exponent", hue="GDP per capita", size="population (millions)", data=plot_df, sizes=(25, 500), ax=ax)
+        handles, labels = ax.get_legend_handles_labels()
+        ax.get_legend().remove()
+    
+    # Sort out legend
+    ax = flat_axes[-1]
+    ax.legend(handles=handles, labels=labels, loc="center", ncol=2)
+    ax.axis("off")
+    
     fig.tight_layout()
     plt.close()
     return fig
