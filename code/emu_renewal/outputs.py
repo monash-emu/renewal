@@ -354,7 +354,8 @@ def get_ratios_from_disps(
     disp_posts: Dict[str, pd.DataFrame],
 ) -> Dict[str, pd.DataFrame]:
     """Find the ratio of the variable process dispersion parameters
-    under the mobility analyses compared to the relevant baseline.
+    under the relevant baseline analysis compared to each
+    mobility analysis. Randomly permute the baseline for comparison.
 
     Args:
         disp_posts: Output of get_param_vals_by_analysis 
@@ -369,13 +370,19 @@ def get_ratios_from_disps(
         disp_post = disp_posts[c]
         ratio_df = pd.DataFrame()
         if "g_mob" in disp_post:
-            ratio_df["g_mob"] = disp_post["g_mob"] / disp_post["no_mob"]
+            ref = disp_post["no_mob"].sample(frac=1.0).reset_index(drop=True)
+            mob = disp_post["g_mob"].reset_index(drop=True)
+            ratio_df["g_mob"] = ref / mob
         if "fb_visited_mob" in disp_post:
-            fb_ref = "fb_no_mob" if "fb_no_mob" in disp_post else "no_mob"
-            ratio_df["fb_visited_mob"] = disp_post["fb_visited_mob"] / disp_post[fb_ref]
+            ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_mob"
+            ref = disp_post[ref_name].sample(frac=1.0).reset_index(drop=True)
+            mob = disp_post["fb_visited_mob"].reset_index(drop=True)
+            ratio_df["fb_visited_mob"] = ref / mob
         if "fb_singletile_mob" in disp_post:
-            fb_ref = "fb_no_mob" if "fb_no_mob" in disp_post else "no_mob"
-            ratio_df["fb_singletile_mob"] = disp_post["fb_singletile_mob"] / disp_post[fb_ref]        
+            ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_mob"
+            ref = disp_post[ref_name].sample(frac=1.0).reset_index(drop=True)
+            mob = disp_post["fb_singletile_mob"].reset_index(drop=True)
+            ratio_df["fb_singletile_mob"] = ref / mob
         ratios[c] = ratio_df
     return ratios
 
