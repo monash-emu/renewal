@@ -753,93 +753,6 @@ def plot_select_proc_mob(
     return fig
 
 
-def get_mob_exp_gdp_df(
-    job_path: Path,
-    countries: List[str],
-) -> pd.DataFrame:
-    """Collate data on mob_exp parameter
-    estimated by various mobility analysis types,
-    GDP and population data by country.
-
-    Args:
-        job_path: Path for the runs
-        countries: ISO3 codes for the ountries to include
-
-    Returns:
-        The data
-    """
-    quants = {}
-    analyses = [a for a in ANALYSIS_NAMES if "no_mob" not in a]
-    for mob_type in analyses:
-        idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_type)
-        quants[mob_type] = {
-            c: float(idatas[c].posterior["mob_exp"].quantile([0.5]).data) for c in idatas
-        }
-    quants["pop"] = {c: get_country_pop(c) for c in countries}
-    quants["gdp"] = get_gdps(2020)
-    quants["gdp"]["VEN"] = (
-        42.84e9 / quants["pop"]["VEN"]
-    )  # Assume Venezuela's GDP was 42.84 billion in 2020
-    quants["continent"] = {
-        c: pc.convert_continent_code_to_continent_name(
-            pc.country_alpha2_to_continent_code(pycountry.countries.lookup(c).alpha_2)
-        )
-        for c in countries
-    }
-    return pd.DataFrame(quants)
-
-
-def plot_mob_exp_versus_gdp(
-    quants_df: pd.DataFrame,
-) -> plt.figure:
-    """Plot the mobility exponent parameter
-    against GDP with population determining marker size
-    adn continent determining colour.
-
-    Args:
-        quants_df: The data, the output of get_mob_exp_gdp_df
-
-    Returns:
-        The figure
-    """
-    fig, axs = plt.subplots(2, 2, figsize=[12, 9])
-    axes = axs.ravel()
-    analyses = {k: v for k, v in ANALYSIS_NAMES.items() if "no_mob" not in k}
-    quants_df["population (millions)"] = quants_df["pop"] / 1e6
-    quants_df["GDP per capita (thousand USD)"] = quants_df["gdp"] / 1e3
-    cont_name_cmap = {
-        pc.convert_continent_code_to_continent_name(k): v for 
-        k, v in CONT_CMAP.items()
-    }
-    for m, (mob_type, mob_name) in enumerate(analyses.items()):
-        plot_df = quants_df[["GDP per capita (thousand USD)", mob_type, "population (millions)", "continent"]].dropna()
-        ax = axes[m]
-        sns.scatterplot(
-            x="GDP per capita (thousand USD)",
-            y=mob_type,
-            size="population (millions)",
-            hue="continent",
-            data=plot_df,
-            sizes=(50, 1000),
-            ax=ax,
-            palette=cont_name_cmap,
-            alpha=0.6,
-        )
-        ax.set_title(mob_name)
-        ax.set_ylabel("mobility exponent")
-        handles, labels = ax.get_legend_handles_labels()
-        ax.get_legend().remove()
-
-    # Last axis contains only the legend
-    ax = axes[-1]
-    ax.legend(handles=handles, labels=labels, loc="center", ncol=2)
-    ax.axis("off")
-
-    fig.tight_layout()
-    plt.close()
-    return fig
-
-
 def plot_exponent_dispersion_comparison(
     job_path: Path, 
     ratio_dists: Dict[str, pd.DataFrame],
@@ -907,62 +820,6 @@ def plot_inclusion(
     return fig
 
 
-def get_detailed_param_results(
-    job_path: Path,
-    countries: List[str],
-    param: str,
-) -> tuple:
-    """Plot the distributions of a particular parameter
-    (currently just used for the mob_exp) parameter,
-    and collate its mean over mobility types.
-
-    Args:
-        job_path: Path for the runs
-        countries: The country identifiers
-        param: The name of the parameter
-
-    Returns:
-        The figure and the table of means by mobility type
-    """
-    mob_sources = [k for k in MOB_SOURCE_ABBREVS if "no_mob" not in k]
-    i_datas = {}
-    for mob_source in mob_sources:
-        idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
-        i_datas[mob_source] = idatas
-    all_countries = sort_countries_by_name({key for subdict in i_datas.values() for key in subdict})
-    fig, axes = get_standard_subplot(len(all_countries), 4)
-    flat_axes = axes.ravel()
-    table_info = pd.DataFrame(columns=mob_sources)
-    
-    for c, country in enumerate(all_countries):
-        country_name = pycountry.countries.lookup(country).name
-        ax = flat_axes[c]
-        for mob_source in mob_sources:
-            m_idatas = i_datas[mob_source]
-            colour = MOB_SOURCE_COLOURS[mob_source]
-            if country in m_idatas:
-                c_idata = m_idatas[country]
-                post_plot = az.plot_posterior(c_idata, var_names=param, ax=ax, point_estimate=None, hdi_prob="hide", color=colour)
-                line_data = post_plot.get_lines()[-1]
-                post_plot.fill_between(line_data.get_xdata(), line_data.get_ydata(), alpha=0.1, color=MOB_SOURCE_COLOURS[mob_source])
-                mean = az.summary(c_idata, var_names=param, kind="stats")["mean"].values[0]
-                table_info.loc[country_name, mob_source] = mean
-        ax.set_title(country_name)
-        ax.set_xlim([0.0, 2.0])
-        ax.set_xticks(np.linspace(0.0, 2.0, 5))
-        ax.tick_params(labelsize=9)
-    
-    table_info = table_info.mask(table_info.isna(), "no analysis")
-    table_info = table_info.rename(columns=ANALYSIS_NAMES)
-    
-    for a in range(c + 1, len(flat_axes)):
-        flat_axes[a].set_axis_off()
-
-    fig.tight_layout()
-    plt.close()
-    return fig, table_info
-
-
 def plot_dispersion_analysis(
     disp_posts: Dict[str, pd.DataFrame],
 ) -> plt.figure:
@@ -1028,75 +885,6 @@ def plot_dispersion_analysis(
         ax.set_xticks([])
         ax.set_yticks([])
     
-    return fig
-
-
-def plot_mob_exp_analysis(
-    job_path: Path,
-) -> plt.figure:
-    """Plot the mobility exponent parameters to multi-panel
-    plot by mobility analysis type.
-
-    Args:
-        job_path: Path for the runs
-
-    Returns:
-        The figure
-    """
-    plt.style.use("default")
-    world = get_world_shp()
-    
-    fig, axes = plt.subplots(2, 2, figsize=(20, 8), constrained_layout=True)
-    flat_axes = axes.ravel()
-    
-    # Strength of effect under each mobility assumption
-    for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1: -1]):
-    
-        # Find the mobility exponent estimate by country
-        vals = get_param_mean_by_country(job_path, "mob_exp", analysis)
-        world["vals"] = world["ISO_A3"].map(vals)
-        mob_avail = world[world["vals"].notna()]
-        mob_unavail = world[world["vals"].isna()]
-    
-        # Plot the values
-        ax = flat_axes[a]
-        colour_map = MOB_SOURCE_COLOURS[analysis].capitalize() + "s"
-        mob_avail.plot(ax=ax, column=mob_avail["vals"], cmap=colour_map, legend=True, vmin=0.0, vmax=2.0)
-        mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
-        
-        # Cosmetics
-        ax.set_xticks([])
-        ax.set_yticks([])
-        world.boundary.plot(ax=ax, color="black", linewidth=0.2)
-        ax.set_title(analysis_name)
-    
-    flat_axes[-1].set_visible(False)
-    return fig
-
-
-def plot_proc_mob_corr(
-    corrs: Dict[str, float],
-) -> plt.figure:
-    """Plot the correlations found by the prceding function.
-
-    Args:
-        corrs: The correlations
-
-    Returns:
-        The figure
-    """
-    plt.style.use("default")
-    world = get_world_shp()
-    fig, ax = plt.subplots(1, 1, figsize=[15.5, 6])
-    world["corrs"] = world["ISO_A3"].map(corrs)
-    corr_avail = world[world["corrs"].notna()]
-    corr_unavail = world[world["corrs"].isna()]
-    corr_avail.plot(ax=ax, column=corr_avail["corrs"], cmap="coolwarm", legend=True, vmin=-1.0, vmax=1.0)
-    corr_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
-    ax.set_xticks([])
-    ax.set_yticks([])
-    world.boundary.plot(ax=ax, color="black", linewidth=0.2)
-    plt.close()
     return fig
 
 
@@ -1186,7 +974,23 @@ def get_avail_groupings(
     return avail_grouping
 
 
-def plot_mob_exp_violins(mob_source, mob_exp_df, ratios):
+def plot_mob_exp_violins(
+    mob_source: str, 
+    mob_exp_df: pd.DataFrame, 
+    ratios: Dict[str, float],
+) -> plt.figure:
+    """Plot the mobility exponent distributions 
+    as violin plots, with shade of colouring 
+    determined by the variable process dispersion ratios.
+
+    Args:
+        mob_source: The mobility approach
+        mob_exp_df: The mobility exponent parameter values
+        ratios: The median ratios
+
+    Returns:
+        The figure
+    """
     fig, axes = subplots(3, 5, figsize=[12, 12], sharey=True)
     flat_axes = axes.ravel()
     
