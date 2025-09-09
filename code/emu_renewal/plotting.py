@@ -445,7 +445,6 @@ def plot_duration_params(
 def plot_proc_comparison(
     procs: Dict[str, pd.DataFrame],
     countries: List[str],
-    cont_name: str,
     path: Path,
 ) -> plt.Figure:
     """Plot the comparison of the variable processes
@@ -454,7 +453,6 @@ def plot_proc_comparison(
     Args:
         procs: Variable process data
         countries: Names of the countries
-        cont_name: Name of the continent considered
         path: Path to the analyses
         
     Returns:
