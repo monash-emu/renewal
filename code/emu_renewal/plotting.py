@@ -462,8 +462,6 @@ def plot_proc_comparison(
     """
     fig, axes = plt.subplots(3, 3, figsize=[12, 14])
     flat_axes = axes.ravel()
-    title = f"Comparisons of variable process scaling under each mobility assumption, {cont_name}"
-    fig.suptitle(title, fontsize=15)
 
     # Plot results by country
     for c, iso3 in enumerate(countries):
