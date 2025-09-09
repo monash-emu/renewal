@@ -64,7 +64,7 @@ def get_worldbank_national_pop(
     The population size for {POP_YEAR} was used for all countries
     except for Singapore and countries of Oceania, 
     for which the population size in {OC_POP_YEAR} was used
-    (because of the later analysis period for this country).
+    (because of the later analysis period for these countries).
     """
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
     year = OC_POP_YEAR if get_cont_of_country(iso3) == "OC" else POP_YEAR

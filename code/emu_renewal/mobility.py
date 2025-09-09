@@ -54,7 +54,7 @@ class NoMobilityProvider(MobilityProvider):
         For the analysis without mobility, no empiric data
         was used to scale the transmission rate over time
         (which was implemented by setting the mobility
-        scaling to one throughout the simulation).
+        scaling value to one throughout the simulation).
         """
         self.mob_end = None
 

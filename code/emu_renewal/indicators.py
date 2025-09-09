@@ -116,11 +116,13 @@ def get_deaths_target(
     modelled outputs on the log scale.
     The log of the reported target for deaths was compared
     against the log of the modelled value with a normal distribution.
-    Deaths was one of two or three time-series indicators
+    Deaths was one of either  time-series indicators
     for which a common dispersion parameter was used
     for this normal distribution for the target comparison.
     The value for weighting the deaths indicator time series
-    was set to {DEATHS_WEIGHT}.
+    was set to {DEATHS_WEIGHT} (an quantity that can be interpreted
+    in relation to the weights of the other indicators,
+    but an arbitrary value in itself).
     """
     data = get_who_indicator("New_deaths", iso3)
     data = data.dropna()
@@ -152,8 +154,7 @@ def get_cases_target(
     -----
     The number of cases by week reported by WHO
     was included as the second calibration target for all countries.
-    Linear interpolation was used to replace missing values, and
-    as for deaths, any zero values were replaced with a value of 0.5.
+    As for deaths, any zero values were replaced with a value of 0.5.
     We only calibrated to cases from the {CASES_START} onward,
     because we considered that prior to this time
     many countries were still rapidly scaling
@@ -161,7 +162,7 @@ def get_cases_target(
     been less reliable.
     Cases was the second indicator for which
     a common dispersion parameter was applied.
-    A total weight was applied to the time-series of cases
+    A total weight was applied to the overall time-series of cases
     such that the weight for each observation (date)
     within the cases time-series
     was the same as for each death observation.
@@ -198,7 +199,7 @@ def get_owid_hosps(
 
     Notes
     -----
-    Up to one hospitalisation-related indicator 
+    A maximum of one hospitalisation-related indicator 
     for calibration was chosen using a hierarchical approach.
     In selecting the indicator, the number of new admissions was preferred
     over estimates of total bed occupancy, and total hospital
@@ -277,7 +278,8 @@ def get_hosp_target(
     -----
     This indicator was the final calibration target for which
     a common dispersion parameter was applied.
-    As for cases, a weight was applied to the hospitalisation series
+    As for cases, a weight was applied to 
+    the overall hospitalisation series
     such that the weight for each observation point
     was the same as for each death observation.
     """
@@ -408,7 +410,7 @@ def get_seroprev_pooled_totals(
     followed an immediately preceding higher estimate,
     we pooled these two estimates and placed the pooled
     estimate at the mid-point of the dates of the two estimates.
-    We repeatedly applied this process until seroprevalence
+    We recursively applied this process until seroprevalence
     estimates were monotonically increasing over time.
     """
     while not data[PREV_KEY].is_monotonic_increasing:
@@ -446,7 +448,7 @@ def get_seroprev_target(
     likely to be comparable to our model outputs.
     This is because our modelled seroprevalence would remain
     close to zero with plausible parameter values for 
-    some months after the start of the analysis,
+    some time after the start of the analysis,
     whereas seroprevalence estimates could reach higher
     values due to factors that include low levels of 
     transmission prior to the analysis period and sampling bias.
@@ -468,7 +470,8 @@ def get_seroprev_target(
     Last, we ignored seroprevalence estimates for 
     Singapore and countries of Oceania,
     for which the analysis was run largely through 2022,
-    during which time seroprevalence values were much higher.
+    during which time seroprevalence values would not reflect
+    the attack rate during the simulation period.
     For countries for which seroprevalence calibration targets
     were available, we assigned a target weight to this indicator
     of {SEROPREV_WEIGHT} (which is an arbitrary quantity,
@@ -476,8 +479,9 @@ def get_seroprev_target(
     weight of {DEATHS_WEIGHT}).
     The seroprevalence target had a dispersion parameter
     that was normally distributed and independent of 
-    the dispersion parameters for the other targets
-    and was not shared with the time series indicators.
+    the dispersion parameters for the other targets,
+    including the shared dispersion parameter of 
+    the time series indicators.
     """
     income = get_income_group(iso3)
     if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
@@ -597,7 +601,7 @@ def extract_specific_var(
     The identifiers used to identify variants prior to Alpha
     were: {PREALPHA_IDENTIFIERS}.
     The text "Delta" was used to identify Delta variants and
-    the text {BA2_IDENTIFIER} was used to distinguish the BA.2
+    the text "{BA2_IDENTIFIER}" was used to distinguish the BA.2
     variant from later variants (modelled as BA.5).
     """
     if var_name == "alpha":
@@ -688,6 +692,10 @@ def get_var_target(
     or if all values for the proportion of the variant were one,
     we used pooled data from all the other countries
     from the same continent where available.
+    If insufficient data on a particular variant 
+    were available for the country or
+    its continent, prevalence of that variant was not
+    included as a calibration target.
     """
     data = extract_specific_var(var_data, var_name)
     if data is None or all(data[f"{var_name}_prop"] == 1.0):
@@ -721,12 +729,13 @@ def get_alpha_info(
 
     Notes
     -----
-    For countries of all continents other than Singapore and 
+    For countries other than Singapore and 
     countries of Oceania and Africa,
     a target for the Alpha variant
     was included in our calibration algorithm.
-    Calibration against data for Alpha started from the beginning
-    of the simulation period (from {ALPHA_PERIOD_START}).
+    Calibration against data for Alpha was permitted from the beginning
+    of the simulation period (from {ALPHA_PERIOD_START})
+    for these countries.
     The periods for calibration against the Alpha and the Delta
     variants were set so as to be mutually exclusive in time.
     Specifically, the date to transition from calibrating
@@ -745,7 +754,7 @@ def get_alpha_info(
     the log of the modelled value was undertaken using 
     a normal distribution with a single dispersion parameter
     that applied to all modelled variants 
-    (but was independent of the time series dispersion).
+    (but was independent of the time series dispersion parameter).
     The target weight for the Alpha target was set to be {VAR_WEIGHT}.
     """
 
@@ -851,9 +860,9 @@ def get_ba2_info(
 
     Notes
     -----
-    A calibration target for Omicron BA.2 was only included for Oceania.
+    A calibration target for Omicron BA.2 was only included for Oceania and Singapore.
     As for other variants, the target weight for BA.2 was set to be {VAR_WEIGHT}.
-    The BA.2 calibration target for countries of Oceania
+    The BA.2 calibration target for these countries
     used the data available from {BA2_PERIOD_START}
     to {BA2_PERIOD_END}.
     """
@@ -894,9 +903,9 @@ def get_ba5_info(
 
     Notes
     -----
-    As for BA.2, a calibration target for Omicron BA.5 was only included for Oceania.
+    As for BA.2, a calibration target for Omicron BA.5 was only included for Oceania and Singapore.
     As for other variants, the target weight for BA.5 was set to be {VAR_WEIGHT}.
-    The BA.5 calibration target for countries of Oceania
+    The BA.5 calibration target for these countries
     used the data available from {BA5_PERIOD_START}
     to {BA5_PERIOD_END}.
     """

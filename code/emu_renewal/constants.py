@@ -233,5 +233,5 @@ MOB_LOCATION_ABBREVS = {
 }
 SHORT_COUNTRY_NAMES = {
     "Russian Federation": "Russian Fed",
-    "Dominican Republic": "Dominican Rep"
+    "Dominican Republic": "Domin Rep"
 }

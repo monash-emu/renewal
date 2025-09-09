@@ -140,9 +140,9 @@ def find_run_end_time(
     Notes
     -----
     For all countries other than Singapore 
-    and countries of Oceania,
+    and those of Oceania,
     the end time for the analysis was calculated as
-    the time that the population vaccination coverage
+    the time that population vaccination coverage
     passed {END_VACC_THRESHOLD}%,
     provided that vaccination coverage did reach this
     value before the default end time of {DEFAULT_END_DATE}.
