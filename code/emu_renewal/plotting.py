@@ -822,6 +822,7 @@ def plot_inclusion(
 
 def plot_dispersion_analysis(
     disp_posts: Dict[str, pd.DataFrame],
+    ratios: Dict[str, pd.DataFrame],
 ) -> plt.figure:
     """Plot the analysis of strength of evidence
     that including mobility is an improvement based on
@@ -829,6 +830,7 @@ def plot_dispersion_analysis(
 
     Args:
         disp_posts: The results for the dispersion posteriors
+        ratios: The ratios of the dispersion samples
     Returns:
         The figure
     """
@@ -843,7 +845,7 @@ def plot_dispersion_analysis(
     for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1: -1]):
 
         # Find median ratio of the mobility approach to the baseline
-        median_ratios = get_median_ratios(disp_posts, analysis)
+        median_ratios = get_median_ratios(ratios, analysis)
 
         world["disp_ratio"] = world["ISO_A3"].map(median_ratios)
         mob_avail = world[world["disp_ratio"].notna()]
@@ -860,7 +862,7 @@ def plot_dispersion_analysis(
         centroids.plot(ax=ax, markersize=marker_size, column="disp_ratio", cmap="RdGy_r", vmin=0.4, vmax=1.6, edgecolor="black", linewidth=0.5, zorder=3)
     
     # Best mobility approach
-    best_mob = {c: disp_posts[c].mean().idxmax() for c in disp_posts}
+    best_mob = {c: disp_posts[c].mean().idxmin() for c in disp_posts}
     world["best_mob"] = world["ISO_A3"].map(best_mob)
     world["best_mob_colour"] = world["best_mob"].map(MOB_SOURCE_COLOURS | {"no_mob": "0.45"})
     mob_avail = world[world["best_mob_colour"].notna()]
