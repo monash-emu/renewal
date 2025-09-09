@@ -326,7 +326,7 @@ class FacebookMobilityBuilder:
         and then weighted the resulting series
         by these calculated populations.
         For the small proportion of
-        (low-population) timeseries that had missing data,
+        (low-population) time series that had missing data,
         we imputed population estimates
         by nearest neighbour interpolation.
         In general, these series were found

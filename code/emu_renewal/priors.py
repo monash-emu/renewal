@@ -57,7 +57,7 @@ def get_standard_priors(
     of incidence resulting in the key outputs for calibration,
     we analytically calculated the parameters to the beta
     distribution from the desired mean and standard deviation
-    for the prior that we determined from the literature. 
+    determined from the literature. 
     These parameters comprised the infection fatality rate,
     the case detection proportion and, where applicable,
     the hospital admission proportion.
@@ -67,6 +67,7 @@ def get_standard_priors(
     The reductions based on income status were: {SEVERITY_ADJS},
     with {EXTRA_LOW_INC} (for which a World Bank class was not available)
     considered a low-income country for this purpose.
+    __RETURN__
     The seeding rate for each variant was calibrated from
     ${SEED_RATE_LOW}$ to ${SEED_RATE_UP}$ cases per day
     using a uniform distribution in logarithmic space.
@@ -75,17 +76,20 @@ def get_standard_priors(
     for each variant except for the first one simulated
     was calibrated from {SEED_OFF_LOW} to {SEED_OFF_UP} days
     using a uniform distribution in untransformed space.
+    __RETURN__
     The relative infectiousness of each variant
     except for the first was calibrated using
     truncated normal distributions with mean {RELINF_MEAN},
     standard deviation {RELINF_SD},
     lower truncation limit {RELINF_LOW}
     and upper truncation limit {RELINF_UP}.
+    __RETURN__
     The first value for the variable process was set
     using a normal distribution with mean zero
     and standard deviation {RTINIT_SD}
     which was exponentiated (i.e. calibration in
     logarithmic space).
+    __RETURN__
     The prior for the shared dispersion parameter
     for all time series data was a half-normal distribution
     with standard deviation {SHARED_DISP_SD}.

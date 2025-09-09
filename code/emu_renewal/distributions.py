@@ -44,8 +44,8 @@ class GammaDens(Dens):
         used in our anlaysis were parameterised by
         analytically calculating the "a" (shape) 
         and scale parameters
-        from the epidemiologically determined
-        mean and standard deviation.
+        from the mean and standard deviation
+        determined by our literature review.
         """
         var = sd ** 2.0
         scale = var / mean

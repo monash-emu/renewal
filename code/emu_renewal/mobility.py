@@ -80,9 +80,10 @@ class WeightedExpMobilityProvider(MobilityProvider):
         Notes
         -----
         This mobility analysis type used
-        a set of priors weighting each mobility domain
-        and one further prior governing the overall
-        influence of the weighted mobility estimate on transmission.
+        a set of priors weighting each mobility domain,
+        along with one further prior governing the overall
+        effect of the weighted mobility estimate in scaling 
+        the transmission rate.
         """
         self.mobility_df = mobility
         assert set(priors.keys()) == set(["mob_weights", "mob_exp"])
@@ -178,8 +179,6 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         
         Notes
         -----
-        One prior value was incorporated with each of these approaches, 
-        which specifies the exponent parameter for the mobility data.
         This mobility approach was used for each of the two 
         analyses that incorporated Facebook data,
         using both the tiles visited and the within tile 
@@ -204,7 +203,8 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         
         Notes
         -----
-        The single mobility field is exponentiated to a value
-        specified by a single mobility exponent parameter.
+        One prior value was incorporated with each of these approaches, 
+        which specifies the exponent parameter for 
+        the effect of the mobility data in scaling the transmission rate.
         """
         return self.mobility_arr ** mob_exp

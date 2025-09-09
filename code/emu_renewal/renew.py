@@ -221,10 +221,13 @@ class MultiStrainModel:
 
         Notes
         -----
-        The starting value for the variable process was explored
-        as a calibration parameter, along with the subsequent values of the process.
+        A Wiener variable process was used to 
+        capture variation in transmission over time.
+        The starting value for this process was explored
+        as a calibration parameter, 
+        along with the subsequent updates to the process.
         This exploration was performed in log space,
-        with the calibrated values for these quantities
+        with the calibrated values for each update
         exponentiated before being used to scale the transmission rate.
         Each parameter pertaining to the updates to the variable process
         was assigned the same prior centred at zero (i.e. no update),
@@ -292,7 +295,8 @@ class MultiStrainModel:
         These values were then multiplied by scalar values
         representing the variable process and
         mobility scaling and divided through 
-        by the population size.
+        by the population size
+        (to obtain the scaled per capita infectious population).
         This was multiplied by the strain-specific vector for
         the relative infectiousness of each strain
         to derive the calculated per capita rate of infection.
@@ -310,7 +314,9 @@ class MultiStrainModel:
         from each category and transition
         them to their new states.
         Persons who had never previously been infected
-        with any strain were considered fully susceptible.
+        with any strain were considered had 
+        no immunological protection,
+        and the rate of infection was not adjusted further.
         We considered partial cross immunity was provided
         by infection with a preceding variant strain
         to infection with subsequent strains.
@@ -492,7 +498,7 @@ class MultiStrainModel:
         with the risk of death parameter.__RETURN__
         As for cases and deaths, hospitalisations
         were estimated through a convolution
-        distribution with its own parameters
+        distribution with independently calibrated parameters
         and a hospital admission fraction.
         As for the approach to deaths for Oceania,
         a reduction in the risk of hospitalisation
