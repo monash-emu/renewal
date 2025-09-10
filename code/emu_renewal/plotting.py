@@ -18,8 +18,8 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import Normalize
 from matplotlib.gridspec import GridSpec
+import matplotlib.dates as mdates
 import pycountry
-import pycountry_convert as pc
 from geopandas import GeoDataFrame
 from IPython.display import display, Markdown
 
@@ -1086,6 +1086,7 @@ def plot_composite_calibrations(
         quants = procs[a].quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(quants.index, quants[0.5], color=colour, label=label, linewidth=2.0)
         ax.fill_between(quants.index, quants[0.025], quants[0.975], alpha=0.1, color=colour)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
     
     # Variable process dispersion posteriors
     param_posts = get_param_vals_by_analysis("dispersion_proc", c_path)
