@@ -22,6 +22,7 @@ import matplotlib.dates as mdates
 import pycountry
 from geopandas import GeoDataFrame
 from IPython.display import display, Markdown
+from plotly import graph_objects as go
 
 from emu_renewal.constants import (
     ANALYSIS_TYPES, 
@@ -51,7 +52,7 @@ from emu_renewal.inputs import (
     get_smoothed_trunc_g_mob,
 )
 from emu_renewal.outputs import get_idatas_for_mob_type, get_median_ratios, get_param_vals_by_analysis
-from emu_renewal.utils import get_param_dim, get_beta_params_from_mean_var, get_cont_of_country, get_country_short_name
+from emu_renewal.utils import get_param_dim, get_beta_params_from_mean_var, get_cont_of_country, get_country_short_name, get_country_name
 
 plt.style.use("ggplot")
 
@@ -785,7 +786,7 @@ def plot_exponent_dispersion_comparison(
         )
     
         # Plot
-        sns.scatterplot(x="dispersion ratio", y="mobility exponent", hue="GDP per capita", size="population (millions)", data=plot_df, sizes=(25, 500), ax=ax, edgecolors="k")
+        sns.scatterplot(x="dispersion ratio", y="mobility exponent", hue="GDP per capita", size="population (millions)", data=plot_df, sizes=(25, 500), ax=ax, edgecolors="k", palette=sns.color_palette("Reds", as_cmap=True))
         handles, labels = ax.get_legend_handles_labels()
         ax.get_legend().remove()
     
@@ -796,6 +797,68 @@ def plot_exponent_dispersion_comparison(
     
     fig.tight_layout()
     plt.close()
+    return fig
+
+
+def plot_exponent_dispersion_comparison_interactive(
+    job_path: Path, 
+    mob_source: str,
+    ratio_dists: Dict[str, pd.DataFrame],
+) -> go.Figure:
+    """Equivalent plot to the previous function,
+    but using plotly to create an interactive version.
+
+    Args:
+        job_path: Path for the runs
+        mob_source: Mobility analysis type
+        ratio_dists: The posteriors of the dispersion ratio
+
+    Returns:
+        The plotly interactive figure
+    """
+    countries = ls(job_path)
+    idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
+    plot_df = pd.DataFrame(
+        {
+            "mobility exponent": {c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()},
+            "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
+            "GDP per capita": get_gdps(2020),
+            "population (millions)": {c: get_country_pop(c) / 1e6 for c in countries},
+        },
+    )
+    plot_df["country name"] = plot_df.index.to_series().apply(get_country_name)
+    plot_df.loc[plot_df["population (millions)"].isna(), "population (millions)"] = 0.0
+    
+    fig = go.Figure(
+        layout={
+            "width": 750, 
+            "height": 600, 
+            "plot_bgcolor": "#F0F0F0", 
+            "title": {"text": ANALYSIS_NAMES[mob_source], "xanchor": "center", "x": 0.5},
+            "xaxis_title": "mobility exponent",
+            "yaxis_title": "dispersion ratio",
+        }
+    )
+    hover_template = "%{text}<br>disp ratio: %{x:.2f}<br>mob exp: %{y:.2f}<extra></extra>"
+    fig.add_trace(
+        go.Scatter(
+            x=plot_df["dispersion ratio"],
+            y=plot_df["mobility exponent"],
+            mode="markers",
+            text=plot_df["country name"],
+            hoverinfo="text",
+            marker=dict(
+                size=plot_df["population (millions)"], 
+                line=dict(width=1.0, color="black"),
+                color=plot_df["GDP per capita"],
+                sizemode="area",
+                sizemin=4.0,
+                sizeref=2.5,
+                colorscale="reds",
+            ),
+            hovertemplate=hover_template
+        ),
+    )
     return fig
 
 

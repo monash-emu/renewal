@@ -252,3 +252,21 @@ def get_country_short_name(
         return info.common_name
     else:
         return info.name
+
+
+def get_country_name(
+    iso3: str,
+) -> str:
+    """Safely get name of a country, returning
+    the original ISO3 request if not availble.
+
+    Args:
+        iso3: The country identifier
+
+    Returns:
+        The name of the country
+    """
+    try:
+        return pycountry.countries.lookup(iso3).name
+    except:
+        return iso3
