@@ -265,16 +265,6 @@ class MultiStrainModel:
         For all analyses, the starting population
         minus the seeding values for the first strain
         was assigned to the fully susceptible category.
-        __RETURN__### Seeding__RETURN__
-        Each newly emerging strain was seeded using a triangular
-        pulse of new infections that peaked at a rate according
-        to the per capita seeding rate specified.
-        At each calculation day,
-        the new strain-specific seeding values
-        were added to the most recent value for the
-        strain-specific history of incidence. Infectiousness of 
-        each variant was specified
-        with reference to the first modelled variant strain.
         __RETURN__### Generation interval__RETURN__
         A gamma-distributed generation interval
         was used for the renewal process.
@@ -305,6 +295,16 @@ class MultiStrainModel:
         (where $r$ represents the calculated infection rate)
         to ensure that the per capita risk
         of infection could not exceed one in a time step.
+        __RETURN__### Seeding__RETURN__
+        Each newly emerging strain was seeded using a triangular
+        pulse of new infections that peaked at a rate according
+        to the per capita seeding rate specified.
+        At each calculation day,
+        the new strain-specific seeding values
+        were added to the most recent value for the
+        strain-specific history of incidence. Infectiousness of 
+        each variant was specified
+        with reference to the first modelled variant strain.
         __RETURN__### Immunity__RETURN__
         These rates of infection were then applied
         to each possible immunological past history of
