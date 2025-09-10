@@ -139,7 +139,6 @@ def plot_multianalysis_fit(
         ordered_analyses += ["fb_no_mob"]
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
     fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharey="row")
-    fig.suptitle(f"Fit to data, {country}", fontsize=20, y=1.0)
     for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
         analysis_name = ANALYSIS_NAMES[analysis] if len(ordered_analyses) < 4 else MOB_SOURCE_ABBREVS[analysis]
@@ -294,7 +293,6 @@ def plot_prior_multipost(
 
     # Plotting
     fig, ax = plt.subplots(n_rows, n_cols, figsize=[12, height])
-    fig.suptitle(f"Prior posterior comparison, {country}", fontsize=20, y=1.0)
     axes = ax.ravel()
     n_ax = 0
     for p in params:
