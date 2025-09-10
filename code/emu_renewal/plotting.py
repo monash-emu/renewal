@@ -835,8 +835,8 @@ def plot_exponent_dispersion_comparison_interactive(
             "height": 600, 
             "plot_bgcolor": "#F0F0F0", 
             "title": {"text": ANALYSIS_NAMES[mob_source], "xanchor": "center", "x": 0.5},
-            "xaxis_title": "mobility exponent",
-            "yaxis_title": "dispersion ratio",
+            "xaxis_title": "dispersion ratio",
+            "yaxis_title": "mobility exponent",
         }
     )
     hover_template = "%{text}<br>disp ratio: %{x:.2f}<br>mob exp: %{y:.2f}<extra></extra>"
