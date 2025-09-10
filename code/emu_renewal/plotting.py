@@ -17,6 +17,7 @@ from matplotlib.pyplot import subplots
 from matplotlib.cm import ScalarMappable
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import Normalize
+from matplotlib.gridspec import GridSpec
 import pycountry
 import pycountry_convert as pc
 from geopandas import GeoDataFrame
@@ -35,7 +36,6 @@ from emu_renewal.constants import (
     INCLUSION_COLOURS,
     MOB_LOCATION_NAME_MAP,
     G_MOB_LOCATION_CMAP,
-    CONT_CMAP,
     MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
 )
@@ -50,8 +50,8 @@ from emu_renewal.inputs import (
     get_g_mob_quants,
     get_smoothed_trunc_g_mob,
 )
-from emu_renewal.outputs import get_idatas_for_mob_type, get_param_mean_by_country, get_median_ratios
-from emu_renewal.utils import get_param_dim, sort_countries_by_name, get_beta_params_from_mean_var, get_cont_of_country, get_country_short_name
+from emu_renewal.outputs import get_idatas_for_mob_type, get_median_ratios, get_param_vals_by_analysis
+from emu_renewal.utils import get_param_dim, get_beta_params_from_mean_var, get_cont_of_country, get_country_short_name
 
 plt.style.use("ggplot")
 
@@ -123,11 +123,11 @@ def plot_multianalysis_fit(
         country: Name of the country
         targets: The calibration targets
         spaghs: The spaghettis
+        line_width: Width of spaghetti's lines
 
     Returns:
         The figure
     """
-    country = pycountry.countries.lookup(iso3).name
     cont = get_cont_of_country(iso3)
     msg = ".*axis already has a converter set*"
     warnings.filterwarnings("ignore", message=msg)
@@ -1014,5 +1014,88 @@ def plot_mob_exp_violins(
     ax.remove()
     
     fig.tight_layout()
+    plt.close()
+    return fig
+
+
+def plot_composite_calibrations(
+    job_path: Path, 
+    iso3: str, 
+    analyses: List[str], 
+    spaghs: Dict[str, pd.DataFrame], 
+    targets: Dict[str, pd.Series],
+) -> plt.figure:
+    """Plot Figure 1, combining calibration target comparisons
+    with two other plotting approaches.
+
+    Args:
+        job_path: Path to the job
+        iso3: Country identifier
+        analyses: Analyses to consider
+        spaghs: Spaghetti results
+        targets: Calibration target data
+
+    Returns:
+        The figure
+    """
+
+    c_path = job_path / iso3
+    fig = plt.figure(figsize=[16, 10])
+    gs = GridSpec(5, 6)
+    
+    # Calibration comparison
+    msg = ".*axis already has a converter set*"
+    warnings.filterwarnings("ignore", message=msg)
+    ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
+    ordered_targets = [t for t in TARGET_TYPES if t in targets]
+    for a, analysis in enumerate(ordered_analyses):
+        a_spaghs = spaghs[analysis]
+        for o, out in enumerate(ordered_targets):
+            ax = fig.add_subplot(gs[o, a])
+            a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.8, alpha=0.1)
+            target = targets[out]
+            ax.plot(target.index, target, linewidth=0.0, marker=".")
+            if o == 0:
+                ax.set_title(MOB_SOURCE_ABBREVS[analysis], fontsize=15)
+            if a == 0:
+                ax.set_ylabel(TARGET_TYPES[out], fontsize=12)
+            ymax = ax.get_ylim()[1]
+            targ_max = max(targets[out]) * 1.5
+            if ymax > targ_max and out != "seropos" and "prop_" not in out:
+                ylim = min([ymax, targ_max])
+                ax.set_ylim(-ylim * 0.05, ylim)
+            ax.set_yticks([])
+            if o < 4:
+                ax.set_xticklabels([])
+            else:
+                plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
+    fig.tight_layout()
+    # fig.subplots_adjust(wspace=0.05)
+    
+    # Variable process with credible intervals
+    c_procs = [pd.read_hdf(c_path / a / "spaghetti.h5")["process"] for a in analyses]
+    procs = pd.concat(c_procs, keys=analyses, axis=1)
+    
+    ax = fig.add_subplot(gs[0: 2, 4: 6])
+    ax.set_title("variable process")
+    ax.set_yticks([])
+    ax.tick_params(axis="x", labelrotation=70)
+    for a in analyses:
+        colour = MOB_SOURCE_COLOURS[a]
+        label = MOB_SOURCE_ABBREVS[a]
+        quants = procs[a].quantile([0.025, 0.5, 0.975], axis=1).T
+        ax.plot(quants.index, quants[0.5], color=colour, label=label, linewidth=2.0)
+        ax.fill_between(quants.index, quants[0.025], quants[0.975], alpha=0.1, color=colour)
+    
+    # Variable process dispersion posteriors
+    param_posts = get_param_vals_by_analysis("dispersion_proc", c_path)
+    
+    ax = fig.add_subplot(gs[3: 5, 4: 6])
+    colours = [MOB_SOURCE_COLOURS[a] for a in param_posts.columns]
+    sns.kdeplot(param_posts, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5)
+    ax.set_yticks([])
+    ax.set_ylabel("")
+    ax.set_title("dispersion posterior distributions")
+
     plt.close()
     return fig
