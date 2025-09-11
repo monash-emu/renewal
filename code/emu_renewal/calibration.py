@@ -74,12 +74,13 @@ class StandardCalib:
         
         Notes
         -----
-        For all epidemiological parameters,
-        the priors were set as described in the 
-        parameter choices section of this document.
         The dispersion parameter for the variable process
         was set to a half normal distribution with 
-        standard deviation {PROC_DISP_SD}.
+        standard deviation {PROC_DISP_SD} under analyses
+        both with and without mobility included.
+        This approach was adopted in order to favour
+        lesser changes to the variable process at 
+        each sequential update point.
         """
         self.epi_model = epi_model
         self.n_proc_periods = len(self.epi_model.x_proc_data.points)
