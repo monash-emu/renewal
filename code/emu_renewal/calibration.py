@@ -139,10 +139,10 @@ class StandardCalib:
         of the variable process introduced above.
         """
         params = {k: numpyro.sample(k, v) for k, v in self.sampled_params.items()}
-        # proc_disp = numpyro.sample("dispersion_proc", self.proc_dispersion)
-        # proc_dist = dist.Normal(jnp.repeat(0.0, self.n_proc_periods), proc_disp)
-        return params
-        # return params | {"proc": numpyro.sample("proc", proc_dist)}
+        proc_disp = numpyro.sample("dispersion_proc", self.proc_dispersion)
+        proc_dist = dist.Normal(jnp.repeat(0.0, self.n_proc_periods), proc_disp)
+        # return params
+        return params | {"proc": numpyro.sample("proc", proc_dist)}
 
     def add_factor(self, result, ind: str, parameters):
         """Add output target to calibration algorithm.
