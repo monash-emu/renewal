@@ -310,7 +310,7 @@ fixed:
       found a total efficacy of 95% protection against COVID-19.[@polack2020]
       \newline\newline
       However, protection against infection will be captured by scaling the modelled transmission parameters, 
-      including the variable process. 
+      including the residual transmission. 
       As such, the evidence needed for this quantity is the real-world reduction in the risk of hospitalisation and death given infection.
       \newline\newline
       Estimates of the real-world protection of vaccination against SARS-CoV-2 infections found 
@@ -342,8 +342,8 @@ other:
   seed_rates:
     short_name: log seeding rate
   rt_init:
-    short_name: variable process initial value
+    short_name: residual transmission initial value
   shared_dispersion:
     short_name: shared target dispersion
   dispersion_proc:
-    short_name: variable process dispersion
+    short_name: residual transmission dispersion

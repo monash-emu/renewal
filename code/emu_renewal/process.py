@@ -28,7 +28,7 @@ def _get_cos_curve_at_x(
     $(t_{{1}}, y_{{1}})$ and finishing point $(t_{{2}}, y_{{2}})$
     with a gradient of zero at both of these points.
     This choice of fitting approach ensures that 
-    the variable process function, its derivative 
+    the residual transmission scaling function, its derivative 
     and its higher order derivatives are continuous.
     """
     idx = sinterp.binary_search_sum_ge(x, x_data.points) - 1

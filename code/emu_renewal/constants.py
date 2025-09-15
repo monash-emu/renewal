@@ -98,7 +98,7 @@ MOBILITY_SMOOTH_PERIOD = 7
 EXP_PRIOR_LOWER = 0
 EXP_PRIOR_UPPER = 2
 
-# Variable process-related
+# Transmission scaling-related
 PROC_UPDATE_FREQ = 7
 PROC_DISP_SD = 0.5
 

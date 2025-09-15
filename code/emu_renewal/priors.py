@@ -84,8 +84,8 @@ def get_standard_priors(
     lower truncation limit {RELINF_LOW}
     and upper truncation limit {RELINF_UP}.
     __RETURN__
-    The first value for the variable process was set
-    using a normal distribution with mean zero
+    The first value for the residual transmission scaling process
+    was set using a normal distribution with mean zero
     and standard deviation {RTINIT_SD}
     which was exponentiated (i.e. calibration in
     logarithmic space).
