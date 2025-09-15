@@ -15,6 +15,7 @@ from emu_renewal.constants import (
     ASSUMED_HIGH_INCOME,
     G_MOB_LOCATION_CMAP,
     MOBILITY_SMOOTH_PERIOD,
+    OXCGRT_DTYPES,
 )
 from emu_renewal.utils import get_cont_of_country
 from os import listdir as ls
@@ -252,6 +253,26 @@ def get_fb_singletile_mobility(
     mob = pd.read_csv(DATA_PATH / filename, index_col=0)["0"]
     mob.index = pd.to_datetime(mob.index)
     return 1.0 - mob
+
+
+def get_oxcgrt(
+    iso3: str, 
+    field: str,
+) -> pd.Series:
+    """Get a named field for a single country
+    from the Oxford CGRT database.
+
+    Args:
+        iso3: The country identifier
+        field: The name of the field/column
+
+    Returns:
+        The data
+    """
+    mob = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
+    mob.index = pd.to_datetime(mob["Date"], format="%Y%m%d")
+    mob = mob.loc[mob["CountryCode"] == iso3, field]
+    return 1.0 - mob / 100.0
 
 
 def get_requested_mob(

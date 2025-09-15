@@ -13,7 +13,7 @@ DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
 # Analysis types
-ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_visited_mob", "fb_singletile_mob"]
+ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_visited_mob", "fb_singletile_mob", "oxcgrt"]
 
 # Dates
 CASES_START = "1 June 2020"
@@ -234,4 +234,15 @@ MOB_LOCATION_ABBREVS = {
 SHORT_COUNTRY_NAMES = {
     "Russian Federation": "Russian Fed",
     "Dominican Republic": "Domin Rep"
+}
+
+# Stringency
+OXCGRT_DTYPES = {
+    "V2B_Vaccine age eligibility/availability age floor (general population summary)": str,
+    "V2C_Vaccine age eligibility/availability age floor (at risk summary)": str,
+    "V4_Notes": str,
+    "M1_Notes": str,
+    "E3_Notes": str,
+    "E4_Notes": str,
+    "H4_Notes": str,
 }
