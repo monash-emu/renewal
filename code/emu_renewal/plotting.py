@@ -1186,6 +1186,8 @@ def plot_composite_calibrations(
     
     ax = fig.add_subplot(gs[3: 5, 4: 6])
     colours = [MOB_SOURCE_COLOURS[a] for a in param_posts.columns]
+    param_posts = param_posts.rename(columns=MOB_SOURCE_ABBREVS)
+
     sns.kdeplot(param_posts, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5)
     ax.set_yticks([])
     ax.set_ylabel("")
