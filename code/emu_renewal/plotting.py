@@ -20,6 +20,7 @@ from matplotlib.colors import Normalize
 from matplotlib.gridspec import GridSpec
 import matplotlib.dates as mdates
 import pycountry
+import pycountry_convert as pc
 from geopandas import GeoDataFrame
 from IPython.display import display, Markdown
 from plotly import graph_objects as go
@@ -882,6 +883,34 @@ def plot_inclusion(
     return fig
 
 
+def plot_continent_grouping(
+    world: GeoDataFrame
+):
+    """Plot the countries of the world shaded according to
+    continent grouping.
+
+    Args:
+        world: The GeoPandas dataframe with the continent specified
+
+    Returns:
+        The figure
+    """
+    fig, ax = plt.subplots(1, 1, figsize=[12, 9])
+
+    # Plot
+    world.plot(ax=ax, column="continent", figsize=[20, 8], cmap="Pastel1", legend=True)
+    world.boundary.plot(ax=ax, color="black", linewidth=0.4)
+
+    # Tidy up cosmetics
+    ax.set_xticks([])
+    ax.set_yticks([])
+    leg = ax.get_legend()
+    leg.set_bbox_to_anchor((0.22, 0.55))
+
+    plt.close()
+    return fig
+
+
 def plot_dispersion_analysis(
     disp_posts: Dict[str, pd.DataFrame],
     ratios: Dict[str, pd.DataFrame],
@@ -1164,3 +1193,24 @@ def plot_composite_calibrations(
 
     plt.close()
     return fig
+
+
+def add_cont_to_world_geodf(
+    world: GeoDataFrame,
+):
+    """Add a column to a GeoPandas dataframe
+    to indicate the continent of the country as a string.
+
+    Args:
+        world: The GeoPandas dataframe
+    """
+    for iso3 in world["ISO_A3"]:
+        try:
+            iso2 = pycountry.countries.lookup(iso3).alpha_2
+            cont = pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(iso2)
+            cont_name = pc.convert_continent_code_to_continent_name(cont)
+            world.loc[world["ISO_A3"] == iso3, "continent"] = cont_name
+        except KeyError:
+            world.loc[world["ISO_A3"] == iso3, "continent"] = "none"
+        except LookupError:
+            world.loc[world["ISO_A3"] == iso3, "continent"] = "none"
