@@ -189,15 +189,17 @@ class MultiStrainModel:
         self.window_len = INIT_DURATION
 
     def initialise_var_proc(self):
-        """Initialise the structures needed for the variable process.
+        """Initialise the structures needed for 
+        the residual transmission scaling process.
 
         Notes
         -----
-        Each time point for fitting the variable process was set at intervals
-        through the analysis period spaced by {PROC_UPDATE_FREQ} days
+        Each time point for fitting the residual transmission scaling process
+        was set at intervals through the analysis period 
+        spaced by {PROC_UPDATE_FREQ} days
         working backwards from the end of the analysis period.
-        The variable process was then fit to these points using
-        piecewise cosine functions.
+        The scaling process was then fit to these points using
+        piecewise cosine functions from a starting value of zero.
         """
         self.proc_update_freq = PROC_UPDATE_FREQ
         self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
@@ -208,16 +210,14 @@ class MultiStrainModel:
     def fit_process_curve(
         self,
         y_proc_req: List[float],
-        rt_init: float,
     ) -> jnp.array:
-        """See describe_process below.
+        """See Notes.
 
         Args:
-            y_proc_req: The submitted log values for the variable process
-            rt_init: Starting value for the variable process
+            y_proc_req: The submitted log values for transmission scaling
 
         Returns:
-            The values of the variable process at each model time
+            The values of the transmission scaling at each model time
 
         Notes
         -----
@@ -226,25 +226,25 @@ class MultiStrainModel:
         The starting value for this process was explored
         as a calibration parameter, 
         along with the subsequent updates to the process.
-        This exploration was performed in log space,
+        This exploration was performed in logarithmic space,
         with the calibrated values for each update
         exponentiated before being used to scale the transmission rate.
-        Each parameter pertaining to the updates to the variable process
+        Each parameter pertaining to the updates to residual transmission scaling
         was assigned the same prior centred at zero (i.e. no update),
         and so can be interpreted as the change in the log-transformed
-        variable process relative to the previous value.
+        residual transmission scaling relative to the previous value.
         """
-        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((rt_init,)), y_proc_req]))
+        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((0.0,)), y_proc_req]))
         y_proc_data = sinterp.get_scale_data(y_proc_vals)
         fitter = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
         return jnp.exp(fitter(self.model_times, self.x_proc_data, y_proc_data))
 
     def renew(
         self,
+        beta: float,
         proc: List[float],
         mean: float,
         sd: float,
-        init: float,
         cross_immunity: float,
         seed_rates: List[float],
         relinfect: Optional[List[float]],
@@ -283,8 +283,8 @@ class MultiStrainModel:
         to create an array of the effective number of
         infectious individuals for each strain.
         These values were then multiplied by scalar values
-        representing the variable process and
-        mobility scaling and divided through 
+        representing residual transmission scaling and
+        adjustment for mobility and divided through 
         by the population size
         (to obtain the scaled per capita infectious population).
         This was multiplied by the strain-specific vector for
@@ -327,7 +327,7 @@ class MultiStrainModel:
         (for example, past infection with Delta conferred
         complete immunity against future infection with Alpha).
         """
-        var_process = self.fit_process_curve(proc, init)
+        trans_proc = self.fit_process_curve(proc)
         gen_dist = GammaDens()
         gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
 
@@ -365,8 +365,8 @@ class MultiStrainModel:
         half_dur = self.seed_duration / 2.0
 
         def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
-            # Variable process (scalar)
-            proc_val = var_process[t - self.start]
+            # Residual transmission scaling process (scalar)
+            proc_val = trans_proc[t - self.start]
             # Mobility data (scalar)
             mob_val = mobility[t - self.start]
             # Seed (vector, n_strains)
@@ -377,7 +377,7 @@ class MultiStrainModel:
             # Incidence convolved with generation (vector, n_strains)
             contributions = (gen_densities * past_inc).sum(axis=1)
             # Calculated infection rate (vector, n_strains)
-            calc_inf_rates = contributions * proc_val * mob_val * relinfect / self.pop
+            calc_inf_rates = contributions * beta * proc_val * mob_val * relinfect / self.pop
             # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             # Effective susceptibles (array, n_strains by 2 ** n_strains)
@@ -402,12 +402,12 @@ class MultiStrainModel:
 
     def renewal_func(
         self,
+        beta: float,
         proc: List[float],
         gen_mean: float,
         gen_sd: float,
         cdr: float,
         ifr: float,
-        rt_init: float,
         report_mean: float,
         report_sd: float,
         death_mean: float,
@@ -433,12 +433,12 @@ class MultiStrainModel:
         """Main function to call externally to get the renewal outputs.
 
         Args:
-            proc: The values of the variable process
+            beta: The transmission scaling parameter
+            proc: The values of residual transmission scaling
             gen_mean: Mean of the generation interval
             gen_sd: Standard deviation of the generation interval
             cdr: Case detection rate (proportion)
             ifr: Infection fatality rate (proportion)
-            rt_init: The starting value for the variable process
             report_mean: Mean time from infection to reporting
             report_sd: Standard deviation of time from infection to reporting
             death_mean: Mean time from infection to death
@@ -531,10 +531,10 @@ class MultiStrainModel:
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
         out = self.renew(
+            beta,
             proc,
             gen_mean,
             gen_sd,
-            rt_init,
             cross_immunity,
             seed_rates,
             relinfect,

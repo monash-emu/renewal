@@ -20,6 +20,7 @@ from matplotlib.colors import Normalize
 from matplotlib.gridspec import GridSpec
 import matplotlib.dates as mdates
 import pycountry
+import pycountry_convert as pc
 from geopandas import GeoDataFrame
 from IPython.display import display, Markdown
 from plotly import graph_objects as go
@@ -183,7 +184,7 @@ def plot_prior_post(
         The figure
     """
     country = pycountry.countries.lookup(iso3).name
-    n_rows = int(np.ceil(len(priors) / 2)) + 2
+    n_rows = int(np.ceil(len(priors) / 2)) + 3
     grid = [n_rows, 2]
     fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=[10, 40])
     for ax in fig.ravel():
@@ -446,11 +447,12 @@ def plot_proc_comparison(
     countries: List[str],
     path: Path,
 ) -> plt.Figure:
-    """Plot the comparison of the variable processes
+    """Plot the comparison of 
+    the transmission scaling process
     across analysis types.
 
     Args:
-        procs: Variable process data
+        procs: Transmission process data
         countries: Names of the countries
         path: Path to the analyses
         
@@ -581,7 +583,8 @@ def compare_proc_mob(
     n_cols: int,
     mob_location: str,
 ) -> plt.Figure:
-    """Plot comparison of variable process to mobility location.
+    """Plot comparison of 
+    transmission scaling to mobility location.
 
     Args:
         job_path: Path for the runs
@@ -595,7 +598,7 @@ def compare_proc_mob(
     fig, axes = get_standard_subplot(len(countries), n_cols)
     mob_source = MOB_LOCATION_SOURCE_MAP[mob_location]
     mob_name = MOB_LOCATION_NAME_MAP[mob_location]
-    title = f"Estimated variable process (without mobility scaling) versus {mob_name} mobility"
+    title = f"Estimated transmission scaling (without mobility) versus {mob_name} mobility"
     fig.suptitle(title, fontsize=14, y=1.0)
     flat_axes = axes.ravel()
     for c, iso3 in enumerate(countries):
@@ -604,7 +607,7 @@ def compare_proc_mob(
         ax.set_title(country)
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
-        # Variable process plotting
+        # Transmission scaling process plotting
         proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
@@ -636,7 +639,8 @@ def compare_proc_weighted_gmob(
     n_samples: int,
     n_cols: int,
 ) -> plt.Figure:
-    """Plot comparison of composite Google time series to variable process.
+    """Plot comparison of composite Google time series to 
+    the transmission scaling process.
 
     Args:
         job_path: Path for the runs
@@ -649,7 +653,7 @@ def compare_proc_weighted_gmob(
     """
     fig, axes = get_standard_subplot(len(countries), n_cols)
     flat_axes = axes.ravel()
-    title = f"Estimated variable process (without mobility scaling) versus composite Google mobility time series"
+    title = f"Estimated scaling for transmission (without mobility) versus composite Google mobility time series"
     fig.suptitle(title, fontsize=14, y=1.0)
 
     for c, iso3 in enumerate(countries):
@@ -659,7 +663,7 @@ def compare_proc_weighted_gmob(
         ax.set_title(pycountry.countries.lookup(iso3).name)
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
     
-        # Get the variable process
+        # Get the transmission scaling process
         proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
 
@@ -674,9 +678,7 @@ def compare_proc_weighted_gmob(
         ax.plot(mob_quants[0.5], color="green")
         ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.2, color="green")
     
-
-    
-        # Variable process plotting
+        # Residual transmission scaling plotting
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
@@ -695,7 +697,7 @@ def plot_select_proc_mob(
     n_samples: int,
 ) -> plt.figure:
     """Plot selected comparisons between mobility
-    and modelled variable process.
+    and the residual transmission scaling.
 
     Args:
         job_path: Path for the runs
@@ -715,7 +717,7 @@ def plot_select_proc_mob(
             mob_source = mob_location if mob_location.startswith("fb_") else "g_mob"
             mob_source_name = MOB_LOCATION_ABBREVS[mob_location]
 
-            # Plot variable process
+            # Plot residual transmission scaling
             proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
             centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
             ax = axes[r, c]
@@ -757,7 +759,7 @@ def plot_exponent_dispersion_comparison(
     ratio_dists: Dict[str, pd.DataFrame],
 ) -> plt.figure:
     """Scatter the mobility exponent against
-    the change in the variable process dispersion.
+    the change in the transmission scaling dispersion.
 
     Args:
         job_path: Path for the runs
@@ -878,6 +880,34 @@ def plot_inclusion(
     ax.set_yticks([])
     world.plot(ax=ax, color=world["mob"].map(INCLUSION_COLOURS), edgecolor="black", linewidth=0.2)
     world[world["included"]].geometry.centroid.plot(ax=ax, color="red", marker="o", markersize=50)
+    return fig
+
+
+def plot_continent_grouping(
+    world: GeoDataFrame
+):
+    """Plot the countries of the world shaded according to
+    continent grouping.
+
+    Args:
+        world: The GeoPandas dataframe with the continent specified
+
+    Returns:
+        The figure
+    """
+    fig, ax = plt.subplots(1, 1, figsize=[12, 9])
+
+    # Plot
+    world.plot(ax=ax, column="continent", figsize=[20, 8], cmap="Pastel1", legend=True)
+    world.boundary.plot(ax=ax, color="black", linewidth=0.4)
+
+    # Tidy up cosmetics
+    ax.set_xticks([])
+    ax.set_yticks([])
+    leg = ax.get_legend()
+    leg.set_bbox_to_anchor((0.22, 0.55))
+
+    plt.close()
     return fig
 
 
@@ -1044,7 +1074,7 @@ def plot_mob_exp_violins(
 ) -> plt.figure:
     """Plot the mobility exponent distributions 
     as violin plots, with shade of colouring 
-    determined by the variable process dispersion ratios.
+    determined by the transmission scaling dispersion ratios.
 
     Args:
         mob_source: The mobility approach
@@ -1135,12 +1165,12 @@ def plot_composite_calibrations(
     fig.tight_layout()
     # fig.subplots_adjust(wspace=0.05)
     
-    # Variable process with credible intervals
+    # Residual transmission scaling with credible intervals
     c_procs = [pd.read_hdf(c_path / a / "spaghetti.h5")["process"] for a in analyses]
     procs = pd.concat(c_procs, keys=analyses, axis=1)
     
     ax = fig.add_subplot(gs[0: 2, 4: 6])
-    ax.set_title("variable process")
+    ax.set_title("Residual transmission scaling")
     ax.set_yticks([])
     ax.tick_params(axis="x", labelrotation=70)
     for a in analyses:
@@ -1151,11 +1181,13 @@ def plot_composite_calibrations(
         ax.fill_between(quants.index, quants[0.025], quants[0.975], alpha=0.1, color=colour)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
     
-    # Variable process dispersion posteriors
+    # Residual transmission scaling dispersion posteriors
     param_posts = get_param_vals_by_analysis("dispersion_proc", c_path)
     
     ax = fig.add_subplot(gs[3: 5, 4: 6])
     colours = [MOB_SOURCE_COLOURS[a] for a in param_posts.columns]
+    param_posts = param_posts.rename(columns=MOB_SOURCE_ABBREVS)
+
     sns.kdeplot(param_posts, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5)
     ax.set_yticks([])
     ax.set_ylabel("")
@@ -1163,3 +1195,24 @@ def plot_composite_calibrations(
 
     plt.close()
     return fig
+
+
+def add_cont_to_world_geodf(
+    world: GeoDataFrame,
+):
+    """Add a column to a GeoPandas dataframe
+    to indicate the continent of the country as a string.
+
+    Args:
+        world: The GeoPandas dataframe
+    """
+    for iso3 in world["ISO_A3"]:
+        try:
+            iso2 = pycountry.countries.lookup(iso3).alpha_2
+            cont = pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(iso2)
+            cont_name = pc.convert_continent_code_to_continent_name(cont)
+            world.loc[world["ISO_A3"] == iso3, "continent"] = cont_name
+        except KeyError:
+            world.loc[world["ISO_A3"] == iso3, "continent"] = "none"
+        except LookupError:
+            world.loc[world["ISO_A3"] == iso3, "continent"] = "none"

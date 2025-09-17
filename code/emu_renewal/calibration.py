@@ -24,7 +24,7 @@ def custom_init(
 
     Args:
         site: 
-        n_proc: Number of updates in the variable process
+        n_proc: Number of updates in the transmission scaling process
 
     Returns:
         The initialisation for the calibration
@@ -32,11 +32,11 @@ def custom_init(
     Notes
     -----
     To initialise the model parameters,
-    we started all the updates to the variable
+    we started all the updates to the transmission scaling
     process from a value of zero (in logarithmic space)
     to represent no update, such that the 
-    initialisation commenced with the variable 
-    process being constant over time.
+    initialisation commenced with transmission
+    scaling being constant over time.
     For all other parameters,
     we used `numpyro`'s `init_to_uniform` method,
     with a radius of {INIT_RADIUS}.
@@ -74,12 +74,12 @@ class StandardCalib:
         
         Notes
         -----
-        The dispersion parameter for the variable process
+        The dispersion parameter for transmission scaling
         was set to a half normal distribution with 
         standard deviation {PROC_DISP_SD} under analyses
         both with and without mobility included.
         This approach was adopted in order to favour
-        lesser changes to the variable process at 
+        lesser changes in transmission scaling at 
         each sequential update point.
         """
         self.epi_model = epi_model
@@ -121,22 +121,23 @@ class StandardCalib:
             self.add_factor(result, ind, params)
 
     def sample_calib_params(self):
-        """See describe_params below.
+        """See Notes.
 
         Returns:
             Calibration parameters
         
         Notes
         -----
-        The calibration process calibrates parameters for each
-        consecutive update to the variable process in logarithmic space.
+        The calibration process estimated parameters for each
+        consecutive update to the transmission scaling process 
+        in logarithmic space.
         The prior distribution for the update for each period 
-        of the variable process is a normal distribution
+        of was given by a normal distribution
         centred at a value of zero to represent no change
         from the previous value.
         The standard deviation of each normal distribution
         is provided by the (single) dispersion parameter
-        of the variable process introduced above.
+        of the transmission scaling process introduced above.
         """
         params = {k: numpyro.sample(k, v) for k, v in self.sampled_params.items()}
         proc_disp = numpyro.sample("dispersion_proc", self.proc_dispersion)
