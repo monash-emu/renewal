@@ -166,7 +166,7 @@ def get_standard_priors(
     fixed_params = loaded_priors["fixed"]
     vacc_protect_hosp = {"vacc_protect_hosp": fixed_params["vacc_protect_hosp"]["value"]}
     vacc_protect_death = {"vacc_protect_death": fixed_params["vacc_protect_death"]["value"]}
-    rt_prior = {"rt_init": dist.Normal(0.0, RTINIT_SD)}
+    beta = {"beta": dist.Uniform(0.5, 2.0)}
     disp_prior = {"shared_dispersion": dist.HalfNormal(SHARED_DISP_SD)}
     prop_disp_prior = {"prop_disp": PROP_DISP}
     seroprev_disp = {"seroprev_disp": SEROPREV_DISP}
@@ -178,7 +178,7 @@ def get_standard_priors(
         | irrel_betas
         | seed_rate_priors
         | inf_priors
-        | rt_prior
+        | beta
         | disp_prior
         | prop_disp_prior
         | seed_priors

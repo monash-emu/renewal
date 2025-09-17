@@ -341,8 +341,8 @@ other:
     short_name: seeding offset
   seed_rates:
     short_name: log seeding rate
-  rt_init:
-    short_name: residual transmission initial value
+  beta:
+    short_name: transmissibility
   shared_dispersion:
     short_name: shared target dispersion
   dispersion_proc:

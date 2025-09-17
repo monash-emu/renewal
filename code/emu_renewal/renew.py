@@ -210,13 +210,11 @@ class MultiStrainModel:
     def fit_process_curve(
         self,
         y_proc_req: List[float],
-        rt_init: float,
     ) -> jnp.array:
         """See describe_process below.
 
         Args:
             y_proc_req: The submitted log values for transmission scaling
-            rt_init: Starting value for transmission scaling
 
         Returns:
             The values of the transmission scaling at each model time
@@ -236,17 +234,17 @@ class MultiStrainModel:
         and so can be interpreted as the change in the log-transformed
         residual transmission scaling relative to the previous value.
         """
-        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((rt_init,)), y_proc_req]))
+        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((0.0,)), y_proc_req]))
         y_proc_data = sinterp.get_scale_data(y_proc_vals)
         fitter = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
         return jnp.exp(fitter(self.model_times, self.x_proc_data, y_proc_data))
 
     def renew(
         self,
+        beta: float,
         proc: List[float],
         mean: float,
         sd: float,
-        init: float,
         cross_immunity: float,
         seed_rates: List[float],
         relinfect: Optional[List[float]],
@@ -329,7 +327,7 @@ class MultiStrainModel:
         (for example, past infection with Delta conferred
         complete immunity against future infection with Alpha).
         """
-        trans_proc = self.fit_process_curve(proc, init)
+        trans_proc = self.fit_process_curve(proc)
         gen_dist = GammaDens()
         gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
 
@@ -379,7 +377,7 @@ class MultiStrainModel:
             # Incidence convolved with generation (vector, n_strains)
             contributions = (gen_densities * past_inc).sum(axis=1)
             # Calculated infection rate (vector, n_strains)
-            calc_inf_rates = contributions * proc_val * mob_val * relinfect / self.pop
+            calc_inf_rates = contributions * beta * proc_val * mob_val * relinfect / self.pop
             # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             # Effective susceptibles (array, n_strains by 2 ** n_strains)
@@ -404,12 +402,12 @@ class MultiStrainModel:
 
     def renewal_func(
         self,
+        beta: float,
         proc: List[float],
         gen_mean: float,
         gen_sd: float,
         cdr: float,
         ifr: float,
-        rt_init: float,
         report_mean: float,
         report_sd: float,
         death_mean: float,
@@ -435,12 +433,12 @@ class MultiStrainModel:
         """Main function to call externally to get the renewal outputs.
 
         Args:
+            beta: The transmission scaling parameter
             proc: The values of residual transmission scaling
             gen_mean: Mean of the generation interval
             gen_sd: Standard deviation of the generation interval
             cdr: Case detection rate (proportion)
             ifr: Infection fatality rate (proportion)
-            rt_init: The starting value for residual transmission scaling
             report_mean: Mean time from infection to reporting
             report_sd: Standard deviation of time from infection to reporting
             death_mean: Mean time from infection to death
@@ -533,10 +531,10 @@ class MultiStrainModel:
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
         out = self.renew(
+            beta,
             proc,
             gen_mean,
             gen_sd,
-            rt_init,
             cross_immunity,
             seed_rates,
             relinfect,
