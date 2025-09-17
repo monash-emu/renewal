@@ -155,10 +155,7 @@ def find_run_end_time(
         mob = get_fb_visited_mobility(iso3)
         return mob.index[-1].to_pydatetime()
     elif cont == "OC":
-        try:
-            mob = get_google_mobility(iso3)
-        except:
-            mob = get_google_mobility("AUS")
+        mob = get_google_mobility(iso3)
         return mob.index[-1].to_pydatetime()
     vacc_data = get_country_vacc_data(iso3)
     default_end_time = datetime.strptime(DEFAULT_END_DATE, CODE_DATE_FORMAT)
