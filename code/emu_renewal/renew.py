@@ -199,7 +199,7 @@ class MultiStrainModel:
         spaced by {PROC_UPDATE_FREQ} days
         working backwards from the end of the analysis period.
         The scaling process was then fit to these points using
-        piecewise cosine functions.
+        piecewise cosine functions from a starting value of zero.
         """
         self.proc_update_freq = PROC_UPDATE_FREQ
         self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
@@ -226,7 +226,7 @@ class MultiStrainModel:
         The starting value for this process was explored
         as a calibration parameter, 
         along with the subsequent updates to the process.
-        This exploration was performed in log space,
+        This exploration was performed in logarithmic space,
         with the calibrated values for each update
         exponentiated before being used to scale the transmission rate.
         Each parameter pertaining to the updates to residual transmission scaling
