@@ -184,7 +184,7 @@ def plot_prior_post(
         The figure
     """
     country = pycountry.countries.lookup(iso3).name
-    n_rows = int(np.ceil(len(priors) / 2)) + 2
+    n_rows = int(np.ceil(len(priors) / 2)) + 3
     grid = [n_rows, 2]
     fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=[10, 40])
     for ax in fig.ravel():

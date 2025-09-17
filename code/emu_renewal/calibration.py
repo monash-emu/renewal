@@ -121,7 +121,7 @@ class StandardCalib:
             self.add_factor(result, ind, params)
 
     def sample_calib_params(self):
-        """See describe_params below.
+        """See Notes.
 
         Returns:
             Calibration parameters
