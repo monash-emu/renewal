@@ -211,7 +211,7 @@ class MultiStrainModel:
         self,
         y_proc_req: List[float],
     ) -> jnp.array:
-        """See describe_process below.
+        """See Notes.
 
         Args:
             y_proc_req: The submitted log values for transmission scaling
