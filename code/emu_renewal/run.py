@@ -151,12 +151,16 @@ def find_run_end_time(
     Google mobility data was available was used.
     """
     cont = get_cont_of_country(iso3)
-    if cont == "OC" and "fb_" in mob_source:
-        mob = get_fb_visited_mobility(iso3)
-        return mob.index[-1].to_pydatetime()
-    elif cont == "OC":
-        mob = get_google_mobility(iso3)
-        return mob.index[-1].to_pydatetime()
+    try:
+        if cont == "OC" and "fb_" in mob_source:
+            mob = get_fb_visited_mobility(iso3)
+            return mob.index[-1].to_pydatetime()
+        elif cont == "OC":
+            mob = get_google_mobility(iso3)
+            return mob.index[-1].to_pydatetime()
+    except Exception as e:
+        msg = f"{mob_source} mobility not available"
+        raise MobilityException(msg)
     vacc_data = get_country_vacc_data(iso3)
     default_end_time = datetime.strptime(DEFAULT_END_DATE, CODE_DATE_FORMAT)
     if vacc_data.empty or vacc_data.max() < END_VACC_THRESHOLD:
