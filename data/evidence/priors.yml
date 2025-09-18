@@ -195,7 +195,7 @@ durations:
       The final report from the ISARIC collaboration estimated a mean time from symptom onset to hospital admission of 5.4 days and 
       a mean time from hospital admission to ICU admission of 1.8 days.[@isaric2023]
       \newline\newline
-      Given this evidence, we implemented a mean for our prior distribution of time from infection to ICU admission of seven days
+      Given this evidence, we implemented a mean for our prior distribution of time from infection to ICU admission of twelve days
       to allow for a five day incubation period.
   icu_admit_sd: 
     mean: 2.5
@@ -328,8 +328,8 @@ other:
     short_name: relative infectiousness
     evidence: For the relative infectiousness of the Alpha variant of SARS-CoV-2 compared to preceding strains, 
       a study of household contacts in Japan found a transmissibility of 1.9 to 2.3 times,[@tanaka2021] 
-      while another such study from Norway round a secondary attack rate that was 1.81-fold higher.[@julin2021] 
-      Another study from Norway employing data obtained from contact tracing round an increase in the secondary attack rate of 60% in households, 
+      while another such study from Norway found a secondary attack rate that was 1.81-fold higher.[@julin2021] 
+      Another study from Norway employing data obtained from contact tracing found an increase in the secondary attack rate of 60% in households, 
       but 24% across all close contacts.[@lindstrom2022]
       \newline\newline
       Regarding the relative infectiousness of the Delta variant compared to Alpha, 
