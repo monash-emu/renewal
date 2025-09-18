@@ -223,9 +223,8 @@ class MultiStrainModel:
         -----
         A Wiener variable process was used to 
         capture variation in transmission over time.
-        The starting value for this process was explored
-        as a calibration parameter, 
-        along with the subsequent updates to the process.
+        The starting value for this process was fixed at zero
+        and the subsequent updates to the process were explored in calibration.
         This exploration was performed in logarithmic space,
         with the calibrated values for each update
         exponentiated before being used to scale the transmission rate.
@@ -282,7 +281,7 @@ class MultiStrainModel:
         the generation interval distribution vector
         to create an array of the effective number of
         infectious individuals for each strain.
-        These values were then multiplied by scalar values
+        These quantities were then multiplied by scalar values
         representing residual transmission scaling and
         adjustment for mobility and divided through 
         by the population size
@@ -297,8 +296,8 @@ class MultiStrainModel:
         of infection could not exceed one in a time step.
         __RETURN__### Variant seeding__RETURN__
         Each newly emerging strain was seeded using a triangular
-        pulse of new infections that peaked at a rate according
-        to the per capita seeding rate specified.
+        pulse of new infections for which the peak per capita
+        seeding rate was specified as a parameter.
         At each calculation day,
         the new strain-specific seeding values
         were added to the most recent value for the
@@ -312,9 +311,9 @@ class MultiStrainModel:
         their associated susceptibility to infection
         to calculate the number of people infected
         from each category and transition
-        them to their new states.
+        them to their new immunological states.
         Persons who had never previously been infected
-        with any strain were considered had 
+        with any strain were considered to have 
         no immunological protection,
         and the rate of infection was not adjusted further.
         We considered partial cross immunity was provided
@@ -322,7 +321,7 @@ class MultiStrainModel:
         to infection with subsequent strains.
         However, previously infected persons were assumed
         to derive complete immunity to the infecting
-        strain and to variant strains that emerged prior
+        strain and to variant strains that had emerged prior
         to the infecting strain
         (for example, past infection with Delta conferred
         complete immunity against future infection with Alpha).
@@ -484,16 +483,17 @@ class MultiStrainModel:
         but with separate parameters governing the
         time from incidence to death
         and with the fraction of incident episodes
-        resulting in death estimated according
-        to the infection fatality rate.
+        resulting in death given by
+        the infection fatality rate.
         For Singapore and countries of Oceania,
         a reduction in the risk of death
         was applied because this analysis was performed
         after wide-scale population vaccination.
         The relative reduction in the risk of
-        death was set according to the "Vaccination protection
-        against death" parameter
-        and was not varied during calibration
+        death was set according to a parameter
+        specifying the protection of 
+        vaccination against death given infection 
+        and was not varied during calibration, 
         because this would have been collinear
         with the risk of death parameter.__RETURN__
         As for cases and deaths, hospitalisations
@@ -504,20 +504,16 @@ class MultiStrainModel:
         a reduction in the risk of hospitalisation
         was applied to account for vaccination.
         The relative reduction in the risk of
-        hospitalisation was set according to the "Vaccination
-        protection against hospitalisation" parameter. 
+        hospitalisation was set according to a vaccination
+        protection against hospitalisation given
+        infection parameter. 
         As for cases, deaths and hospitalisations,
         the convolution of time to ICU admission
-        was parameterised independently,
-        but the proportion of cases resulting
-        in ICU admission was estimated according
-        to the product of the hospital admission
-        fraction and the proportion of hospital
-        admissions resulting in ICU admission.__RETURN__
+        was parameterised independently.__RETURN__
         Hospital and ICU occupancy were obtained
         by convolving the time series of hospital and ICU
         admissions with the complement of
-        the estimated cumulative distribution of the
+        the cumulative distribution of the
         time to hospital or ICU discharge.
         For comparison to serosurveillance data, 
         seropositivity was calculated

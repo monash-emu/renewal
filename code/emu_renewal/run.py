@@ -107,7 +107,7 @@ def find_run_start_time(
     However, if this threshold was not reached by {DEFAULT_START_DATE},
     the simulation commenced at this default time instead.
     For Singapore and countries of Oceania, the simulation commenced from
-    the time that vaccination reached {START_VACC_THRESHOLD_OC}%
+    the time that vaccination coverage reached {START_VACC_THRESHOLD_OC}%
     of its final value.
     """
     deaths_data = get_who_indicator("New_deaths", iso3)
@@ -186,7 +186,7 @@ def get_mobility_provider(
     -----
     For each country, we ran one analysis with
     no mobility scaling to the transmission rate.
-    We ran one analysis in which Google mobility
+    We further ran one analysis in which Google mobility
     was used to scale the transmission rate,
     if mobility data was available from Google.
     We also ran two analyses in which Facebook mobility
