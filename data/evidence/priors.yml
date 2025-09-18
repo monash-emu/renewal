@@ -32,7 +32,7 @@ durations:
   gen_mean_oc:
     mean: 3.0
     sd: 0.75
-    param_name: Generation time mean (days), Oceania
+    param_name: Generation time mean (days), Oceania and Singapore
     short_name: generation time, mean
     evidence: An analysis from China estimated that the generation time fell from 
       5.2 days to 2.2 days over the course of an Omicron outbreak in Hangzhou in 2022.[@xin2023] 
