@@ -41,6 +41,7 @@ def get_standard_priors(
         n_strains: The number of strains implemented
         hosp_out_type: The hospital-related indicator name
             Must be one of the keys to relevant_duration_priors below
+        iso3: The country identifier
 
     Returns:
         The prior distributions
