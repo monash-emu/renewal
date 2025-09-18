@@ -680,7 +680,7 @@ def compare_proc_weighted_gmob(
     
         # Residual transmission scaling plotting
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
-        ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy")
+        ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
         
     for ax in flat_axes[c + 1 :]:
