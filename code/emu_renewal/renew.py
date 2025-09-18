@@ -290,8 +290,8 @@ class MultiStrainModel:
         the relative infectiousness of each strain
         to derive the calculated per capita rate of infection.
         We then determined the actual rate of infection
-        for each strain as $1 - e^{{-r}}$
-        (where $r$ represents the calculated infection rate)
+        for each strain as $1 - e^{{-\lambda}}$
+        (where $\lambda$ represents the calculated infection rate)
         to ensure that the per capita risk
         of infection could not exceed one in a time step.
         __RETURN__### Variant seeding__RETURN__
