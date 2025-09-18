@@ -610,8 +610,8 @@ def compare_proc_mob(
         # Transmission scaling process plotting
         proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
-        ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
-        ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy")
+        ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
+        ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
 
         # Mobility
         mob = get_requested_mob(iso3, mob_source, mob_location)
@@ -622,7 +622,7 @@ def compare_proc_mob(
             display(Markdown(msg))
         smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
         colour = G_MOB_LOCATION_CMAP[mob_location] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_location]
-        ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
+        ax.plot(smoothed_mob.index, smoothed_mob, color=colour, linewidth=2.0)
 
     # Switch off unused axes
     for ax in flat_axes[c + 1 :]:
@@ -675,11 +675,11 @@ def compare_proc_weighted_gmob(
         mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
     
         # Plot the weighted Google mobility distribution
-        ax.plot(mob_quants[0.5], color="green")
-        ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.2, color="green")
+        ax.plot(mob_quants[0.5], color="green", linewidth=2.0)
+        ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color="green")
     
         # Residual transmission scaling plotting
-        ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
+        ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
         
