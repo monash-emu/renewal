@@ -10,7 +10,7 @@ from emu_renewal.utils import get_cont_of_country
 if __name__ == "__main__":
     jax_config_cpu_only()
     # countries = json.load(open(DATA_PATH / f"config/included.json", "r"))
-    countries = ["EGY"]
+    countries = ["EGY", "BGD"]
     task = sys.argv[1]
     array_task_id = int(sys.argv[2])
     c = countries[array_task_id - 1]  # Convert to Python indexing
