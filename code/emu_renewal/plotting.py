@@ -285,13 +285,12 @@ def plot_prior_multipost(
     """
 
     # Preparation
-    country = pycountry.countries.lookup(iso3).name
     idata = idatas["no_mob"]
     prior_info = get_flat_priors()
     params = [p for p in prior_info if "proc" not in p and p in idata.posterior]
     n_axes = sum([get_param_dim(p, idata) for p in params]) + 1
     n_rows = int(np.ceil(n_axes / n_cols))
-    height = 2.0 + n_rows * 2.5
+    height = min(2.0 + n_rows * 2.0, 15.0)
 
     # Plotting
     fig, ax = plt.subplots(n_rows, n_cols, figsize=[12, height])
