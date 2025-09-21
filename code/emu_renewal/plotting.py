@@ -607,7 +607,8 @@ def compare_proc_mob(
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
         # Transmission scaling process plotting
-        proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
+        ref_analysis = "fb_no_mob" if (job_path / iso3 / "fb_no_mob").exists() else "no_mob"
+        proc_samples = pd.read_hdf(job_path / iso3 / ref_analysis / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
