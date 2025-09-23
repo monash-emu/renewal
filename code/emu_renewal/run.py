@@ -236,6 +236,7 @@ def run_calibration(
     priors: Dict[str, dist.Distribution],
     targets: Dict[str, Target],
     prog_bar: bool,
+    n_iters: int,
 ) -> Tuple[StandardCalib, infer.MCMC]:
     """Run a calibration using a standard approach.
 
@@ -262,7 +263,7 @@ def run_calibration(
     init = calib.custom_init()
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
     mcmc = infer.MCMC(
-        kernel, num_chains=N_CHAINS, num_samples=N_ITERS, num_warmup=N_ITERS, progress_bar=prog_bar
+        kernel, num_chains=N_CHAINS, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar
     )
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
     return calib, mcmc
