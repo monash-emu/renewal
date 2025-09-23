@@ -41,6 +41,7 @@ def get_standard_priors(
         n_strains: The number of strains implemented
         hosp_out_type: The hospital-related indicator name
             Must be one of the keys to relevant_duration_priors below
+        iso3: The country identifier
 
     Returns:
         The prior distributions
@@ -61,7 +62,7 @@ def get_standard_priors(
     determined from the literature. 
     These parameters comprised the infection fatality rate,
     the case detection proportion and, where applicable,
-    the hospital admission proportion.
+    the hospital or ICU admission proportion.
     For high-income countries, the mean value used
     was as presented in the parameter choices section,
     whereas this was reduced for other countries.
@@ -71,10 +72,10 @@ def get_standard_priors(
     __RETURN__
     The starting transmissibility scaling parameter
     was assigned a uniform prior distribution on domain
-    {BETA_MIN} to {BETA_MIN}.
+    {BETA_MIN} to {BETA_MAX}.
     __RETURN__
     The seeding rate for each variant was calibrated from
-    ${SEED_RATE_LOW}$ to ${SEED_RATE_UP}$ cases per day
+    ${SEED_RATE_LOW}$ to ${SEED_RATE_UP}$ cases per capita per day
     using a uniform distribution in logarithmic space.
     The seeding offset (i.e. the time from modelled seeding
     to the first calibration data point)
