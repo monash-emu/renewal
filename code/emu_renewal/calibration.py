@@ -110,7 +110,7 @@ class StandardCalib:
         self.sampled_params = {k: v for k, v in self.params.items() if isinstance(v, dist.Distribution)}
         self.fixed_params = {k: v for k, v in self.params.items() if not isinstance(v, dist.Distribution)}
 
-        self.proc_dispersion = dist.HalfNormal(PROC_DISP_SD)
+        # self.proc_dispersion = dist.HalfNormal(PROC_DISP_SD)
 
     def calibration(self):
         """Master calibration function.
@@ -140,10 +140,9 @@ class StandardCalib:
         of the transmission scaling process introduced above.
         """
         params = {k: numpyro.sample(k, v) for k, v in self.sampled_params.items()}
-        proc_disp = numpyro.sample("dispersion_proc", self.proc_dispersion)
-        proc_dist = dist.Normal(jnp.repeat(0.0, self.n_proc_periods), proc_disp)
-        # return params
-        return params | {"proc": numpyro.sample("proc", proc_dist)}
+        # proc_disp = numpyro.sample("dispersion_proc", self.proc_dispersion)
+        # proc_dist = dist.Normal(jnp.repeat(0.0, self.n_proc_periods), proc_disp)
+        return params | {"proc": numpyro.sample("proc", dist.Uniform(jnp.repeat(-0.15, self.n_proc_periods), jnp.repeat(0.15, self.n_proc_periods)))}
 
     def add_factor(self, result, ind: str, parameters):
         """Add output target to calibration algorithm.
