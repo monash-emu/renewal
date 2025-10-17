@@ -131,6 +131,19 @@ def get_countries_by_continent(
     return {cont: sort_countries_by_name(result[cont]) for cont in sorted(result)}
 
 
+def split_countries_two_groups(countries_by_cont, split_threshold):
+    split_countries_by_cont = {}
+    for cont, countries in countries_by_cont.items():
+        n_countries = len(countries)
+        if n_countries < split_threshold:
+            split_countries_by_cont[cont] = countries
+        else:
+            half_length = round(n_countries / 2)
+            split_countries_by_cont[cont + "1"] = countries[:half_length]
+            split_countries_by_cont[cont + "2"] = countries[half_length:]
+    return split_countries_by_cont
+
+
 def count_repeat_nans(
     data: pd.Series,
 ) -> int:
