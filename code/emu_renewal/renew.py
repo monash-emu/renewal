@@ -302,7 +302,6 @@ class SimpleModel(RenewalModel):
         proc: List[float],
         mean: float,
         sd: float,
-        cross_immunity: float,
         **kwargs,
     ) -> jnp.array:
         """Main function implementing the renewal process,
@@ -326,7 +325,7 @@ class SimpleModel(RenewalModel):
         start_pop = start_pop.at[0].set(start_suscept)
 
         # Cross immunity, start with partial cross immunity
-        suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
+        suscept_levels = (~jnp.array(self.strain_map)).astype(float)
         # Complete susceptibility if never infected before
         suscept_levels = suscept_levels.at[:, 0].set(1.0)
         # Forbid reinfection with earlier strains after later emerging ones
@@ -370,7 +369,6 @@ class SimpleModel(RenewalModel):
         report_sd: float,
         death_mean: float,
         death_sd: float,
-        cross_immunity: float,
         **kwargs,
     ) -> ModelResult:
         """Main function to call externally to get the renewal outputs.
@@ -386,18 +384,13 @@ class SimpleModel(RenewalModel):
             report_sd: Standard deviation of time from infection to reporting
             death_mean: Mean time from infection to death
             death_sd: Standard deviation of time from infection to death
-            cross_immunity: The extent of cross-immunity
-            seed_offsets: Time before first strain data that strain seeding begins
-            seed_rates: The rate of seeding for each strain
-            seed_offsets: The number of days before first data available
-                that each non-starting strain is seeded from
 
         Returns:
             The full epidemiological outputs of the simulation
         """
         self.seed_array = jnp.zeros([1, self.init_length + len(self.model_times)])
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
-        out = self.renew(beta, proc, gen_mean, gen_sd, cross_immunity, **kwargs)
+        out = self.renew(beta, proc, gen_mean, gen_sd, **kwargs)
 
         # Incidence
         strain_inc = jnp.array([out[strain] for strain in self.strains])
