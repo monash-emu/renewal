@@ -303,8 +303,6 @@ class SimpleModel(RenewalModel):
         mean: float,
         sd: float,
         cross_immunity: float,
-        seed_rates: List[float],
-        seed_offsets: Optional[List[float]],
         **kwargs,
     ) -> jnp.array:
         """Main function implementing the renewal process,
@@ -339,22 +337,10 @@ class SimpleModel(RenewalModel):
         # Mobility
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
-        # Seeding
-        first_data_start = jnp.array([-1.0])
-        other_data_starts = jnp.array([self.epoch.dti_to_index(s) for s in self.var_times])
-        data_starts = jnp.concat([first_data_start, other_data_starts])
-        first_offset = jnp.array([0.0])
-        other_offsets = jnp.zeros(0) if seed_offsets is None else seed_offsets
-        offsets = jnp.concat([first_offset, other_offsets])
-        seed_abs_rates = jnp.exp(seed_rates) * self.pop
-        half_dur = self.seed_duration / 2.0
-
         def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
             proc_val = trans_proc[t - self.start]
             mob_val = mobility[t - self.start]
-            peak = data_starts - offsets + half_dur
-            seed = get_triang_vals(t, peak, seed_abs_rates, half_dur)
-            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed)
+            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0])
             contributions = (gen_densities * past_inc).sum(axis=1)
             calc_inf_rates = contributions * beta * proc_val * mob_val / self.pop
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
@@ -385,8 +371,6 @@ class SimpleModel(RenewalModel):
         death_mean: float,
         death_sd: float,
         cross_immunity: float,
-        seed_rates: List[float],
-        seed_offsets: Optional[List[float]],
         **kwargs,
     ) -> ModelResult:
         """Main function to call externally to get the renewal outputs.
@@ -413,7 +397,7 @@ class SimpleModel(RenewalModel):
         """
         self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
-        out = self.renew(beta, proc, gen_mean, gen_sd, cross_immunity, seed_rates, seed_offsets, **kwargs)
+        out = self.renew(beta, proc, gen_mean, gen_sd, cross_immunity, **kwargs)
 
         # Incidence
         strain_inc = jnp.array([out[strain] for strain in self.strains])
