@@ -395,7 +395,7 @@ class SimpleModel(RenewalModel):
         Returns:
             The full epidemiological outputs of the simulation
         """
-        self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
+        self.seed_array = jnp.zeros([1, self.init_length + len(self.model_times)])
         start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
         out = self.renew(beta, proc, gen_mean, gen_sd, cross_immunity, **kwargs)
 
