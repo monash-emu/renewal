@@ -363,7 +363,7 @@ def run_single_country(
     hosp_key = list(hosp_targ.keys())[0] if hosp_targ else ""
     priors = get_standard_priors(len(var_names), hosp_key, iso3) | mob_provider.get_priors()
     targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | var_targs
-    calib, mcmc = run_calibration(model, priors, targets, prog_bar)
+    calib, mcmc = run_calibration(model, priors, targets, prog_bar, N_ITERS)
 
     # Outputs
     out_path = BASE_PATH / "outputs" / task_name / country / mob_source
