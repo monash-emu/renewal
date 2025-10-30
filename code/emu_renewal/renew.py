@@ -210,6 +210,28 @@ class RenewalModel:
         fitter = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
         return jnp.exp(fitter(self.model_times, self.x_proc_data, y_proc_data))
 
+    def get_occupancy_from_admits(
+        self,
+        full_admits: jnp.array,
+        stay_mean: float,
+        stay_sd: float,
+        discharge_dist: Dens,
+    ) -> jnp.array:
+        """Calculate hospital or ICU occupancy
+        (a prevalent quantity) from the admissions time series.
+
+        Args:
+            full_admits: The admissions time series
+            stay_mean: The mean time to discharge
+            stay_sd: The standard deviation of the time to discharge
+            discharge_dist: The time to discharge distribution
+
+        Returns:
+            The time series of hospital or ICU occupancy
+        """
+        discharge = 1.0 - discharge_dist.get_cum_dens(self.window_len, stay_mean, stay_sd)
+        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
+
 
 class SimpleModel(RenewalModel):
 
@@ -631,28 +653,6 @@ class SimpleModel(RenewalModel):
         var_props = {f"prop_{s}": out[s] / out["inc"] for s in self.strains}
         return out | var_props
 
-    def get_occupancy_from_admits(
-        self,
-        full_admits: jnp.array,
-        stay_mean: float,
-        stay_sd: float,
-        discharge_dist: Dens,
-    ) -> jnp.array:
-        """Calculate hospital or ICU occupancy
-        (a prevalent quantity) from the admissions time series.
-
-        Args:
-            full_admits: The admissions time series
-            stay_mean: The mean time to discharge
-            stay_sd: The standard deviation of the time to discharge
-            discharge_dist: The time to discharge distribution
-
-        Returns:
-            The time series of hospital or ICU occupancy
-        """
-        discharge = 1.0 - discharge_dist.get_cum_dens(self.window_len, stay_mean, stay_sd)
-        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
-
 
 class MultiStrainModel(RenewalModel):
 
@@ -1073,25 +1073,3 @@ class MultiStrainModel(RenewalModel):
         # Variant proportions
         var_props = {f"prop_{s}": out[s] / out["inc"] for s in self.strains}
         return out | var_props
-
-    def get_occupancy_from_admits(
-        self,
-        full_admits: jnp.array,
-        stay_mean: float,
-        stay_sd: float,
-        discharge_dist: Dens,
-    ) -> jnp.array:
-        """Calculate hospital or ICU occupancy
-        (a prevalent quantity) from the admissions time series.
-
-        Args:
-            full_admits: The admissions time series
-            stay_mean: The mean time to discharge
-            stay_sd: The standard deviation of the time to discharge
-            discharge_dist: The time to discharge distribution
-
-        Returns:
-            The time series of hospital or ICU occupancy
-        """
-        discharge = 1.0 - discharge_dist.get_cum_dens(self.window_len, stay_mean, stay_sd)
-        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
