@@ -453,11 +453,12 @@ class MultiStrainModel:
             icu_stay_sd: Standard deviation of time from ICU admission to ICU discharge
             icuar: ICU admission rate (proportion)
             cross_immunity: The extent of cross-immunity
-            seed_offsets: Time before first strain data that strain seeding begins
             seed_rates: The rate of seeding for each strain
             relinfect: The relative infectiousness of each non-starting strain
             seed_offsets: The number of days before first data available
                 that each non-starting strain is seeded from
+            vacc_protect_hosp: Adjustment to IHR risk for vaccine period analyses
+            vacc_protect_death: Adjustment to IFR risk for vaccine period analyses
 
         Returns:
             The full epidemiological outputs of the simulation
