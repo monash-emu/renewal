@@ -318,20 +318,14 @@ class SimpleModel(RenewalModel):
         gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
 
         # Starting population
-        init_inc = jnp.fliplr(self.seed_array[:, : self.init_length])
+        init_inc = jnp.flipud(self.seed_array[0, : self.init_length])
         start_suscept = self.pop - jnp.sum(init_inc)
         n_pops = self.strain_map.shape[1]
         start_pop = jnp.zeros(n_pops)
         start_pop = start_pop.at[0].set(start_suscept)
 
-        # Cross immunity, start with partial cross immunity
-        suscept_levels = (~jnp.array(self.strain_map)).astype(float)
-        # Complete susceptibility if never infected before
-        suscept_levels = suscept_levels.at[:, 0].set(1.0)
-        # Forbid reinfection with earlier strains after later emerging ones
-        earlier_strain = get_col_increases(self.strain_map)
-        reset_array = get_reset_array_from_increases(earlier_strain)
-        suscept_levels = suscept_levels * (~reset_array).astype(float)
+        # Fully susceptible if not previously infected, immune otherwise
+        suscept_levels = jnp.array([1.0, 0.0])
 
         # Mobility
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
@@ -339,8 +333,8 @@ class SimpleModel(RenewalModel):
         def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
             proc_val = trans_proc[t - self.start]
             mob_val = mobility[t - self.start]
-            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0])
-            contributions = (gen_densities * past_inc).sum(axis=1)
+            past_inc = state.incidence
+            contributions = jnp.sum(gen_densities * past_inc)
             calc_inf_rates = contributions * beta * proc_val * mob_val / self.pop
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             effect_suscepts = suscept_levels * state.suscept
