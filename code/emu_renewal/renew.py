@@ -135,7 +135,83 @@ class MultivarState(NamedTuple):
     suscept: jnp.array
 
 
-class MultiStrainModel:
+class RenewalModel:
+
+    def get_output_from_inc(
+        self,
+        full_inc: jnp.array,
+        dist_mean: float,
+        dist_sd: float,
+        outcome_prop: float,
+        output_dist: Dens,
+    ) -> jnp.array:
+        """Apply an observation distribution
+        as a convolution to calculate an epidemiological output series.
+
+        Args:
+            full_inc: The full incidence series including the initialisation
+            dist_mean: Mean delay to reporting
+            dist_sd: Standard deviation of delay to reporting
+            outcome_prop: Proportion of incident episodes reaching this outcome
+            output_dist: The output distribution
+
+        Returns:
+            Output from start of initialisation to end of model time
+        """
+        densities = output_dist.get_densities(CONV_TRUNC_POINT, dist_mean, dist_sd)
+        convolved_cases = jnp.convolve(full_inc, densities) * outcome_prop
+        return convolved_cases[: len(full_inc)]
+    
+    def get_period_output_from_daily(
+        self,
+        raw_series: jnp.array,
+        n_sum_times: int,
+    ) -> jnp.array:
+        """Sum over a preceding window period to get counts over a period of time.
+
+        Args:
+            raw_series: Observations before windowing applied
+            n_sum_times: Duration of period for summing
+
+        Returns:
+            Summed series
+        """
+        windower = jnp.array([1.0] * n_sum_times)
+        return jnp.convolve(raw_series, windower)[: len(raw_series)]
+    
+    def fit_process_curve(
+        self,
+        y_proc_req: List[float],
+    ) -> jnp.array:
+        """See Notes.
+
+        Args:
+            y_proc_req: The submitted log values for transmission scaling
+
+        Returns:
+            The values of the transmission scaling at each model time
+
+        Notes
+        -----
+        A Wiener variable process was used to 
+        capture variation in transmission over time.
+        The starting value for this process was fixed at zero
+        and the subsequent updates to the process were explored in calibration.
+        This exploration was performed in logarithmic space,
+        with the calibrated values for each update
+        exponentiated before being used to scale the transmission rate.
+        Each parameter pertaining to the updates to residual transmission scaling
+        was assigned the same prior centred at zero (i.e. no update),
+        and so can be interpreted as the change in the log-transformed
+        residual transmission scaling relative to the previous value.
+        """
+        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((0.0,)), y_proc_req]))
+        y_proc_data = sinterp.get_scale_data(y_proc_vals)
+        fitter = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
+        return jnp.exp(fitter(self.model_times, self.x_proc_data, y_proc_data))
+
+
+class SimpleModel(RenewalModel):
 
     def __init__(
         self,
@@ -206,37 +282,6 @@ class MultiStrainModel:
         self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
         self.proc_fitter = CosineMultiCurve()
         self.process_start = int(self.x_proc_vals[0])
-
-    def fit_process_curve(
-        self,
-        y_proc_req: List[float],
-    ) -> jnp.array:
-        """See Notes.
-
-        Args:
-            y_proc_req: The submitted log values for transmission scaling
-
-        Returns:
-            The values of the transmission scaling at each model time
-
-        Notes
-        -----
-        A Wiener variable process was used to 
-        capture variation in transmission over time.
-        The starting value for this process was fixed at zero
-        and the subsequent updates to the process were explored in calibration.
-        This exploration was performed in logarithmic space,
-        with the calibrated values for each update
-        exponentiated before being used to scale the transmission rate.
-        Each parameter pertaining to the updates to residual transmission scaling
-        was assigned the same prior centred at zero (i.e. no update),
-        and so can be interpreted as the change in the log-transformed
-        residual transmission scaling relative to the previous value.
-        """
-        y_proc_vals = jnp.cumsum(jnp.concatenate([jnp.array((0.0,)), y_proc_req]))
-        y_proc_data = sinterp.get_scale_data(y_proc_vals)
-        fitter = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
-        return jnp.exp(fitter(self.model_times, self.x_proc_data, y_proc_data))
 
     def renew(
         self,
@@ -586,47 +631,448 @@ class MultiStrainModel:
         var_props = {f"prop_{s}": out[s] / out["inc"] for s in self.strains}
         return out | var_props
 
-    def get_output_from_inc(
+    def get_occupancy_from_admits(
         self,
-        full_inc: jnp.array,
-        dist_mean: float,
-        dist_sd: float,
-        outcome_prop: float,
-        output_dist: Dens,
+        full_admits: jnp.array,
+        stay_mean: float,
+        stay_sd: float,
+        discharge_dist: Dens,
     ) -> jnp.array:
-        """Apply an observation distribution
-        as a convolution to calculate an epidemiological output series.
+        """Calculate hospital or ICU occupancy
+        (a prevalent quantity) from the admissions time series.
 
         Args:
-            full_inc: The full incidence series including the initialisation
-            dist_mean: Mean delay to reporting
-            dist_sd: Standard deviation of delay to reporting
-            outcome_prop: Proportion of incident episodes reaching this outcome
-            output_dist: The output distribution
+            full_admits: The admissions time series
+            stay_mean: The mean time to discharge
+            stay_sd: The standard deviation of the time to discharge
+            discharge_dist: The time to discharge distribution
 
         Returns:
-            Output from start of initialisation to end of model time
+            The time series of hospital or ICU occupancy
         """
-        densities = output_dist.get_densities(CONV_TRUNC_POINT, dist_mean, dist_sd)
-        convolved_cases = jnp.convolve(full_inc, densities) * outcome_prop
-        return convolved_cases[: len(full_inc)]
+        discharge = 1.0 - discharge_dist.get_cum_dens(self.window_len, stay_mean, stay_sd)
+        return jnp.convolve(full_admits, discharge)[: len(full_admits)]
 
-    def get_period_output_from_daily(
+
+class MultiStrainModel(RenewalModel):
+
+    def __init__(
         self,
-        raw_series: jnp.array,
-        n_sum_times: int,
-    ) -> jnp.array:
-        """Sum over a preceding window period to get counts over a period of time.
+        population: float,
+        start: datetime,
+        end: datetime,
+        strains: List[str],
+        seed_times: List[datetime],
+        mobility: MobilityProvider,
+        vacc_effect: bool,
+    ):
+        """Construct the object for running the renewal process.
 
         Args:
-            raw_series: Observations before windowing applied
-            n_sum_times: Duration of period for summing
+            population: Number of people considered in the analysis
+            start: Time to run the model from
+            end: Time to run the model until
+            discharge_dens: Distribution for the time from hospital admission to discharge
+            strains: Names of the variants to be implemented
+            seed_times: Times to seed each variant (including the first one)
+            mobility: The mobility time series to scale transmission with
+            vacc_effect: Whether to reduce severity based on vaccination effects
+        """
+        self.strains = strains
+        self.start_strain = strains[0]
+        self.n_strains = len(strains)
+        self.strain_map = get_combs(len(strains))
+        self.dests = get_dests(self.strain_map)
+        self.trans_mats = get_trans_mats(self.dests)
+        self.var_times = seed_times
+        self.seed_duration = SEED_DURATION
+        self.init_length = INIT_DURATION
+        self.vacc_effect = vacc_effect
+
+        # Times
+        self.epoch = Epoch(start)
+        self.start = int(self.epoch.dti_to_index(start))
+        self.end = int(self.epoch.dti_to_index(end))
+        self.model_times = jnp.arange(self.start, self.end + 1)
+        self.mob_provider = mobility
+        self.mob_provider.reconcile_times(start, end)
+
+        # Population
+        self.pop = population
+
+        # Process
+        self.initialise_var_proc()
+
+        # Generation interval
+        self.dens_obj = GammaDens()
+        self.window_len = INIT_DURATION
+
+    def initialise_var_proc(self):
+        """Initialise the structures needed for 
+        the residual transmission scaling process.
+
+        Notes
+        -----
+        Each time point for fitting the residual transmission scaling process
+        was set at intervals through the analysis period 
+        spaced by {PROC_UPDATE_FREQ} days
+        working backwards from the end of the analysis period.
+        The scaling process was then fit to these points using
+        piecewise cosine functions from a starting value of zero.
+        """
+        self.proc_update_freq = PROC_UPDATE_FREQ
+        self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
+        self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
+        self.proc_fitter = CosineMultiCurve()
+        self.process_start = int(self.x_proc_vals[0])
+
+    def renew(
+        self,
+        beta: float,
+        proc: List[float],
+        mean: float,
+        sd: float,
+        cross_immunity: float,
+        seed_rates: List[float],
+        relinfect: Optional[List[float]],
+        seed_offsets: Optional[List[float]],
+        **kwargs,
+    ) -> jnp.array:
+        """Main function implementing the renewal process,
+        see Notes for description.
+
+        Args:
+            See renewal_func
 
         Returns:
-            Summed series
+            The numerical results of the analysis
+
+        Notes
+        -----
+        For all analyses, the starting population
+        minus the seeding values for the first strain
+        was assigned to the fully susceptible category.
+        __RETURN__### Generation interval__RETURN__
+        A gamma-distributed generation interval
+        was used for the renewal process.
+        This is consistent with an investigation of
+        household clusters from Germany that showed
+        the profile of serial intervals
+        was well matched by a gamma distribution.[@anderheiden2022]
+        The generation interval was truncated
+        at {GEN_TRUNC_POINT} days,
+        because the density reached negligible values beyond
+        this point.
+        __RETURN__### Renewal process__RETURN__
+        The strain-specific incidence array
+        updated for strain seeding was convolved with
+        the generation interval distribution vector
+        to create an array of the effective number of
+        infectious individuals for each strain.
+        These quantities were then multiplied by scalar values
+        representing residual transmission scaling and
+        adjustment for mobility and divided through 
+        by the population size
+        (to obtain the scaled per capita infectious population).
+        This was multiplied by the strain-specific vector for
+        the relative infectiousness of each strain
+        to derive the calculated per capita rate of infection.
+        We then determined the actual rate of infection
+        for each strain as $1 - e^{{-\lambda}}$
+        (where $\lambda$ represents the calculated infection rate)
+        to ensure that the per capita risk
+        of infection could not exceed one in a time step.
+        __RETURN__### Variant seeding__RETURN__
+        Each newly emerging strain was seeded using a triangular
+        pulse of new infections for which the peak per capita
+        seeding rate was specified as a parameter.
+        At each calculation day,
+        the new strain-specific seeding values
+        were added to the most recent value for the
+        strain-specific history of incidence. Infectiousness of 
+        each variant was specified
+        with reference to the first modelled variant strain.
+        __RETURN__### Immunity__RETURN__
+        These rates of infection were then applied
+        to each possible immunological past history of
+        preceding exposure to variant combinations and
+        their associated susceptibility to infection
+        to calculate the number of people infected
+        from each category and transition
+        them to their new immunological states.
+        Persons who had never previously been infected
+        with any strain were considered to have 
+        no immunological protection,
+        and the rate of infection was not adjusted further.
+        We considered partial cross immunity was provided
+        by infection with a preceding variant strain
+        to infection with subsequent strains.
+        However, previously infected persons were assumed
+        to derive complete immunity to the infecting
+        strain and to variant strains that had emerged prior
+        to the infecting strain
+        (for example, past infection with Delta conferred
+        complete immunity against future infection with Alpha).
         """
-        windower = jnp.array([1.0] * n_sum_times)
-        return jnp.convolve(raw_series, windower)[: len(raw_series)]
+        trans_proc = self.fit_process_curve(proc)
+        gen_dist = GammaDens()
+        gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
+
+        # Starting population
+        init_inc = jnp.fliplr(self.seed_array[:, : self.init_length])
+        start_suscept = self.pop - jnp.sum(init_inc)
+        n_pops = self.strain_map.shape[1]
+        start_pop = jnp.zeros(n_pops)
+        start_pop = start_pop.at[0].set(start_suscept)
+
+        # Strain infectiousness
+        start_relinfect = jnp.array([1.0])
+        relinfect = 1.0 if relinfect is None else jnp.concat([start_relinfect, relinfect])
+
+        # Cross immunity, start with partial cross immunity
+        suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
+        # Complete susceptibility if never infected before
+        suscept_levels = suscept_levels.at[:, 0].set(1.0)
+        # Forbid reinfection with earlier strains after later emerging ones
+        earlier_strain = get_col_increases(self.strain_map)
+        reset_array = get_reset_array_from_increases(earlier_strain)
+        suscept_levels = suscept_levels * (~reset_array).astype(float)
+
+        # Mobility
+        mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
+
+        # Seeding
+        first_data_start = jnp.array([-1.0])
+        other_data_starts = jnp.array([self.epoch.dti_to_index(s) for s in self.var_times])
+        data_starts = jnp.concat([first_data_start, other_data_starts])
+        first_offset = jnp.array([0.0])
+        other_offsets = jnp.zeros(0) if seed_offsets is None else seed_offsets
+        offsets = jnp.concat([first_offset, other_offsets])
+        seed_abs_rates = jnp.exp(seed_rates) * self.pop
+        half_dur = self.seed_duration / 2.0
+
+        def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
+            # Residual transmission scaling process (scalar)
+            proc_val = trans_proc[t - self.start]
+            # Mobility data (scalar)
+            mob_val = mobility[t - self.start]
+            # Seed (vector, n_strains)
+            peak = data_starts - offsets + half_dur
+            seed = get_triang_vals(t, peak, seed_abs_rates, half_dur)
+            # Incidence history (array, n_strains by window_len)
+            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed)
+            # Incidence convolved with generation (vector, n_strains)
+            contributions = (gen_densities * past_inc).sum(axis=1)
+            # Calculated infection rate (vector, n_strains)
+            calc_inf_rates = contributions * beta * proc_val * mob_val * relinfect / self.pop
+            # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
+            actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
+            # Effective susceptibles (array, n_strains by 2 ** n_strains)
+            effect_suscepts = suscept_levels * state.suscept
+            # Apply infection rates across susceptible categories (array, n_strains by 2 ** n_strains)
+            actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
+            # Population distribution (vector, 2 ** n_strains)
+            suscept = state.suscept
+            # Move susceptibles to recovered categories
+            for s in range(self.n_strains):
+                suscept += actual_inc[s] @ self.trans_mats[s]
+            # Incidence by strain (vector, n_strains)
+            strain_inc = actual_inc.sum(axis=1)
+            # Move up (array, n_strains by window_len)
+            inc = jnp.concat([strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1)
+            strain_out = {s: strain_inc[i_strain] for i_strain, s in enumerate(self.strains)}
+            suscept_out = {f"sus_{i}": suscept[i] for i in range(n_pops)}
+            return MultivarState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
+
+        end_state, out = lax.scan(update, MultivarState(init_inc, start_pop), self.model_times)
+        return out
+
+    def renewal_func(
+        self,
+        beta: float,
+        proc: List[float],
+        gen_mean: float,
+        gen_sd: float,
+        cdr: float,
+        ifr: float,
+        report_mean: float,
+        report_sd: float,
+        death_mean: float,
+        death_sd: float,
+        admit_mean: float,
+        admit_sd: float,
+        stay_mean: float,
+        stay_sd: float,
+        har: float,
+        icu_admit_mean: float,
+        icu_admit_sd: float,
+        icu_stay_mean: float,
+        icu_stay_sd: float,
+        icuar: float,
+        cross_immunity: float,
+        seed_rates: List[float],
+        relinfect: Optional[List[float]],
+        seed_offsets: Optional[List[float]],
+        vacc_protect_hosp: float,
+        vacc_protect_death: float,
+        **kwargs,
+    ) -> ModelResult:
+        """Main function to call externally to get the renewal outputs.
+
+        Args:
+            beta: The transmission scaling parameter
+            proc: The values of residual transmission scaling
+            gen_mean: Mean of the generation interval
+            gen_sd: Standard deviation of the generation interval
+            cdr: Case detection rate (proportion)
+            ifr: Infection fatality rate (proportion)
+            report_mean: Mean time from infection to reporting
+            report_sd: Standard deviation of time from infection to reporting
+            death_mean: Mean time from infection to death
+            death_sd: Standard deviation of time from infection to death
+            admit_mean: Mean time from infection to hospitalisation
+            admit_sd: Standard deviation of time from infection to hospitalisation
+            stay_mean: Mean time from hospitalisation to discharge
+            stay_sd: Standard deviation of time from hospitalisation to discharge
+            har: Hospital admission rate (proportion)
+            icu_admit_mean: Mean time from infection to ICU admission
+            icu_admit_sd: Standard deviation of time from infectino to ICU admission
+            icu_stay_mean: Mean time from ICU admission to ICU discharge
+            icu_stay_sd: Standard deviation of time from ICU admission to ICU discharge
+            icuar: ICU admission rate (proportion)
+            cross_immunity: The extent of cross-immunity
+            seed_offsets: Time before first strain data that strain seeding begins
+            seed_rates: The rate of seeding for each strain
+            relinfect: The relative infectiousness of each non-starting strain
+            seed_offsets: The number of days before first data available
+                that each non-starting strain is seeded from
+
+        Returns:
+            The full epidemiological outputs of the simulation
+
+        Notes
+        -----
+        Once an iteration of the renewal analysis
+        had been run to calculate incidence values over time,
+        the other epidemiological outputs were calculated
+        using a series of convolution operations
+        applied to this series.
+        Total incidence was first calculated by summing
+        over strain-specific incidence.
+        Cases were then calculated by convolving incidence
+        with a gamma-distributed set of delays from
+        incidence to notification
+        which was truncated after {CONV_TRUNC_POINT} days.
+        This was then multiplied through by
+        the case detection rate (a proportion)
+        and weekly cases were calculated by summing
+        over the preceding {DAYS_IN_WEEK} days.__RETURN__
+        Deaths were similarly calculated from incidence,
+        but with separate parameters governing the
+        time from incidence to death
+        and with the fraction of incident episodes
+        resulting in death given by
+        the infection fatality rate.
+        For Singapore and countries of Oceania,
+        a reduction in the risk of death
+        was applied because this analysis was performed
+        after wide-scale population vaccination.
+        The relative reduction in the risk of
+        death was set according to a parameter
+        specifying the protection of 
+        vaccination against death given infection 
+        and was not varied during calibration, 
+        because this would have been collinear
+        with the risk of death parameter.__RETURN__
+        As for cases and deaths, hospitalisations
+        were estimated through a convolution
+        distribution with independently calibrated parameters
+        and a hospital admission fraction.
+        As for the approach to deaths for Oceania,
+        a reduction in the risk of hospitalisation
+        was applied to account for vaccination.
+        The relative reduction in the risk of
+        hospitalisation was set according to a vaccination
+        protection against hospitalisation given
+        infection parameter. 
+        As for cases, deaths and hospitalisations,
+        the convolution of time to ICU admission
+        was parameterised independently.__RETURN__
+        Hospital and ICU occupancy were obtained
+        by convolving the time series of hospital and ICU
+        admissions with the complement of
+        the cumulative distribution of the
+        time to hospital or ICU discharge.
+        For comparison to serosurveillance data, 
+        seropositivity was calculated
+        as the proportion of the population remaining
+        in the entirely infection-na&iuml;ve immunity
+        sub-population.
+        Finally, the proportion of incidence attributable
+        to each variant strain was calculated
+        from the strain-specific incidence.
+        """
+        self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
+        start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
+        out = self.renew(
+            beta,
+            proc,
+            gen_mean,
+            gen_sd,
+            cross_immunity,
+            seed_rates,
+            relinfect,
+            seed_offsets,
+            **kwargs,
+        )
+
+        # Incidence
+        strain_inc = jnp.array([out[strain] for strain in self.strains])
+        full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
+        out["inc"] = full_inc[self.init_length :]
+        output_dist = GammaDens()
+
+        # Cases
+        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, output_dist)
+        out["cases"] = cases[self.init_length :]
+        weekly_cases = self.get_period_output_from_daily(cases, DAYS_IN_WEEK)
+        out["weekly_cases"] = weekly_cases[self.init_length :]
+
+        # Deaths
+        vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
+        rel_vacc_death = 1.0 - vacc_death_protect
+        death_dists = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, output_dist)
+        deaths = death_dists * rel_vacc_death
+        out["deaths"] = deaths[self.init_length :]
+        weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
+        out["weekly_deaths"] = weekly_deaths[self.init_length :]
+
+        # Hospital-related outputs
+        discharge_dist = GammaDens()
+        vacc_hosp_protect = vacc_protect_hosp if self.vacc_effect else 0.0
+        rel_vacc_hosp = 1.0 - vacc_hosp_protect
+        admit_dists = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, output_dist)
+        admissions = admit_dists * rel_vacc_hosp
+        out["admissions"] = admissions[self.init_length :]
+        weekly_admissions = self.get_period_output_from_daily(admissions, DAYS_IN_WEEK)
+        out["weekly_admissions"] = weekly_admissions[self.init_length :]
+        occupancy = self.get_occupancy_from_admits(admissions, stay_mean, stay_sd, discharge_dist)
+        out["occupancy"] = occupancy[self.init_length :]
+
+        # ICU-related outputs
+        icu_admits = self.get_output_from_inc(full_inc, icu_admit_mean, icu_admit_sd, icuar, output_dist)
+        out["icu_admissions"] = icu_admits[self.init_length :]
+        icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, DAYS_IN_WEEK)
+        out["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
+        icu_occupancy = self.get_occupancy_from_admits(icu_admits, icu_stay_mean, icu_stay_sd, discharge_dist)
+        out["icu_occupancy"] = icu_occupancy[self.init_length :]
+
+        # Seropositivity
+        out["seropos"] = (self.pop - out["sus_0"]) / self.pop
+
+        # Variant proportions
+        var_props = {f"prop_{s}": out[s] / out["inc"] for s in self.strains}
+        return out | var_props
 
     def get_occupancy_from_admits(
         self,
