@@ -250,7 +250,6 @@ class SimpleModel(RenewalModel):
         population: float,
         start: datetime,
         end: datetime,
-        seed_times: List[datetime],
         mobility: MobilityProvider,
     ):
         """Construct the object for running the renewal process.
@@ -262,7 +261,6 @@ class SimpleModel(RenewalModel):
             seed_times: Times to seed each variant (including the first one)
             mobility: The mobility time series to scale transmission with
         """
-        self.var_times = seed_times
         self.seed_duration = SEED_DURATION
         self.init_length = INIT_DURATION
 
