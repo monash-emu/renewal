@@ -304,9 +304,6 @@ class SimpleModel(RenewalModel):
         gen_dist = GammaDens()
         gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
 
-        # Starting population
-        init_inc = self.seed_array[:self.init_length]
-
         # Mobility
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
@@ -327,7 +324,7 @@ class SimpleModel(RenewalModel):
             inc = jnp.concat([jnp.array([inc_val]), past_inc[:-1]])
             return MultivarState(inc, suscept), {"process": proc_val, "inc": inc_val, "sus": suscept}
 
-        end_state, out = lax.scan(update, MultivarState(init_inc, self.pop), self.model_times)
+        end_state, out = lax.scan(update, MultivarState(jnp.zeros(self.init_length), self.pop), self.model_times)
         return out
 
     def renewal_func(
@@ -363,11 +360,10 @@ class SimpleModel(RenewalModel):
         Returns:
             The full epidemiological outputs of the simulation
         """
-        self.seed_array = jnp.zeros([self.init_length + len(self.model_times)])
         out = self.renew(beta, proc, gen_mean, gen_sd, seed_rate, **kwargs)
-        output_dist = GammaDens()
 
         # Cases
+        output_dist = GammaDens()
         cases = self.get_output_from_inc(out["inc"], report_mean, report_sd, cdr, output_dist)
         out["cases"] = cases[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, DAYS_IN_WEEK)
