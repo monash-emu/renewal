@@ -210,6 +210,16 @@ class RenewalModel:
         fitter = vmap(self.proc_fitter.get_multicurve, in_axes=(0, None, None))
         return jnp.exp(fitter(self.model_times, self.x_proc_data, y_proc_data))
 
+    def initialise_var_proc(self):
+        """Initialise the structures needed for 
+        the residual transmission scaling process.
+        """
+        self.proc_update_freq = PROC_UPDATE_FREQ
+        self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
+        self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
+        self.proc_fitter = CosineMultiCurve()
+        self.process_start = int(self.x_proc_vals[0])
+
     def get_occupancy_from_admits(
         self,
         full_admits: jnp.array,
@@ -286,16 +296,6 @@ class SimpleModel(RenewalModel):
         self.dens_obj = GammaDens()
         self.window_len = INIT_DURATION
 
-    def initialise_var_proc(self):
-        """Initialise the structures needed for 
-        the residual transmission scaling process.
-        """
-        self.proc_update_freq = PROC_UPDATE_FREQ
-        self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
-        self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
-        self.proc_fitter = CosineMultiCurve()
-        self.process_start = int(self.x_proc_vals[0])
-
     def renew(
         self,
         beta: float,
@@ -320,12 +320,7 @@ class SimpleModel(RenewalModel):
         # Starting population
         init_inc = jnp.flipud(self.seed_array[0, : self.init_length])
         start_suscept = self.pop - jnp.sum(init_inc)
-        n_pops = self.strain_map.shape[1]
-        start_pop = jnp.zeros(n_pops)
-        start_pop = start_pop.at[0].set(start_suscept)
-
-        # Fully susceptible if not previously infected, immune otherwise
-        suscept_levels = jnp.array([1.0, 0.0])
+        start_pop = start_suscept
 
         # Mobility
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
@@ -335,16 +330,12 @@ class SimpleModel(RenewalModel):
             mob_val = mobility[t - self.start]
             past_inc = state.incidence
             contributions = jnp.sum(gen_densities * past_inc)
-            calc_inf_rates = contributions * beta * proc_val * mob_val / self.pop
-            actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
-            effect_suscepts = suscept_levels * state.suscept
-            actual_inc = effect_suscepts * actual_inf_rate
-            suscept = state.suscept
-            suscept = suscept - actual_inc
-            strain_inc = jnp.sum(actual_inc)
-            inc = jnp.concat([jnp.array([strain_inc]), past_inc[:-1]])
-            suscept_out = {f"sus_{i}": suscept[i] for i in range(n_pops)}
-            return MultivarState(inc, suscept), {"process": proc_val, "inc": strain_inc} | suscept_out
+            calc_inf_rate = contributions * beta * proc_val * mob_val / self.pop
+            actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rate)
+            inc_val = state.suscept * actual_inf_rate
+            suscept = state.suscept - inc_val
+            inc = jnp.concat([jnp.array([inc_val]), past_inc[:-1]])
+            return MultivarState(inc, suscept), {"process": proc_val, "inc": inc_val, "sus": suscept}
 
         end_state, out = lax.scan(update, MultivarState(init_inc, start_pop), self.model_times)
         return out
@@ -402,7 +393,7 @@ class SimpleModel(RenewalModel):
         out["weekly_deaths"] = weekly_deaths[self.init_length :]
 
         # Seropositivity
-        out["seropos"] = (self.pop - out["sus_0"]) / self.pop
+        out["seropos"] = (self.pop - out["sus"]) / self.pop
 
         return out
 
@@ -459,25 +450,6 @@ class MultiStrainModel(RenewalModel):
         # Generation interval
         self.dens_obj = GammaDens()
         self.window_len = INIT_DURATION
-
-    def initialise_var_proc(self):
-        """Initialise the structures needed for 
-        the residual transmission scaling process.
-
-        Notes
-        -----
-        Each time point for fitting the residual transmission scaling process
-        was set at intervals through the analysis period 
-        spaced by {PROC_UPDATE_FREQ} days
-        working backwards from the end of the analysis period.
-        The scaling process was then fit to these points using
-        piecewise cosine functions from a starting value of zero.
-        """
-        self.proc_update_freq = PROC_UPDATE_FREQ
-        self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
-        self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
-        self.proc_fitter = CosineMultiCurve()
-        self.process_start = int(self.x_proc_vals[0])
 
     def renew(
         self,
