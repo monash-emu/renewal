@@ -250,10 +250,8 @@ class SimpleModel(RenewalModel):
         population: float,
         start: datetime,
         end: datetime,
-        strains: List[str],
         seed_times: List[datetime],
         mobility: MobilityProvider,
-        vacc_effect: bool,
     ):
         """Construct the object for running the renewal process.
 
@@ -261,22 +259,12 @@ class SimpleModel(RenewalModel):
             population: Number of people considered in the analysis
             start: Time to run the model from
             end: Time to run the model until
-            discharge_dens: Distribution for the time from hospital admission to discharge
-            strains: Names of the variants to be implemented
             seed_times: Times to seed each variant (including the first one)
             mobility: The mobility time series to scale transmission with
-            vacc_effect: Whether to reduce severity based on vaccination effects
         """
-        self.strains = strains
-        self.start_strain = strains[0]
-        self.n_strains = len(strains)
-        self.strain_map = get_combs(len(strains))
-        self.dests = get_dests(self.strain_map)
-        self.trans_mats = get_trans_mats(self.dests)
         self.var_times = seed_times
         self.seed_duration = SEED_DURATION
         self.init_length = INIT_DURATION
-        self.vacc_effect = vacc_effect
 
         # Times
         self.epoch = Epoch(start)
@@ -318,9 +306,8 @@ class SimpleModel(RenewalModel):
         gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
 
         # Starting population
-        init_inc = jnp.flipud(self.seed_array[0, : self.init_length])
-        start_suscept = self.pop - jnp.sum(init_inc)
-        start_pop = start_suscept
+        init_inc = jnp.flip(self.seed_array[:self.init_length])
+        start_pop = self.pop - jnp.sum(init_inc)
 
         # Mobility
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
@@ -371,12 +358,11 @@ class SimpleModel(RenewalModel):
         Returns:
             The full epidemiological outputs of the simulation
         """
-        self.seed_array = jnp.zeros([1, self.init_length + len(self.model_times)])
-        start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
+        self.seed_array = jnp.zeros([self.init_length + len(self.model_times)])
         out = self.renew(beta, proc, gen_mean, gen_sd, **kwargs)
 
         # Incidence
-        full_inc = jnp.concatenate([start_inc, out["inc"]])
+        full_inc = jnp.concatenate([self.seed_array[: self.init_length], out["inc"]])
         out["inc"] = full_inc[self.init_length :]
         output_dist = GammaDens()
 
