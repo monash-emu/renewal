@@ -338,15 +338,13 @@ class SimpleModel(RenewalModel):
             calc_inf_rates = contributions * beta * proc_val * mob_val / self.pop
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             effect_suscepts = suscept_levels * state.suscept
-            actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
+            actual_inc = effect_suscepts * actual_inf_rate
             suscept = state.suscept
-            for s in range(self.n_strains):
-                suscept += actual_inc[s] @ self.trans_mats[s]
-            strain_inc = actual_inc.sum(axis=1)
-            inc = jnp.concat([strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1)
-            strain_out = {s: strain_inc[i_strain] for i_strain, s in enumerate(self.strains)}
+            suscept = suscept - actual_inc
+            strain_inc = jnp.sum(actual_inc)
+            inc = jnp.concat([jnp.array([strain_inc]), past_inc[:-1]])
             suscept_out = {f"sus_{i}": suscept[i] for i in range(n_pops)}
-            return MultivarState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
+            return MultivarState(inc, suscept), {"process": proc_val, "inc": strain_inc} | suscept_out
 
         end_state, out = lax.scan(update, MultivarState(init_inc, start_pop), self.model_times)
         return out
@@ -387,8 +385,7 @@ class SimpleModel(RenewalModel):
         out = self.renew(beta, proc, gen_mean, gen_sd, **kwargs)
 
         # Incidence
-        strain_inc = jnp.array([out[strain] for strain in self.strains])
-        full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
+        full_inc = jnp.concatenate([start_inc, out["inc"]])
         out["inc"] = full_inc[self.init_length :]
         output_dist = GammaDens()
 
