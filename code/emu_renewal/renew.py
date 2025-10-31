@@ -305,8 +305,7 @@ class SimpleModel(RenewalModel):
         gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
 
         # Starting population
-        init_inc = jnp.flip(self.seed_array[:self.init_length])
-        start_pop = self.pop - jnp.sum(init_inc)
+        init_inc = self.seed_array[:self.init_length]
 
         # Mobility
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
@@ -328,7 +327,7 @@ class SimpleModel(RenewalModel):
             inc = jnp.concat([jnp.array([inc_val]), past_inc[:-1]])
             return MultivarState(inc, suscept), {"process": proc_val, "inc": inc_val, "sus": suscept}
 
-        end_state, out = lax.scan(update, MultivarState(init_inc, start_pop), self.model_times)
+        end_state, out = lax.scan(update, MultivarState(init_inc, self.pop), self.model_times)
         return out
 
     def renewal_func(
@@ -366,20 +365,16 @@ class SimpleModel(RenewalModel):
         """
         self.seed_array = jnp.zeros([self.init_length + len(self.model_times)])
         out = self.renew(beta, proc, gen_mean, gen_sd, seed_rate, **kwargs)
-
-        # Incidence
-        full_inc = jnp.concatenate([self.seed_array[: self.init_length], out["inc"]])
-        out["inc"] = full_inc[self.init_length :]
         output_dist = GammaDens()
 
         # Cases
-        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, output_dist)
+        cases = self.get_output_from_inc(out["inc"], report_mean, report_sd, cdr, output_dist)
         out["cases"] = cases[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, DAYS_IN_WEEK)
         out["weekly_cases"] = weekly_cases[self.init_length :]
 
         # Deaths
-        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, output_dist)
+        deaths = self.get_output_from_inc(out["inc"], death_mean, death_sd, ifr, output_dist)
         out["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
         out["weekly_deaths"] = weekly_deaths[self.init_length :]
@@ -536,11 +531,10 @@ class MultiStrainModel(RenewalModel):
         gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
 
         # Starting population
-        init_inc = jnp.fliplr(self.seed_array[:, : self.init_length])
-        start_suscept = self.pop - jnp.sum(init_inc)
+        init_inc = jnp.zeros([self.n_strains, self.init_length])
         n_pops = self.strain_map.shape[1]
         start_pop = jnp.zeros(n_pops)
-        start_pop = start_pop.at[0].set(start_suscept)
+        start_pop = start_pop.at[0].set(self.pop)
 
         # Strain infectiousness
         start_relinfect = jnp.array([1.0])
@@ -658,11 +652,11 @@ class MultiStrainModel(RenewalModel):
             icu_stay_sd: Standard deviation of time from ICU admission to ICU discharge
             icuar: ICU admission rate (proportion)
             cross_immunity: The extent of cross-immunity
-            seed_offsets: Time before first strain data that strain seeding begins
-            seed_rates: The rate of seeding for each strain
+            seed_rates: Log of the peak rates of seeding for each strain
             relinfect: The relative infectiousness of each non-starting strain
-            seed_offsets: The number of days before first data available
-                that each non-starting strain is seeded from
+            seed_offsets: Time before first strain data that strain seeding begins
+            vacc_protect_hosp: Hospitalisation protection for analyses in vaccination era
+            vacc_protect_death: Death protection for analyses in vaccination era
 
         Returns:
             The full epidemiological outputs of the simulation
@@ -729,8 +723,6 @@ class MultiStrainModel(RenewalModel):
         to each variant strain was calculated
         from the strain-specific incidence.
         """
-        self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
-        start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
         out = self.renew(
             beta,
             proc,
@@ -745,11 +737,12 @@ class MultiStrainModel(RenewalModel):
 
         # Incidence
         strain_inc = jnp.array([out[strain] for strain in self.strains])
-        full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
-        out["inc"] = full_inc[self.init_length :]
-        output_dist = GammaDens()
+        summed_inc = strain_inc.sum(axis=0)
+        out["inc"] = summed_inc
+        full_inc = jnp.concatenate([jnp.zeros(self.init_length), summed_inc])
 
         # Cases
+        output_dist = GammaDens()
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, output_dist)
         out["cases"] = cases[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, DAYS_IN_WEEK)
