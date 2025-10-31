@@ -361,16 +361,17 @@ class SimpleModel(RenewalModel):
             The full epidemiological outputs of the simulation
         """
         out = self.renew(beta, proc, gen_mean, gen_sd, seed_rate, **kwargs)
+        full_inc = jnp.concatenate([jnp.zeros(self.init_length), out["inc"]])
 
         # Cases
         output_dist = GammaDens()
-        cases = self.get_output_from_inc(out["inc"], report_mean, report_sd, cdr, output_dist)
+        cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, output_dist)
         out["cases"] = cases[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, DAYS_IN_WEEK)
         out["weekly_cases"] = weekly_cases[self.init_length :]
 
         # Deaths
-        deaths = self.get_output_from_inc(out["inc"], death_mean, death_sd, ifr, output_dist)
+        deaths = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, output_dist)
         out["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
         out["weekly_deaths"] = weekly_deaths[self.init_length :]
