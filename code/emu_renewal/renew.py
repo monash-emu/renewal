@@ -331,11 +331,10 @@ class MultiStrainModel:
         gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
 
         # Starting population
-        init_inc = jnp.fliplr(self.seed_array[:, : self.init_length])
-        start_suscept = self.pop - jnp.sum(init_inc)
+        init_inc = jnp.zeros([self.n_strains, self.init_length])
         n_pops = self.strain_map.shape[1]
         start_pop = jnp.zeros(n_pops)
-        start_pop = start_pop.at[0].set(start_suscept)
+        start_pop = start_pop.at[0].set(self.pop)
 
         # Strain infectiousness
         start_relinfect = jnp.array([1.0])
@@ -453,12 +452,11 @@ class MultiStrainModel:
             icu_stay_sd: Standard deviation of time from ICU admission to ICU discharge
             icuar: ICU admission rate (proportion)
             cross_immunity: The extent of cross-immunity
-            seed_rates: The rate of seeding for each strain
+            seed_rates: Log of the peak rates of seeding for each strain
             relinfect: The relative infectiousness of each non-starting strain
-            seed_offsets: The number of days before first data available
-                that each non-starting strain is seeded from
-            vacc_protect_hosp: Adjustment to IHR risk for vaccine period analyses
-            vacc_protect_death: Adjustment to IFR risk for vaccine period analyses
+            seed_offsets: Time before first strain data that strain seeding begins
+            vacc_protect_hosp: Hospitalisation protection for analyses in vaccination era
+            vacc_protect_death: Death protection for analyses in vaccination era
 
         Returns:
             The full epidemiological outputs of the simulation
@@ -525,8 +523,6 @@ class MultiStrainModel:
         to each variant strain was calculated
         from the strain-specific incidence.
         """
-        self.seed_array = jnp.zeros([self.n_strains, self.init_length + len(self.model_times)])
-        start_inc = jnp.sum(self.seed_array[:, : self.init_length], axis=0)
         out = self.renew(
             beta,
             proc,
@@ -541,11 +537,12 @@ class MultiStrainModel:
 
         # Incidence
         strain_inc = jnp.array([out[strain] for strain in self.strains])
-        full_inc = jnp.concatenate([start_inc, jnp.array(strain_inc.sum(axis=0))])
-        out["inc"] = full_inc[self.init_length :]
-        output_dist = GammaDens()
+        summed_inc = strain_inc.sum(axis=0)
+        out["inc"] = summed_inc
+        full_inc = jnp.concatenate([jnp.zeros(self.init_length), summed_inc])
 
         # Cases
+        output_dist = GammaDens()
         cases = self.get_output_from_inc(full_inc, report_mean, report_sd, cdr, output_dist)
         out["cases"] = cases[self.init_length :]
         weekly_cases = self.get_period_output_from_daily(cases, DAYS_IN_WEEK)
