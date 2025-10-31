@@ -290,6 +290,7 @@ class SimpleModel(RenewalModel):
         proc: List[float],
         mean: float,
         sd: float,
+        seed_rate: float,
         **kwargs,
     ) -> jnp.array:
         """Main function implementing the renewal process,
@@ -312,12 +313,17 @@ class SimpleModel(RenewalModel):
         # Mobility
         mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
 
+        # Seeding
+        seed_abs_rate = jnp.exp(jnp.array([seed_rate])) * self.pop
+        half_dur = self.seed_duration / 2.0
+
         def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
             proc_val = trans_proc[t - self.start]
             mob_val = mobility[t - self.start]
             past_inc = state.incidence
             contributions = jnp.sum(gen_densities * past_inc)
-            calc_inf_rate = contributions * beta * proc_val * mob_val / self.pop
+            seed = get_triang_vals(t, half_dur - 1.0, seed_abs_rate, half_dur)[0]
+            calc_inf_rate = contributions * beta * proc_val * mob_val / self.pop + seed
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rate)
             inc_val = state.suscept * actual_inf_rate
             suscept = state.suscept - inc_val
@@ -339,6 +345,7 @@ class SimpleModel(RenewalModel):
         report_sd: float,
         death_mean: float,
         death_sd: float,
+        seed_rate: float,
         **kwargs,
     ) -> ModelResult:
         """Main function to call externally to get the renewal outputs.
@@ -354,12 +361,13 @@ class SimpleModel(RenewalModel):
             report_sd: Standard deviation of time from infection to reporting
             death_mean: Mean time from infection to death
             death_sd: Standard deviation of time from infection to death
+            seed_rate: The rate of seeding
 
         Returns:
             The full epidemiological outputs of the simulation
         """
         self.seed_array = jnp.zeros([self.init_length + len(self.model_times)])
-        out = self.renew(beta, proc, gen_mean, gen_sd, **kwargs)
+        out = self.renew(beta, proc, gen_mean, gen_sd, seed_rate, **kwargs)
 
         # Incidence
         full_inc = jnp.concatenate([self.seed_array[: self.init_length], out["inc"]])
