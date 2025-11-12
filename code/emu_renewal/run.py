@@ -108,7 +108,7 @@ def find_run_start_time(
     However, if this threshold was not reached by {DEFAULT_START_DATE},
     the simulation commenced at this default time instead.
     For Singapore and countries of Oceania, the simulation commenced from
-    the time that vaccination reached {START_VACC_THRESHOLD_OC}%
+    the time that vaccination coverage reached {START_VACC_THRESHOLD_OC}%
     of its final value.
     """
     deaths_data = get_who_indicator("New_deaths", iso3)
@@ -152,15 +152,16 @@ def find_run_end_time(
     Google mobility data was available was used.
     """
     cont = get_cont_of_country(iso3)
-    if cont == "OC" and "fb_" in mob_source:
-        mob = get_fb_visited_mobility(iso3)
-        return mob.index[-1].to_pydatetime()
-    elif cont == "OC":
-        try:
+    try:
+        if cont == "OC" and "fb_" in mob_source:
+            mob = get_fb_visited_mobility(iso3)
+            return mob.index[-1].to_pydatetime()
+        elif cont == "OC":
             mob = get_google_mobility(iso3)
-        except:
-            mob = get_google_mobility("AUS")
-        return mob.index[-1].to_pydatetime()
+            return mob.index[-1].to_pydatetime()
+    except Exception as e:
+        msg = f"{mob_source} mobility not available"
+        raise MobilityException(msg)
     vacc_data = get_country_vacc_data(iso3)
     default_end_time = datetime.strptime(DEFAULT_END_DATE, CODE_DATE_FORMAT)
     if vacc_data.empty or vacc_data.max() < END_VACC_THRESHOLD:
@@ -186,7 +187,7 @@ def get_mobility_provider(
     -----
     For each country, we ran one analysis with
     no mobility scaling to the transmission rate.
-    We ran one analysis in which Google mobility
+    We further ran one analysis in which Google mobility
     was used to scale the transmission rate,
     if mobility data was available from Google.
     We also ran two analyses in which Facebook mobility
@@ -238,6 +239,7 @@ def run_calibration(
     priors: Dict[str, dist.Distribution],
     targets: Dict[str, Target],
     prog_bar: bool,
+    n_iters: int,
 ) -> Tuple[StandardCalib, infer.MCMC]:
     """Run a calibration using a standard approach.
 
@@ -264,7 +266,7 @@ def run_calibration(
     init = calib.custom_init()
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
     mcmc = infer.MCMC(
-        kernel, num_chains=N_CHAINS, num_samples=N_ITERS, num_warmup=N_ITERS, progress_bar=prog_bar
+        kernel, num_chains=N_CHAINS, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar
     )
     mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
     return calib, mcmc
@@ -364,7 +366,7 @@ def run_single_country(
     hosp_key = list(hosp_targ.keys())[0] if hosp_targ else ""
     priors = get_standard_priors(len(var_names), hosp_key, iso3) | mob_provider.get_priors()
     targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | var_targs
-    calib, mcmc = run_calibration(model, priors, targets, prog_bar)
+    calib, mcmc = run_calibration(model, priors, targets, prog_bar, N_ITERS)
 
     # Outputs
     out_path = BASE_PATH / "outputs" / task_name / country / mob_source

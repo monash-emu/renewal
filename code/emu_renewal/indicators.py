@@ -116,13 +116,13 @@ def get_deaths_target(
     modelled outputs on the log scale.
     The log of the reported target for deaths was compared
     against the log of the modelled value with a normal distribution.
-    Deaths was one of either  time-series indicators
+    Deaths was one of up to three  time-series indicators
     for which a common dispersion parameter was used
     for this normal distribution for the target comparison.
     The value for weighting the deaths indicator time series
     was set to {DEATHS_WEIGHT} (an quantity that can be interpreted
     in relation to the weights of the other indicators,
-    but an arbitrary value in itself).
+    but an arbitrary value in itself).__RETURN__
     """
     data = get_who_indicator("New_deaths", iso3)
     data = data.dropna()
@@ -454,26 +454,8 @@ def get_seroprev_target(
     transmission prior to the analysis period and sampling bias.
     In contrast, we considered that later seroprevalence
     should provide a broad indication of epidemic size.
-    We discarded seroprevalence estimates that fell less than
-    {SEROPREV_EXTREME}% away from a value of zero or 100%.
-    We also ignored seroprevalence estimates from
-    low and lower middle income countries of Africa, because
-    we were unable to obtain good fits for several of these countries
-    while also maintaining plausible detection/severity parameters
-    (i.e. case detection rate, hospital admission rate
-    and infection fatality rate).
-    That is, we applied much lower values for these 
-    detection-related parameters
-    in these countries, although the modelled attack rate
-    still remained well below seroprevalence estimates for
-    some countries.
-    Last, we ignored seroprevalence estimates for 
-    Singapore and countries of Oceania,
-    for which the analysis was run largely through 2022,
-    during which time seroprevalence values would not reflect
-    the attack rate during the simulation period.
     For countries for which seroprevalence calibration targets
-    were available, we assigned a target weight to this indicator
+    were used, we assigned a target weight to this indicator
     of {SEROPREV_WEIGHT} (which is an arbitrary quantity,
     but can be interpreted with reference to the deaths indicator
     weight of {DEATHS_WEIGHT}).
@@ -482,6 +464,25 @@ def get_seroprev_target(
     the dispersion parameters for the other targets,
     including the shared dispersion parameter of 
     the time series indicators.
+    __RETURN__
+    We discarded seroprevalence estimates that fell less than
+    {SEROPREV_EXTREME}% away from a value of zero or 100%.
+    We also ignored seroprevalence estimates for 
+    Singapore and countries of Oceania,
+    for which the analysis was run largely through 2022,
+    during which time seroprevalence values would not reflect
+    the attack rate during the simulation period.    
+    We further ignored seroprevalence estimates from
+    low and lower middle income countries of Africa, because
+    we were unable to obtain good fits for several of these countries
+    while also maintaining plausible detection/severity parameters
+    (i.e. case detection rate, hospital admission rate
+    and infection fatality rate).
+    That is, we applied much lower values for these 
+    detection-related parameters
+    in these countries, although the modelled attack rate
+    still often remained below seroprevalence estimates for
+    some countries.
     """
     income = get_income_group(iso3)
     if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
@@ -693,7 +694,7 @@ def get_var_target(
     we used pooled data from all the other countries
     from the same continent where available.
     If insufficient data on a particular variant 
-    were available for the country or
+    was available for the country or
     its continent, prevalence of that variant was not
     included as a calibration target.
     """

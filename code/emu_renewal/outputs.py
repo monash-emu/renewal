@@ -190,8 +190,9 @@ def get_country_procs(
     job_path: Path,
     countries: List[str],
 ) -> Dict[str, pd.DataFrame]:
-    """Get dataframes containing the variable process
-    values for a combination of countries
+    """Get dataframes containing 
+    the transmission scaling values 
+    for a combination of countries
     and analysis types.
 
     Args:
@@ -199,7 +200,7 @@ def get_country_procs(
         countries: The names of the countries of interest
 
     Returns:
-        The variable process dataframes
+        The transmission scaling process dataframes
     """
     procs = {}
     for c in countries:
@@ -353,7 +354,7 @@ def get_param_mean_by_country(
 def get_ratios_from_disps(
     disp_posts: Dict[str, pd.DataFrame],
 ) -> Dict[str, pd.DataFrame]:
-    """Find the ratio of the variable process dispersion parameters
+    """Find the ratio of the transmission scaling dispersion parameters
     under the relevant baseline analysis compared to each
     mobility analysis. Randomly permute the baseline for comparison.
 
@@ -391,7 +392,7 @@ def get_median_ratios(
     dists: Dict[str, pd.DataFrame], 
     mob_source: str,
 ) -> Dict[str, float]:
-    """Get the median ratio of the variable process
+    """Get the median ratio of the transmission scaling
     dispersion parameter sample under a mobility 
     analysis to the equivalent baseline.
 

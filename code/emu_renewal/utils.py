@@ -2,11 +2,14 @@ from typing import List, Dict, Tuple
 from pathlib import Path
 import os
 from os import listdir as ls
+import json
 import pandas as pd
 import numpy as np
 import pycountry
 import pycountry_convert as pc
 import arviz as az
+
+from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES
 
 
 def get_col_increases(
@@ -270,3 +273,52 @@ def get_country_name(
         return pycountry.countries.lookup(iso3).name
     except:
         return iso3
+
+
+def get_analysis_commits(
+    job_path: Path, 
+    iso3: str,
+) -> Dict[str, str]:
+    """Gather together the commit IDs for
+    each analysis type of a given country's run.
+
+    Args:
+        iso3: The path to the job
+        country: The country identifer
+
+    Returns:
+        Dictionary with keys for each analysis type
+            and values short commit SHA
+    """
+    commits = {}
+    for analysis in ANALYSIS_TYPES:
+        a_path = job_path / iso3 / analysis
+        if os.path.isdir(a_path):
+            commit = json.load(open(a_path / "gitinfo.json", "r"))["sha"][:7]
+        else:
+            commit = "no analysis"
+        commits[analysis] = commit
+    return commits
+
+
+def get_job_commits_df(
+    job_path: Path, 
+    countries: List[str],
+) -> pd.DataFrame:
+    """Use the preceding function to create a
+    dataframe of the commits used for each analysis.
+
+    Args:
+        job_path: The path to the job
+        countries: The country identifiers
+
+    Returns:
+        The dataframe with index countries and 
+            columns for each analysis type
+    """
+    commits = pd.DataFrame(index=countries, columns=ANALYSIS_TYPES)
+    for iso3 in countries:
+        commits.loc[iso3, :] = get_analysis_commits(job_path, iso3)
+    commits.rename(columns=ANALYSIS_NAMES, inplace=True)
+    commits.rename(index=lambda c: pycountry.countries.lookup(c).name, inplace=True)
+    return commits.sort_index()

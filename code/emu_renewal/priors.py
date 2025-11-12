@@ -10,6 +10,8 @@ from emu_renewal.constants import (
     DUR_REL_MAX,
     SEVERITY_ADJS,
     EXTRA_LOW_INC,
+    BETA_MIN,
+    BETA_MAX,
     SEED_RATE_LOW,
     SEED_RATE_UP,
     SEED_OFF_LOW,
@@ -18,7 +20,6 @@ from emu_renewal.constants import (
     RELINF_LOW,
     RELINF_UP,
     RELINF_SD,
-    RTINIT_SD,
     SHARED_DISP_SD,
     PROP_DISP,
     SEROPREV_DISP,
@@ -40,6 +41,7 @@ def get_standard_priors(
         n_strains: The number of strains implemented
         hosp_out_type: The hospital-related indicator name
             Must be one of the keys to relevant_duration_priors below
+        iso3: The country identifier
 
     Returns:
         The prior distributions
@@ -60,7 +62,7 @@ def get_standard_priors(
     determined from the literature. 
     These parameters comprised the infection fatality rate,
     the case detection proportion and, where applicable,
-    the hospital admission proportion.
+    the hospital or ICU admission proportion.
     For high-income countries, the mean value used
     was as presented in the parameter choices section,
     whereas this was reduced for other countries.
@@ -68,8 +70,12 @@ def get_standard_priors(
     with {EXTRA_LOW_INC} (for which a World Bank class was not available)
     considered a low-income country for this purpose.
     __RETURN__
+    The starting transmissibility scaling parameter
+    was assigned a uniform prior distribution on domain
+    {BETA_MIN} to {BETA_MAX}.
+    __RETURN__
     The seeding rate for each variant was calibrated from
-    ${SEED_RATE_LOW}$ to ${SEED_RATE_UP}$ cases per day
+    ${SEED_RATE_LOW}$ to ${SEED_RATE_UP}$ cases per capita per day
     using a uniform distribution in logarithmic space.
     The seeding offset (i.e. the time from modelled seeding
     to the first calibration data point)
@@ -83,12 +89,6 @@ def get_standard_priors(
     standard deviation {RELINF_SD},
     lower truncation limit {RELINF_LOW}
     and upper truncation limit {RELINF_UP}.
-    __RETURN__
-    The first value for the variable process was set
-    using a normal distribution with mean zero
-    and standard deviation {RTINIT_SD}
-    which was exponentiated (i.e. calibration in
-    logarithmic space).
     __RETURN__
     The prior for the shared dispersion parameter
     for all time series data was a half-normal distribution
@@ -166,7 +166,7 @@ def get_standard_priors(
     fixed_params = loaded_priors["fixed"]
     vacc_protect_hosp = {"vacc_protect_hosp": fixed_params["vacc_protect_hosp"]["value"]}
     vacc_protect_death = {"vacc_protect_death": fixed_params["vacc_protect_death"]["value"]}
-    rt_prior = {"rt_init": dist.Normal(0.0, RTINIT_SD)}
+    beta = {"beta": dist.Uniform(BETA_MIN, BETA_MAX)}
     disp_prior = {"shared_dispersion": dist.HalfNormal(SHARED_DISP_SD)}
     prop_disp_prior = {"prop_disp": PROP_DISP}
     seroprev_disp = {"seroprev_disp": SEROPREV_DISP}
@@ -178,7 +178,7 @@ def get_standard_priors(
         | irrel_betas
         | seed_rate_priors
         | inf_priors
-        | rt_prior
+        | beta
         | disp_prior
         | prop_disp_prior
         | seed_priors
