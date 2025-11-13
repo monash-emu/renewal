@@ -18,6 +18,7 @@ from emu_renewal.constants import (
     G_MOB_LOCATION_CMAP,
     MOBILITY_SMOOTH_PERIOD,
     OXCGRT_DTYPES,
+    OXCGRT_IND_MAX,
 )
 from emu_renewal.utils import get_cont_of_country
 
@@ -590,3 +591,21 @@ def get_rel_oxcgrt_cols(
         if suffix in match_strings or base.startswith("V"):
             matches.append(col)
     return matches
+
+
+def scale_oxcgrt_pols(
+    pol_data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Scale OXCGRT data relative to maximum
+    value for indicator.
+
+    Args:
+        pol_data: The policy data
+
+    Returns:
+        The scaled data for indicators listed in OXCGRT_IND_MAX 
+    """
+    scaled_data = pd.DataFrame(index=pol_data.index)
+    for col in OXCGRT_IND_MAX:
+        scaled_data[col] = pol_data[next((c for c in pol_data.columns if c.startswith(col)))] / OXCGRT_IND_MAX[col]
+    return scaled_data
