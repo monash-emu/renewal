@@ -5,6 +5,8 @@ import geopandas as gpd
 import arviz as az
 import pycountry
 from typing import Tuple, List, Dict
+import re
+
 from emu_renewal.constants import (
     DATA_PATH,
     RAW_MOB_PATH,
@@ -18,7 +20,6 @@ from emu_renewal.constants import (
     OXCGRT_DTYPES,
 )
 from emu_renewal.utils import get_cont_of_country
-from os import listdir as ls
 
 
 def get_country_pop(
@@ -541,3 +542,51 @@ def get_g_mob_quants(
     norm_weights = weights.div(weights.sum(axis=1), axis=0)
     mob_results = (norm_weights @ smoothed_mob.T).T
     return mob_results.quantile([0.025, 0.5, 0.975], axis=1).T
+
+
+def get_oxcgrt_country_indicators(
+    iso3: str,
+) -> pd.DataFrame:
+    """Get and process the OXCGRT policy data.
+
+    Args:
+        iso3: Country identifier
+
+    Returns:
+        The processed policy data
+    """
+    mob = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
+    mob.index = pd.to_datetime(mob["Date"], format="%Y%m%d")
+    mob = mob[mob["CountryCode"] == iso3]
+    # Note we can only drop region because this is assumed to be the national data
+    drop_strings = ["Index", "Vaccinated", "Confirmed", "Notes", "Unnamed", "Date", "Region", "Country", "Jurisdiction", "Flag"]
+    cols_to_keep = [col for col in mob.columns if not any(s in col for s in drop_strings)]
+    mob = mob[cols_to_keep]
+    mob.columns = [col.split("_")[0] for col in mob.columns]
+    return mob
+
+
+def get_rel_oxcgrt_cols(
+    vacc_status: str, 
+    pol_data: pd.DataFrame,
+) -> List[str]:
+    """Get the relevant columns for the OXCGRT data
+    given a particular vaccination status request.
+
+    Args:
+        vacc_status: Must be V, NV, M or E
+        pol_data: The OXCGRT data
+
+    Returns:
+        The relevant columns
+    """
+    matches = []
+    regex_match = r"^([A-Z]+\d+)([A-Z]*)$"
+    for col in pol_data.columns:
+        match = re.match(regex_match, col)
+        base, suffix = match.groups()
+        match_strings = [vacc_status, "", "EV"]
+        # Include all V columns, because V2E violates above assumptions
+        if suffix in match_strings or base.startswith("V"):
+            matches.append(col)
+    return matches
