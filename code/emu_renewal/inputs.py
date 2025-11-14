@@ -545,6 +545,39 @@ def get_g_mob_quants(
     return mob_results.quantile([0.025, 0.5, 0.975], axis=1).T
 
 
+def get_oxcgrt_data() -> pd.DataFrame:
+    """Get and process the OXCGRT policy data.
+
+    Returns:
+        The processed policy data
+    """
+    mob = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
+    mob.index = pd.to_datetime(mob["Date"], format="%Y%m%d")
+    drop_strings = ["Index", "Vaccinated", "Confirmed", "Notes", "Unnamed", "Date", "Region", "CountryName", "Jurisdiction", "Flag"]
+    cols_to_keep = [col for col in mob.columns if not any(s in col for s in drop_strings)]
+    mob = mob[cols_to_keep]
+    mob.columns = [col.split("_")[0] for col in mob.columns]
+    return mob
+
+
+def find_oxcgrt_country_data(
+    iso3: str, 
+    data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Get the country-specific data from the OxCGRT dataset
+    produced by get_oxcgrt_raw_data.
+
+    Args:
+        iso3: The country identifier
+        data: The full OxCGRT data
+
+    Returns:
+        The country-specific data
+    """
+    data = data[data["CountryCode"] == iso3]
+    return data.drop("CountryCode", axis=1)
+
+
 def get_oxcgrt_country_indicators(
     iso3: str,
 ) -> pd.DataFrame:

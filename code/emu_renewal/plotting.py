@@ -40,6 +40,7 @@ from emu_renewal.constants import (
     G_MOB_LOCATION_CMAP,
     MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
+    OXCGRT_COLMAP,
 )
 from emu_renewal.inputs import (
     DATA_PATH,
@@ -51,7 +52,8 @@ from emu_renewal.inputs import (
     get_g_mob_weight_posts,
     get_g_mob_quants,
     get_smoothed_trunc_g_mob,
-    get_oxcgrt_country_indicators,
+    get_oxcgrt_data,
+    find_oxcgrt_country_data,
     get_rel_oxcgrt_cols,
     scale_oxcgrt_pols,
 )
@@ -642,13 +644,12 @@ def compare_proc_pol(
     n_cols: int,
 ) -> plt.Figure:
     """Plot comparison of 
-    transmission scaling to mobility location.
+    transmission scaling to policy indices.
 
     Args:
         job_path: Path for the runs
         countries: Requested countries to plot
         n_cols: Number of subplot columns for the figure
-        mob_location: The name of the mobility location
 
     Returns:
         The figure
@@ -657,6 +658,8 @@ def compare_proc_pol(
     title = f"Estimated transmission scaling (without scaling) versus policy scaling"
     fig.suptitle(title, fontsize=14, y=1.0)
     flat_axes = axes.ravel()
+    data = get_oxcgrt_data()
+
     for c, iso3 in enumerate(countries):
         ax = flat_axes[c]
         country = pycountry.countries.lookup(iso3).name
@@ -667,18 +670,20 @@ def compare_proc_pol(
         ref_analysis = "fb_no_mob" if (job_path / iso3 / "fb_no_mob").exists() else "no_mob"
         proc_samples = pd.read_hdf(job_path / iso3 / ref_analysis / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
-        ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
+        ax.plot(centiles.index, centiles[0.5], color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
 
-        # Mobility
-        pol = get_oxcgrt_country_indicators(iso3)
+        # Policies
+        pol = find_oxcgrt_country_data(iso3, data)
         filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]
         scaled_pol = scale_oxcgrt_pols(filt_pol)
         filtered_pol = scaled_pol.loc[(centiles.index[0] < scaled_pol.index) & (scaled_pol.index < centiles.index[-1])]
-        # stringency_cols = [f"C{i}" for i in range(1, 9)] + ["H1"]
-        mob_pol_cols = [f"C{i}" for i in range(1, 8)] + ["H1"]
-        mean_pol = 1.0 - filtered_pol[mob_pol_cols].mean(axis=1)
-        ax.plot(mean_pol.index, mean_pol, linewidth=2.0)
+        for index, cols in OXCGRT_COLMAP.items():
+            pol_vals = filtered_pol[cols]
+            ax.plot(pol_vals.index, 1.0 - pol_vals.mean(axis=1), linewidth=2.0, label=index)
+    
+    # Add legend for last plot
+    ax.legend()
 
     # Switch off unused axes
     for ax in flat_axes[c + 1 :]:
