@@ -609,3 +609,19 @@ def scale_oxcgrt_pols(
     for col in OXCGRT_IND_MAX:
         scaled_data[col] = pol_data[next((c for c in pol_data.columns if c.startswith(col)))] / OXCGRT_IND_MAX[col]
     return scaled_data
+
+
+def find_pol_countries(
+    countries: List[str],
+) -> List[str]:
+    """Filter a list of countries according to whether
+    OxCGRT data exists for them.
+
+    Args:
+        countries: The countries to consider
+
+    Returns:
+        The countries with data
+    """
+    data = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
+    return [iso3 for iso3 in countries if any(data["CountryCode"] == iso3)]

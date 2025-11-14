@@ -671,7 +671,7 @@ def compare_proc_pol(
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
 
         # Mobility
-        pol = get_oxcgrt_country_indicators("GBR")
+        pol = get_oxcgrt_country_indicators(iso3)
         filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]
         scaled_pol = scale_oxcgrt_pols(filt_pol)
         filtered_pol = scaled_pol.loc[(centiles.index[0] < scaled_pol.index) & (scaled_pol.index < centiles.index[-1])]
