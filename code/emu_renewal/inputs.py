@@ -19,6 +19,7 @@ from emu_renewal.constants import (
     MOBILITY_SMOOTH_PERIOD,
     OXCGRT_DTYPES,
     OXCGRT_IND_MAX,
+    OXCGRT_COLMAP,
 )
 from emu_renewal.utils import get_cont_of_country
 
@@ -271,10 +272,12 @@ def get_oxcgrt(
     Returns:
         The data
     """
-    mob = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
-    mob.index = pd.to_datetime(mob["Date"], format="%Y%m%d")
-    mob = mob.loc[mob["CountryCode"] == iso3, field]
-    return 1.0 - mob / 100.0
+    data = get_oxcgrt_data()
+    pol = find_oxcgrt_country_data(iso3, data)
+    filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]
+    scaled_pol = scale_oxcgrt_pols(filt_pol)
+    pol_vals = scaled_pol[OXCGRT_COLMAP[field]].mean(axis=1)
+    return 1.0 - pol_vals
 
 
 def get_requested_mob(

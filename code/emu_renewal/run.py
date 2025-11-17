@@ -219,7 +219,7 @@ def get_mobility_provider(
     elif mob_source == "fb_singletile_mob":
         mob = get_fb_singletile_mobility(iso3)
     elif mob_source == "oxcgrt":
-        mob = get_oxcgrt(iso3, "StringencyIndex_SimpleAverage")
+        mob = get_oxcgrt(iso3, "custom")
     smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
     # Priors

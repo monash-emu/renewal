@@ -47,6 +47,7 @@ def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
     Returns:
         - Countries for which at least one mobility domain is available
         - Table with indices for countries and Yes/No status for each mobility domain
+        - The countries with data available for each source
 
     Notes
     -----
