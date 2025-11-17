@@ -110,7 +110,7 @@ CONV_TRUNC_POINT = 50
 DAYS_IN_WEEK = 7
 
 # Calibration-related
-N_ITERS = 10000
+N_ITERS = 1000
 N_CHAINS = 8
 INIT_RADIUS = 0.1
 SEED_RATE_LOW = "1\\times10^{-7}"
@@ -139,6 +139,7 @@ MOB_SOURCE_COLOURS = {
     "fb_visited_mob": "red",
     "fb_singletile_mob": "blue",
     "fb_no_mob": "grey",
+    "oxcgrt": "purple",
 }
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
@@ -153,6 +154,7 @@ MOB_SOURCE_ABBREVS = {
     "fb_visited_mob": "FB tiles visited",
     "fb_singletile_mob": "FB single tile",
     "fb_no_mob": "FB baseline",
+    "oxcgrt": "OXCGRT",
 }
 TARGET_TYPES = {
     "weekly_cases": "weekly cases",
