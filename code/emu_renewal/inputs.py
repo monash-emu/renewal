@@ -272,6 +272,8 @@ def get_oxcgrt(
     Returns:
         The data
     """
+    if not (DATA_PATH / "restrictions/oxcgrt.csv").exists():
+        store_oxcgrt_data()
     data = get_oxcgrt_data()
     pol = find_oxcgrt_country_data(iso3, data)
     filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]
@@ -645,3 +647,12 @@ def scale_oxcgrt_pols(
     for col in OXCGRT_IND_MAX:
         scaled_data[col] = pol_data[next((c for c in pol_data.columns if c.startswith(col)))] / OXCGRT_IND_MAX[col]
     return scaled_data
+
+
+def store_oxcgrt_data():
+    sheets = []
+    for year in range(2020, 2023):
+        url = f"https://github.com/OxCGRT/covid-policy-dataset/raw/refs/heads/main/data/OxCGRT_fullwithnotes_national_{year}_v1.csv"
+        sheets.append(pd.read_csv(url, dtype=OXCGRT_DTYPES))
+    data = pd.concat(sheets)
+    data.to_csv(DATA_PATH / f"restrictions/oxcgrt.csv")
