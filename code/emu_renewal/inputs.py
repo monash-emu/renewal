@@ -276,7 +276,7 @@ def get_oxcgrt(
     pol = find_oxcgrt_country_data(iso3, data)
     filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]
     scaled_pol = scale_oxcgrt_pols(filt_pol)
-    pol_vals = scaled_pol[OXCGRT_COLMAP[field]].mean(axis=1)
+    pol_vals = scaled_pol[OXCGRT_COLMAP[field]]
     return 1.0 - pol_vals
 
 
