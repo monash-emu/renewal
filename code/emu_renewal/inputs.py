@@ -272,8 +272,6 @@ def get_oxcgrt(
     Returns:
         The data
     """
-    if not (DATA_PATH / "restrictions/oxcgrt.csv").exists():
-        store_oxcgrt_data()
     data = get_oxcgrt_data()
     pol = find_oxcgrt_country_data(iso3, data)
     filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]

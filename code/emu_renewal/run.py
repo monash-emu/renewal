@@ -13,6 +13,7 @@ from pathlib import Path
 import git
 
 from emu_renewal.constants import (
+    DATA_PATH,
     DATE_FORMAT,
     CODE_DATE_FORMAT,
     BASE_PATH,
@@ -35,6 +36,7 @@ from emu_renewal.inputs import (
     get_fb_visited_mobility,
     get_fb_singletile_mobility,
     get_oxcgrt,
+    store_oxcgrt_data,
 )
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.calibration import StandardCalib
@@ -314,6 +316,8 @@ def run_single_country(
 
     # Population size and analysis time
     pop = get_country_pop(iso3)
+    if not (DATA_PATH / "restrictions/oxcgrt.csv").exists():
+        store_oxcgrt_data()
     data_start = find_run_start_time(pop, iso3)
     end_time = find_run_end_time(iso3, mob_source)
     run_start = data_start - timedelta(RUN_DATA_DELAY)
