@@ -316,6 +316,9 @@ def run_single_country(
 
     # Population size and analysis time
     pop = get_country_pop(iso3)
+    restriction_path = DATA_PATH / "restrictions"
+    if not restriction_path.exists():
+        restriction_path.mkdir()
     if not (DATA_PATH / "restrictions/oxcgrt.csv").exists():
         store_oxcgrt_data()
     data_start = find_run_start_time(pop, iso3)
