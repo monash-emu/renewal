@@ -56,6 +56,7 @@ from emu_renewal.inputs import (
     find_oxcgrt_country_data,
     get_rel_oxcgrt_cols,
     scale_oxcgrt_pols,
+    get_oxcgrt,
 )
 from emu_renewal.outputs import get_idatas_for_mob_type, get_median_ratios, get_param_vals_by_analysis
 from emu_renewal.utils import get_param_dim, get_beta_params_from_mean_var, get_cont_of_country, get_country_short_name, get_country_name
@@ -527,6 +528,7 @@ def plot_kde_comparison(
 def plot_mob_weights_by_country(
     job_path: Path, 
     countries: List[str],
+    analysis_type: str="g_mob",
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
     of the mobility domains implemented for the Google analysis.
@@ -544,21 +546,24 @@ def plot_mob_weights_by_country(
     for c, iso3 in enumerate(countries):
     
         # Get mobility
-        mob = get_google_mobility(iso3)
+        mob = get_google_mobility(iso3) if analysis_type == "g_mob" else get_oxcgrt(iso3, "custom")
     
         # Get weights
-        idata = az.from_netcdf(job_path / iso3 / "g_mob/idata_filtered.nc")
+        idata = az.from_netcdf(job_path / iso3 / analysis_type / "idata_filtered.nc")
         weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
         weights.columns = mob.columns
-    
+
         # Plot
         ax = flat_axes[c]
         for l in weights.columns:
-            colour = G_MOB_LOCATION_CMAP[l]
             kde = gaussian_kde(weights[l])
-            label = l.replace("_", " ")
-            ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
-            ax.fill_between(x_vals, kde(x_vals), alpha=0.1, color=colour)
+            if analysis_type == "g_mob":
+                colour = G_MOB_LOCATION_CMAP[l]
+                label = l.replace("_", " ")
+            elif analysis_type == "oxcgrt":
+                label = MOB_LOCATION_NAME_MAP[l]
+            ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label)
+            ax.fill_between(x_vals, kde(x_vals), alpha=0.1)
     
         # Extra cosmetics
         country_name = pycountry.countries.lookup(iso3).name

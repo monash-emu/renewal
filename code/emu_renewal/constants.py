@@ -147,6 +147,7 @@ ANALYSIS_NAMES = {
     "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",
     "fb_no_mob": "Facebook no mobility",
+    "oxcgrt": "OxCGRT",
 }
 MOB_SOURCE_ABBREVS = {
     "no_mob": "none",
@@ -201,6 +202,15 @@ MOB_LOCATION_NAME_MAP = {
     "residential": "Google residential",
     "fb_visited_mob": "Facebook tiles visited",
     "fb_singletile_mob": "Facebook single tile",
+    "C1": "school closing",
+    "C2": "workplace closing",
+    "C3": "cancel public events",
+    "C4": "gathering restrictions",
+    "C5": "close public transport",
+    "C6": "stay at home",
+    "C7": "movement restrict",
+    "C8": "international travel",
+    "H1": "public information",
 }
 MOB_SOURCE_MAP = {
     "g_mob": "Google",
