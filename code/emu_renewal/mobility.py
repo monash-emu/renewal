@@ -68,7 +68,30 @@ class NoMobilityProvider(MobilityProvider):
         return self.mob_arr
 
 
-class WeightedExpMobilityProvider(MobilityProvider):
+class WeightedMobilityProvider(MobilityProvider):
+    def get_priors(self) -> dict[str, Distribution | float]:
+        return self.priors
+    
+    def reconcile_times(self, start: datetime, end: datetime):
+        if start < self.mobility_df.index[0]:
+            extend_mob_start = (self.mobility_df.index[0] - start).days
+            warn(f"Mobility series starts later than model, extending by {extend_mob_start} days")
+            start_vals = self.mobility_df.iloc[0].to_numpy()[:, None]
+            extension = jnp.repeat(start_vals, extend_mob_start, 1).T
+            mob_array = jnp.concat([extension, self.mobility_df.to_numpy()])
+        else:
+            mob_array = jnp.array(self.mobility_df.loc[start:])
+        if end > self.mobility_df.index[-1]:
+            extend_mob_end = (end - self.mobility_df.index[-1]).days
+            warn(f"Mobility series ends earlier than model, extending by {extend_mob_end} days")
+            end_vals = self.mobility_df.iloc[-1].to_numpy()[:, None]
+            extension = jnp.repeat(end_vals, extend_mob_end, 1).T
+            mob_array = jnp.concat([mob_array, extension])
+
+        self.mobility_arr = mob_array
+
+
+class WeightedExpMobilityProvider(WeightedMobilityProvider):
     def __init__(self, mobility: pd.DataFrame, priors: PriorDict):
         """Provide a mobility array to a RenewalModel, which is the weighted
         sum of a DataFrame, which is then exponentiated.
@@ -91,27 +114,6 @@ class WeightedExpMobilityProvider(MobilityProvider):
         self.priors = priors
         self.mob_end = mobility.index[-1]
 
-    def get_priors(self) -> dict[str, Distribution | float]:
-        return self.priors
-
-    def reconcile_times(self, start: datetime, end: datetime):
-        if start < self.mobility_df.index[0]:
-            extend_mob_start = (self.mobility_df.index[0] - start).days
-            warn(f"Mobility series starts later than model, extending by {extend_mob_start} days")
-            start_vals = self.mobility_df.iloc[0].to_numpy()[:, None]
-            extension = jnp.repeat(start_vals, extend_mob_start, 1).T
-            mob_array = jnp.concat([extension, self.mobility_df.to_numpy()])
-        else:
-            mob_array = jnp.array(self.mobility_df.loc[start:])
-        if end > self.mobility_df.index[-1]:
-            extend_mob_end = (end - self.mobility_df.index[-1]).days
-            warn(f"Mobility series ends earlier than model, extending by {extend_mob_end} days")
-            end_vals = self.mobility_df.iloc[-1].to_numpy()[:, None]
-            extension = jnp.repeat(end_vals, extend_mob_end, 1).T
-            mob_array = jnp.concat([mob_array, extension])
-
-        self.mobility_arr = mob_array
-
     def get_parameterised_mobility(self, mob_weights, mob_exp, **kwargs) -> Array:
         """See methods to parent class MobilityProvider.
 
@@ -130,6 +132,20 @@ class WeightedExpMobilityProvider(MobilityProvider):
         """
         norm_mob_weights = mob_weights / mob_weights.sum()
         return (self.mobility_arr * norm_mob_weights).sum(axis=1) ** mob_exp
+
+
+class WeightedFloorMobilityProvider(WeightedMobilityProvider):
+    def __init__(self, mobility: pd.DataFrame, priors: PriorDict):
+        self.mobility_df = mobility
+        assert set(priors.keys()) == set(["mob_weights", "scale_floor"])
+        assert priors["mob_weights"].batch_shape == (len(self.mobility_df.columns),)
+        self.priors = priors
+        self.mob_end = mobility.index[-1]
+
+    def get_parameterised_mobility(self, mob_weights, scale_floor, **kwargs) -> Array:
+        norm_mob_weights = mob_weights / mob_weights.sum()
+        return scale_floor + (self.mobility_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)
+
 
 
 class SingleSeriesMobilityProvider(MobilityProvider):
