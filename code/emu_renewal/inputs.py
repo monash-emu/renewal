@@ -6,6 +6,7 @@ import arviz as az
 import pycountry
 from typing import Tuple, List, Dict
 import re
+import os
 
 from emu_renewal.constants import (
     DATA_PATH,
@@ -653,4 +654,8 @@ def store_oxcgrt_data():
         url = f"https://github.com/OxCGRT/covid-policy-dataset/raw/refs/heads/main/data/OxCGRT_fullwithnotes_national_{year}_v1.csv"
         sheets.append(pd.read_csv(url, dtype=OXCGRT_DTYPES))
     data = pd.concat(sheets)
-    data.to_csv(DATA_PATH / f"restrictions/oxcgrt.csv")
+    restrictions_path = DATA_PATH / "restrictions"
+    os.makedirs(restrictions_path, exist_ok=True)
+    file_path = restrictions_path / "oxcgrt.csv"
+    if not file_path.exists():
+        data.to_csv(file_path)
