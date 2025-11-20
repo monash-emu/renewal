@@ -655,7 +655,7 @@ def store_oxcgrt_data():
         sheets.append(pd.read_csv(url, dtype=OXCGRT_DTYPES))
     data = pd.concat(sheets)
     restrictions_path = DATA_PATH / "restrictions"
-    os.makedirs(restrictions_path, exist_ok=True)
+    restrictions_path.mkdir(exist_ok=True)
     file_path = restrictions_path / "oxcgrt.csv"
     if not file_path.exists():
         data.to_csv(file_path)
