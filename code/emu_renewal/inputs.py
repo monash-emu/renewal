@@ -263,15 +263,16 @@ def get_oxcgrt(
     iso3: str, 
     field: str,
 ) -> pd.Series:
-    """Get a named field for a single country
-    from the Oxford CGRT database.
+    """Get a set of fields for a single country
+    from the Oxford CGRT database 
+    based on the OXCGRT_COLMAP dictionary.
 
     Args:
         iso3: The country identifier
-        field: The name of the field/column
+        field: The key for the set of fields
 
     Returns:
-        The data
+        The reciprocals of the data values
     """
     data = get_oxcgrt_data()
     pol = find_oxcgrt_country_data(iso3, data)
