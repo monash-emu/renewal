@@ -38,6 +38,7 @@ from emu_renewal.constants import (
     INCLUSION_COLOURS,
     MOB_LOCATION_NAME_MAP,
     G_MOB_LOCATION_CMAP,
+    OXCGRT_LOCATION_CMAP,
     MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
     OXCGRT_COLMAP,
@@ -143,8 +144,8 @@ def plot_multianalysis_fit(
     n_analyses = len(spaghs)
     n_targs = len(targets)
     ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
-    if cont == "OC" and iso3 != "SGP":
-        ordered_analyses += ["fb_no_mob"]
+    # if cont == "OC" and iso3 != "SGP":
+    #     ordered_analyses += ["fb_no_mob"]
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
     fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharey="row")
     for a, analysis in enumerate(ordered_analyses):
@@ -562,7 +563,8 @@ def plot_mob_weights_by_country(
                 label = l.replace("_", " ")
             elif analysis_type == "oxcgrt":
                 label = MOB_LOCATION_NAME_MAP[l]
-            ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label)
+                colour = OXCGRT_LOCATION_CMAP[l]
+            ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
             ax.fill_between(x_vals, kde(x_vals), alpha=0.1)
     
         # Extra cosmetics

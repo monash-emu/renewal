@@ -226,14 +226,14 @@ G_MOB_LOCATION_CMAP = {
     "residential": "brown",
 }
 OXCGRT_LOCATION_CMAP = {
-    "C1": "darkgoldenrod",
+    "C1": "blue",
     "C2": "teal",
     "C3": "darkgreen",
-    "C4": "dimgrey",
-    "C5": "purple",
+    "C4": "purple",
+    "C5": "dimgrey",
     "C6": "brown",
     "C7": "black",
-    "H1": "blue",
+    "H1": "darkgoldenrod",
 }
 CONT_CMAP = {
     "AF": "black",
