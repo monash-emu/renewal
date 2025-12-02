@@ -24,3 +24,14 @@ be accessed via `pixi run jupyter-lab` (or using your preferred notebook viewer,
 In particular, individual countries can be run and then analysed using the notebooks:
 - notebooks/running/02-run.ipynb
 - notebooks/running/03-analyse-run.ipynb
+
+### Reproducibility
+
+A full set out of calibration outputs can be produced by running `pixi run python scripts/run_all.py`
+These outputs may then be processed by the notebooks in notebooks/manuscript to produce publication figures.
+
+Note that with the default number of iterations (20000), this run is expected to take many days (or longer) on a single desktop machine,
+so this code is included for completeness rather than with the practical intention of being run in this context.
+
+For the paper, these outputs were run as parallel (batch) supercomputing jobs, using the scripts included in the massive subfolder.
+Specific git revisions for each country are discussed in the manuscript.
