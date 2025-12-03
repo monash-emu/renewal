@@ -9,7 +9,12 @@ from emu_renewal.utils import get_cont_of_country
 
 if __name__ == "__main__":
     jax_config_cpu_only()
-    countries = json.load(open(DATA_PATH / f"config/inc_with_pol.json", "r"))
+
+    inc_with_pol = json.load(open(DATA_PATH / f"config/inc_with_pol.json", "r"))
+    previous_inc = json.load(open(DATA_PATH / f"config/included.json", "r"))
+    countries = [iso3 for iso3 in inc_with_pol if iso3 not in previous_inc]
+
+    # countries = json.load(open(DATA_PATH / f"config/inc_with_pol.json", "r"))
     task = sys.argv[1]
     array_task_id = int(sys.argv[2])
     c = countries[array_task_id - 1]  # Convert to Python indexing
@@ -18,7 +23,7 @@ if __name__ == "__main__":
     logger = get_logger(country_path / "run.log")
     cont = get_cont_of_country(c)
     # analyses = ANALYSIS_TYPES + ["fb_no_mob"] if cont == "OC" and c != "SGP" else ANALYSIS_TYPES
-    analyses = ["oxcgrt"]
+    analyses = ["no_mob"]
     for mob_type in analyses:
         try:
             run_single_country(c, mob_type, task, logger=logger)
