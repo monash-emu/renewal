@@ -267,7 +267,6 @@ def get_param_display_name(
 
 
 def plot_prior_multipost(
-    iso3: str,
     var_names: List[str],
     priors: Dict[str, dist.Distribution],
     idatas: Dict[str, az.InferenceData],
@@ -277,7 +276,6 @@ def plot_prior_multipost(
     to posterior from each mobility analysis type.
 
     Args:
-        iso3: Country identifier
         var_names: Names of the variables to plot
         priors: The prior distributions
         idatas: The calibration results for each analysis type
