@@ -524,7 +524,7 @@ def plot_kde_comparison(
     return fig
 
 
-def plot_mob_weights_by_country(
+def plot_weights_by_country(
     job_path: Path, 
     countries: List[str],
     analysis_type: str,
