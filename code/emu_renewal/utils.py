@@ -2,6 +2,7 @@ from typing import List, Dict, Tuple
 from pathlib import Path
 import os
 from os import listdir as ls
+import shutil
 import json
 import pandas as pd
 import numpy as np
@@ -9,7 +10,7 @@ import pycountry
 import pycountry_convert as pc
 import arviz as az
 
-from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES
+from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES, OUTPUTS_PATH
 
 
 def get_col_increases(
@@ -322,3 +323,24 @@ def get_job_commits_df(
     commits.rename(columns=ANALYSIS_NAMES, inplace=True)
     commits.rename(index=lambda c: pycountry.countries.lookup(c).name, inplace=True)
     return commits.sort_index()
+
+
+def copy_analysis_type_to_run(
+    src_id: str,
+    dest_id: str, 
+    analysis_type: str,
+):
+    """Copy all the runs of a particular type
+    (e.g. no_mob, g_mob, oxcgrt) from one run ID folder
+    to another.
+
+    Args:
+        src_id: The source run ID
+        dest_id: The destination run ID
+        analysis_type: The type of analysis to copy
+    """
+    for iso3 in ls(OUTPUTS_PATH / src_id):
+        src = OUTPUTS_PATH / src_id / iso3 / analysis_type
+        dest = OUTPUTS_PATH / dest_id / iso3 / analysis_type
+        if src.exists() and not dest.exists():
+            shutil.copytree(src, dest)
