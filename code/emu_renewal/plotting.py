@@ -1282,3 +1282,44 @@ def add_cont_to_world_geodf(
             world.loc[world["ISO_A3"] == iso3, "continent"] = "none"
         except LookupError:
             world.loc[world["ISO_A3"] == iso3, "continent"] = "none"
+
+
+def plot_analysis_specific_post(
+    job_path: Path, 
+    countries: List[str], 
+    analysis_type: str, 
+    param_name: str, 
+    n_cols: int,
+) -> plt.figure:
+    """Plot the posterior distribution of a specific parameter
+    over several countries. Because there is a separate function
+    for plotting all the posteriors for parameters that are common
+    between analysis types, this is intended for parameters that
+    are specific to a particular analysis type.
+
+    Args:
+        job_path: Path for the runs
+        countries: Requested countries to plot
+        analysis_type: The analysis identifier
+        param_name: The parameter identifier
+        n_cols: Number of columns for plot
+
+    Returns:
+        The figure
+    """
+    n_rows = int(np.ceil(len(countries) / n_cols))
+    height = min(2.0 + n_rows * 2.0, 13.0)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height]);
+    flat_axes = axes.ravel()
+    for c, iso3 in enumerate(countries):
+        cgrt_path = job_path / iso3 / analysis_type
+        idata = az.from_netcdf(cgrt_path / "idata_filtered.nc")
+        ax = flat_axes[c]
+        az.plot_density(idata, ax=ax, hdi_prob=0.99, var_names=param_name, shade=0.2)
+        country_name = pycountry.countries.lookup(iso3).name
+        ax.set_title(country_name)
+        ax.set_xlim(0.0, 1.0)
+    for a in range(c + 1, len(flat_axes)):
+        flat_axes[a].set_axis_off()
+    fig.tight_layout()
+    return fig
