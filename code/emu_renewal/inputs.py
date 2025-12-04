@@ -6,7 +6,6 @@ import arviz as az
 import pycountry
 from typing import Tuple, List, Dict
 import re
-import os
 
 from emu_renewal.constants import (
     DATA_PATH,
@@ -19,6 +18,7 @@ from emu_renewal.constants import (
     G_MOB_LOCATION_CMAP,
     MOBILITY_SMOOTH_PERIOD,
     OXCGRT_DTYPES,
+    OXCGRT_LOCATION_CMAP,
     OXCGRT_IND_MAX,
     OXCGRT_COLMAP,
 )
@@ -494,6 +494,7 @@ def get_smoothed_trunc_g_mob(
     iso3: str, 
     start: datetime, 
     finish: datetime,
+    mob_type: str="g_mob",
 ) -> pd.DataFrame:
     """Get the smoothed, truncated Google mobility data
 
@@ -501,30 +502,33 @@ def get_smoothed_trunc_g_mob(
         iso3: The country identifier
         start: The start time of the period of interest
         finish: The end time of the period of interest
+        mob_type: Either g_mob or oxcgrt
 
     Returns:
         The mobility data
     """
-    mob = get_google_mobility(iso3)
+    mob = get_google_mobility(iso3) if mob_type == "g_mob" else get_oxcgrt(iso3, "custom")
     smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
     return smoothed_mob[(start < smoothed_mob.index) & (smoothed_mob.index < finish)]
 
 
-def get_g_mob_weight_posts(
+def get_weight_posts(
     c_path: Path,
+    analysis_type: str,
 ) -> pd.DataFrame:
     """Get a dataframe of the mobility weights
-    applied to the Google data.
+    applied to the Google or OxCGRT data.
 
     Args:
         c_path: The country path for the analyses
+        analysis_type: Either "g_mob" or "oxcgrt"
 
     Returns:
         The mobility weights
     """
-    idata = az.from_netcdf(c_path / "g_mob/idata_filtered.nc")
+    idata = az.from_netcdf(c_path / analysis_type / "idata_filtered.nc")
     params = idata.posterior["mob_weights"].to_dataframe().unstack(level=-1)
-    params.columns = G_MOB_LOCATION_CMAP
+    params.columns = G_MOB_LOCATION_CMAP if analysis_type == "g_mob" else OXCGRT_LOCATION_CMAP
     return params
 
 

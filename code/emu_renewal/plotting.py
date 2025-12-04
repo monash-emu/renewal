@@ -50,7 +50,7 @@ from emu_renewal.inputs import (
     get_gdps,
     get_country_pop,
     get_world_shp,
-    get_g_mob_weight_posts,
+    get_weight_posts,
     get_g_mob_quants,
     get_smoothed_trunc_g_mob,
     get_oxcgrt_data,
@@ -737,7 +737,7 @@ def compare_proc_weighted_gmob(
         smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
     
         # Get the Google mobility weight posteriors and quantiles of weighted series
-        params = get_g_mob_weight_posts(job_path / iso3)
+        params = get_weight_posts(job_path / iso3, "g_mob")
         mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
     
         # Plot the weighted Google mobility distribution
@@ -796,7 +796,7 @@ def plot_select_proc_mob(
                 smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
                 
                 # Get the Google mobility weight posteriors and quantiles of weighted series
-                params = get_g_mob_weight_posts(job_path / iso3)
+                params = get_weight_posts(job_path / iso3, "g_mob")
                 mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
                 
                 # Plot the weighted Google mobility distribution
