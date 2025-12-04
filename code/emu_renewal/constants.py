@@ -155,7 +155,7 @@ MOB_SOURCE_ABBREVS = {
     "fb_visited_mob": "FB tiles visited",
     "fb_singletile_mob": "FB single tile",
     "fb_no_mob": "FB baseline",
-    "oxcgrt": "OXCGRT",
+    "oxcgrt": "OxCGRT",
 }
 TARGET_TYPES = {
     "weekly_cases": "weekly cases",
