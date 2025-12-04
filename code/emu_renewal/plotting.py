@@ -527,14 +527,17 @@ def plot_kde_comparison(
 def plot_mob_weights_by_country(
     job_path: Path, 
     countries: List[str],
-    analysis_type: str="g_mob",
+    analysis_type: str,
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
-    of the mobility domains implemented for the Google analysis.
+    of the domains implemented under one of the analyses
+    weighting multiple time series to obtain a composite
+    scaling process.
 
     Args:
         job_path: Path for the runs
         countries: The countries identifiers
+        analysis_type: g_mob or oxcgrt
 
     Returns:
         The figure
@@ -556,12 +559,8 @@ def plot_mob_weights_by_country(
         ax = flat_axes[c]
         for l in weights.columns:
             kde = gaussian_kde(weights[l])
-            if analysis_type == "g_mob":
-                colour = G_MOB_LOCATION_CMAP[l]
-                label = l.replace("_", " ")
-            elif analysis_type == "oxcgrt":
-                label = MOB_LOCATION_NAME_MAP[l]
-                colour = OXCGRT_LOCATION_CMAP[l]
+            colour = (G_MOB_LOCATION_CMAP | OXCGRT_LOCATION_CMAP)[l]
+            label = l.replace("_", " ") if analysis_type == "g_mob" else MOB_LOCATION_NAME_MAP[l]
             ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
             ax.fill_between(x_vals, kde(x_vals), alpha=0.1)
     
@@ -699,11 +698,12 @@ def compare_proc_pol(
     return fig
 
 
-def compare_proc_weighted_gmob(
+def compare_proc_versus_weighted(
     job_path: Path, 
     countries: List[str],
     n_samples: int,
     n_cols: int,
+    analysis_type: str,
 ) -> plt.Figure:
     """Plot comparison of composite Google time series to 
     the transmission scaling process.
@@ -734,10 +734,10 @@ def compare_proc_weighted_gmob(
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
 
         # Get the mobility data
-        smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
+        smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1], analysis_type)
     
         # Get the Google mobility weight posteriors and quantiles of weighted series
-        params = get_weight_posts(job_path / iso3, "g_mob")
+        params = get_weight_posts(job_path / iso3, analysis_type)
         mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
     
         # Plot the weighted Google mobility distribution
