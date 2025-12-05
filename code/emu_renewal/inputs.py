@@ -548,10 +548,22 @@ def get_g_mob_quants(
     Returns:
         The quantiles of the weighted series
     """
-    weights = params.sample(n_samples)
-    norm_weights = weights.div(weights.sum(axis=1), axis=0)
-    mob_results = (norm_weights @ smoothed_mob.T).T
-    return mob_results.quantile([0.025, 0.5, 0.975], axis=1).T
+    norm_weights = params.div(params.sum(axis=1), axis=0)
+    vals = (norm_weights @ smoothed_mob.T).T
+    sample_vals = vals.sample(n_samples, axis=1)
+    return sample_vals.quantile([0.025, 0.5, 0.975], axis=1).T
+
+
+def get_cgrt_quants(
+    smoothed_mob: pd.DataFrame, 
+    params: pd.DataFrame, 
+    floors: pd.Series,
+    n_samples: int,
+) -> pd.DataFrame:
+    norm_weights = params.div(params.sum(axis=1), axis=0)
+    vals = (norm_weights @ smoothed_mob.T).mul(1.0 - floors, axis=0).add(floors, axis=0).T
+    sample_vals = vals.sample(n_samples, axis=1)
+    return sample_vals.quantile([0.025, 0.5, 0.975], axis=1).T
 
 
 def get_oxcgrt_data() -> pd.DataFrame:

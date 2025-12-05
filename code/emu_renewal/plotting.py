@@ -52,6 +52,7 @@ from emu_renewal.inputs import (
     get_world_shp,
     get_weight_posts,
     get_g_mob_quants,
+    get_cgrt_quants,
     get_smoothed_trunc_g_mob,
     get_oxcgrt_data,
     find_oxcgrt_country_data,
@@ -738,7 +739,14 @@ def compare_proc_versus_weighted(
     
         # Get the Google mobility weight posteriors and quantiles of weighted series
         params = get_weight_posts(job_path / iso3, analysis_type)
-        mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
+        
+        if analysis_type == "g_mob":
+            mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
+        elif analysis_type == "oxcgrt":
+            idata = az.from_netcdf(job_path / iso3 / analysis_type / "idata_filtered.nc")
+            param = "scale_floor"
+            floors = idata.posterior[param].to_dataframe()[param]
+            mob_quants = get_cgrt_quants(smoothed_mob, params, floors, n_samples)
     
         # Plot the weighted Google mobility distribution
         ax.plot(mob_quants[0.5], color="green", linewidth=2.0)
