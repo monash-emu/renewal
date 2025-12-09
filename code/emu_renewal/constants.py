@@ -208,7 +208,7 @@ MOB_LOCATION_NAME_MAP = {
     "C4": "gathering restrictions",
     "C5": "close public transport",
     "C6": "stay at home",
-    "C7": "movement restrict",
+    "C7": "movement restrictions",
     "C8": "international travel",
     "H1": "public information",
 }
