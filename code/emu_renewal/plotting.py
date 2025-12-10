@@ -563,7 +563,7 @@ def plot_weights_by_country(
             colour = (G_MOB_LOCATION_CMAP | OXCGRT_LOCATION_CMAP)[l]
             label = l.replace("_", " ") if analysis_type == "g_mob" else MOB_LOCATION_NAME_MAP[l]
             ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
-            ax.fill_between(x_vals, kde(x_vals), alpha=0.1)
+            ax.fill_between(x_vals, kde(x_vals), alpha=0.05, color=colour)
     
         # Extra cosmetics
         country_name = pycountry.countries.lookup(iso3).name
