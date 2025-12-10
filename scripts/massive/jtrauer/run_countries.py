@@ -23,7 +23,7 @@ if __name__ == "__main__":
     logger = get_logger(country_path / "run.log")
     cont = get_cont_of_country(c)
     # analyses = ANALYSIS_TYPES + ["fb_no_mob"] if cont == "OC" and c != "SGP" else ANALYSIS_TYPES
-    analyses = ["no_mob"]
+    analyses = ["oxcgrt"]
     for mob_type in analyses:
         try:
             run_single_country(c, mob_type, task, logger=logger)
