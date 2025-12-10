@@ -137,14 +137,16 @@ class WeightedExpMobilityProvider(WeightedMobilityProvider):
 class WeightedFloorMobilityProvider(WeightedMobilityProvider):
     def __init__(self, mobility: pd.DataFrame, priors: PriorDict):
         self.mobility_df = mobility
-        assert set(priors.keys()) == set(["mob_weights", "scale_floor"])
+        assert set(priors.keys()) == set(["mob_weights", "scale_floor", "mob_exp"])
         assert priors["mob_weights"].batch_shape == (len(self.mobility_df.columns),)
         self.priors = priors
         self.mob_end = mobility.index[-1]
 
-    def get_parameterised_mobility(self, mob_weights, scale_floor, **kwargs) -> Array:
+    def get_parameterised_mobility(self, mob_weights, mob_exp, scale_floor, **kwargs) -> Array:
         norm_mob_weights = mob_weights / mob_weights.sum()
-        return scale_floor + (self.mobility_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)
+        # return scale_floor + (self.mobility_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)
+        return (scale_floor + (self.mobility_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)) ** mob_exp
+    
 
 
 

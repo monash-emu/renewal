@@ -232,9 +232,9 @@ def get_mobility_provider(
         return mobility.WeightedExpMobilityProvider(smoothed_mob, weight_prior | exp_prior)
     elif mob_source == "oxcgrt":
         n_domains = len(mob.columns)
-        floor_prior = {"scale_floor": dist.Uniform(0.0, 1.0)}
+        floor_prior = {"scale_floor": dist.Beta(9.0, 1.0)}
         weight_prior = {"mob_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
-        return mobility.WeightedFloorMobilityProvider(smoothed_mob, weight_prior | floor_prior)
+        return mobility.WeightedFloorMobilityProvider(smoothed_mob, weight_prior | exp_prior | floor_prior)
     elif mob_source in ["fb_visited_mob", "fb_singletile_mob"]:
         return mobility.SingleSeriesExpMobilityProvider(smoothed_mob, exp_prior)
     else:
@@ -354,11 +354,11 @@ def run_single_country(
     var_targs = alpha_targ | delta_targ | ba2_targ | ba5_targ
 
     # Mobility
-    try:
-        mob_provider = get_mobility_provider(iso3, mob_source)
-    except Exception as e:
-        msg = f"{mob_source} mobility not available"
-        raise MobilityException(msg)
+    # try:
+    mob_provider = get_mobility_provider(iso3, mob_source)
+    # except Exception as e:
+        # msg = f"{mob_source} mobility not available"
+        # raise MobilityException(msg)
     if mob_provider.mob_end:
         end_time = min([end_time, mob_provider.mob_end])
 
