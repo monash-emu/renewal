@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     inc_with_pol = json.load(open(DATA_PATH / f"config/inc_with_pol.json", "r"))
     previous_inc = json.load(open(DATA_PATH / f"config/included.json", "r"))
-    countries = [iso3 for iso3 in inc_with_pol if iso3 not in previous_inc]
+    countries = inc_with_pol
 
     # countries = json.load(open(DATA_PATH / f"config/inc_with_pol.json", "r"))
     task = sys.argv[1]
