@@ -288,7 +288,7 @@ OXCGRT_IND_MAX = {
     "H8": 3,
 }
 OXCGRT_COLMAP = {
-    "custom": [f"C{i}" for i in range(1, 8)] + ["H1"],
+    "custom": [f"C{i}" for i in range(1, 8)] + ["H1", "H6"],
     "stringency": [f"C{i}" for i in range(1, 9)] + ["H1"],
     "containment": [f"C{i}" for i in range(1, 9)] + [f"H{i}" for i in range(1, 4)] + [f"H{i}" for i in range(6, 9)],
 }
