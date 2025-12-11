@@ -225,7 +225,7 @@ def get_mobility_provider(
     smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
     # Priors
-    exp_prior = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
+    exp_prior = {"scale_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
     floor_prior = {"scale_floor": dist.Beta(9.0, 1.0)}
     if mob_source in ["g_mob", "oxcgrt"]:
         n_domains = len(mob.columns)

@@ -854,7 +854,7 @@ def plot_exponent_dispersion_comparison(
         idatas, _ = get_idatas_for_mob_type(job_path, all_countries, mob_source)
         plot_df = pd.DataFrame(
             {
-                "mobility exponent": {c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()},
+                "mobility exponent": {c: float(d.posterior["scale_exp"].median()) for c, d in idatas.items()},
                 "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
                 "GDP per capita": get_gdps(2020),
                 "population (millions)": {c: get_country_pop(c) / 1e6 for c in all_countries},
@@ -896,7 +896,7 @@ def plot_exponent_dispersion_comparison_interactive(
     idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
     plot_df = pd.DataFrame(
         {
-            "mobility exponent": {c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()},
+            "mobility exponent": {c: float(d.posterior["scale_exp"].median()) for c, d in idatas.items()},
             "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
             "GDP per capita": get_gdps(2020),
             "population (millions)": {c: get_country_pop(c) / 1e6 for c in countries},

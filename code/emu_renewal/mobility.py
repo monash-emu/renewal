@@ -109,7 +109,7 @@ class WeightedExpScalerProvider(WeightedScalerProvider):
         the transmission rate.
         """
         self.ts_data = ts_data
-        assert set(priors.keys()) == set(["ts_weights", "mob_exp"])
+        assert set(priors.keys()) == set(["ts_weights", "scale_exp"])
         assert priors["ts_weights"].batch_shape == (len(self.ts_data.columns),)
         self.priors = priors
         self.mob_end = ts_data.index[-1]
@@ -137,14 +137,14 @@ class WeightedExpScalerProvider(WeightedScalerProvider):
 class WeightedFloorMobilityProvider(WeightedScalerProvider):
     def __init__(self, mobility: pd.DataFrame, priors: PriorDict):
         self.ts_data = mobility
-        assert set(priors.keys()) == set(["ts_weights", "scale_floor", "mob_exp"])
+        assert set(priors.keys()) == set(["ts_weights", "scale_floor", "scale_exp"])
         assert priors["ts_weights"].batch_shape == (len(self.ts_data.columns),)
         self.priors = priors
         self.mob_end = mobility.index[-1]
 
-    def get_parameterised_scaler(self, ts_weights, mob_exp, scale_floor, **kwargs) -> Array:
+    def get_parameterised_scaler(self, ts_weights, scale_exp, scale_floor, **kwargs) -> Array:
         norm_ts_weights = ts_weights / ts_weights.sum()
-        return (scale_floor + (self.scaling_arr * norm_ts_weights).sum(axis=1) * (1.0 - scale_floor)) ** mob_exp
+        return (scale_floor + (self.scaling_arr * norm_ts_weights).sum(axis=1) * (1.0 - scale_floor)) ** scale_exp
 
 
 class SingleSeriesMobilityProvider(ScalerProvider):
@@ -200,18 +200,18 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         estimates.
         """
         self.mobility_series = mobility
-        assert set(priors.keys()) == set(["mob_exp"])
+        assert set(priors.keys()) == set(["scale_exp"])
         self.priors = priors
         self.mob_end = mobility.index[-1]
 
     def get_priors(self) -> dict[str, Distribution | float]:
         return self.priors
 
-    def get_parameterised_scaler(self, mob_exp, **kwargs) -> Array:
+    def get_parameterised_scaler(self, scale_exp, **kwargs) -> Array:
         """See methods to parent class MobilityProvider.
 
         Args:
-            mob_exp: The mobility exponent parameter
+            scale_exp: The mobility exponent parameter
 
         Returns:
             The mobility values
@@ -222,15 +222,15 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         which specifies the exponent parameter for 
         the effect of the mobility data in scaling the transmission rate.
         """
-        return self.mobility_arr ** mob_exp
+        return self.mobility_arr ** scale_exp
 
 
 class SingleSeriesExpFloorScalerProvider(SingleSeriesExpMobilityProvider):
     def __init__(self, mobility: pd.Series, priors: PriorDict):
         self.mobility_series = mobility
-        assert set(priors.keys()) == set(["mob_exp", "scale_floor"])
+        assert set(priors.keys()) == set(["scale_exp", "scale_floor"])
         self.priors = priors
         self.mob_end = mobility.index[-1]
-    def get_parameterised_scaler(self, mob_exp, scale_floor, **kwargs) -> Array:
-        return (scale_floor + self.mobility_arr * (1.0 - scale_floor)) ** mob_exp
+    def get_parameterised_scaler(self, scale_exp, scale_floor, **kwargs) -> Array:
+        return (scale_floor + self.mobility_arr * (1.0 - scale_floor)) ** scale_exp
     
