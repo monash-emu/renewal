@@ -225,10 +225,10 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         return self.mobility_arr ** mob_exp
 
 
-class SingleSeriesExpFloorMobilityProvider(SingleSeriesExpMobilityProvider):
+class SingleSeriesExpFloorScalerProvider(SingleSeriesExpMobilityProvider):
     def __init__(self, mobility: pd.Series, priors: PriorDict):
         self.mobility_series = mobility
-        assert set(priors.keys()) == set(["scale_floor", "mob_exp"])
+        assert set(priors.keys()) == set(["mob_exp", "scale_floor"])
         self.priors = priors
         self.mob_end = mobility.index[-1]
     def get_parameterised_scaler(self, mob_exp, scale_floor, **kwargs) -> Array:
