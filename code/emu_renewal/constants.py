@@ -234,6 +234,7 @@ OXCGRT_LOCATION_CMAP = {
     "C6": "brown",
     "C7": "black",
     "H1": "darkgoldenrod",
+    "H6": "red",
 }
 CONT_CMAP = {
     "AF": "black",

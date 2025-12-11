@@ -146,8 +146,6 @@ class WeightedFloorMobilityProvider(WeightedMobilityProvider):
         norm_mob_weights = mob_weights / mob_weights.sum()
         # return scale_floor + (self.mobility_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)
         return (scale_floor + (self.mobility_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)) ** mob_exp
-    
-
 
 
 class SingleSeriesMobilityProvider(MobilityProvider):
