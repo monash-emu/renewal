@@ -175,7 +175,7 @@ def find_run_end_time(
 def get_mobility_provider(
     iso3: str,
     mob_source: str,
-) -> mobility.MobilityProvider:
+) -> mobility.ScalerProvider:
     """Get the appropriate mobility provider object.
 
     Args:
@@ -213,7 +213,7 @@ def get_mobility_provider(
 
     # Data processing
     if mob_source in ["no_mob", "fb_no_mob"]:
-        return mobility.NoMobilityProvider()
+        return mobility.NoScalerProvider()
     elif mob_source == "g_mob":
         mob = get_google_mobility(iso3)
     elif mob_source == "fb_visited_mob":

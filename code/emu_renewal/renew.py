@@ -20,7 +20,7 @@ from emu_renewal.constants import (
 from emu_renewal.process import sinterp, CosineMultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import get_col_increases, get_reset_array_from_increases
-from emu_renewal.mobility import MobilityProvider
+from emu_renewal.mobility import ScalerProvider
 from emu_renewal.distributions import GammaDens
 
 
@@ -144,7 +144,7 @@ class MultiStrainModel:
         end: datetime,
         strains: List[str],
         seed_times: List[datetime],
-        mobility: MobilityProvider,
+        mobility: ScalerProvider,
         vacc_effect: bool,
     ):
         """Construct the object for running the renewal process.
@@ -350,7 +350,7 @@ class MultiStrainModel:
         suscept_levels = suscept_levels * (~reset_array).astype(float)
 
         # Mobility
-        mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
+        mobility = self.mob_provider.get_parameterised_scaler(**kwargs)
 
         # Seeding
         first_data_start = jnp.array([-1.0])

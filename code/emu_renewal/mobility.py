@@ -8,14 +8,14 @@ Prior = Distribution | float
 PriorDict = dict[str, Prior]
 
 
-class MobilityProvider:
+class ScalerProvider:
     def __init__(self):
         raise NotImplementedError
 
     def reconcile_times(self, start: datetime, end: datetime):
         """Do any appropriate slicing/extension required based on the supplied
         (model) start and end times. Called once at start of calibration.
-        Any further calls into the MobilityProvider will use index times rather
+        Any further calls into the ScalerProvider will use index times rather
         than datetimes, where start is 0.
 
         Args:
@@ -34,7 +34,7 @@ class MobilityProvider:
         """
         raise NotImplementedError
 
-    def get_parameterised_mobility(self, **kwargs) -> Array:
+    def get_parameterised_scaler(self, **kwargs) -> Array:
         """Called once per iteration; any parameterized transforms of the mobility
         should occur here; kwargs will be guaranteed to contain any values described
         in get_priors.
@@ -45,16 +45,16 @@ class MobilityProvider:
         raise NotImplementedError
 
 
-class NoMobilityProvider(MobilityProvider):
+class NoScalerProvider(ScalerProvider):
     def __init__(self):
-        """Allow for analyses with no scaling for mobility.
+        """Allow for analyses with no scaling for time series data.
 
         Notes
         -----
-        For the analysis without mobility, no empiric data
+        For the analysis without scaling, no empiric data
         was used to scale the transmission rate over time
-        (which was implemented by setting the mobility
-        scaling value to one throughout the simulation).
+        (which was implemented by setting the scaling value to 
+        one throughout the simulation).
         """
         self.mob_end = None
 
@@ -64,90 +64,90 @@ class NoMobilityProvider(MobilityProvider):
     def reconcile_times(self, start: datetime, end: datetime):
         self.mob_arr = jnp.ones((end - start).days + 1)
 
-    def get_parameterised_mobility(self, **kwargs) -> Array:
+    def get_parameterised_scaler(self, **kwargs) -> Array:
         return self.mob_arr
 
 
-class WeightedMobilityProvider(MobilityProvider):
+class WeightedScalerProvider(ScalerProvider):
     def get_priors(self) -> dict[str, Distribution | float]:
         return self.priors
     
     def reconcile_times(self, start: datetime, end: datetime):
-        if start < self.mobility_df.index[0]:
-            extend_mob_start = (self.mobility_df.index[0] - start).days
+        if start < self.ts_data.index[0]:
+            extend_mob_start = (self.ts_data.index[0] - start).days
             warn(f"Mobility series starts later than model, extending by {extend_mob_start} days")
-            start_vals = self.mobility_df.iloc[0].to_numpy()[:, None]
+            start_vals = self.ts_data.iloc[0].to_numpy()[:, None]
             extension = jnp.repeat(start_vals, extend_mob_start, 1).T
-            mob_array = jnp.concat([extension, self.mobility_df.to_numpy()])
+            scaling_array = jnp.concat([extension, self.ts_data.to_numpy()])
         else:
-            mob_array = jnp.array(self.mobility_df.loc[start:])
-        if end > self.mobility_df.index[-1]:
-            extend_mob_end = (end - self.mobility_df.index[-1]).days
+            scaling_array = jnp.array(self.ts_data.loc[start:])
+        if end > self.ts_data.index[-1]:
+            extend_mob_end = (end - self.ts_data.index[-1]).days
             warn(f"Mobility series ends earlier than model, extending by {extend_mob_end} days")
-            end_vals = self.mobility_df.iloc[-1].to_numpy()[:, None]
+            end_vals = self.ts_data.iloc[-1].to_numpy()[:, None]
             extension = jnp.repeat(end_vals, extend_mob_end, 1).T
-            mob_array = jnp.concat([mob_array, extension])
+            scaling_array = jnp.concat([scaling_array, extension])
 
-        self.mobility_arr = mob_array
+        self.scaling_arr = scaling_array
 
 
-class WeightedExpMobilityProvider(WeightedMobilityProvider):
-    def __init__(self, mobility: pd.DataFrame, priors: PriorDict):
-        """Provide a mobility array to a RenewalModel, which is the weighted
+class WeightedExpScalerProvider(WeightedScalerProvider):
+    def __init__(self, ts_data: pd.DataFrame, priors: PriorDict):
+        """Provide a scaling array to a RenewalModel, which is the weighted
         sum of a DataFrame, which is then exponentiated.
 
         Args:
-            mobility: The untransformed source data
+            ts_data: The untransformed source data
             priors: Priors for the transform parameters
 
         Notes
         -----
-        This mobility analysis type used
-        a set of priors weighting each mobility domain,
+        This approach to analysis used
+        a set of priors weighting each time series component,
         along with one further prior governing the overall
-        effect of the weighted mobility estimate in scaling 
+        effect of the weighted scaling estimate in adjusting 
         the transmission rate.
         """
-        self.mobility_df = mobility
+        self.ts_data = ts_data
         assert set(priors.keys()) == set(["mob_weights", "mob_exp"])
-        assert priors["mob_weights"].batch_shape == (len(self.mobility_df.columns),)
+        assert priors["mob_weights"].batch_shape == (len(self.ts_data.columns),)
         self.priors = priors
-        self.mob_end = mobility.index[-1]
+        self.mob_end = ts_data.index[-1]
 
-    def get_parameterised_mobility(self, mob_weights, mob_exp, **kwargs) -> Array:
+    def get_parameterised_scaler(self, ts_weights, scale_exp, **kwargs) -> Array:
         """See methods to parent class MobilityProvider.
 
         Args:
-            mob_weights: The weights for each mobility domain
-            mob_exp: The scaling factor for the weighted mobility estimate
+            ts_weights: The weights for each mobility domain
+            scale_exp: The scaling factor for the weighted mobility estimate
 
         Returns:
-            The mobility values
+            The scaling values
         
         Notes
         -----
-        The weights for each mobility domain were normalised to sum to one,
-        with the resulting weighted mobility profile exponentiated
-        to the value specified by the mobility exponential parameter.
+        The weights for each time series component were normalised to sum to one,
+        with the resulting weighted scaling profile exponentiated
+        to the value specified by the scaling exponential parameter.
         """
-        norm_mob_weights = mob_weights / mob_weights.sum()
-        return (self.mobility_arr * norm_mob_weights).sum(axis=1) ** mob_exp
+        norm_mob_weights = ts_weights / ts_weights.sum()
+        return (self.scaling_arr * norm_mob_weights).sum(axis=1) ** scale_exp
 
 
-class WeightedFloorMobilityProvider(WeightedMobilityProvider):
+class WeightedFloorMobilityProvider(WeightedScalerProvider):
     def __init__(self, mobility: pd.DataFrame, priors: PriorDict):
-        self.mobility_df = mobility
+        self.ts_data = mobility
         assert set(priors.keys()) == set(["mob_weights", "scale_floor", "mob_exp"])
-        assert priors["mob_weights"].batch_shape == (len(self.mobility_df.columns),)
+        assert priors["mob_weights"].batch_shape == (len(self.ts_data.columns),)
         self.priors = priors
         self.mob_end = mobility.index[-1]
 
-    def get_parameterised_mobility(self, mob_weights, mob_exp, scale_floor, **kwargs) -> Array:
+    def get_parameterised_scaler(self, mob_weights, mob_exp, scale_floor, **kwargs) -> Array:
         norm_mob_weights = mob_weights / mob_weights.sum()
-        return (scale_floor + (self.mobility_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)) ** mob_exp
+        return (scale_floor + (self.scaling_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)) ** mob_exp
 
 
-class SingleSeriesMobilityProvider(MobilityProvider):
+class SingleSeriesMobilityProvider(ScalerProvider):
     def __init__(self, mobility: pd.Series):
         """Provide a mobility array to a RenewalModel.
 
@@ -179,7 +179,7 @@ class SingleSeriesMobilityProvider(MobilityProvider):
 
         self.mobility_arr = mob_array
 
-    def get_parameterised_mobility(self, **kwargs) -> Array:
+    def get_parameterised_scaler(self, **kwargs) -> Array:
         return self.mobility_arr
 
 
@@ -207,7 +207,7 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
     def get_priors(self) -> dict[str, Distribution | float]:
         return self.priors
 
-    def get_parameterised_mobility(self, mob_exp, **kwargs) -> Array:
+    def get_parameterised_scaler(self, mob_exp, **kwargs) -> Array:
         """See methods to parent class MobilityProvider.
 
         Args:
@@ -231,6 +231,6 @@ class SingleSeriesExpFloorMobilityProvider(SingleSeriesExpMobilityProvider):
         assert set(priors.keys()) == set(["scale_floor", "mob_exp"])
         self.priors = priors
         self.mob_end = mobility.index[-1]
-    def get_parameterised_mobility(self, mob_exp, scale_floor, **kwargs) -> Array:
+    def get_parameterised_scaler(self, mob_exp, scale_floor, **kwargs) -> Array:
         return (scale_floor + self.mobility_arr * (1.0 - scale_floor)) ** mob_exp
     
