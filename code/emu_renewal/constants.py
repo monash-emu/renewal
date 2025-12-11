@@ -211,6 +211,7 @@ MOB_LOCATION_NAME_MAP = {
     "C7": "movement restrictions",
     "C8": "international travel",
     "H1": "public information",
+    "H6": "face coverings"
 }
 MOB_SOURCE_MAP = {
     "g_mob": "Google",
