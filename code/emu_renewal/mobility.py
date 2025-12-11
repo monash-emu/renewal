@@ -144,7 +144,6 @@ class WeightedFloorMobilityProvider(WeightedMobilityProvider):
 
     def get_parameterised_mobility(self, mob_weights, mob_exp, scale_floor, **kwargs) -> Array:
         norm_mob_weights = mob_weights / mob_weights.sum()
-        # return scale_floor + (self.mobility_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)
         return (scale_floor + (self.mobility_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)) ** mob_exp
 
 
@@ -224,3 +223,14 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
         the effect of the mobility data in scaling the transmission rate.
         """
         return self.mobility_arr ** mob_exp
+
+
+class SingleSeriesExpFloorMobilityProvider(SingleSeriesExpMobilityProvider):
+    def __init__(self, mobility: pd.Series, priors: PriorDict):
+        self.mobility_series = mobility
+        assert set(priors.keys()) == set(["scale_floor", "mob_exp"])
+        self.priors = priors
+        self.mob_end = mobility.index[-1]
+    def get_parameterised_mobility(self, mob_exp, scale_floor, **kwargs) -> Array:
+        return (scale_floor + self.mobility_arr * (1.0 - scale_floor)) ** mob_exp
+    
