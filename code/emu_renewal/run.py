@@ -226,9 +226,9 @@ def get_mobility_provider(
 
     # Priors
     exp_prior = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
+    floor_prior = {"scale_floor": dist.Beta(9.0, 1.0)}
     if mob_source in ["g_mob", "oxcgrt"]:
         n_domains = len(mob.columns)
-        floor_prior = {"scale_floor": dist.Beta(9.0, 1.0)}
         weight_prior = {"mob_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
         return mobility.WeightedFloorMobilityProvider(smoothed_mob, weight_prior | exp_prior | floor_prior)
     elif mob_source in ["fb_visited_mob", "fb_singletile_mob"]:
