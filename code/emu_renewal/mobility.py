@@ -109,8 +109,8 @@ class WeightedExpScalerProvider(WeightedScalerProvider):
         the transmission rate.
         """
         self.ts_data = ts_data
-        assert set(priors.keys()) == set(["mob_weights", "mob_exp"])
-        assert priors["mob_weights"].batch_shape == (len(self.ts_data.columns),)
+        assert set(priors.keys()) == set(["ts_weights", "mob_exp"])
+        assert priors["ts_weights"].batch_shape == (len(self.ts_data.columns),)
         self.priors = priors
         self.mob_end = ts_data.index[-1]
 
@@ -130,21 +130,21 @@ class WeightedExpScalerProvider(WeightedScalerProvider):
         with the resulting weighted scaling profile exponentiated
         to the value specified by the scaling exponential parameter.
         """
-        norm_mob_weights = ts_weights / ts_weights.sum()
-        return (self.scaling_arr * norm_mob_weights).sum(axis=1) ** scale_exp
+        norm_ts_weights = ts_weights / ts_weights.sum()
+        return (self.scaling_arr * norm_ts_weights).sum(axis=1) ** scale_exp
 
 
 class WeightedFloorMobilityProvider(WeightedScalerProvider):
     def __init__(self, mobility: pd.DataFrame, priors: PriorDict):
         self.ts_data = mobility
-        assert set(priors.keys()) == set(["mob_weights", "scale_floor", "mob_exp"])
-        assert priors["mob_weights"].batch_shape == (len(self.ts_data.columns),)
+        assert set(priors.keys()) == set(["ts_weights", "scale_floor", "mob_exp"])
+        assert priors["ts_weights"].batch_shape == (len(self.ts_data.columns),)
         self.priors = priors
         self.mob_end = mobility.index[-1]
 
-    def get_parameterised_scaler(self, mob_weights, mob_exp, scale_floor, **kwargs) -> Array:
-        norm_mob_weights = mob_weights / mob_weights.sum()
-        return (scale_floor + (self.scaling_arr * norm_mob_weights).sum(axis=1) * (1.0 - scale_floor)) ** mob_exp
+    def get_parameterised_scaler(self, ts_weights, mob_exp, scale_floor, **kwargs) -> Array:
+        norm_ts_weights = ts_weights / ts_weights.sum()
+        return (scale_floor + (self.scaling_arr * norm_ts_weights).sum(axis=1) * (1.0 - scale_floor)) ** mob_exp
 
 
 class SingleSeriesMobilityProvider(ScalerProvider):

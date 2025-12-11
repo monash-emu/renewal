@@ -527,7 +527,7 @@ def get_weight_posts(
         The mobility weights
     """
     idata = az.from_netcdf(c_path / analysis_type / "idata_filtered.nc")
-    params = idata.posterior["mob_weights"].to_dataframe().unstack(level=-1)
+    params = idata.posterior["ts_weights"].to_dataframe().unstack(level=-1)
     params.columns = G_MOB_LOCATION_CMAP if analysis_type == "g_mob" else OXCGRT_LOCATION_CMAP
     return params
 

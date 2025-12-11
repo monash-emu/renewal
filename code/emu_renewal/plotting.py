@@ -553,7 +553,7 @@ def plot_weights_by_country(
     
         # Get weights
         idata = az.from_netcdf(job_path / iso3 / analysis_type / "idata_filtered.nc")
-        weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
+        weights = idata.posterior["ts_weights"].to_dataframe().unstack("ts_weights_dim_0")
         weights.columns = mob.columns
 
         # Plot
