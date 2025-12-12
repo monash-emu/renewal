@@ -76,8 +76,9 @@ class StandardCalib:
         -----
         The dispersion parameter for transmission scaling
         was set to a half normal distribution with 
-        standard deviation {PROC_DISP_SD} under analyses
-        both with and without mobility included.
+        standard deviation {PROC_DISP_SD} under the baseline analyses
+        and each of the analyses that involved scaling transmission 
+        according to time series inputs.
         This approach was adopted in order to favour
         lesser changes in transmission scaling at 
         each sequential update point.
