@@ -27,10 +27,10 @@
 # e.g. --array=1-4
 # will result in 4 jobs, receiving 1, 2, 3, 4 respectively
 
-#SBATCH --array=1-45
+#SBATCH --array=1-7
 
 # The path to your renewal repo
-cd /projects/sh30/users/jtrauer/renewal_rerun
+cd /projects/sh30/users/jtrauer/renewal_policies
 
 # The run path to your Python script that will actually do the work
 # Run this with pixi, the environment will be automatically handled
