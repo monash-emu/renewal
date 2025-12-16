@@ -344,3 +344,27 @@ def copy_analysis_type_to_run(
         dest = OUTPUTS_PATH / dest_id / iso3 / analysis_type
         if src.exists() and not dest.exists():
             shutil.copytree(src, dest)
+
+
+def get_analysis_paths(
+    job_ids: List[str],
+    countries: List[str],
+) -> Dict[str, Dict[str, Path]]:
+    """Find the analysis paths by country
+    given a user-specified hierarchy of job IDs.
+
+    Returns:
+        Dictionary with first tier of keys countries
+            and second tier analysis types. 
+    """
+    job_paths = [OUTPUTS_PATH / p for p in job_ids]
+    analysis_paths = {}
+    for c in countries:
+        analysis_paths[c] = {}
+        for a in ANALYSIS_TYPES:
+            for jp in job_paths:
+                analysis_path = jp / c / a
+                if analysis_path.is_dir():
+                    analysis_paths[c][a] = analysis_path
+                    break
+    return analysis_paths
