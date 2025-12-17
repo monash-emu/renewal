@@ -345,6 +345,8 @@ def get_job_commits_df_new(
             if analysis in c_paths:
                 a_path = c_paths[analysis]
                 sha = json.load(open(a_path / "gitinfo.json", "r"))["sha"][:7] if os.path.isdir(a_path) else "no analysis"
+            else:
+                sha = "no analysis"
             commits.loc[iso3, analysis] = sha
     commits.rename(columns=ANALYSIS_NAMES, inplace=True)
     commits.rename(index=lambda c: pycountry.countries.lookup(c).name, inplace=True)
