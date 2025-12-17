@@ -515,7 +515,7 @@ class MultiStrainModel:
         the cumulative distribution of the
         time to hospital or ICU discharge.
         For comparison to serosurveillance data, 
-        seropositivity was calculated
+        seropositivity was calculated as the complement of 
         as the proportion of the population remaining
         in the entirely infection-na&iuml;ve immunity
         sub-population.
