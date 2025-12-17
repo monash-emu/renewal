@@ -230,9 +230,9 @@ def get_mobility_provider(
     if mob_source in ["g_mob", "oxcgrt"]:
         n_domains = len(mob.columns)
         weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
-        return mobility.WeightedFloorMobilityProvider(smoothed_mob, weight_prior | exp_prior | floor_prior)
+        return mobility.WeightedFloorScalerProvider(smoothed_mob, weight_prior | exp_prior | floor_prior)
     elif mob_source in ["fb_visited_mob", "fb_singletile_mob"]:
-        return mobility.SingleSeriesExpMobilityProvider(smoothed_mob, exp_prior)
+        return mobility.SingleSeriesExpFloorScalerProvider(smoothed_mob, exp_prior | floor_prior)
     else:
         raise Exception(f"No provider available for analysis type {mob_source}")
 
@@ -355,8 +355,8 @@ def run_single_country(
     except Exception as e:
         msg = f"{mob_source} mobility not available"
         raise MobilityException(msg)
-    if mob_provider.mob_end:
-        end_time = min([end_time, mob_provider.mob_end])
+    if mob_provider.ts_end:
+        end_time = min([end_time, mob_provider.ts_end])
 
     # Model construction
     vacc_effect = continent == "OC"
