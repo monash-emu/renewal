@@ -539,9 +539,8 @@ class MultiStrainModel:
 
         # Incidence
         strain_inc = jnp.array([out[strain] for strain in self.strains])
-        summed_inc = strain_inc.sum(axis=0)
-        out["inc"] = summed_inc
-        full_inc = jnp.pad(summed_inc, [self.init_length, 0])
+        full_strain_inc = jnp.pad(strain_inc, [[0, 0], [self.init_length, 0]])
+        full_inc = full_strain_inc.sum(axis=0)
 
         # Cases
         output_dist = GammaDens()
@@ -554,7 +553,6 @@ class MultiStrainModel:
         strain_severity = 1.0 if relseverity is None else jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0)
         vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
-        full_strain_inc = jnp.pad(strain_inc, [[0, 0], [self.init_length, 0]])
         ifr_by_strain = ifr * strain_severity
         get_deaths_from_inc = lambda inc, ifr: self.get_output_from_inc(inc, death_mean, death_sd, ifr, output_dist)
         strain_deaths = vmap(get_deaths_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, ifr_by_strain)
@@ -567,7 +565,7 @@ class MultiStrainModel:
         discharge_dist = GammaDens()
         vacc_hosp_protect = vacc_protect_hosp if self.vacc_effect else 0.0
         rel_vacc_hosp = 1.0 - vacc_hosp_protect
-        
+
         admit_dists = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, output_dist)
         admissions = admit_dists * rel_vacc_hosp
         out["admissions"] = admissions[self.init_length :]
@@ -589,7 +587,7 @@ class MultiStrainModel:
         out["seropos"] = (self.pop - out["sus_0"]) / self.pop
 
         # Variant proportions
-        var_props = {f"prop_{s}": out[s] / out["inc"] for s in self.strains}
+        var_props = {f"prop_{strain}": full_strain_inc[s, :] / full_inc for s, strain in enumerate(self.strains)}
         return out | var_props
 
     def get_output_from_inc(
