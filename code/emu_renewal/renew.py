@@ -175,6 +175,7 @@ class MultiStrainModel:
         self.start = int(self.epoch.dti_to_index(start))
         self.end = int(self.epoch.dti_to_index(end))
         self.model_times = jnp.arange(self.start, self.end + 1)
+        self.n_times = len(self.model_times)
         self.mob_provider = mobility
         self.mob_provider.reconcile_times(start, end)
 
@@ -551,8 +552,8 @@ class MultiStrainModel:
         # Deaths
         vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
-        strain_deaths = jnp.zeros([strain_inc.shape[0], strain_inc.shape[1] + self.init_length])
-        for s in range(len(self.strains)):
+        strain_deaths = jnp.zeros([self.n_strains, self.n_times + self.init_length])
+        for s in range(self.n_strains):
             s_inc = jnp.concatenate([jnp.zeros(self.init_length), strain_inc[s, :]])
             strain_deaths = strain_deaths.at[s, :].set(self.get_output_from_inc(s_inc, death_mean, death_sd, ifr, output_dist))
         death_vals = strain_deaths.sum(axis=0)
