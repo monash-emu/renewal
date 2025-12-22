@@ -551,8 +551,11 @@ class MultiStrainModel:
         # Deaths
         vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
-        death_dists = self.get_output_from_inc(full_inc, death_mean, death_sd, ifr, output_dist)
-        deaths = death_dists * rel_vacc_death
+        strain_deaths = jnp.zeros_like(strain_inc)
+        for s in range(len(self.strains)):
+            strain_deaths.at[s, :].set(self.get_output_from_inc(strain_inc[s, :], death_mean, death_sd, ifr, output_dist))
+        death_vals = strain_deaths.sum(axis=0)
+        deaths = death_vals * rel_vacc_death
         out["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
         out["weekly_deaths"] = weekly_deaths[self.init_length :]
