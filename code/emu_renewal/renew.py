@@ -552,10 +552,9 @@ class MultiStrainModel:
         # Deaths
         vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
-        strain_deaths = jnp.zeros([self.n_strains, self.n_times + self.init_length])
-        for s in range(self.n_strains):
-            s_inc = jnp.concatenate([jnp.zeros(self.init_length), strain_inc[s, :]])
-            strain_deaths = strain_deaths.at[s, :].set(self.get_output_from_inc(s_inc, death_mean, death_sd, ifr, output_dist))
+        full_strain_inc = jnp.concatenate([jnp.zeros([self.n_strains, self.init_length]), strain_inc], axis=1)
+        get_deaths_from_inc = lambda inc: self.get_output_from_inc(inc, death_mean, death_sd, ifr, output_dist)
+        strain_deaths = vmap(get_deaths_from_inc, in_axes=0, out_axes=0)(full_strain_inc)
         death_vals = strain_deaths.sum(axis=0)
         deaths = death_vals * rel_vacc_death
         out["deaths"] = deaths[self.init_length :]
