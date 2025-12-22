@@ -567,6 +567,7 @@ class MultiStrainModel:
         discharge_dist = GammaDens()
         vacc_hosp_protect = vacc_protect_hosp if self.vacc_effect else 0.0
         rel_vacc_hosp = 1.0 - vacc_hosp_protect
+        
         admit_dists = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, output_dist)
         admissions = admit_dists * rel_vacc_hosp
         out["admissions"] = admissions[self.init_length :]
@@ -576,7 +577,8 @@ class MultiStrainModel:
         out["occupancy"] = occupancy[self.init_length :]
 
         # ICU-related outputs
-        icu_admits = self.get_output_from_inc(full_inc, icu_admit_mean, icu_admit_sd, icuar, output_dist)
+        icu_admit_dists = self.get_output_from_inc(full_inc, icu_admit_mean, icu_admit_sd, icuar, output_dist)
+        icu_admits = icu_admit_dists * rel_vacc_hosp
         out["icu_admissions"] = icu_admits[self.init_length :]
         icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, DAYS_IN_WEEK)
         out["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
