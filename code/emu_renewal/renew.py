@@ -540,7 +540,7 @@ class MultiStrainModel:
         strain_inc = jnp.array([out[strain] for strain in self.strains])
         summed_inc = strain_inc.sum(axis=0)
         out["inc"] = summed_inc
-        full_inc = jnp.concatenate([jnp.zeros(self.init_length), summed_inc])
+        full_inc = jnp.pad(summed_inc, [self.init_length, 0])
 
         # Cases
         output_dist = GammaDens()
@@ -552,11 +552,10 @@ class MultiStrainModel:
         # Deaths
         vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
-        full_strain_inc = jnp.concatenate([jnp.zeros([self.n_strains, self.init_length]), strain_inc], axis=1)
+        full_strain_inc = jnp.pad(strain_inc, [[0, 0], [self.init_length, 0]])
         get_deaths_from_inc = lambda inc: self.get_output_from_inc(inc, death_mean, death_sd, ifr, output_dist)
         strain_deaths = vmap(get_deaths_from_inc, in_axes=0, out_axes=0)(full_strain_inc)
-        death_vals = strain_deaths.sum(axis=0)
-        deaths = death_vals * rel_vacc_death
+        deaths = strain_deaths.sum(axis=0) * rel_vacc_death
         out["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
         out["weekly_deaths"] = weekly_deaths[self.init_length :]
