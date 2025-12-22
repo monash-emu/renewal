@@ -554,6 +554,7 @@ class MultiStrainModel:
         vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
         ifr_by_strain = ifr * strain_severity
+
         get_deaths_from_inc = lambda inc, ifr: self.get_output_from_inc(inc, death_mean, death_sd, ifr, output_dist)
         strain_deaths = vmap(get_deaths_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, ifr_by_strain)
         deaths = strain_deaths.sum(axis=0) * rel_vacc_death
@@ -561,22 +562,27 @@ class MultiStrainModel:
         weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
         out["weekly_deaths"] = weekly_deaths[self.init_length :]
 
-        # Hospital-related outputs
+        # Health system-related outputs
         discharge_dist = GammaDens()
         vacc_hosp_protect = vacc_protect_hosp if self.vacc_effect else 0.0
         rel_vacc_hosp = 1.0 - vacc_hosp_protect
 
-        admit_dists = self.get_output_from_inc(full_inc, admit_mean, admit_sd, har, output_dist)
-        admissions = admit_dists * rel_vacc_hosp
+        # Hospital-related
+        har_by_strain = har * strain_severity
+        get_hosp_from_inc = lambda inc, har: self.get_output_from_inc(inc, admit_mean, admit_sd, har, output_dist)
+        strain_hosps = vmap(get_hosp_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, har_by_strain)
+        admissions = strain_hosps.sum(axis=0) * rel_vacc_hosp
         out["admissions"] = admissions[self.init_length :]
         weekly_admissions = self.get_period_output_from_daily(admissions, DAYS_IN_WEEK)
         out["weekly_admissions"] = weekly_admissions[self.init_length :]
         occupancy = self.get_occupancy_from_admits(admissions, stay_mean, stay_sd, discharge_dist)
         out["occupancy"] = occupancy[self.init_length :]
 
-        # ICU-related outputs
-        icu_admit_dists = self.get_output_from_inc(full_inc, icu_admit_mean, icu_admit_sd, icuar, output_dist)
-        icu_admits = icu_admit_dists * rel_vacc_hosp
+        # ICU-related
+        icuar_by_strain = icuar * strain_severity
+        get_icu_from_inc = lambda inc, icuar: self.get_output_from_inc(inc, icu_admit_mean, icu_admit_sd, icuar, output_dist)
+        strain_icus = vmap(get_icu_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, icuar_by_strain)
+        icu_admits = strain_icus.sum(axis=0) * rel_vacc_hosp
         out["icu_admissions"] = icu_admits[self.init_length :]
         icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, DAYS_IN_WEEK)
         out["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
