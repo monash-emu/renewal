@@ -553,8 +553,10 @@ class MultiStrainModel:
         vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
         full_strain_inc = jnp.pad(strain_inc, [[0, 0], [self.init_length, 0]])
-        get_deaths_from_inc = lambda inc: self.get_output_from_inc(inc, death_mean, death_sd, ifr, output_dist)
-        strain_deaths = vmap(get_deaths_from_inc, in_axes=0, out_axes=0)(full_strain_inc)
+        strain_severities = jnp.ones(self.n_strains)
+        ifr_by_strain = ifr * strain_severities
+        get_deaths_from_inc = lambda inc, ifr: self.get_output_from_inc(inc, death_mean, death_sd, ifr, output_dist)
+        strain_deaths = vmap(get_deaths_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, ifr_by_strain)
         deaths = strain_deaths.sum(axis=0) * rel_vacc_death
         out["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
