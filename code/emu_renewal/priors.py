@@ -161,6 +161,10 @@ def get_standard_priors(
     infect_dist_prior = dist.TruncatedNormal(relinf_mean, RELINF_SD, low=RELINF_LOW, high=RELINF_UP)
     infect_dist = infect_dist_prior if n_strains > 1 else None
     inf_priors = {"relinfect": infect_dist}
+    relseverity_mean = jnp.repeat(1.5, n_strains - 1)
+    severity_dist_prior = dist.TruncatedNormal(relseverity_mean, 0.2, low=1.0, high=2.0)
+    severity_dist = severity_dist_prior if n_strains > 1 else None
+    severity_priors = {"relseverity": severity_dist}
 
     # Miscellaneous
     fixed_params = loaded_priors["fixed"]
@@ -178,6 +182,7 @@ def get_standard_priors(
         | irrel_betas
         | seed_rate_priors
         | inf_priors
+        | severity_priors
         | beta
         | disp_prior
         | prop_disp_prior

@@ -338,8 +338,7 @@ class MultiStrainModel:
         start_pop = start_pop.at[0].set(self.pop)
 
         # Strain infectiousness
-        start_relinfect = jnp.array([1.0])
-        relinfect = 1.0 if relinfect is None else jnp.concat([start_relinfect, relinfect])
+        relinfect = 1.0 if relinfect is None else jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0)
 
         # Cross immunity, start with partial cross immunity
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
@@ -424,6 +423,7 @@ class MultiStrainModel:
         cross_immunity: float,
         seed_rates: List[float],
         relinfect: Optional[List[float]],
+        relseverity: Optional[List[float]],
         seed_offsets: Optional[List[float]],
         vacc_protect_hosp: float,
         vacc_protect_death: float,
@@ -455,6 +455,7 @@ class MultiStrainModel:
             cross_immunity: The extent of cross-immunity
             seed_rates: Log of the peak rates of seeding for each strain
             relinfect: The relative infectiousness of each non-starting strain
+            relseverity: The relative severity of each non-starting strain
             seed_offsets: Time before first strain data that strain seeding begins
             vacc_protect_hosp: Hospitalisation protection for analyses in vaccination era
             vacc_protect_death: Death protection for analyses in vaccination era
@@ -550,11 +551,11 @@ class MultiStrainModel:
         out["weekly_cases"] = weekly_cases[self.init_length :]
 
         # Deaths
+        strain_severity = 1.0 if relseverity is None else jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0)
         vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
         full_strain_inc = jnp.pad(strain_inc, [[0, 0], [self.init_length, 0]])
-        strain_severities = jnp.ones(self.n_strains)
-        ifr_by_strain = ifr * strain_severities
+        ifr_by_strain = ifr * strain_severity
         get_deaths_from_inc = lambda inc, ifr: self.get_output_from_inc(inc, death_mean, death_sd, ifr, output_dist)
         strain_deaths = vmap(get_deaths_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, ifr_by_strain)
         deaths = strain_deaths.sum(axis=0) * rel_vacc_death
