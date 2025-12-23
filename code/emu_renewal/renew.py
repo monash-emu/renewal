@@ -550,7 +550,12 @@ class MultiStrainModel:
         out["weekly_cases"] = weekly_cases[self.init_length :]
 
         # Severity
-        severity_vals = 1.0 if relseverity is None else jnp.cumprod(jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0))
+        if relseverity is None:
+            severity_vals = 1.0  # Only one strain
+        elif self.vacc_effect:
+            severity_vals = jnp.ones(self.n_strains)  # Omicron era for Oceania
+        else:
+            severity_vals = jnp.cumprod(jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0))  # EU/Alpha/Delta period
 
         # Deaths
         vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
