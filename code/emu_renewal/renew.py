@@ -593,7 +593,7 @@ class MultiStrainModel:
         out["seropos"] = (self.pop - out["sus_0"]) / self.pop
 
         # Variant proportions
-        var_props = {f"prop_{strain}": full_strain_inc[s, :] / full_inc for s, strain in enumerate(self.strains)}
+        var_props = {f"prop_{strain}": full_strain_inc[s, self.init_length:] / full_inc[self.init_length:] for s, strain in enumerate(self.strains)}
         return out | var_props
 
     def get_output_from_inc(
