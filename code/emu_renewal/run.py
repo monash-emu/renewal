@@ -34,6 +34,7 @@ from emu_renewal.inputs import (
     get_google_mobility,
     get_fb_visited_mobility,
     get_fb_singletile_mobility,
+    get_linear_series_trend,
 )
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.calibration import StandardCalib
@@ -209,10 +210,20 @@ def get_mobility_provider(
     """
 
     # Data processing
+    threshold = 2.0
+    last_n_days = 30
+
     if mob_source in ["no_mob", "fb_no_mob"]:
         return mobility.NoMobilityProvider()
     elif mob_source == "g_mob":
         mob = get_google_mobility(iso3)
+    elif mob_source == "g_mob_detrend":
+        raw_mob = get_google_mobility(iso3)
+        if raw_mob.tail(last_n_days).mean().max() < threshold:
+            msg = "Detrended Google mobility analysis not run, threshold not reached"
+            raise MobilityException(msg)
+        else:
+            mob = raw_mob.apply(lambda s: s / get_linear_series_trend(s, last_n_days))
     elif mob_source == "fb_visited_mob":
         mob = get_fb_visited_mobility(iso3)
     elif mob_source == "fb_singletile_mob":
@@ -221,11 +232,11 @@ def get_mobility_provider(
 
     # Priors
     exp_prior = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
-    if mob_source == "g_mob":
+    if mob_source.startswith("g_mob"):
         n_domains = len(mob.columns)
         weight_prior = {"mob_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
         return mobility.WeightedExpMobilityProvider(smoothed_mob, weight_prior | exp_prior)
-    elif mob_source in ["fb_visited_mob", "fb_singletile_mob"]:
+    elif mob_source.startswith("fb_"):
         return mobility.SingleSeriesExpMobilityProvider(smoothed_mob, exp_prior)
     else:
         raise Exception(f"No provider available for analysis type {mob_source}")

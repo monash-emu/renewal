@@ -13,7 +13,7 @@ DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
 # Analysis types
-ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_visited_mob", "fb_singletile_mob"]
+ANALYSIS_TYPES = ["no_mob", "g_mob", "g_mob_detrend", "fb_visited_mob", "fb_singletile_mob"]
 
 # Dates
 CASES_START = "1 June 2020"
@@ -136,6 +136,7 @@ DUR_REL_MAX = 2.5
 MOB_SOURCE_COLOURS = {
     "no_mob": "black",
     "g_mob": "green",
+    "g_mob_detrend": "darkgreen",
     "fb_visited_mob": "red",
     "fb_singletile_mob": "blue",
     "fb_no_mob": "grey",
@@ -143,6 +144,7 @@ MOB_SOURCE_COLOURS = {
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
     "g_mob": "Google mobility",
+    "g_mob_detrend": "de-trended Google mobility",
     "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",
     "fb_no_mob": "Facebook no mobility",
@@ -150,6 +152,7 @@ ANALYSIS_NAMES = {
 MOB_SOURCE_ABBREVS = {
     "no_mob": "none",
     "g_mob": "Google",
+    "g_mob_detrend": "de-trended Google",
     "fb_visited_mob": "FB tiles visited",
     "fb_singletile_mob": "FB single tile",
     "fb_no_mob": "FB baseline",
