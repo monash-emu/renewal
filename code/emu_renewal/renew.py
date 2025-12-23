@@ -338,8 +338,7 @@ class MultiStrainModel:
         start_pop = start_pop.at[0].set(self.pop)
 
         # Strain infectiousness
-        # relinfect = 1.0 if relinfect is None else jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0)
-        relinect_vals = 1.0 if relinfect is None else jnp.cumprod(jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0))
+        relinfect_vals = 1.0 if relinfect is None else jnp.cumprod(jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0))
 
         # Cross immunity, start with partial cross immunity
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
@@ -376,7 +375,7 @@ class MultiStrainModel:
             # Incidence convolved with generation (vector, n_strains)
             contributions = (gen_densities * past_inc).sum(axis=1)
             # Calculated infection rate (vector, n_strains)
-            calc_inf_rates = contributions * beta * proc_val * mob_val * relinect_vals / self.pop
+            calc_inf_rates = contributions * beta * proc_val * mob_val * relinfect_vals / self.pop
             # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             # Effective susceptibles (array, n_strains by 2 ** n_strains)
@@ -550,12 +549,14 @@ class MultiStrainModel:
         weekly_cases = self.get_period_output_from_daily(cases, DAYS_IN_WEEK)
         out["weekly_cases"] = weekly_cases[self.init_length :]
 
+        # Severity
+        severity_vals = 1.0 if relseverity is None else jnp.cumprod(jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0))
+
         # Deaths
-        strain_severity = 1.0 if relseverity is None else jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0)
         vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
-        ifr_by_strain = ifr * strain_severity
 
+        ifr_by_strain = ifr * severity_vals
         get_deaths_from_inc = lambda inc, ifr: self.get_output_from_inc(inc, death_mean, death_sd, ifr, output_dist)
         strain_deaths = vmap(get_deaths_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, ifr_by_strain)
         deaths = strain_deaths.sum(axis=0) * rel_vacc_death
@@ -569,7 +570,7 @@ class MultiStrainModel:
         rel_vacc_hosp = 1.0 - vacc_hosp_protect
 
         # Hospital-related
-        har_by_strain = har * strain_severity
+        har_by_strain = har * severity_vals
         get_hosp_from_inc = lambda inc, har: self.get_output_from_inc(inc, admit_mean, admit_sd, har, output_dist)
         strain_hosps = vmap(get_hosp_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, har_by_strain)
         admissions = strain_hosps.sum(axis=0) * rel_vacc_hosp
@@ -580,7 +581,7 @@ class MultiStrainModel:
         out["occupancy"] = occupancy[self.init_length :]
 
         # ICU-related
-        icuar_by_strain = icuar * strain_severity
+        icuar_by_strain = icuar * severity_vals
         get_icu_from_inc = lambda inc, icuar: self.get_output_from_inc(inc, icu_admit_mean, icu_admit_sd, icuar, output_dist)
         strain_icus = vmap(get_icu_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, icuar_by_strain)
         icu_admits = strain_icus.sum(axis=0) * rel_vacc_hosp
