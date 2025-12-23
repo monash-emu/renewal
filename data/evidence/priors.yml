@@ -337,6 +337,20 @@ other:
       in a national case-control study from England.[@allen2022] 
       Contact tracing data from Spain found a relative risk of transmission of 1.32 
       (95% confidence interval 1.13 to 1.53) for Delta versus Alpha.[@trobajo2022]
+  relseverity:
+    short_name: relative severity
+    evidence: Estimates of the relative severity of Alpha compared to preceding strains include 
+      a large community‑based study from England, which reported a 1.73‑fold adjusted hazard of death and 
+      a 1.62‑fold hazard of hospital admission for Alpha versus wild‑type [@grint2022]. 
+      In Scotland, a genomics‑linked cohort analysis incorporating graded clinical severity found 
+      a 1.40‑fold increase in overall disease severity associated with Alpha [@pascall2023].
+      \newline\newline
+      For Delta compared with Alpha, a cohort study from the UK estimated 
+      an adjusted hazard ratio of 2.26 for hospital admission and 
+      1.45 for the composite outcome of hospital admission or emergency care [@twohig2022], 
+      with similar estimates observed among unvaccinated individuals. 
+      However, an independent national analysis from Norway did not identify 
+      an increased risk of hospitalisation for Delta relative to Alpha [@veneti].
   seed_offsets:
     short_name: seeding offset
   seed_rates:
