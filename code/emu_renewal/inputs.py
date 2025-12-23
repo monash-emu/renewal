@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import geopandas as gpd
 import arviz as az
@@ -520,3 +520,35 @@ def get_g_mob_quants(
     norm_weights = weights.div(weights.sum(axis=1), axis=0)
     mob_results = (norm_weights @ smoothed_mob.T).T
     return mob_results.quantile([0.025, 0.5, 0.975], axis=1).T
+
+
+def get_linear_series_trend(
+    series: pd.Series, 
+    last_n_days: int,
+) -> pd.Series:
+    """Get the linear trend of a series for
+    multiplicative detrending.
+    Assumes that the series starts from a value of one,
+    as it should with our mobility metrics.
+    Finds the linear trend through to the mean
+    value of the end period.
+
+    Args:
+        series: The input series to find the trend from
+        last_n_days: The number of days in the end period 
+            used to estimate the end value
+
+    Returns:
+        The linear trend with the same indices as the input series
+    """
+    start_time = series.index[0]
+    end_time = series.index[-1]
+    start_final_period = end_time - timedelta(days=last_n_days)
+    mid_final_period = end_time - timedelta(days=last_n_days / 2)
+    final_period = series.loc[series.index >= start_final_period]
+    mean_final_period = final_period.mean()
+    run = mid_final_period - start_time
+    rise = mean_final_period - 1.0
+    slope_per_second = rise / run.total_seconds()
+    trend = pd.Series((series.index - start_time).total_seconds() * slope_per_second + 1.0, index=series.index)
+    return trend
