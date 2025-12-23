@@ -81,7 +81,7 @@ durations:
       \newline\newline
       Overall, we considered that a mean time from infection to case notification of eight days would be consistent with 
       a five-day incubation period followed by a three-day average delay from symptom onset to case notification.
-  report_sd: 
+  report_sd:
     mean: 3.0
     sd: 0.5
     param_name: Infection to reporting standard deviation (days)
@@ -141,7 +141,7 @@ durations:
       Given this evidence, we chose a mean value for the time from infection to death prior of five days. 
       As for the time from infection to hospital admission parameter, 
       we inflated this by five days to allow for the incubation period.
-  admit_sd: 
+  admit_sd:
     mean: 2.0
     sd: 0.5
     param_name: Infection to hospitalisation standard deviation (days)
@@ -197,7 +197,7 @@ durations:
       \newline\newline
       Given this evidence, we implemented a mean for our prior distribution of time from infection to ICU admission of twelve days
       to allow for a five day incubation period.
-  icu_admit_sd: 
+  icu_admit_sd:
     mean: 2.5
     sd: 0.5
     param_name: Infection to ICU admission standard deviation (days)
@@ -319,7 +319,7 @@ fixed:
       including hospitalisation (93%), ICU admission (98%) and death (95%).[@liu2021]
       \newline\newline
       As such, we estimated the reduction in hospitalisation given infection to be 50%.
-  vacc_protect_death: 
+  vacc_protect_death:
     value: 0.67
     param_name: Vaccination protection against death
     evidence: Using the same evidence as for the protection against hospitalisation, we estimated this parameter at 67%.

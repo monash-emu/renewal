@@ -338,7 +338,8 @@ class MultiStrainModel:
         start_pop = start_pop.at[0].set(self.pop)
 
         # Strain infectiousness
-        relinfect = 1.0 if relinfect is None else jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0)
+        # relinfect = 1.0 if relinfect is None else jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0)
+        relinect_vals = 1.0 if relinfect is None else jnp.cumprod(jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0))
 
         # Cross immunity, start with partial cross immunity
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
@@ -375,7 +376,7 @@ class MultiStrainModel:
             # Incidence convolved with generation (vector, n_strains)
             contributions = (gen_densities * past_inc).sum(axis=1)
             # Calculated infection rate (vector, n_strains)
-            calc_inf_rates = contributions * beta * proc_val * mob_val * relinfect / self.pop
+            calc_inf_rates = contributions * beta * proc_val * mob_val * relinect_vals / self.pop
             # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             # Effective susceptibles (array, n_strains by 2 ** n_strains)
