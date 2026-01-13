@@ -27,6 +27,8 @@ from emu_renewal.constants import (
     N_ITERS,
     RUN_DATA_DELAY,
     N_CHAINS,
+    G_MOB_DETREND_THRESHOLD,
+    G_MOB_DETREND_END_PERIOD,
 )
 from emu_renewal.inputs import (
     get_country_vacc_data,
@@ -210,20 +212,17 @@ def get_mobility_provider(
     """
 
     # Data processing
-    threshold = 2.0
-    last_n_days = 30
-
     if mob_source in ["no_mob", "fb_no_mob"]:
         return mobility.NoMobilityProvider()
     elif mob_source == "g_mob":
         mob = get_google_mobility(iso3)
     elif mob_source == "g_mob_detrend":
         raw_mob = get_google_mobility(iso3)
-        if raw_mob.tail(last_n_days).mean().max() < threshold:
+        if raw_mob.tail(G_MOB_DETREND_THRESHOLD).mean().max() < G_MOB_DETREND_THRESHOLD:
             msg = "Detrended Google mobility analysis not run, threshold not reached"
             raise MobilityException(msg)
         else:
-            mob = raw_mob.apply(lambda s: s / get_linear_series_trend(s, last_n_days))
+            mob = raw_mob.apply(lambda s: s / get_linear_series_trend(s, G_MOB_DETREND_END_PERIOD))
     elif mob_source == "fb_visited_mob":
         mob = get_fb_visited_mobility(iso3)
     elif mob_source == "fb_singletile_mob":

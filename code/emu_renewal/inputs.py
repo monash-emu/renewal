@@ -545,10 +545,8 @@ def get_linear_series_trend(
     end_time = series.index[-1]
     start_final_period = end_time - timedelta(days=last_n_days)
     mid_final_period = end_time - timedelta(days=last_n_days / 2)
-    final_period = series.loc[series.index >= start_final_period]
-    mean_final_period = final_period.mean()
+    mean_final_period = series.loc[series.index >= start_final_period].mean()
     run = mid_final_period - start_time
     rise = mean_final_period - 1.0
     slope_per_second = rise / run.total_seconds()
-    trend = pd.Series((series.index - start_time).total_seconds() * slope_per_second + 1.0, index=series.index)
-    return trend
+    return pd.Series((series.index - start_time).total_seconds() * slope_per_second + 1.0, index=series.index)
