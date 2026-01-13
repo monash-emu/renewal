@@ -247,7 +247,7 @@ class MultiStrainModel:
         sd: float,
         cross_immunity: float,
         seed_rates: List[float],
-        time_immune: Optional[float],
+        imm_time: Optional[float],
         relinfect: Optional[List[float]],
         seed_offsets: Optional[List[float]],
         **kwargs,
@@ -427,7 +427,7 @@ class MultiStrainModel:
         icuar: float,
         cross_immunity: float,
         seed_rates: List[float],
-        time_immune: Optional[float],
+        imm_time: Optional[float],
         relinfect: Optional[List[float]],
         relseverity: Optional[List[float]],
         seed_offsets: Optional[List[float]],
@@ -548,7 +548,7 @@ class MultiStrainModel:
             gen_sd,
             cross_immunity,
             seed_rates,
-            time_immune,
+            imm_time,
             relinfect,
             seed_offsets,
             **kwargs,
@@ -705,7 +705,7 @@ class WaningModel(MultiStrainModel):
         sd: float,
         cross_immunity: float,
         seed_rates: List[float],
-        time_immune: float,
+        imm_time: float,
         relinfect: Optional[List[float]],
         seed_offsets: Optional[List[float]],
         **kwargs,
@@ -764,14 +764,12 @@ class WaningModel(MultiStrainModel):
         half_dur = self.seed_duration / 2.0
 
         def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
-
             # Waning immunity for anyone infected in a preceding time step
             suscepts = state.suscept
-            wanes = suscepts / time_immune
+            wanes = suscepts / imm_time
             total_wanes = wanes.sum()
             new_sus = suscepts - wanes
             new_sus = new_sus.at[0].set(new_sus[0] + total_wanes)
-
             # Residual transmission scaling process (scalar)
             proc_val = trans_proc[t - self.start]
             # Mobility data (scalar)

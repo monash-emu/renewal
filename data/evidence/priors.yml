@@ -236,6 +236,12 @@ durations:
       \newline\newline
       We therefore chose a standard deviation of 2.5 days for 
       this prior distribution and assigned a standard deviation for the spread of this parameter of 0.5 days.
+  immune:
+    mean: 180.0
+    sd: 30.0
+    param_name: Duration immune
+    short name: duration immune
+    evidence: PENDING Only applied in sensitivity analysis
 beta:
   cdr:
     mean: 0.4

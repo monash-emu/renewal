@@ -109,6 +109,7 @@ def get_standard_priors(
     duration_priors = {
         k: dist.TruncatedNormal(v["mean"], v["sd"], low=DUR_MIN, high=v["mean"] * DUR_REL_MAX)
         for k, v in loaded_priors["durations"].items()
+        if k != "immune"
     }
     if get_cont_of_country(iso3) == "OC":
         duration_priors["gen_mean"] = duration_priors["gen_mean_oc"]
@@ -181,7 +182,9 @@ def get_standard_priors(
     disp_prior = {"shared_dispersion": dist.HalfNormal(SHARED_DISP_SD)}
     prop_disp_prior = {"prop_disp": PROP_DISP}
     seroprev_disp = {"seroprev_disp": SEROPREV_DISP}
-    waning_prior = {"time_immune": 180.0} if waning else {}
+    imm_mean = loaded_priors["durations"]["immune"]["mean"]
+    imm_sd = loaded_priors["durations"]["immune"]["sd"]
+    waning_prior = {"imm_time": dist.TruncatedNormal(imm_mean, imm_sd, low=30.0)} if waning else {}
 
     return (
         rel_durs

@@ -360,7 +360,7 @@ def run_single_country(
 
     # Model construction
     omicron_period = continent == "OC"
-    waning = False
+    waning = True
     if waning:
         model = WaningModel(
             pop,
