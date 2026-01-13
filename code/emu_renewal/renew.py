@@ -145,7 +145,7 @@ class MultiStrainModel:
         strains: List[str],
         seed_times: List[datetime],
         mobility: MobilityProvider,
-        vacc_effect: bool,
+        omicron_period: bool,
     ):
         """Construct the object for running the renewal process.
 
@@ -157,7 +157,7 @@ class MultiStrainModel:
             strains: Names of the variants to be implemented
             seed_times: Times to seed each variant (including the first one)
             mobility: The mobility time series to scale transmission with
-            vacc_effect: Whether to reduce severity based on vaccination effects
+            omicron_period: Whether to reduce severity based on vaccination effects
         """
         self.strains = strains
         self.start_strain = strains[0]
@@ -168,7 +168,7 @@ class MultiStrainModel:
         self.var_times = seed_times
         self.seed_duration = SEED_DURATION
         self.init_length = INIT_DURATION
-        self.vacc_effect = vacc_effect
+        self.omicron_period = omicron_period
 
         # Times
         self.epoch = Epoch(start)
@@ -457,8 +457,8 @@ class MultiStrainModel:
             relinfect: The relative infectiousness of each non-starting strain
             relseverity: The relative severity of each non-starting strain
             seed_offsets: Time before first strain data that strain seeding begins
-            vacc_protect_hosp: Hospitalisation protection for analyses in vaccination era
-            vacc_protect_death: Death protection for analyses in vaccination era
+            vacc_protect_hosp: Hospitalisation protection for analyses in Omicron era
+            vacc_protect_death: Death protection for analyses in Omicron era
 
         Returns:
             The full epidemiological outputs of the simulation
@@ -470,9 +470,8 @@ class MultiStrainModel:
         the other epidemiological outputs were calculated
         using a series of convolution operations
         applied to this series.
-        Total incidence was first calculated by summing
-        over strain-specific incidence.
-        Cases were then calculated by convolving incidence
+        Cases were calculated by convolving
+        the total incidence summed over strains 
         with a gamma-distributed set of delays from
         incidence to notification
         which was truncated after {CONV_TRUNC_POINT} days.
@@ -480,18 +479,27 @@ class MultiStrainModel:
         the case detection rate (a proportion)
         and weekly cases were calculated by summing
         over the preceding {DAYS_IN_WEEK} days.__RETURN__
-        Deaths were similarly calculated from incidence,
-        but with separate parameters governing the
+        By contrast, deaths were calculated from 
+        the strain-specific incidence to allow for
+        strain-specific severity for analyses
+        that ran during the pre-Omicron/pre-vaccination period.
+        A separate set of parameters governed the
         time from incidence to death
-        and with the fraction of incident episodes
+        with the fraction of incident episodes
         resulting in death given by
-        the infection fatality rate.
+        the infection fatality rate adjusted 
+        for strain-specific severity.
         For Singapore and countries of Oceania,
         a reduction in the risk of death
         was applied because this analysis was performed
-        after wide-scale population vaccination.
+        after wide-scale population vaccination
+        had been achieved and Omicron sub-variants
+        were the dominant strains, 
+        with severity assumed to be equivalent 
+        for all Omicron sub-variants.
         The relative reduction in the risk of
-        death was set according to a parameter
+        death during the later Omicron/vaccination period
+        was set according to a parameter
         specifying the protection of 
         vaccination against death given infection 
         and was not varied during calibration, 
@@ -499,8 +507,10 @@ class MultiStrainModel:
         with the risk of death parameter.__RETURN__
         As for cases and deaths, hospitalisations
         were estimated through a convolution
-        distribution with independently calibrated parameters
-        and a hospital admission fraction.
+        distribution with independently calibrated parameters,
+        a hospital admission fraction,
+        but the same strain-specific severity parameters
+        as for deaths.
         As for the approach to deaths for Oceania,
         a reduction in the risk of hospitalisation
         was applied to account for vaccination.
@@ -552,13 +562,15 @@ class MultiStrainModel:
         # Severity
         if relseverity is None:
             severity_vals = 1.0  # Only one strain
-        elif self.vacc_effect:
-            severity_vals = jnp.ones(self.n_strains)  # Omicron era for Oceania
+        elif self.omicron_period:
+            # Omicron era for Oceania, Omicron subvariants have equivalent severity
+            severity_vals = jnp.ones(self.n_strains)
         else:
-            severity_vals = jnp.cumprod(jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0))  # EU/Alpha/Delta period
+            # EU/Alpha/Delta period, each strain has different severity
+            severity_vals = jnp.cumprod(jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0))  
 
         # Deaths
-        vacc_death_protect = vacc_protect_death if self.vacc_effect else 0.0
+        vacc_death_protect = vacc_protect_death if self.omicron_period else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
 
         ifr_by_strain = ifr * severity_vals
@@ -571,7 +583,7 @@ class MultiStrainModel:
 
         # Health system-related outputs
         discharge_dist = GammaDens()
-        vacc_hosp_protect = vacc_protect_hosp if self.vacc_effect else 0.0
+        vacc_hosp_protect = vacc_protect_hosp if self.omicron_period else 0.0
         rel_vacc_hosp = 1.0 - vacc_hosp_protect
 
         # Hospital-related

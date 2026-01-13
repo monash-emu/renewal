@@ -359,7 +359,7 @@ def run_single_country(
         end_time = min([end_time, mob_provider.mob_end])
 
     # Model construction
-    vacc_effect = continent == "OC"
+    omicron_period = continent == "OC"
     model = MultiStrainModel(
         pop,
         run_start,
@@ -367,7 +367,7 @@ def run_single_country(
         var_names,
         seed_times,
         mob_provider,
-        vacc_effect,
+        omicron_period,
     )
 
     # Calibration
