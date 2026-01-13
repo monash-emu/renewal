@@ -717,70 +717,7 @@ class WaningModel(MultiStrainModel):
 
         Notes
         -----
-        For all analyses, the starting population
-        minus the seeding values for the first strain
-        was assigned to the fully susceptible category.
-        __RETURN__### Generation interval__RETURN__
-        A gamma-distributed generation interval
-        was used for the renewal process.
-        This is consistent with an investigation of
-        household clusters from Germany that showed
-        the profile of serial intervals
-        was well matched by a gamma distribution.[@anderheiden2022]
-        The generation interval was truncated
-        at {GEN_TRUNC_POINT} days,
-        because the density reached negligible values beyond
-        this point.
-        __RETURN__### Renewal process__RETURN__
-        The strain-specific incidence array
-        updated for strain seeding was convolved with
-        the generation interval distribution vector
-        to create an array of the effective number of
-        infectious individuals for each strain.
-        These quantities were then multiplied by scalar values
-        representing residual transmission scaling and
-        adjustment for mobility and divided through
-        by the population size
-        (to obtain the scaled per capita infectious population).
-        This was multiplied by the strain-specific vector for
-        the relative infectiousness of each strain
-        to derive the calculated per capita rate of infection.
-        We then determined the actual rate of infection
-        for each strain as $1 - e^{{-\lambda}}$
-        (where $\lambda$ represents the calculated infection rate)
-        to ensure that the per capita risk
-        of infection could not exceed one in a time step.
-        __RETURN__### Variant seeding__RETURN__
-        Each newly emerging strain was seeded using a triangular
-        pulse of new infections for which the peak per capita
-        seeding rate was specified as a parameter.
-        At each calculation day,
-        the new strain-specific seeding values
-        were added to the most recent value for the
-        strain-specific history of incidence. Infectiousness of
-        each variant was specified
-        with reference to the first modelled variant strain.
-        __RETURN__### Immunity__RETURN__
-        These rates of infection were then applied
-        to each possible immunological past history of
-        preceding exposure to variant combinations and
-        their associated susceptibility to infection
-        to calculate the number of people infected
-        from each category and transition
-        them to their new immunological states.
-        Persons who had never previously been infected
-        with any strain were considered to have
-        no immunological protection,
-        and the rate of infection was not adjusted further.
-        We considered partial cross immunity was provided
-        by infection with a preceding variant strain
-        to infection with subsequent strains.
-        However, previously infected persons were assumed
-        to derive complete immunity to the infecting
-        strain and to variant strains that had emerged prior
-        to the infecting strain
-        (for example, past infection with Delta conferred
-        complete immunity against future infection with Alpha).
+
         """
         trans_proc = self.fit_process_curve(proc)
         gen_dist = GammaDens()
@@ -821,7 +758,16 @@ class WaningModel(MultiStrainModel):
         seed_abs_rates = jnp.exp(seed_rates) * self.pop
         half_dur = self.seed_duration / 2.0
 
+        time_immune = 180.0
+        wane_rate = 1.0 / time_immune
+
         def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
+            suscepts = state.suscept
+            wanes = suscepts * wane_rate
+            total_wanes = wanes.sum()
+            new_suscepts = suscepts - wanes
+            new_suscepts = new_suscepts.at[0].set(new_suscepts[0] + total_wanes)
+
             # Residual transmission scaling process (scalar)
             proc_val = trans_proc[t - self.start]
             # Mobility data (scalar)
@@ -838,21 +784,22 @@ class WaningModel(MultiStrainModel):
             # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             # Effective susceptibles (array, n_strains by 2 ** n_strains)
-            effect_suscepts = suscept_levels * state.suscept
+            effect_suscepts = suscept_levels * new_suscepts
             # Apply infection rates across susceptible categories (array, n_strains by 2 ** n_strains)
             actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
-            # Population distribution (vector, 2 ** n_strains)
-            suscept = state.suscept
             # Move susceptibles to recovered categories
             for s in range(self.n_strains):
-                suscept += actual_inc[s] @ self.trans_mats[s]
+                new_suscepts += actual_inc[s] @ self.trans_mats[s]
             # Incidence by strain (vector, n_strains)
             strain_inc = actual_inc.sum(axis=1)
             # Move up (array, n_strains by window_len)
             inc = jnp.concat([strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1)
             strain_out = {s: strain_inc[i_strain] for i_strain, s in enumerate(self.strains)}
-            suscept_out = {f"sus_{i}": suscept[i] for i in range(n_pops)}
-            return MultivarState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
+            suscept_out = {f"sus_{i}": new_suscepts[i] for i in range(n_pops)}
+            return (
+                MultivarState(inc, new_suscepts),
+                {"process": proc_val} | strain_out | suscept_out,
+            )
 
         end_state, out = lax.scan(update, MultivarState(init_inc, start_pop), self.model_times)
         return out
