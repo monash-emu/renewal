@@ -559,17 +559,8 @@ class MultiStrainModel:
         weekly_cases = self.get_period_output_from_daily(cases, DAYS_IN_WEEK)
         out["weekly_cases"] = weekly_cases[self.init_length :]
 
-        # Severity
-        if relseverity is None:
-            severity_vals = 1.0  # Only one strain
-        elif self.omicron_period:
-            # Omicron era for Oceania, Omicron subvariants have equivalent severity
-            severity_vals = jnp.ones(self.n_strains)
-        else:
-            # EU/Alpha/Delta period, each strain has different severity
-            severity_vals = jnp.cumprod(jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0))  
-
         # Deaths
+        severity_vals = jnp.cumprod(jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0))  
         vacc_death_protect = vacc_protect_death if self.omicron_period else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
 

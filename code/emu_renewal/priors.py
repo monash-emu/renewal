@@ -33,6 +33,7 @@ def get_standard_priors(
     n_strains: int,
     hosp_out_type: str,
     iso3: str,
+    continent: str,
 ) -> Dict[str, dist.Distribution]:
     """Load the priors from the yml and combine with
     standard hard-coded priors.
@@ -42,6 +43,7 @@ def get_standard_priors(
         hosp_out_type: The hospital-related indicator name
             Must be one of the keys to relevant_duration_priors below
         iso3: The country identifier
+        continent: The continent identifier
 
     Returns:
         The prior distributions
@@ -161,9 +163,13 @@ def get_standard_priors(
     infect_dist_prior = dist.TruncatedNormal(relinf_mean, RELINF_SD, low=RELINF_LOW, high=RELINF_UP)
     infect_dist = infect_dist_prior if n_strains > 1 else None
     inf_priors = {"relinfect": infect_dist}
-    relseverity_mean = jnp.repeat(1.5, n_strains - 1)
-    severity_dist_prior = dist.TruncatedNormal(relseverity_mean, 0.2, low=1.0, high=2.0)
-    severity_dist = severity_dist_prior if n_strains > 1 else None
+    if continent == "OC":
+        severity_dist = jnp.ones(n_strains - 1)
+    elif n_strains == 1:
+        severity_dist = jnp.empty(0)
+    else:
+        relseverity_mean = jnp.repeat(1.5, n_strains - 1)
+        severity_dist = dist.TruncatedNormal(relseverity_mean, 0.2, low=1.0, high=2.0)
     severity_priors = {"relseverity": severity_dist}
 
     # Miscellaneous
