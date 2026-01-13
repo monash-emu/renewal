@@ -36,7 +36,7 @@ from emu_renewal.inputs import (
     get_fb_singletile_mobility,
     get_linear_series_trend,
 )
-from emu_renewal.renew import MultiStrainModel
+from emu_renewal.renew import MultiStrainModel, WaningModel
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.priors import get_standard_priors
 from emu_renewal.outputs import store_outputs
@@ -140,7 +140,7 @@ def find_run_end_time(
 
     Notes
     -----
-    For all countries other than Singapore 
+    For all countries other than Singapore
     and those of Oceania,
     the end time for the analysis was calculated as
     the time that population vaccination coverage
@@ -262,12 +262,12 @@ def run_calibration(
 
     Notes
     -----
-    We ran the calibration algorithm with a warm-up of 
+    We ran the calibration algorithm with a warm-up of
     {N_ITERS} iterations for each of {N_CHAINS} chains
-    followed by {N_ITERS} evaluated iterations 
+    followed by {N_ITERS} evaluated iterations
     for the main analysis.
     We used a Hamiltonian Monte Carlo inference approach
-    with the No U-Turn Sampler (NUTS) with adaptive path length 
+    with the No U-Turn Sampler (NUTS) with adaptive path length
     and mass matrix adaptation from `numpyro`.
     """
     calib = StandardCalib(model, priors, targets)
@@ -360,7 +360,16 @@ def run_single_country(
 
     # Model construction
     omicron_period = continent == "OC"
-    model = MultiStrainModel(
+    # model = MultiStrainModel(
+    #     pop,
+    #     run_start,
+    #     end_time,
+    #     var_names,
+    #     seed_times,
+    #     mob_provider,
+    #     omicron_period,
+    # )
+    model = WaningModel(
         pop,
         run_start,
         end_time,
@@ -372,7 +381,9 @@ def run_single_country(
 
     # Calibration
     hosp_key = list(hosp_targ.keys())[0] if hosp_targ else ""
-    priors = get_standard_priors(len(var_names), hosp_key, iso3, continent) | mob_provider.get_priors()
+    priors = (
+        get_standard_priors(len(var_names), hosp_key, iso3, continent) | mob_provider.get_priors()
+    )
     targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | var_targs
     calib, mcmc = run_calibration(model, priors, targets, prog_bar, N_ITERS)
 

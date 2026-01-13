@@ -190,13 +190,13 @@ class MultiStrainModel:
         self.window_len = INIT_DURATION
 
     def initialise_var_proc(self):
-        """Initialise the structures needed for 
+        """Initialise the structures needed for
         the residual transmission scaling process.
 
         Notes
         -----
         Each time point for fitting the residual transmission scaling process
-        was set at intervals through the analysis period 
+        was set at intervals through the analysis period
         spaced by {PROC_UPDATE_FREQ} days
         working backwards from the end of the analysis period.
         The scaling process was then fit to these points using
@@ -222,7 +222,7 @@ class MultiStrainModel:
 
         Notes
         -----
-        A Wiener variable process was used to 
+        A Wiener variable process was used to
         capture variation in transmission over time.
         The starting value for this process was fixed at zero
         and the subsequent updates to the process were explored in calibration.
@@ -284,7 +284,7 @@ class MultiStrainModel:
         infectious individuals for each strain.
         These quantities were then multiplied by scalar values
         representing residual transmission scaling and
-        adjustment for mobility and divided through 
+        adjustment for mobility and divided through
         by the population size
         (to obtain the scaled per capita infectious population).
         This was multiplied by the strain-specific vector for
@@ -302,7 +302,7 @@ class MultiStrainModel:
         At each calculation day,
         the new strain-specific seeding values
         were added to the most recent value for the
-        strain-specific history of incidence. Infectiousness of 
+        strain-specific history of incidence. Infectiousness of
         each variant was specified
         with reference to the first modelled variant strain.
         __RETURN__### Immunity__RETURN__
@@ -314,7 +314,7 @@ class MultiStrainModel:
         from each category and transition
         them to their new immunological states.
         Persons who had never previously been infected
-        with any strain were considered to have 
+        with any strain were considered to have
         no immunological protection,
         and the rate of infection was not adjusted further.
         We considered partial cross immunity was provided
@@ -338,7 +338,11 @@ class MultiStrainModel:
         start_pop = start_pop.at[0].set(self.pop)
 
         # Strain infectiousness
-        relinfect_vals = 1.0 if relinfect is None else jnp.cumprod(jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0))
+        relinfect_vals = (
+            1.0
+            if relinfect is None
+            else jnp.cumprod(jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0))
+        )
 
         # Cross immunity, start with partial cross immunity
         suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
@@ -471,7 +475,7 @@ class MultiStrainModel:
         using a series of convolution operations
         applied to this series.
         Cases were calculated by convolving
-        the total incidence summed over strains 
+        the total incidence summed over strains
         with a gamma-distributed set of delays from
         incidence to notification
         which was truncated after {CONV_TRUNC_POINT} days.
@@ -479,7 +483,7 @@ class MultiStrainModel:
         the case detection rate (a proportion)
         and weekly cases were calculated by summing
         over the preceding {DAYS_IN_WEEK} days.__RETURN__
-        By contrast, deaths were calculated from 
+        By contrast, deaths were calculated from
         the strain-specific incidence to allow for
         strain-specific severity for analyses
         that ran during the pre-Omicron/pre-vaccination period.
@@ -487,22 +491,22 @@ class MultiStrainModel:
         time from incidence to death
         with the fraction of incident episodes
         resulting in death given by
-        the infection fatality rate adjusted 
+        the infection fatality rate adjusted
         for strain-specific severity.
         For Singapore and countries of Oceania,
         a reduction in the risk of death
         was applied because this analysis was performed
         after wide-scale population vaccination
         had been achieved and Omicron sub-variants
-        were the dominant strains, 
-        with severity assumed to be equivalent 
+        were the dominant strains,
+        with severity assumed to be equivalent
         for all Omicron sub-variants.
         The relative reduction in the risk of
         death during the later Omicron/vaccination period
         was set according to a parameter
-        specifying the protection of 
-        vaccination against death given infection 
-        and was not varied during calibration, 
+        specifying the protection of
+        vaccination against death given infection
+        and was not varied during calibration,
         because this would have been collinear
         with the risk of death parameter.__RETURN__
         As for cases and deaths, hospitalisations
@@ -517,7 +521,7 @@ class MultiStrainModel:
         The relative reduction in the risk of
         hospitalisation was set according to a vaccination
         protection against hospitalisation given
-        infection parameter. 
+        infection parameter.
         As for cases, deaths and hospitalisations,
         the convolution of time to ICU admission
         was parameterised independently.__RETURN__
@@ -526,8 +530,8 @@ class MultiStrainModel:
         admissions with the complement of
         the cumulative distribution of the
         time to hospital or ICU discharge.
-        For comparison to serosurveillance data, 
-        seropositivity was calculated as the complement of 
+        For comparison to serosurveillance data,
+        seropositivity was calculated as the complement of
         as the proportion of the population remaining
         in the entirely infection-na&iuml;ve immunity
         sub-population.
@@ -560,13 +564,17 @@ class MultiStrainModel:
         out["weekly_cases"] = weekly_cases[self.init_length :]
 
         # Deaths
-        severity_vals = jnp.cumprod(jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0))  
+        severity_vals = jnp.cumprod(jnp.pad(jnp.array(relseverity), [1, 0], constant_values=1.0))
         vacc_death_protect = vacc_protect_death if self.omicron_period else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
 
         ifr_by_strain = ifr * severity_vals
-        get_deaths_from_inc = lambda inc, ifr: self.get_output_from_inc(inc, death_mean, death_sd, ifr, output_dist)
-        strain_deaths = vmap(get_deaths_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, ifr_by_strain)
+        get_deaths_from_inc = lambda inc, ifr: self.get_output_from_inc(
+            inc, death_mean, death_sd, ifr, output_dist
+        )
+        strain_deaths = vmap(get_deaths_from_inc, in_axes=[0, 0], out_axes=0)(
+            full_strain_inc, ifr_by_strain
+        )
         deaths = strain_deaths.sum(axis=0) * rel_vacc_death
         out["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
@@ -579,8 +587,12 @@ class MultiStrainModel:
 
         # Hospital-related
         har_by_strain = har * severity_vals
-        get_hosp_from_inc = lambda inc, har: self.get_output_from_inc(inc, admit_mean, admit_sd, har, output_dist)
-        strain_hosps = vmap(get_hosp_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, har_by_strain)
+        get_hosp_from_inc = lambda inc, har: self.get_output_from_inc(
+            inc, admit_mean, admit_sd, har, output_dist
+        )
+        strain_hosps = vmap(get_hosp_from_inc, in_axes=[0, 0], out_axes=0)(
+            full_strain_inc, har_by_strain
+        )
         admissions = strain_hosps.sum(axis=0) * rel_vacc_hosp
         out["admissions"] = admissions[self.init_length :]
         weekly_admissions = self.get_period_output_from_daily(admissions, DAYS_IN_WEEK)
@@ -590,20 +602,29 @@ class MultiStrainModel:
 
         # ICU-related
         icuar_by_strain = icuar * severity_vals
-        get_icu_from_inc = lambda inc, icuar: self.get_output_from_inc(inc, icu_admit_mean, icu_admit_sd, icuar, output_dist)
-        strain_icus = vmap(get_icu_from_inc, in_axes=[0, 0], out_axes=0)(full_strain_inc, icuar_by_strain)
+        get_icu_from_inc = lambda inc, icuar: self.get_output_from_inc(
+            inc, icu_admit_mean, icu_admit_sd, icuar, output_dist
+        )
+        strain_icus = vmap(get_icu_from_inc, in_axes=[0, 0], out_axes=0)(
+            full_strain_inc, icuar_by_strain
+        )
         icu_admits = strain_icus.sum(axis=0) * rel_vacc_hosp
         out["icu_admissions"] = icu_admits[self.init_length :]
         icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, DAYS_IN_WEEK)
         out["icu_weekly_admissions"] = icu_weekly_admissions[self.init_length :]
-        icu_occupancy = self.get_occupancy_from_admits(icu_admits, icu_stay_mean, icu_stay_sd, discharge_dist)
+        icu_occupancy = self.get_occupancy_from_admits(
+            icu_admits, icu_stay_mean, icu_stay_sd, discharge_dist
+        )
         out["icu_occupancy"] = icu_occupancy[self.init_length :]
 
         # Seropositivity
         out["seropos"] = (self.pop - out["sus_0"]) / self.pop
 
         # Variant proportions
-        var_props = {f"prop_{strain}": full_strain_inc[s, self.init_length:] / full_inc[self.init_length:] for s, strain in enumerate(self.strains)}
+        var_props = {
+            f"prop_{strain}": full_strain_inc[s, self.init_length :] / full_inc[self.init_length :]
+            for s, strain in enumerate(self.strains)
+        }
         return out | var_props
 
     def get_output_from_inc(
@@ -669,3 +690,169 @@ class MultiStrainModel:
         """
         discharge = 1.0 - discharge_dist.get_cum_dens(self.window_len, stay_mean, stay_sd)
         return jnp.convolve(full_admits, discharge)[: len(full_admits)]
+
+
+class WaningModel(MultiStrainModel):
+
+    def renew(
+        self,
+        beta: float,
+        proc: List[float],
+        mean: float,
+        sd: float,
+        cross_immunity: float,
+        seed_rates: List[float],
+        relinfect: Optional[List[float]],
+        seed_offsets: Optional[List[float]],
+        **kwargs,
+    ) -> jnp.array:
+        """Main function implementing the renewal process,
+        see Notes for description.
+
+        Args:
+            See renewal_func
+
+        Returns:
+            The numerical results of the analysis
+
+        Notes
+        -----
+        For all analyses, the starting population
+        minus the seeding values for the first strain
+        was assigned to the fully susceptible category.
+        __RETURN__### Generation interval__RETURN__
+        A gamma-distributed generation interval
+        was used for the renewal process.
+        This is consistent with an investigation of
+        household clusters from Germany that showed
+        the profile of serial intervals
+        was well matched by a gamma distribution.[@anderheiden2022]
+        The generation interval was truncated
+        at {GEN_TRUNC_POINT} days,
+        because the density reached negligible values beyond
+        this point.
+        __RETURN__### Renewal process__RETURN__
+        The strain-specific incidence array
+        updated for strain seeding was convolved with
+        the generation interval distribution vector
+        to create an array of the effective number of
+        infectious individuals for each strain.
+        These quantities were then multiplied by scalar values
+        representing residual transmission scaling and
+        adjustment for mobility and divided through
+        by the population size
+        (to obtain the scaled per capita infectious population).
+        This was multiplied by the strain-specific vector for
+        the relative infectiousness of each strain
+        to derive the calculated per capita rate of infection.
+        We then determined the actual rate of infection
+        for each strain as $1 - e^{{-\lambda}}$
+        (where $\lambda$ represents the calculated infection rate)
+        to ensure that the per capita risk
+        of infection could not exceed one in a time step.
+        __RETURN__### Variant seeding__RETURN__
+        Each newly emerging strain was seeded using a triangular
+        pulse of new infections for which the peak per capita
+        seeding rate was specified as a parameter.
+        At each calculation day,
+        the new strain-specific seeding values
+        were added to the most recent value for the
+        strain-specific history of incidence. Infectiousness of
+        each variant was specified
+        with reference to the first modelled variant strain.
+        __RETURN__### Immunity__RETURN__
+        These rates of infection were then applied
+        to each possible immunological past history of
+        preceding exposure to variant combinations and
+        their associated susceptibility to infection
+        to calculate the number of people infected
+        from each category and transition
+        them to their new immunological states.
+        Persons who had never previously been infected
+        with any strain were considered to have
+        no immunological protection,
+        and the rate of infection was not adjusted further.
+        We considered partial cross immunity was provided
+        by infection with a preceding variant strain
+        to infection with subsequent strains.
+        However, previously infected persons were assumed
+        to derive complete immunity to the infecting
+        strain and to variant strains that had emerged prior
+        to the infecting strain
+        (for example, past infection with Delta conferred
+        complete immunity against future infection with Alpha).
+        """
+        trans_proc = self.fit_process_curve(proc)
+        gen_dist = GammaDens()
+        gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
+
+        # Starting population
+        init_inc = jnp.zeros([self.n_strains, self.init_length])
+        n_pops = self.strain_map.shape[1]
+        start_pop = jnp.zeros(n_pops)
+        start_pop = start_pop.at[0].set(self.pop)
+
+        # Strain infectiousness
+        relinfect_vals = (
+            1.0
+            if relinfect is None
+            else jnp.cumprod(jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0))
+        )
+
+        # Cross immunity, start with partial cross immunity
+        suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
+        # Complete susceptibility if never infected before
+        suscept_levels = suscept_levels.at[:, 0].set(1.0)
+        # Forbid reinfection with earlier strains after later emerging ones
+        earlier_strain = get_col_increases(self.strain_map)
+        reset_array = get_reset_array_from_increases(earlier_strain)
+        suscept_levels = suscept_levels * (~reset_array).astype(float)
+
+        # Mobility
+        mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
+
+        # Seeding
+        first_data_start = jnp.array([-1.0])
+        other_data_starts = jnp.array([self.epoch.dti_to_index(s) for s in self.var_times])
+        data_starts = jnp.concat([first_data_start, other_data_starts])
+        first_offset = jnp.array([0.0])
+        other_offsets = jnp.zeros(0) if seed_offsets is None else seed_offsets
+        offsets = jnp.concat([first_offset, other_offsets])
+        seed_abs_rates = jnp.exp(seed_rates) * self.pop
+        half_dur = self.seed_duration / 2.0
+
+        def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
+            # Residual transmission scaling process (scalar)
+            proc_val = trans_proc[t - self.start]
+            # Mobility data (scalar)
+            mob_val = mobility[t - self.start]
+            # Seed (vector, n_strains)
+            peak = data_starts - offsets + half_dur
+            seed = get_triang_vals(t, peak, seed_abs_rates, half_dur)
+            # Incidence history (array, n_strains by window_len)
+            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed)
+            # Incidence convolved with generation (vector, n_strains)
+            contributions = (gen_densities * past_inc).sum(axis=1)
+            # Calculated infection rate (vector, n_strains)
+            calc_inf_rates = contributions * beta * proc_val * mob_val * relinfect_vals / self.pop
+            # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
+            actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
+            # Effective susceptibles (array, n_strains by 2 ** n_strains)
+            effect_suscepts = suscept_levels * state.suscept
+            # Apply infection rates across susceptible categories (array, n_strains by 2 ** n_strains)
+            actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
+            # Population distribution (vector, 2 ** n_strains)
+            suscept = state.suscept
+            # Move susceptibles to recovered categories
+            for s in range(self.n_strains):
+                suscept += actual_inc[s] @ self.trans_mats[s]
+            # Incidence by strain (vector, n_strains)
+            strain_inc = actual_inc.sum(axis=1)
+            # Move up (array, n_strains by window_len)
+            inc = jnp.concat([strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1)
+            strain_out = {s: strain_inc[i_strain] for i_strain, s in enumerate(self.strains)}
+            suscept_out = {f"sus_{i}": suscept[i] for i in range(n_pops)}
+            return MultivarState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
+
+        end_state, out = lax.scan(update, MultivarState(init_inc, start_pop), self.model_times)
+        return out
