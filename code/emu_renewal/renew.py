@@ -247,6 +247,7 @@ class MultiStrainModel:
         sd: float,
         cross_immunity: float,
         seed_rates: List[float],
+        time_immune: Optional[float],
         relinfect: Optional[List[float]],
         seed_offsets: Optional[List[float]],
         **kwargs,
@@ -426,6 +427,7 @@ class MultiStrainModel:
         icuar: float,
         cross_immunity: float,
         seed_rates: List[float],
+        time_immune: Optional[float],
         relinfect: Optional[List[float]],
         relseverity: Optional[List[float]],
         seed_offsets: Optional[List[float]],
@@ -546,6 +548,7 @@ class MultiStrainModel:
             gen_sd,
             cross_immunity,
             seed_rates,
+            time_immune,
             relinfect,
             seed_offsets,
             **kwargs,
@@ -702,6 +705,7 @@ class WaningModel(MultiStrainModel):
         sd: float,
         cross_immunity: float,
         seed_rates: List[float],
+        time_immune: float,
         relinfect: Optional[List[float]],
         seed_offsets: Optional[List[float]],
         **kwargs,
@@ -717,7 +721,8 @@ class WaningModel(MultiStrainModel):
 
         Notes
         -----
-
+        Same as for the renew function to MultiStrainModel,
+        but adding waning immunity.
         """
         trans_proc = self.fit_process_curve(proc)
         gen_dist = GammaDens()
@@ -758,15 +763,14 @@ class WaningModel(MultiStrainModel):
         seed_abs_rates = jnp.exp(seed_rates) * self.pop
         half_dur = self.seed_duration / 2.0
 
-        time_immune = 180.0
-        wane_rate = 1.0 / time_immune
-
         def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
+
+            # Waning immunity for anyone infected in a preceding time step
             suscepts = state.suscept
-            wanes = suscepts * wane_rate
+            wanes = suscepts / time_immune
             total_wanes = wanes.sum()
-            new_suscepts = suscepts - wanes
-            new_suscepts = new_suscepts.at[0].set(new_suscepts[0] + total_wanes)
+            new_sus = suscepts - wanes
+            new_sus = new_sus.at[0].set(new_sus[0] + total_wanes)
 
             # Residual transmission scaling process (scalar)
             proc_val = trans_proc[t - self.start]
@@ -784,22 +788,19 @@ class WaningModel(MultiStrainModel):
             # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             # Effective susceptibles (array, n_strains by 2 ** n_strains)
-            effect_suscepts = suscept_levels * new_suscepts
+            effect_suscepts = suscept_levels * new_sus
             # Apply infection rates across susceptible categories (array, n_strains by 2 ** n_strains)
             actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
             # Move susceptibles to recovered categories
             for s in range(self.n_strains):
-                new_suscepts += actual_inc[s] @ self.trans_mats[s]
+                new_sus += actual_inc[s] @ self.trans_mats[s]
             # Incidence by strain (vector, n_strains)
             strain_inc = actual_inc.sum(axis=1)
             # Move up (array, n_strains by window_len)
             inc = jnp.concat([strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1)
             strain_out = {s: strain_inc[i_strain] for i_strain, s in enumerate(self.strains)}
-            suscept_out = {f"sus_{i}": new_suscepts[i] for i in range(n_pops)}
-            return (
-                MultivarState(inc, new_suscepts),
-                {"process": proc_val} | strain_out | suscept_out,
-            )
+            suscept_out = {f"sus_{i}": new_sus[i] for i in range(n_pops)}
+            return (MultivarState(inc, new_sus), {"process": proc_val} | strain_out | suscept_out)
 
         end_state, out = lax.scan(update, MultivarState(init_inc, start_pop), self.model_times)
         return out

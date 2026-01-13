@@ -34,6 +34,7 @@ def get_standard_priors(
     hosp_out_type: str,
     iso3: str,
     continent: str,
+    waning: bool,
 ) -> Dict[str, dist.Distribution]:
     """Load the priors from the yml and combine with
     standard hard-coded priors.
@@ -61,7 +62,7 @@ def get_standard_priors(
     of incidence resulting in the key outputs for calibration,
     we analytically calculated the parameters to the beta
     distribution from the desired mean and standard deviation
-    determined from the literature. 
+    determined from the literature.
     These parameters comprised the infection fatality rate,
     the case detection proportion and, where applicable,
     the hospital or ICU admission proportion.
@@ -180,6 +181,7 @@ def get_standard_priors(
     disp_prior = {"shared_dispersion": dist.HalfNormal(SHARED_DISP_SD)}
     prop_disp_prior = {"prop_disp": PROP_DISP}
     seroprev_disp = {"seroprev_disp": SEROPREV_DISP}
+    waning_prior = {"time_immune": 180.0} if waning else {}
 
     return (
         rel_durs
@@ -196,4 +198,5 @@ def get_standard_priors(
         | seroprev_disp
         | vacc_protect_hosp
         | vacc_protect_death
+        | waning_prior
     )

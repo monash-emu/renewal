@@ -360,30 +360,32 @@ def run_single_country(
 
     # Model construction
     omicron_period = continent == "OC"
-    # model = MultiStrainModel(
-    #     pop,
-    #     run_start,
-    #     end_time,
-    #     var_names,
-    #     seed_times,
-    #     mob_provider,
-    #     omicron_period,
-    # )
-    model = WaningModel(
-        pop,
-        run_start,
-        end_time,
-        var_names,
-        seed_times,
-        mob_provider,
-        omicron_period,
-    )
+    waning = False
+    if waning:
+        model = WaningModel(
+            pop,
+            run_start,
+            end_time,
+            var_names,
+            seed_times,
+            mob_provider,
+            omicron_period,
+        )
+    else:
+        model = MultiStrainModel(
+            pop,
+            run_start,
+            end_time,
+            var_names,
+            seed_times,
+            mob_provider,
+            omicron_period,
+        )
 
     # Calibration
     hosp_key = list(hosp_targ.keys())[0] if hosp_targ else ""
-    priors = (
-        get_standard_priors(len(var_names), hosp_key, iso3, continent) | mob_provider.get_priors()
-    )
+    standard_priors = get_standard_priors(len(var_names), hosp_key, iso3, continent, waning)
+    priors = standard_priors | mob_provider.get_priors()
     targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | var_targs
     calib, mcmc = run_calibration(model, priors, targets, prog_bar, N_ITERS)
 
