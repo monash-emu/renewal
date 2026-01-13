@@ -36,7 +36,7 @@ from emu_renewal.inputs import (
     get_fb_singletile_mobility,
     get_linear_series_trend,
 )
-from emu_renewal.renew import MultiStrainModel, WaningModel
+from emu_renewal.renew import MultiStrainModel
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.priors import get_standard_priors
 from emu_renewal.outputs import store_outputs
@@ -284,6 +284,7 @@ def run_single_country(
     country: str,
     mob_source: str,
     task_name: str,
+    waning: bool,
     prog_bar=False,
     logger=None,
 ):
@@ -360,27 +361,16 @@ def run_single_country(
 
     # Model construction
     omicron_period = continent == "OC"
-    waning = True
-    if waning:
-        model = WaningModel(
-            pop,
-            run_start,
-            end_time,
-            var_names,
-            seed_times,
-            mob_provider,
-            omicron_period,
-        )
-    else:
-        model = MultiStrainModel(
-            pop,
-            run_start,
-            end_time,
-            var_names,
-            seed_times,
-            mob_provider,
-            omicron_period,
-        )
+    model = MultiStrainModel(
+        pop,
+        run_start,
+        end_time,
+        var_names,
+        seed_times,
+        mob_provider,
+        omicron_period,
+        waning,
+    )
 
     # Calibration
     hosp_key = list(hosp_targ.keys())[0] if hosp_targ else ""

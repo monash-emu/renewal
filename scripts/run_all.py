@@ -32,6 +32,6 @@ if __name__ == "__main__":
         )
         for mob_type in analyses:
             try:
-                run_single_country(c, mob_type, task, logger=logger)
+                run_single_country(c, mob_type, task, False, logger=logger)
             except MobilityException as e:
                 logger.warning(e)

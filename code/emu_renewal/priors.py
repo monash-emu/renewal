@@ -184,7 +184,8 @@ def get_standard_priors(
     seroprev_disp = {"seroprev_disp": SEROPREV_DISP}
     imm_mean = loaded_priors["durations"]["immune"]["mean"]
     imm_sd = loaded_priors["durations"]["immune"]["sd"]
-    waning_prior = {"imm_time": dist.TruncatedNormal(imm_mean, imm_sd, low=30.0)} if waning else {}
+    wane_dist = dist.TruncatedNormal(imm_mean, imm_sd, low=30.0) if waning else 0.0
+    waning_prior = {"imm_time": wane_dist}
 
     return (
         rel_durs

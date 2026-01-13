@@ -146,6 +146,7 @@ class MultiStrainModel:
         seed_times: List[datetime],
         mobility: MobilityProvider,
         omicron_period: bool,
+        waning: bool,
     ):
         """Construct the object for running the renewal process.
 
@@ -169,6 +170,7 @@ class MultiStrainModel:
         self.seed_duration = SEED_DURATION
         self.init_length = INIT_DURATION
         self.omicron_period = omicron_period
+        self.waning = waning
 
         # Times
         self.epoch = Epoch(start)
@@ -368,6 +370,15 @@ class MultiStrainModel:
         half_dur = self.seed_duration / 2.0
 
         def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
+            # Waning immunity for anyone infected in a preceding time step
+            if self.waning:
+                suscepts = state.suscept
+                wanes = suscepts / imm_time
+                total_wanes = wanes.sum()
+                new_sus = suscepts - wanes
+                new_sus = new_sus.at[0].set(new_sus[0] + total_wanes)
+            else:
+                new_sus = state.suscept
             # Residual transmission scaling process (scalar)
             proc_val = trans_proc[t - self.start]
             # Mobility data (scalar)
@@ -384,21 +395,19 @@ class MultiStrainModel:
             # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             # Effective susceptibles (array, n_strains by 2 ** n_strains)
-            effect_suscepts = suscept_levels * state.suscept
+            effect_suscepts = suscept_levels * new_sus
             # Apply infection rates across susceptible categories (array, n_strains by 2 ** n_strains)
             actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
-            # Population distribution (vector, 2 ** n_strains)
-            suscept = state.suscept
             # Move susceptibles to recovered categories
             for s in range(self.n_strains):
-                suscept += actual_inc[s] @ self.trans_mats[s]
+                new_sus += actual_inc[s] @ self.trans_mats[s]
             # Incidence by strain (vector, n_strains)
             strain_inc = actual_inc.sum(axis=1)
             # Move up (array, n_strains by window_len)
             inc = jnp.concat([strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1)
             strain_out = {s: strain_inc[i_strain] for i_strain, s in enumerate(self.strains)}
-            suscept_out = {f"sus_{i}": suscept[i] for i in range(n_pops)}
-            return MultivarState(inc, suscept), {"process": proc_val} | strain_out | suscept_out
+            suscept_out = {f"sus_{i}": new_sus[i] for i in range(n_pops)}
+            return (MultivarState(inc, new_sus), {"process": proc_val} | strain_out | suscept_out)
 
         end_state, out = lax.scan(update, MultivarState(init_inc, start_pop), self.model_times)
         return out
@@ -555,9 +564,9 @@ class MultiStrainModel:
         )
 
         # Incidence
-        strain_inc = jnp.array([out[strain] for strain in self.strains])
-        full_strain_inc = jnp.pad(strain_inc, [[0, 0], [self.init_length, 0]])
-        full_inc = full_strain_inc.sum(axis=0)
+        raw_strain_inc = jnp.array([out[strain] for strain in self.strains])
+        strain_inc = jnp.pad(raw_strain_inc, [[0, 0], [self.init_length, 0]])
+        full_inc = strain_inc.sum(axis=0)
 
         # Cases
         output_dist = GammaDens()
@@ -571,13 +580,11 @@ class MultiStrainModel:
         vacc_death_protect = vacc_protect_death if self.omicron_period else 0.0
         rel_vacc_death = 1.0 - vacc_death_protect
 
-        ifr_by_strain = ifr * severity_vals
-        get_deaths_from_inc = lambda inc, ifr: self.get_output_from_inc(
+        strain_ifr = ifr * severity_vals
+        deaths_from_inc = lambda inc, ifr: self.get_output_from_inc(
             inc, death_mean, death_sd, ifr, output_dist
         )
-        strain_deaths = vmap(get_deaths_from_inc, in_axes=[0, 0], out_axes=0)(
-            full_strain_inc, ifr_by_strain
-        )
+        strain_deaths = vmap(deaths_from_inc, in_axes=[0, 0], out_axes=0)(strain_inc, strain_ifr)
         deaths = strain_deaths.sum(axis=0) * rel_vacc_death
         out["deaths"] = deaths[self.init_length :]
         weekly_deaths = self.get_period_output_from_daily(deaths, DAYS_IN_WEEK)
@@ -590,12 +597,10 @@ class MultiStrainModel:
 
         # Hospital-related
         har_by_strain = har * severity_vals
-        get_hosp_from_inc = lambda inc, har: self.get_output_from_inc(
+        hosp_from_inc = lambda inc, har: self.get_output_from_inc(
             inc, admit_mean, admit_sd, har, output_dist
         )
-        strain_hosps = vmap(get_hosp_from_inc, in_axes=[0, 0], out_axes=0)(
-            full_strain_inc, har_by_strain
-        )
+        strain_hosps = vmap(hosp_from_inc, in_axes=[0, 0], out_axes=0)(strain_inc, har_by_strain)
         admissions = strain_hosps.sum(axis=0) * rel_vacc_hosp
         out["admissions"] = admissions[self.init_length :]
         weekly_admissions = self.get_period_output_from_daily(admissions, DAYS_IN_WEEK)
@@ -605,12 +610,10 @@ class MultiStrainModel:
 
         # ICU-related
         icuar_by_strain = icuar * severity_vals
-        get_icu_from_inc = lambda inc, icuar: self.get_output_from_inc(
+        icu_from_inc = lambda inc, icuar: self.get_output_from_inc(
             inc, icu_admit_mean, icu_admit_sd, icuar, output_dist
         )
-        strain_icus = vmap(get_icu_from_inc, in_axes=[0, 0], out_axes=0)(
-            full_strain_inc, icuar_by_strain
-        )
+        strain_icus = vmap(icu_from_inc, in_axes=[0, 0], out_axes=0)(strain_inc, icuar_by_strain)
         icu_admits = strain_icus.sum(axis=0) * rel_vacc_hosp
         out["icu_admissions"] = icu_admits[self.init_length :]
         icu_weekly_admissions = self.get_period_output_from_daily(icu_admits, DAYS_IN_WEEK)
@@ -625,7 +628,7 @@ class MultiStrainModel:
 
         # Variant proportions
         var_props = {
-            f"prop_{strain}": full_strain_inc[s, self.init_length :] / full_inc[self.init_length :]
+            f"prop_{strain}": strain_inc[s, self.init_length :] / full_inc[self.init_length :]
             for s, strain in enumerate(self.strains)
         }
         return out | var_props
@@ -693,112 +696,3 @@ class MultiStrainModel:
         """
         discharge = 1.0 - discharge_dist.get_cum_dens(self.window_len, stay_mean, stay_sd)
         return jnp.convolve(full_admits, discharge)[: len(full_admits)]
-
-
-class WaningModel(MultiStrainModel):
-
-    def renew(
-        self,
-        beta: float,
-        proc: List[float],
-        mean: float,
-        sd: float,
-        cross_immunity: float,
-        seed_rates: List[float],
-        imm_time: float,
-        relinfect: Optional[List[float]],
-        seed_offsets: Optional[List[float]],
-        **kwargs,
-    ) -> jnp.array:
-        """Main function implementing the renewal process,
-        see Notes for description.
-
-        Args:
-            See renewal_func
-
-        Returns:
-            The numerical results of the analysis
-
-        Notes
-        -----
-        Same as for the renew function to MultiStrainModel,
-        but adding waning immunity.
-        """
-        trans_proc = self.fit_process_curve(proc)
-        gen_dist = GammaDens()
-        gen_densities = gen_dist.get_densities(GEN_TRUNC_POINT, mean, sd)
-
-        # Starting population
-        init_inc = jnp.zeros([self.n_strains, self.init_length])
-        n_pops = self.strain_map.shape[1]
-        start_pop = jnp.zeros(n_pops)
-        start_pop = start_pop.at[0].set(self.pop)
-
-        # Strain infectiousness
-        relinfect_vals = (
-            1.0
-            if relinfect is None
-            else jnp.cumprod(jnp.pad(jnp.array(relinfect), [1, 0], constant_values=1.0))
-        )
-
-        # Cross immunity, start with partial cross immunity
-        suscept_levels = (~jnp.array(self.strain_map)).astype(float) * (1.0 - cross_immunity)
-        # Complete susceptibility if never infected before
-        suscept_levels = suscept_levels.at[:, 0].set(1.0)
-        # Forbid reinfection with earlier strains after later emerging ones
-        earlier_strain = get_col_increases(self.strain_map)
-        reset_array = get_reset_array_from_increases(earlier_strain)
-        suscept_levels = suscept_levels * (~reset_array).astype(float)
-
-        # Mobility
-        mobility = self.mob_provider.get_parameterised_mobility(**kwargs)
-
-        # Seeding
-        first_data_start = jnp.array([-1.0])
-        other_data_starts = jnp.array([self.epoch.dti_to_index(s) for s in self.var_times])
-        data_starts = jnp.concat([first_data_start, other_data_starts])
-        first_offset = jnp.array([0.0])
-        other_offsets = jnp.zeros(0) if seed_offsets is None else seed_offsets
-        offsets = jnp.concat([first_offset, other_offsets])
-        seed_abs_rates = jnp.exp(seed_rates) * self.pop
-        half_dur = self.seed_duration / 2.0
-
-        def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
-            # Waning immunity for anyone infected in a preceding time step
-            suscepts = state.suscept
-            wanes = suscepts / imm_time
-            total_wanes = wanes.sum()
-            new_sus = suscepts - wanes
-            new_sus = new_sus.at[0].set(new_sus[0] + total_wanes)
-            # Residual transmission scaling process (scalar)
-            proc_val = trans_proc[t - self.start]
-            # Mobility data (scalar)
-            mob_val = mobility[t - self.start]
-            # Seed (vector, n_strains)
-            peak = data_starts - offsets + half_dur
-            seed = get_triang_vals(t, peak, seed_abs_rates, half_dur)
-            # Incidence history (array, n_strains by window_len)
-            past_inc = state.incidence.at[:, 0].set(state.incidence[:, 0] + seed)
-            # Incidence convolved with generation (vector, n_strains)
-            contributions = (gen_densities * past_inc).sum(axis=1)
-            # Calculated infection rate (vector, n_strains)
-            calc_inf_rates = contributions * beta * proc_val * mob_val * relinfect_vals / self.pop
-            # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
-            actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
-            # Effective susceptibles (array, n_strains by 2 ** n_strains)
-            effect_suscepts = suscept_levels * new_sus
-            # Apply infection rates across susceptible categories (array, n_strains by 2 ** n_strains)
-            actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
-            # Move susceptibles to recovered categories
-            for s in range(self.n_strains):
-                new_sus += actual_inc[s] @ self.trans_mats[s]
-            # Incidence by strain (vector, n_strains)
-            strain_inc = actual_inc.sum(axis=1)
-            # Move up (array, n_strains by window_len)
-            inc = jnp.concat([strain_inc[:, jnp.newaxis], past_inc[:, :-1]], axis=1)
-            strain_out = {s: strain_inc[i_strain] for i_strain, s in enumerate(self.strains)}
-            suscept_out = {f"sus_{i}": new_sus[i] for i in range(n_pops)}
-            return (MultivarState(inc, new_sus), {"process": proc_val} | strain_out | suscept_out)
-
-        end_state, out = lax.scan(update, MultivarState(init_inc, start_pop), self.model_times)
-        return out
