@@ -360,6 +360,7 @@ def run_single_country(
         mob_provider = get_mobility_provider(iso3, mob_source)
     except MobilityException as e:
         logger.warning(e)
+        return
     if mob_provider.mob_end:
         end_time = min([end_time, mob_provider.mob_end])
 
