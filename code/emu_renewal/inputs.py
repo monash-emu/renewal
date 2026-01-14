@@ -529,7 +529,7 @@ def get_linear_series_trend(
     """Get the linear trend of a series for
     multiplicative detrending.
     Assumes that the series starts from a value of one,
-    as it should with our mobility metrics.
+    as it should with Google mobility metrics.
     Finds the linear trend through to the mean
     value of the end period.
 
