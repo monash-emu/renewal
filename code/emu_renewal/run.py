@@ -224,7 +224,7 @@ def get_mobility_provider(
         mob = get_google_mobility(iso3)
     elif mob_source == "g_mob_detrend":
         raw_mob = get_google_mobility(iso3)
-        if raw_mob.tail(G_MOB_DETREND_THRESHOLD).mean().max() < G_MOB_DETREND_THRESHOLD:
+        if raw_mob.tail(G_MOB_DETREND_END_PERIOD).mean().max() < G_MOB_DETREND_THRESHOLD:
             msg = "Detrended Google mobility analysis not run, threshold not reached"
             raise MobilityException(msg)
         else:
