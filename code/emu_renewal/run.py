@@ -210,10 +210,16 @@ def get_mobility_provider(
     was assigned a uniform prior over domain
     [{EXP_PRIOR_LOWER}, {EXP_PRIOR_UPPER}].
     """
+    cont = get_cont_of_country(iso3)
 
     # Data processing
-    if mob_source in ["no_mob", "fb_no_mob"]:
+    if mob_source == "no_mob":
         return mobility.NoMobilityProvider()
+    elif mob_source == "fb_no_mob" and cont == "OC" and iso3 != "SGP":
+        return mobility.NoMobilityProvider()
+    elif mob_source == "fb_no_mob":
+        msg = "Separate Facebook no mobility comparison not required"
+        raise MobilityException(msg)
     elif mob_source == "g_mob":
         mob = get_google_mobility(iso3)
     elif mob_source == "g_mob_detrend":

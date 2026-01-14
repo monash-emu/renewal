@@ -13,7 +13,7 @@ DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
 # Analysis types
-ANALYSIS_TYPES = ["no_mob", "g_mob", "g_mob_detrend", "fb_visited_mob", "fb_singletile_mob"]
+ANALYSIS_TYPES = ["no_mob", "g_mob", "g_mob_detrend", "fb_no_mob", "fb_visited_mob", "fb_singletile_mob"]
 
 # Dates
 CASES_START = "1 June 2020"
