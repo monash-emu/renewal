@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Union
 from pathlib import Path
 import warnings
 from os import listdir as ls
@@ -24,14 +24,17 @@ import pycountry_convert as pc
 from geopandas import GeoDataFrame
 from IPython.display import display, Markdown
 from plotly import graph_objects as go
+from estival.sampling import tools as esamp
 
+from emu_renewal.outputs import run_for_spaghetti, get_spagh_df_from_dict
+from emu_renewal.calibration import StandardCalib
 from emu_renewal.constants import (
-    ANALYSIS_TYPES, 
-    ANALYSIS_NAMES, 
-    MOB_SOURCE_ABBREVS, 
+    ANALYSIS_TYPES,
+    ANALYSIS_NAMES,
+    MOB_SOURCE_ABBREVS,
     MOB_SOURCE_COLOURS,
     MOB_LOCATION_SOURCE_MAP,
-    DUR_MIN, 
+    DUR_MIN,
     DUR_REL_MAX,
     TARGET_TYPES,
     VAR_NAME_MAP,
@@ -40,6 +43,8 @@ from emu_renewal.constants import (
     G_MOB_LOCATION_CMAP,
     MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
+    EXP_PRIOR_LOWER,
+    EXP_PRIOR_UPPER,
 )
 from emu_renewal.inputs import (
     DATA_PATH,
@@ -52,14 +57,24 @@ from emu_renewal.inputs import (
     get_g_mob_quants,
     get_smoothed_trunc_g_mob,
 )
-from emu_renewal.outputs import get_idatas_for_mob_type, get_median_ratios, get_param_vals_by_analysis
-from emu_renewal.utils import get_param_dim, get_beta_params_from_mean_var, get_cont_of_country, get_country_short_name, get_country_name
+from emu_renewal.outputs import (
+    get_idatas_for_mob_type,
+    get_median_ratios,
+    get_param_vals_by_analysis,
+)
+from emu_renewal.utils import (
+    get_param_dim,
+    get_beta_params_from_mean_var,
+    get_cont_of_country,
+    get_country_short_name,
+    get_country_name,
+)
 
 plt.style.use("ggplot")
 
 
 def get_standard_subplot(
-    n_subplots: int, 
+    n_subplots: int,
     n_cols: int,
 ) -> tuple:
     """Get a standard multi-panel figure, axes combination
@@ -143,7 +158,9 @@ def plot_multianalysis_fit(
     fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharey="row")
     for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
-        analysis_name = ANALYSIS_NAMES[analysis] if len(ordered_analyses) < 4 else MOB_SOURCE_ABBREVS[analysis]
+        analysis_name = (
+            ANALYSIS_NAMES[analysis] if len(ordered_analyses) < 4 else MOB_SOURCE_ABBREVS[analysis]
+        )
         for o, out in enumerate(ordered_targets):
             ax = axes[o] if n_analyses == 1 else axes[o, a]
             a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.1, alpha=0.1)
@@ -208,7 +225,7 @@ def get_prior_vals_from_dist(
     dist: dist.Distribution,
     i_element: int,
 ) -> np.array:
-    """Get the densities of a distribution, 
+    """Get the densities of a distribution,
     accounting for it potentially having multiple elements
     (i.e. being multiple distributions).
 
@@ -300,9 +317,9 @@ def plot_prior_multipost(
         analyses = [a for a in ANALYSIS_NAMES if a in idatas]
         for a in analyses:
             idata = idatas[a]
-            colour =[MOB_SOURCE_COLOURS[a]]
+            colour = [MOB_SOURCE_COLOURS[a]]
             az.plot_density(idata, ax=axes[n_ax:], hdi_prob=0.99, colors=colour, var_names=p)
-    
+
             # Legend
             if p == params[-1]:
                 ax = axes[n_ax]
@@ -340,7 +357,7 @@ def plot_prior_multipost(
 def plot_imm_props(
     spaghetti: pd.DataFrame,
 ) -> go.Figure:
-    """Plot susceptible population proportions from 
+    """Plot susceptible population proportions from
     a randomly selected run from calibratin spaghetti.
 
     Args:
@@ -349,7 +366,9 @@ def plot_imm_props(
     Returns:
         The figure
     """
-    imm_groups = sorted([c for c in set(spaghetti.columns.get_level_values(0)) if c.startswith("sus_")])
+    imm_groups = sorted(
+        [c for c in set(spaghetti.columns.get_level_values(0)) if c.startswith("sus_")]
+    )
     run = choice(spaghetti.columns.get_level_values(1))
     return spaghetti.xs(run, axis=1, level=1)[imm_groups].plot.area()
 
@@ -364,24 +383,24 @@ def plot_beta_priors(
     """
     fig, axes = plt.subplots(len(priors), 1, figsize=(15, 15))
     for p, (param_name, param) in enumerate(priors.items()):
-    
+
         # Get the distribution
         a, b = get_beta_params_from_mean_var(param["mean"], param["std"])
         distri = dist.Beta(a, b)
-    
+
         # Calculate the values
         max_val = 1.0 if param_name in ["cdr", "cross_immunity"] else 0.05
         x_vals = np.linspace(0.0, max_val, 1000)
         y_vals = np.exp(distri.log_prob(x_vals))
-    
+
         # Plot
         ax = axes[p]
         ax.set_title(param["param_name"], fontsize=24)
         ax.fill_between(x_vals, y_vals, color="0.8")
         ax.plot(x_vals, y_vals, color="k", linewidth=2.0)
-        ax.tick_params(axis="both", labelsize=20) 
+        ax.tick_params(axis="both", labelsize=20)
         ax.set_yticks([])
-    
+
     fig.tight_layout()
 
 
@@ -398,7 +417,7 @@ def plot_duration_params(
     sd_xmax = 15.0
     dur_param_types = [p.rsplit("_", 1)[0] for p in duration_params if p != "gen_mean_oc"]
     dur_types = list(dict.fromkeys(dur_param_types))  # Using set() loses the ordering of this list
-    
+
     fig, axes = plt.subplots(len(dur_types), 2, figsize=(15, 18), width_ratios=[2, 1])
     for d, dur in enumerate(dur_types):
 
@@ -408,17 +427,21 @@ def plot_duration_params(
         mean_mean = mean_param["mean"]
         sd_mean = sd_param["mean"]
 
-        # Get the distributions        
-        mean_prior = dist.TruncatedNormal(mean_mean, mean_param["sd"], low=DUR_MIN, high=mean_mean * DUR_REL_MAX)
-        sd_prior = dist.TruncatedNormal(sd_mean, sd_param["sd"], low=DUR_MIN, high=sd_mean * DUR_REL_MAX)
-        
+        # Get the distributions
+        mean_prior = dist.TruncatedNormal(
+            mean_mean, mean_param["sd"], low=DUR_MIN, high=mean_mean * DUR_REL_MAX
+        )
+        sd_prior = dist.TruncatedNormal(
+            sd_mean, sd_param["sd"], low=DUR_MIN, high=sd_mean * DUR_REL_MAX
+        )
+
         # Calculate the values
         mean_x_vals = np.linspace(0.0, mean_xmax, 1000)
         sd_x_vals = np.linspace(0.0, sd_xmax, 1000)
         mean_y_vals = np.exp(mean_prior.log_prob(mean_x_vals))
         sd_y_vals = np.exp(sd_prior.log_prob(sd_x_vals))
 
-        # Plot mean        
+        # Plot mean
         mean_ax = axes[d, 0]
         mean_ax.fill_between(mean_x_vals, mean_y_vals, color="0.8")
         mean_ax.plot(mean_x_vals, mean_y_vals, color="k", linewidth=2.0)
@@ -426,16 +449,16 @@ def plot_duration_params(
         mean_ax.set_xlabel("days", fontsize=18)
         mean_ax.tick_params(axis="both", labelsize=18)
         mean_ax.set_yticks([])
-        
+
         # Plot SD
         sd_ax = axes[d, 1]
         sd_ax.fill_between(sd_x_vals, sd_y_vals, color="0.8")
         sd_ax.plot(sd_x_vals, sd_y_vals, color="k", linewidth=2.0)
         sd_ax.set_title(sd_param["param_name"].replace(" (days)", ""), fontsize=22)
         sd_ax.set_xlabel("days", fontsize=18)
-        sd_ax.tick_params(axis="both", labelsize=18) 
+        sd_ax.tick_params(axis="both", labelsize=18)
         sd_ax.set_yticks([])
-        
+
     fig.tight_layout()
 
 
@@ -444,7 +467,7 @@ def plot_proc_comparison(
     countries: List[str],
     path: Path,
 ) -> plt.Figure:
-    """Plot the comparison of 
+    """Plot the comparison of
     the transmission scaling process
     across analysis types.
 
@@ -452,7 +475,7 @@ def plot_proc_comparison(
         procs: Transmission process data
         countries: Names of the countries
         path: Path to the analyses
-        
+
     Returns:
         The figure
     """
@@ -468,7 +491,9 @@ def plot_proc_comparison(
         for a in sorted_analyses:
             colour = MOB_SOURCE_COLOURS[a]
             quants = procs[iso3][a].quantile([0.025, 0.5, 0.975], axis=1).T
-            ax.plot(quants.index, quants[0.5], color=colour, label=MOB_SOURCE_ABBREVS[a], linewidth=2.0)
+            ax.plot(
+                quants.index, quants[0.5], color=colour, label=MOB_SOURCE_ABBREVS[a], linewidth=2.0
+            )
             ax.fill_between(quants.index, quants[0.025], quants[0.975], alpha=0.1, color=colour)
         ax.legend()
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
@@ -518,7 +543,7 @@ def plot_kde_comparison(
 
 
 def plot_mob_weights_by_country(
-    job_path: Path, 
+    job_path: Path,
     countries: List[str],
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
@@ -535,15 +560,15 @@ def plot_mob_weights_by_country(
     x_vals = np.linspace(-0.1, 1.1, 200)
     flat_axes = axes.ravel()
     for c, iso3 in enumerate(countries):
-    
+
         # Get mobility
         mob = get_google_mobility(iso3)
-    
+
         # Get weights
         idata = az.from_netcdf(job_path / iso3 / "g_mob/idata_filtered.nc")
         weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
         weights.columns = mob.columns
-    
+
         # Plot
         ax = flat_axes[c]
         for l in weights.columns:
@@ -552,18 +577,18 @@ def plot_mob_weights_by_country(
             label = l.replace("_", " ")
             ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
             ax.fill_between(x_vals, kde(x_vals), alpha=0.1, color=colour)
-    
+
         # Extra cosmetics
         country_name = pycountry.countries.lookup(iso3).name
-        ax.set_title(country_name)    
+        ax.set_title(country_name)
         ax.set_yticks([])
         legend = ax.legend()
         legend.set_visible(False)
-    
+
     # Legend on blank axis
     handles, labels = flat_axes[0].get_legend_handles_labels()
     flat_axes[c + 1].legend(handles=handles, labels=labels)
-    
+
     # Turn off unused axes
     for a in range(c + 1, len(flat_axes)):
         ax = flat_axes[a]
@@ -580,7 +605,7 @@ def compare_proc_mob(
     n_cols: int,
     mob_location: str,
 ) -> plt.Figure:
-    """Plot comparison of 
+    """Plot comparison of
     transmission scaling to mobility location.
 
     Args:
@@ -619,7 +644,11 @@ def compare_proc_mob(
             msg = f"Note, {mob_name} largely missing for {country} during the analysis period."
             display(Markdown(msg))
         smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
-        colour = G_MOB_LOCATION_CMAP[mob_location] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_location]
+        colour = (
+            G_MOB_LOCATION_CMAP[mob_location]
+            if mob_source == "g_mob"
+            else MOB_SOURCE_COLOURS[mob_location]
+        )
         ax.plot(smoothed_mob.index, smoothed_mob, color=colour, linewidth=2.0)
 
     # Switch off unused axes
@@ -632,12 +661,12 @@ def compare_proc_mob(
 
 
 def compare_proc_weighted_gmob(
-    job_path: Path, 
+    job_path: Path,
     countries: List[str],
     n_samples: int,
     n_cols: int,
 ) -> plt.Figure:
-    """Plot comparison of composite Google time series to 
+    """Plot comparison of composite Google time series to
     the transmission scaling process.
 
     Args:
@@ -655,42 +684,44 @@ def compare_proc_weighted_gmob(
     fig.suptitle(title, fontsize=14, y=1.0)
 
     for c, iso3 in enumerate(countries):
-    
+
         # Starting cosmetics
         ax = flat_axes[c]
         ax.set_title(pycountry.countries.lookup(iso3).name)
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
-    
+
         # Get the transmission scaling process
         proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
 
         # Get the mobility data
         smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
-    
+
         # Get the Google mobility weight posteriors and quantiles of weighted series
         params = get_g_mob_weight_posts(job_path / iso3)
         mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
-    
+
         # Plot the weighted Google mobility distribution
         ax.plot(mob_quants[0.5], color="green", linewidth=2.0)
-        ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color="green")
-    
+        ax.fill_between(
+            mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color="green"
+        )
+
         # Residual transmission scaling plotting
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
-        
+
     for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
-    
+
     fig.tight_layout()
     plt.close()
     return fig
 
 
 def plot_select_proc_mob(
-    job_path: Path, 
+    job_path: Path,
     panels: List[List[List[str]]],
     n_samples: int,
 ) -> plt.figure:
@@ -711,7 +742,9 @@ def plot_select_proc_mob(
             # Gather data
             mob_location, country = row
             iso3 = pycountry.countries.lookup(country).alpha_3
-            country_name = SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
+            country_name = (
+                SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
+            )
             mob_source = mob_location if mob_location.startswith("fb_") else "g_mob"
             mob_source_name = MOB_LOCATION_ABBREVS[mob_location]
 
@@ -720,26 +753,36 @@ def plot_select_proc_mob(
             centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
             ax = axes[r, c]
             ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
-            ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy")
+            ax.fill_between(
+                centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy"
+            )
 
             if "weighted" in mob_location:
-                
+
                 # Get the mobility data
                 smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
-                
+
                 # Get the Google mobility weight posteriors and quantiles of weighted series
                 params = get_g_mob_weight_posts(job_path / iso3)
                 mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
-                
+
                 # Plot the weighted Google mobility distribution
                 ax.plot(mob_quants[0.5], color="green")
-                ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.2, color="green")
+                ax.fill_between(
+                    mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.2, color="green"
+                )
 
             else:
                 mob = get_requested_mob(iso3, mob_source, mob_location)
-                mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
+                mobility = mob.loc[
+                    (centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])
+                ]
                 smoothed_mob = mobility.rolling(7, center=True).mean().dropna()
-                colour = G_MOB_LOCATION_CMAP[mob_location] if mob_source == "g_mob" else MOB_SOURCE_COLOURS[mob_source]
+                colour = (
+                    G_MOB_LOCATION_CMAP[mob_location]
+                    if mob_source == "g_mob"
+                    else MOB_SOURCE_COLOURS[mob_source]
+                )
                 ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
 
             # Finish cosmetics
@@ -753,7 +796,7 @@ def plot_select_proc_mob(
 
 
 def plot_exponent_dispersion_comparison(
-    job_path: Path, 
+    job_path: Path,
     ratio_dists: Dict[str, pd.DataFrame],
 ) -> plt.figure:
     """Scatter the mobility exponent against
@@ -773,35 +816,47 @@ def plot_exponent_dispersion_comparison(
     for m, (mob_source, mob_name) in enumerate(analyses.items()):
         ax = flat_axes[m]
         ax.set_title(mob_name)
-    
+
         # Gather data
         idatas, _ = get_idatas_for_mob_type(job_path, all_countries, mob_source)
         plot_df = pd.DataFrame(
             {
-                "mobility exponent": {c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()},
+                "mobility exponent": {
+                    c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()
+                },
                 "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
                 "GDP per capita": get_gdps(2020),
                 "population (millions)": {c: get_country_pop(c) / 1e6 for c in all_countries},
             }
         )
-    
+
         # Plot
-        sns.scatterplot(x="dispersion ratio", y="mobility exponent", hue="GDP per capita", size="population (millions)", data=plot_df, sizes=(25, 500), ax=ax, edgecolors="k", palette=sns.color_palette("Reds", as_cmap=True))
+        sns.scatterplot(
+            x="dispersion ratio",
+            y="mobility exponent",
+            hue="GDP per capita",
+            size="population (millions)",
+            data=plot_df,
+            sizes=(25, 500),
+            ax=ax,
+            edgecolors="k",
+            palette=sns.color_palette("Reds", as_cmap=True),
+        )
         handles, labels = ax.get_legend_handles_labels()
         ax.get_legend().remove()
-    
+
     # Sort out legend
     ax = flat_axes[-1]
     ax.legend(handles=handles, labels=labels, loc="center", ncol=2)
     ax.axis("off")
-    
+
     fig.tight_layout()
     plt.close()
     return fig
 
 
 def plot_exponent_dispersion_comparison_interactive(
-    job_path: Path, 
+    job_path: Path,
     mob_source: str,
     ratio_dists: Dict[str, pd.DataFrame],
 ) -> go.Figure:
@@ -820,7 +875,9 @@ def plot_exponent_dispersion_comparison_interactive(
     idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
     plot_df = pd.DataFrame(
         {
-            "mobility exponent": {c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()},
+            "mobility exponent": {
+                c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()
+            },
             "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
             "GDP per capita": get_gdps(2020),
             "population (millions)": {c: get_country_pop(c) / 1e6 for c in countries},
@@ -828,12 +885,12 @@ def plot_exponent_dispersion_comparison_interactive(
     )
     plot_df["country name"] = plot_df.index.to_series().apply(get_country_name)
     plot_df.loc[plot_df["population (millions)"].isna(), "population (millions)"] = 0.0
-    
+
     fig = go.Figure(
         layout={
-            "width": 750, 
-            "height": 600, 
-            "plot_bgcolor": "#F0F0F0", 
+            "width": 750,
+            "height": 600,
+            "plot_bgcolor": "#F0F0F0",
             "title": {"text": ANALYSIS_NAMES[mob_source], "xanchor": "center", "x": 0.5},
             "xaxis_title": "dispersion ratio",
             "yaxis_title": "mobility exponent",
@@ -848,7 +905,7 @@ def plot_exponent_dispersion_comparison_interactive(
             text=plot_df["country name"],
             hoverinfo="text",
             marker=dict(
-                size=plot_df["population (millions)"], 
+                size=plot_df["population (millions)"],
                 line=dict(width=1.0, color="black"),
                 color=plot_df["GDP per capita"],
                 sizemode="area",
@@ -856,7 +913,7 @@ def plot_exponent_dispersion_comparison_interactive(
                 sizeref=2.5,
                 colorscale="reds",
             ),
-            hovertemplate=hover_template
+            hovertemplate=hover_template,
         ),
     )
     return fig
@@ -881,9 +938,7 @@ def plot_inclusion(
     return fig
 
 
-def plot_continent_grouping(
-    world: GeoDataFrame
-):
+def plot_continent_grouping(world: GeoDataFrame):
     """Plot the countries of the world shaded according to
     continent grouping.
 
@@ -929,9 +984,9 @@ def plot_dispersion_analysis(
     world = get_world_shp()
     fig, axes = plt.subplots(2, 2, figsize=(20, 8), constrained_layout=True)
     flat_axes = axes.ravel()
-    
+
     # Strength of evidence for each mobility type panels
-    for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1: -1]):
+    for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1:-1]):
 
         # Find median ratio of the mobility approach to the baseline
         median_ratios = get_median_ratios(ratios, analysis)
@@ -939,7 +994,7 @@ def plot_dispersion_analysis(
         world["disp_ratio"] = world["ISO_A3"].map(median_ratios)
         mob_avail = world[world["disp_ratio"].notna()]
         mob_unavail = world[world["disp_ratio"].isna()]
-    
+
         # Plot the proportion improvements
         ax = flat_axes[a]
         ax.set_title(analysis_name)
@@ -948,97 +1003,115 @@ def plot_dispersion_analysis(
         world["small"] = world.geometry.area < 2.5
         world["centroid"] = world.geometry.centroid
         centroids = world[world["small"]].set_geometry("centroid")
-        centroids.plot(ax=ax, markersize=marker_size, column="disp_ratio", cmap="RdGy_r", vmin=0.4, vmax=1.6, edgecolor="black", linewidth=0.5, zorder=3)
-    
+        centroids.plot(
+            ax=ax,
+            markersize=marker_size,
+            column="disp_ratio",
+            cmap="RdGy_r",
+            vmin=0.4,
+            vmax=1.6,
+            edgecolor="black",
+            linewidth=0.5,
+            zorder=3,
+        )
+
     # Best mobility approach
     best_mob = {c: disp_posts[c].mean().idxmin() for c in disp_posts}
     world["best_mob"] = world["ISO_A3"].map(best_mob)
     world["best_mob_colour"] = world["best_mob"].map(MOB_SOURCE_COLOURS | {"no_mob": "0.45"})
     mob_avail = world[world["best_mob_colour"].notna()]
     mob_unavail = world[world["best_mob_colour"].isna()]
-   
+
     # Plot the best mobility approach
     ax = flat_axes[-1]
     ax.set_title("best analysis approach")
-    
+
     # Dummy colour bar to get axis in right position with constrained layout
     sm = ScalarMappable(norm=Normalize(vmin=0, vmax=1))
     cb = fig.colorbar(sm, ax=ax)
     cb.ax.set_visible(False)
-    
+
     mob_avail.plot(ax=ax, color=mob_avail["best_mob_colour"])
     mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
-    centroids.plot(ax=ax, markersize=marker_size, color=mob_avail["best_mob_colour"], vmin=0.4, vmax=1.6, edgecolor="black", linewidth=0.5, zorder=3)
-    
+    centroids.plot(
+        ax=ax,
+        markersize=marker_size,
+        color=mob_avail["best_mob_colour"],
+        vmin=0.4,
+        vmax=1.6,
+        edgecolor="black",
+        linewidth=0.5,
+        zorder=3,
+    )
+
     # Cosmetics for all panels
     for ax in flat_axes:
         world.boundary.plot(ax=ax, color="black", linewidth=0.2)
         ax.set_xticks([])
         ax.set_yticks([])
-    
+
     return fig
 
 
 COUNTRY_GROUPINGS = {
     "North America": [
-        "CAN", "USA", 
-        "MEX", "SLV", "HND", "CRI", "PAN", 
-        "DOM", "HTI", "JAM", "PRI", "ABW", "BHS"
+        "CAN",
+        "USA",
+        "MEX",
+        "SLV",
+        "HND",
+        "CRI",
+        "PAN",
+        "DOM",
+        "HTI",
+        "JAM",
+        "PRI",
+        "ABW",
+        "BHS",
     ],
-    "South America": [
-        "VEN", "COL", "GUY", "SUR", "GUF",
-        "BRA", "PRY", "URY", "ARG", "CHL", "PER"
-    ],
-    "Western Europe": [
-        "IRL", "GBR",
-        "FRA", "BEL", "LUX", "NLD",
-        "CHE"
-    ],
-    "Northern Europe": [
-        "DNK", "NOR", "SWE", "FIN",
-        "EST", "LVA", "LTU"
-    ],
+    "South America": ["VEN", "COL", "GUY", "SUR", "GUF", "BRA", "PRY", "URY", "ARG", "CHL", "PER"],
+    "Western Europe": ["IRL", "GBR", "FRA", "BEL", "LUX", "NLD", "CHE"],
+    "Northern Europe": ["DNK", "NOR", "SWE", "FIN", "EST", "LVA", "LTU"],
     "Southern Europe": [
-        "PRT", "ESP", "ITA", "MLT",
-        "SVN", "HRV", "BIH", "SRB",
-        "MKD", "ALB", "GRC"
+        "PRT",
+        "ESP",
+        "ITA",
+        "MLT",
+        "SVN",
+        "HRV",
+        "BIH",
+        "SRB",
+        "MKD",
+        "ALB",
+        "GRC",
     ],
-    "Eastern Europe": [
-        "POL", "CZE", "SVK", "HUN",
-        "ROU", "BGR",
-        "BLR", "UKR", "MDA",
-        "RUS"
-    ],
-    "Northern Africa": [
-        "MAR", "DZA", "TUN", "LBY", "EGY"
-    ],
-    "West Africa": [
-        "CPV", "SEN", "GNB", "GIN",
-        "LBR", "CIV", "TGO", "BEN", "BFA", "MLI", "NGA"
-    ],
-    "Southern Africa": [
-        "ZAF", "LSO", "ZWE", "ZMB", "MWI", "MOZ", "AGO", "MDG"
-    ],
-    "Central & East Africa": [
-        "STP", "GNQ", "GAB", "COG",
-        "CMR", 
-        "RWA", "KEN", "ETH"
-    ],
+    "Eastern Europe": ["POL", "CZE", "SVK", "HUN", "ROU", "BGR", "BLR", "UKR", "MDA", "RUS"],
+    "Northern Africa": ["MAR", "DZA", "TUN", "LBY", "EGY"],
+    "West Africa": ["CPV", "SEN", "GNB", "GIN", "LBR", "CIV", "TGO", "BEN", "BFA", "MLI", "NGA"],
+    "Southern Africa": ["ZAF", "LSO", "ZWE", "ZMB", "MWI", "MOZ", "AGO", "MDG"],
+    "Central & East Africa": ["STP", "GNQ", "GAB", "COG", "CMR", "RWA", "KEN", "ETH"],
     "Western Asia": [
-        "TUR", "GEO",
-        "LBN", "ISR", "JOR",
-        "IRQ", "YEM",
-        "SAU", "KWT", "BHR", "QAT", "ARE", "OMN"
+        "TUR",
+        "GEO",
+        "LBN",
+        "ISR",
+        "JOR",
+        "IRQ",
+        "YEM",
+        "SAU",
+        "KWT",
+        "BHR",
+        "QAT",
+        "ARE",
+        "OMN",
     ],
-    "Southern Asia": [
-        "AFG", "PAK", "IND", "NPL", "LKA", "BGD"
-    ],
-    "Eastern/South-eastern Asia": [
-        "JPN", "KOR",
-        "PHL", "MYS", "IDN"
-    ],
+    "Southern Asia": ["AFG", "PAK", "IND", "NPL", "LKA", "BGD"],
+    "Eastern/South-eastern Asia": ["JPN", "KOR", "PHL", "MYS", "IDN"],
     "Oceania, Singpore": [
-        "AUS", "NZL", "FJI", "SGP",
+        "AUS",
+        "NZL",
+        "FJI",
+        "SGP",
     ],
 }
 
@@ -1066,12 +1139,12 @@ def get_avail_groupings(
 
 
 def plot_mob_exp_violins(
-    mob_source: str, 
-    mob_exp_df: pd.DataFrame, 
+    mob_source: str,
+    mob_exp_df: pd.DataFrame,
     ratios: Dict[str, float],
 ) -> plt.figure:
-    """Plot the mobility exponent distributions 
-    as violin plots, with shade of colouring 
+    """Plot the mobility exponent distributions
+    as violin plots, with shade of colouring
     determined by the transmission scaling dispersion ratios.
 
     Args:
@@ -1084,11 +1157,11 @@ def plot_mob_exp_violins(
     """
     fig, axes = subplots(3, 5, figsize=[12, 12], sharey=True)
     flat_axes = axes.ravel()
-    
+
     norm = Normalize(vmin=min(ratios.values()), vmax=max(ratios.values()))
     cmap = get_cmap(MOB_SOURCE_COLOURS[mob_source].capitalize() + "s")
     palette = {c: cmap(norm(v)) for c, v in ratios.items()}
-    
+
     grouping = get_avail_groupings(mob_exp_df.columns)
     for r, (region, countries) in enumerate(grouping.items()):
         ax = flat_axes[r]
@@ -1097,23 +1170,23 @@ def plot_mob_exp_violins(
         plot_df.columns = plot_df.columns.map(get_country_short_name)
         sns.violinplot(plot_df, ax=ax, palette=palette)
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=90)
-    
+
     ax = flat_axes[r + 1]
     sm = ScalarMappable(norm=norm, cmap=cmap)
     sm.set_array([])
     fig.colorbar(sm, ax=ax, location="left")
     ax.remove()
-    
+
     fig.tight_layout()
     plt.close()
     return fig
 
 
 def plot_composite_calibrations(
-    job_path: Path, 
-    iso3: str, 
-    analyses: List[str], 
-    spaghs: Dict[str, pd.DataFrame], 
+    job_path: Path,
+    iso3: str,
+    analyses: List[str],
+    spaghs: Dict[str, pd.DataFrame],
     targets: Dict[str, pd.Series],
 ) -> plt.figure:
     """Plot Figure 1, combining calibration target comparisons
@@ -1133,7 +1206,7 @@ def plot_composite_calibrations(
     c_path = job_path / iso3
     fig = plt.figure(figsize=[16, 10])
     gs = GridSpec(5, 6)
-    
+
     # Calibration comparison
     msg = ".*axis already has a converter set*"
     warnings.filterwarnings("ignore", message=msg)
@@ -1162,12 +1235,12 @@ def plot_composite_calibrations(
                 plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
     fig.tight_layout()
     # fig.subplots_adjust(wspace=0.05)
-    
+
     # Residual transmission scaling with credible intervals
     c_procs = [pd.read_hdf(c_path / a / "spaghetti.h5")["process"] for a in analyses]
     procs = pd.concat(c_procs, keys=analyses, axis=1)
-    
-    ax = fig.add_subplot(gs[0: 2, 4: 6])
+
+    ax = fig.add_subplot(gs[0:2, 4:6])
     ax.set_title("Residual transmission scaling")
     ax.set_yticks([])
     ax.tick_params(axis="x", labelrotation=70)
@@ -1178,11 +1251,11 @@ def plot_composite_calibrations(
         ax.plot(quants.index, quants[0.5], color=colour, label=label, linewidth=2.0)
         ax.fill_between(quants.index, quants[0.025], quants[0.975], alpha=0.1, color=colour)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    
+
     # Residual transmission scaling dispersion posteriors
     param_posts = get_param_vals_by_analysis("dispersion_proc", c_path)
-    
-    ax = fig.add_subplot(gs[3: 5, 4: 6])
+
+    ax = fig.add_subplot(gs[3:5, 4:6])
     colours = [MOB_SOURCE_COLOURS[a] for a in param_posts.columns]
     param_posts = param_posts.rename(columns=MOB_SOURCE_ABBREVS)
 
@@ -1207,10 +1280,77 @@ def add_cont_to_world_geodf(
     for iso3 in world["ISO_A3"]:
         try:
             iso2 = pycountry.countries.lookup(iso3).alpha_2
-            cont = pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(iso2)
+            cont = pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(
+                iso2
+            )
             cont_name = pc.convert_continent_code_to_continent_name(cont)
             world.loc[world["ISO_A3"] == iso3, "continent"] = cont_name
         except KeyError:
             world.loc[world["ISO_A3"] == iso3, "continent"] = "none"
         except LookupError:
             world.loc[world["ISO_A3"] == iso3, "continent"] = "none"
+
+
+def plot_input_recovery(
+    priors: Dict[str, float],
+    calib: StandardCalib,
+    idata: az.InferenceData,
+    outputs: Dict[str, pd.Series],
+    identify_params: Dict[str, float],
+    proc: np.array,
+):
+    """Plot parameter identification outputs.
+
+    Args:
+        priors: The priors
+        calib: The calibration object
+        idata: The arviz inference data object
+        outputs: The epi targets
+        identify_params: The key parameters to identify
+        proc: The variable process
+    """
+
+    # Get necessary data
+    idata_sampled = az.extract(idata, num_samples=50)
+    sample_params = esamp.xarray_to_sampleiterator(idata_sampled)
+    spaghetti = get_spagh_df_from_dict(run_for_spaghetti(calib, sample_params))
+
+    # Plot fit to data
+    fig, axes = plt.subplots(2, 3, figsize=[10, 5])
+    for i, ind in enumerate(outputs):
+        ax = axes[0, i]
+        ax.set_title(f"fit to {ind}")
+        spaghetti[ind].plot(ax=ax, color="k", linewidth=0.1)
+        ax.get_legend().remove()
+        output = outputs[ind]
+        ax.plot(output.index, output, marker="o", linewidth=0.0, markersize=3.0)
+        ax.tick_params("x", rotation=70)
+
+    # Plot recovery of key parameters
+    priors["mob_exp"] = dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
+    az.plot_density(idata, var_names=list(identify_params.keys()), shade=0.5, ax=[axes[1, 0:2]])
+    for p, param in enumerate(identify_params):
+        ax = axes[1, p]
+        ax.axvline(identify_params[param], color="darkblue", linewidth=4.0)
+        prior = priors[param]
+        x_vals = np.linspace(prior.support.lower_bound, prior.support.upper_bound, 100)
+        y_vals = np.exp(prior.log_prob(x_vals))
+        ax.plot(x_vals, y_vals, color="darkgrey", alpha=0.5)
+        ax.fill_between(x_vals, y_vals, alpha=0.5, color="grey", zorder=2)
+
+    # Plot recovery of the variable process
+    times = outputs["weekly_deaths"].index
+    ax = axes[0, 2]
+    ax.set_title("variable process recovery")
+    ax.plot(times, np.cumsum(proc, axis=0), marker="o", linewidth=0.0)
+    procs = pd.DataFrame(sample_params.to_array()[:, 3:]).cumsum(axis=1)
+    quants = procs.quantile([0.025, 0.5, 0.975]).T
+    ax.fill_between(times, quants[0.025], quants[0.975], color="grey", alpha=0.5)
+    ax.plot(times, quants[0.5], color="k", alpha=0.5)
+    ax.tick_params("x", rotation=70)
+
+    # Finishing cosmetics
+    axes[1, 2].set_axis_off()
+    fig.tight_layout()
+    plt.close()
+    return fig
