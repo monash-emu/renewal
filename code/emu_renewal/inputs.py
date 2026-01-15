@@ -342,63 +342,6 @@ def find_decreasing_groups(
     return starts, ends
 
 
-def pool_totals(
-    starts: pd.DatetimeIndex,
-    ends: pd.DatetimeIndex,
-    data: pd.DataFrame,
-    var_name: str = "prealpha",
-) -> pd.DataFrame:
-    """Replace periods of the pre-Alpha data
-    that are increasing over time with averages
-    over the period of increase.
-
-    Args:
-        starts: Starts of the increasing periods,
-            the output from find_decreasing_groups
-        ends: Ends of the increasing periods,
-            the output from find_decreasing_groups
-        data: The unadjusted data
-
-    Returns:
-        The adjusted data
-    """
-    period_sums = pd.DataFrame(columns=[var_name, "totals", f"{var_name}_prop"])
-    idx_to_remove = []
-    for limits in zip(starts, ends):
-        period = data.loc[limits[0] : limits[1]]
-        average_date = period.index.mean()
-        period_sums.loc[average_date] = period.sum()
-        idx_to_remove += list(period.index)
-    new_data = pd.concat([period_sums, data.drop(index=idx_to_remove)])
-
-    # Redo proportion calculations, which will now be wrong
-    new_data[f"{var_name}_prop"] = new_data[var_name] / new_data["totals"]
-
-    # Make sure indices fall on the start of a date
-    new_data.index = new_data.index.round("D")
-    return new_data.sort_index()
-
-
-def get_incr_pooled_totals(
-    data: pd.DataFrame,
-    var_name: str,
-) -> pd.DataFrame:
-    """Combines the two preceding functions
-    to get the totals after pooling to remove
-    decreases in the data.
-
-    Args:
-        data: The unadjusted data
-
-    Returns:
-        The adjusted data
-    """
-    while not data[f"{var_name}_prop"].is_monotonic_increasing:
-        group_starts, group_ends = find_decreasing_groups(data[f"{var_name}_prop"])
-        data = pool_totals(group_starts, group_ends, data, var_name)
-    return data
-
-
 def get_income_group(
     iso3: str,
 ) -> str:

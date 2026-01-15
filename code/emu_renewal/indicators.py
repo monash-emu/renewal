@@ -39,12 +39,7 @@ from emu_renewal.constants import (
     BA2_IDENTIFIER,
     NO_CONT_COUNTRIES,
 )
-from emu_renewal.inputs import (
-    get_income_group,
-    get_incr_pooled_totals,
-    get_owid_hosp_series,
-    find_decreasing_groups,
-)
+from emu_renewal.inputs import get_income_group, get_owid_hosp_series, find_decreasing_groups
 from emu_renewal.targets import SharedDispTarget, UnivariateDispersionTarget, SharedPropTarget
 from emu_renewal.utils import get_cont_of_country
 
@@ -775,7 +770,6 @@ def get_alpha_info(
 
     # Filter and ensure strictly increasing    
     mask = (alpha_start < data.index) & (data.index < alpha_end)
-    # target = get_incr_pooled_totals(data[mask], "alpha")["alpha_prop"]
     target = data[mask]["alpha_prop"]
     var_start = target.index[0]
 
@@ -833,7 +827,6 @@ def get_delta_info(
 
     # Get the data and ensure strictly increasing
     mask = (delta_start < data.index) & (data.index < delta_end)
-    # target = get_incr_pooled_totals(data[mask], "delta")["delta_prop"]
     target = data[mask]["delta_prop"]
     if target is None or target.empty or max(target) < MIN_DELTA_PROP:
         return [], {}, []
@@ -881,7 +874,6 @@ def get_ba2_info(
     ba2_start = datetime.strptime(BA2_PERIOD_START, CODE_DATE_FORMAT)
     ba2_end = datetime.strptime(BA2_PERIOD_END, CODE_DATE_FORMAT)
     mask = (ba2_start < data.index) & (data.index < ba2_end)
-    # data = get_incr_pooled_totals(data[mask], "ba2")["ba2_prop"]
     data = data[mask]["ba2_prop"]
     var_start = data.index[0]
 
@@ -925,7 +917,6 @@ def get_ba5_info(
     ba5_start = datetime.strptime(BA5_PERIOD_START, CODE_DATE_FORMAT)
     ba5_end = datetime.strptime(BA5_PERIOD_END, CODE_DATE_FORMAT)
     mask = (ba5_start < data.index) & (data.index < ba5_end)
-    # data = get_incr_pooled_totals(data[mask], "ba5")["ba5_prop"]
     data = data[mask]["ba5_prop"]
     var_start = data.index[0]
 
