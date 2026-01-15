@@ -145,7 +145,7 @@ def plot_multianalysis_fit(
         a_spaghs = spaghs[analysis]
         analysis_name = ANALYSIS_NAMES[analysis] if len(ordered_analyses) < 4 else MOB_SOURCE_ABBREVS[analysis]
         for o, out in enumerate(ordered_targets):
-            ax = axes[0] if n_analyses == 1 else axes[o, a]
+            ax = axes[o] if n_analyses == 1 else axes[o, a]
             a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.1, alpha=0.1)
             target = targets[out]
             ax.plot(target.index, target, linewidth=0.0, marker=".")
