@@ -327,6 +327,7 @@ def run_single_country(
     logger.info(f"Git commit hash: {commit.object.hexsha}")
     logger.info(f"Commit message: {commit.reference.commit.message}")
     logger.info(f"Hostname: {gethostname()}")
+    logger.info(f"Waning status: {waning}")
 
     # Population size and analysis time
     pop = get_country_pop(iso3)
