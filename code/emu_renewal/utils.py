@@ -10,7 +10,7 @@ import pycountry
 import pycountry_convert as pc
 import arviz as az
 
-from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES, OUTPUTS_PATH
+from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES, OUTPUTS_PATH, DATA_PATH
 
 
 def get_col_increases(
@@ -70,7 +70,7 @@ def get_beta_params_from_mean_var(
     Returns:
         The a and b parameters to the beta distribution
     """
-    var = sd ** 2.0
+    var = sd**2.0
     a = mu * (mu * (1.0 - mu) / var - 1.0)
     b = (1.0 - mu) * (mu * (1.0 - mu) / var - 1.0)
     return a, b
@@ -150,7 +150,7 @@ def count_repeat_nans(
 
 
 def split_list_into_segments(
-    l: list, 
+    l: list,
     segment_length: int,
 ) -> List[list]:
     """Split a list into groups of equal size until
@@ -163,7 +163,7 @@ def split_list_into_segments(
     Returns:
         The list segments
     """
-    return [l[i: i + segment_length] for i in range(0, len(l), segment_length)]
+    return [l[i : i + segment_length] for i in range(0, len(l), segment_length)]
 
 
 def get_cont_of_country(
@@ -191,7 +191,7 @@ def get_cont_of_country(
         return pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(iso2)
     except KeyError:
         return "NOCONT"
-    
+
 
 def get_subdirs(
     path: Path,
@@ -208,7 +208,7 @@ def get_subdirs(
 
 
 def get_countries_with_mob_source(
-    job_path: Path, 
+    job_path: Path,
     mob_source: str,
 ) -> List[str]:
     """Find all the countries in a path that have an analysis
@@ -277,7 +277,7 @@ def get_country_name(
 
 
 def get_analysis_commits(
-    job_path: Path, 
+    job_path: Path,
     iso3: str,
 ) -> Dict[str, str]:
     """Gather together the commit IDs for
@@ -303,7 +303,7 @@ def get_analysis_commits(
 
 
 def get_job_commits_df(
-    job_path: Path, 
+    job_path: Path,
     countries: List[str],
 ) -> pd.DataFrame:
     """Use the preceding function to create a
@@ -314,7 +314,7 @@ def get_job_commits_df(
         countries: The country identifiers
 
     Returns:
-        The dataframe with index countries and 
+        The dataframe with index countries and
             columns for each analysis type
     """
     commits = pd.DataFrame(index=countries, columns=ANALYSIS_TYPES)
@@ -344,7 +344,11 @@ def get_job_commits_df_new(
             c_paths = analysis_paths[iso3]
             if analysis in c_paths:
                 a_path = c_paths[analysis]
-                sha = json.load(open(a_path / "gitinfo.json", "r"))["sha"][:7] if os.path.isdir(a_path) else "no analysis"
+                sha = (
+                    json.load(open(a_path / "gitinfo.json", "r"))["sha"][:7]
+                    if os.path.isdir(a_path)
+                    else "no analysis"
+                )
             else:
                 sha = "no analysis"
             commits.loc[iso3, analysis] = sha
@@ -355,7 +359,7 @@ def get_job_commits_df_new(
 
 def copy_analysis_type_to_run(
     src_id: str,
-    dest_id: str, 
+    dest_id: str,
     analysis_type: str,
 ):
     """Copy all the runs of a particular type
@@ -383,7 +387,7 @@ def get_analysis_paths(
 
     Returns:
         Dictionary with first tier of keys countries
-            and second tier analysis types. 
+            and second tier analysis types.
     """
     job_paths = [OUTPUTS_PATH / p for p in job_ids]
     analysis_paths = {}
@@ -396,3 +400,34 @@ def get_analysis_paths(
                     analysis_paths[c][a] = analysis_path
                     break
     return analysis_paths
+
+
+def get_analysis_status(
+    run_id: str,
+) -> pd.DataFrame:
+    """Find out what happened for each possible country-analysis combination.
+
+    Args:
+        run_id: The run ID
+
+    Returns:
+        Whether the analysis is complete, skipped, not run or no log available
+    """
+    countries = json.load(open(DATA_PATH / "config/included.json", "r"))
+    analysis_status = pd.DataFrame("blank", index=countries, columns=ANALYSIS_TYPES, dtype=str)
+    run_path = OUTPUTS_PATH / run_id
+    for iso3 in countries:
+        c_path = run_path / iso3
+        if not (run_path / iso3 / "run.log").exists():
+            analysis_status.loc[iso3, :] = "no log"
+            continue
+        text = open(run_path / iso3 / "run.log", "r").read()
+        for a in ANALYSIS_TYPES:
+            if (c_path / a / "updates.h5").exists():
+                out = "complete"
+            elif f"{a} mobility not available" in text:
+                out = "skipped"
+            else:
+                out = "not run"
+            analysis_status.loc[iso3, a] = out
+    return analysis_status
