@@ -152,8 +152,6 @@ def plot_multianalysis_fit(
     n_analyses = len(spaghs)
     n_targs = len(targets)
     ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
-    if cont == "OC" and iso3 != "SGP":
-        ordered_analyses += ["fb_no_mob"]
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
     fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharey="row")
     for a, analysis in enumerate(ordered_analyses):
