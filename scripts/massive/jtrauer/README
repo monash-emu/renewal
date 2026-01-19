@@ -1,7 +1,7 @@
 To launch jobs that automatically set SLURM batch sizes from JSON configuration,
 edit your config, then;
 
-pixi run python scripts/massive/jtrauer/launch_from_config.py
+pixi run massive_calibrate
 
 You can still manually run these jobs via launch.sh; however the active script that 
 your jobs will eventually see is now run_countries_active.sh, with run_countries.sh
