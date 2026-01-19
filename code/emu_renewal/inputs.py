@@ -426,18 +426,18 @@ def get_smoothed_trunc_g_mob(
 
 
 def get_g_mob_weight_posts(
-    c_path: Path,
+    a_path: Path,
 ) -> pd.DataFrame:
     """Get a dataframe of the mobility weights
     applied to the Google data.
 
     Args:
-        c_path: The country path for the analyses
+        a_path: The analysis path
 
     Returns:
         The mobility weights
     """
-    idata = az.from_netcdf(c_path / "g_mob/idata_filtered.nc")
+    idata = az.from_netcdf(a_path / "idata_filtered.nc")
     params = idata.posterior["mob_weights"].to_dataframe().unstack(level=-1)
     params.columns = G_MOB_LOCATION_CMAP
     return params

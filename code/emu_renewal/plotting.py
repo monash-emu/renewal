@@ -541,7 +541,7 @@ def plot_kde_comparison(
 
 
 def plot_mob_weights_by_country(
-    analysis_paths: Path,
+    analysis_paths: Dict[str, Path],
     countries: List[str],
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
@@ -660,7 +660,7 @@ def compare_proc_mob(
 
 
 def compare_proc_weighted_gmob(
-    job_path: Path,
+    analysis_paths: Dict[str, Path],
     countries: List[str],
     n_samples: int,
     n_cols: int,
@@ -669,7 +669,7 @@ def compare_proc_weighted_gmob(
     the transmission scaling process.
 
     Args:
-        job_path: Path for the runs
+        analysis_paths: Paths for the runs
         countries: Requested countries to plot
         n_samples: Number of samples from Google weights to create composite series
         n_cols: Number of subplot columns for the figure
@@ -690,14 +690,14 @@ def compare_proc_weighted_gmob(
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
         # Get the transmission scaling process
-        proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
+        proc_samples = pd.read_hdf(analysis_paths[iso3]["no_mob"] / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
 
         # Get the mobility data
         smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
 
         # Get the Google mobility weight posteriors and quantiles of weighted series
-        params = get_g_mob_weight_posts(job_path / iso3)
+        params = get_g_mob_weight_posts(analysis_paths[iso3]["g_mob"])
         mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
 
         # Plot the weighted Google mobility distribution
@@ -720,7 +720,7 @@ def compare_proc_weighted_gmob(
 
 
 def plot_select_proc_mob(
-    job_path: Path,
+    analysis_paths: Dict[str, Path],
     panels: List[List[List[str]]],
     n_samples: int,
 ) -> plt.figure:
@@ -728,7 +728,7 @@ def plot_select_proc_mob(
     and the residual transmission scaling.
 
     Args:
-        job_path: Path for the runs
+        analysis_paths: Paths for the runs
         panels: The comparisons to plot
 
     Returns:
@@ -748,7 +748,7 @@ def plot_select_proc_mob(
             mob_source_name = MOB_LOCATION_ABBREVS[mob_location]
 
             # Plot residual transmission scaling
-            proc_samples = pd.read_hdf(job_path / iso3 / "no_mob/spaghetti.h5")["process"]
+            proc_samples = pd.read_hdf(analysis_paths[iso3]["no_mob"] / "spaghetti.h5")["process"]
             centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
             ax = axes[r, c]
             ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
@@ -762,7 +762,7 @@ def plot_select_proc_mob(
                 smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
 
                 # Get the Google mobility weight posteriors and quantiles of weighted series
-                params = get_g_mob_weight_posts(job_path / iso3)
+                params = get_g_mob_weight_posts(analysis_paths[iso3]["g_mob"])
                 mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
 
                 # Plot the weighted Google mobility distribution
