@@ -463,7 +463,7 @@ def plot_duration_params(
 def plot_proc_comparison(
     procs: Dict[str, pd.DataFrame],
     countries: List[str],
-    path: Path,
+    analysis_paths: Dict[str, Path],
 ) -> plt.Figure:
     """Plot the comparison of
     the transmission scaling process
@@ -472,7 +472,7 @@ def plot_proc_comparison(
     Args:
         procs: Transmission process data
         countries: Names of the countries
-        path: Path to the analyses
+        analysis_paths: Paths for the runs
 
     Returns:
         The figure
@@ -484,7 +484,7 @@ def plot_proc_comparison(
     for c, iso3 in enumerate(countries):
         ax = flat_axes[c]
         ax.set_title(pycountry.countries.lookup(iso3).name)
-        analyses = [i.parts[-1] for i in (path / iso3).iterdir() if i.is_dir()]
+        analyses = analysis_paths[iso3]
         sorted_analyses = [a for a in MOB_SOURCE_COLOURS if a in analyses]
         for a in sorted_analyses:
             colour = MOB_SOURCE_COLOURS[a]

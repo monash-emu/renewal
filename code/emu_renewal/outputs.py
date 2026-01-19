@@ -187,7 +187,7 @@ def store_outputs(
 
 
 def get_country_procs(
-    job_path: Path,
+    analysis_paths: Dict[str, Path],
     countries: List[str],
 ) -> Dict[str, pd.DataFrame]:
     """Get dataframes containing 
@@ -196,20 +196,17 @@ def get_country_procs(
     and analysis types.
 
     Args:
-        path: Parent path for all runs
+        analysis_paths: Paths for the runs
         countries: The names of the countries of interest
 
     Returns:
         The transmission scaling process dataframes
     """
     procs = {}
-    for c in countries:
-        c_path = job_path / c
-        c_procs = []
-        analyses = get_subdirs(c_path)
-        for a in analyses:
-            c_procs.append(pd.read_hdf(c_path / a / "spaghetti.h5")["process"])
-        procs[c] = pd.concat(c_procs, keys=analyses, axis=1)
+    for iso3 in countries:
+        a_paths = analysis_paths[iso3]
+        c_procs = [pd.read_hdf(a / "spaghetti.h5")["process"] for a in a_paths.values()]
+        procs[iso3] = pd.concat(c_procs, keys=a_paths, axis=1)
     return procs
 
 
