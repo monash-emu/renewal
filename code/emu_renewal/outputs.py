@@ -212,24 +212,24 @@ def get_country_procs(
 
 def get_param_vals_by_analysis(
     param: str,
-    c_path: Path,
+    analysis_paths: Dict[str, Path],
 ) -> pd.DataFrame:
     """Get dataframe of accepted parameter values
     by analysis for a particular parameter and country.
 
     Args:
         param_name: Name of the parameter
-        country_path: Location of the country analyses
+        analysis_paths: Paths for the runs
+
 
     Returns:
         The posterior estimates
     """
     param_df = []
-    analyses = get_subdirs(c_path)
-    for a in analyses:
-        idata = az.from_netcdf(c_path / a / "idata_filtered.nc")
+    for p in analysis_paths.values():
+        idata = az.from_netcdf(p / "idata_filtered.nc")
         param_df.append(idata.posterior[param].to_series())
-    result = pd.concat(param_df, axis=1, keys=analyses)
+    result = pd.concat(param_df, axis=1, keys=analysis_paths)
     ordered_cols = [c for c in MOB_SOURCE_COLOURS if c in result.columns]
     return result[ordered_cols]
 

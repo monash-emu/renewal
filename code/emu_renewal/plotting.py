@@ -1252,6 +1252,7 @@ def plot_composite_calibrations(
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
 
     # Residual transmission scaling dispersion posteriors
+    # *** Needs to be adapted to new code structure
     param_posts = get_param_vals_by_analysis("dispersion_proc", c_path)
 
     ax = fig.add_subplot(gs[3:5, 4:6])
