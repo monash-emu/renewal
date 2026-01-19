@@ -7,6 +7,7 @@ channels = ["conda-forge"]
 platforms = ["win-64", "osx-arm64", "linux-64"]
 
 [tasks]
+massive_calibrate = "python scripts/massive/jtrauer/launch_from_config.py"
 
 [dependencies]
 python = "3.10.*"
