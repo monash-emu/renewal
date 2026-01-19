@@ -283,7 +283,7 @@ def run_calibration(
     mcmc = infer.MCMC(
         kernel, num_chains=N_CHAINS, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar
     )
-    mcmc.run(random.PRNGKey(0), extra_fields=["potential_energy"])
+    mcmc.run(random.PRNGKey(1), extra_fields=["potential_energy"])
     return calib, mcmc
 
 
