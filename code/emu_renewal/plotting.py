@@ -463,7 +463,7 @@ def plot_duration_params(
 def plot_proc_comparison(
     procs: Dict[str, pd.DataFrame],
     countries: List[str],
-    analysis_paths: Dict[str, Path],
+    analysis_paths: Dict[str, Dict[str, Path]],
 ) -> plt.Figure:
     """Plot the comparison of
     the transmission scaling process
@@ -541,7 +541,7 @@ def plot_kde_comparison(
 
 
 def plot_mob_weights_by_country(
-    analysis_paths: Dict[str, Path],
+    analysis_paths: Dict[str, Dict[str, Path]],
     countries: List[str],
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
@@ -598,7 +598,7 @@ def plot_mob_weights_by_country(
 
 
 def compare_proc_mob(
-    analysis_paths: Dict[str, Path],
+    analysis_paths: Dict[str, Dict[str, Path]],
     countries: List[str],
     n_cols: int,
     mob_location: str,
@@ -660,7 +660,7 @@ def compare_proc_mob(
 
 
 def compare_proc_weighted_gmob(
-    analysis_paths: Dict[str, Path],
+    analysis_paths: Dict[str, Dict[str, Path]],
     countries: List[str],
     n_samples: int,
     n_cols: int,
@@ -720,7 +720,7 @@ def compare_proc_weighted_gmob(
 
 
 def plot_select_proc_mob(
-    analysis_paths: Dict[str, Path],
+    analysis_paths: Dict[str, Dict[str, Path]],
     panels: List[List[List[str]]],
     n_samples: int,
 ) -> plt.figure:

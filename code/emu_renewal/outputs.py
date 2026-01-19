@@ -187,7 +187,7 @@ def store_outputs(
 
 
 def get_country_procs(
-    analysis_paths: Dict[str, Path],
+    analysis_paths: Dict[str, Dict[str, Path]],
     countries: List[str],
 ) -> Dict[str, pd.DataFrame]:
     """Get dataframes containing 
@@ -212,15 +212,13 @@ def get_country_procs(
 
 def get_param_vals_by_analysis(
     param: str,
-    analysis_paths: Dict[str, Path],
-) -> pd.DataFrame:
+    analysis_paths: Dict[str, Dict[str, Path]],) -> pd.DataFrame:
     """Get dataframe of accepted parameter values
     by analysis for a particular parameter and country.
 
     Args:
         param_name: Name of the parameter
         analysis_paths: Paths for the runs
-
 
     Returns:
         The posterior estimates
@@ -300,7 +298,7 @@ def get_prop_improve(
 
 
 def get_idatas_for_mob_type(
-    job_path: Path,
+    analysis_paths: Path,
     countries: List[str],
     mob_source: str,
 ) -> Dict[str, az.InferenceData]:
@@ -319,10 +317,10 @@ def get_idatas_for_mob_type(
     unavailable_countries = []
     for iso3 in countries:
         country = pycountry.countries.lookup(iso3).name
-        try:
-            path = job_path / iso3 / mob_source / "idata_filtered.nc"
-            country_idatas[iso3] = az.from_netcdf(path)
-        except FileNotFoundError:
+        c_paths = analysis_paths[iso3]
+        if mob_source in c_paths:
+            country_idatas[iso3] = az.from_netcdf(c_paths[mob_source] / "idata_filtered.nc")
+        else:
             unavailable_countries.append(country)
     return country_idatas, unavailable_countries
 
