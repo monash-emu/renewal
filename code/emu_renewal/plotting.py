@@ -541,14 +541,14 @@ def plot_kde_comparison(
 
 
 def plot_mob_weights_by_country(
-    job_path: Path,
+    analysis_paths: Path,
     countries: List[str],
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
     of the mobility domains implemented for the Google analysis.
 
     Args:
-        job_path: Path for the runs
+        analysis_paths: Path for the runs
         countries: The countries identifiers
 
     Returns:
@@ -563,7 +563,7 @@ def plot_mob_weights_by_country(
         mob = get_google_mobility(iso3)
 
         # Get weights
-        idata = az.from_netcdf(job_path / iso3 / "g_mob/idata_filtered.nc")
+        idata = az.from_netcdf(analysis_paths[iso3]["g_mob"] / "idata_filtered.nc")
         weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
         weights.columns = mob.columns
 
@@ -598,7 +598,7 @@ def plot_mob_weights_by_country(
 
 
 def compare_proc_mob(
-    job_path: Path,
+    analysis_paths: Dict[str, Path],
     countries: List[str],
     n_cols: int,
     mob_location: str,
@@ -607,7 +607,7 @@ def compare_proc_mob(
     transmission scaling to mobility location.
 
     Args:
-        job_path: Path for the runs
+        analysis_paths: Paths for the runs
         countries: Requested countries to plot
         n_cols: Number of subplot columns for the figure
         mob_location: The name of the mobility location
@@ -628,8 +628,9 @@ def compare_proc_mob(
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
         # Transmission scaling process plotting
-        ref_analysis = "fb_no_mob" if (job_path / iso3 / "fb_no_mob").exists() else "no_mob"
-        proc_samples = pd.read_hdf(job_path / iso3 / ref_analysis / "spaghetti.h5")["process"]
+        a_paths = analysis_paths[iso3]
+        ref_analysis = "fb_no_mob" if "fb_no_mob" in a_paths else "no_mob"
+        proc_samples = pd.read_hdf(a_paths[ref_analysis] / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
