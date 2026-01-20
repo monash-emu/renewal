@@ -526,7 +526,7 @@ def plot_kde_comparison(
         ax = flat_axes[c]
         ax.set_title(pycountry.countries.lookup(country).name)
         colours = [MOB_SOURCE_COLOURS[a] for a in data[country].columns]
-        sns.kdeplot(likes, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5)
+        sns.kdeplot(likes, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5, common_norm=False)
         ax.set_yticks([])
         ax.set_ylabel("")
 
@@ -707,10 +707,9 @@ def compare_proc_weighted_gmob(
         mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
 
         # Plot the weighted Google mobility distribution
-        ax.plot(mob_quants[0.5], color="green", linewidth=2.0)
-        ax.fill_between(
-            mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color="green"
-        )
+        colour = MOB_SOURCE_COLOURS["g_mob"]
+        ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
+        ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour)
 
         # Residual transmission scaling plotting
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
@@ -720,12 +719,13 @@ def compare_proc_weighted_gmob(
         # Detrended mobility
         all_mob = get_google_mobility(iso3)
         if all_mob.tail(G_MOB_DETREND_END_PERIOD).mean().max() > G_MOB_DETREND_THRESHOLD:
+            colour = MOB_SOURCE_COLOURS["g_mob_detrend"]
             params = get_g_mob_weight_posts(analysis_paths[iso3]["g_mob_detrend"])
             detrend_mob = all_mob.apply(lambda s: s / get_linear_series_trend(s, G_MOB_DETREND_END_PERIOD))
             smoothed_detrend_mob = detrend_mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
             mob_quants = get_g_mob_quants(smoothed_detrend_mob, params, n_samples)
             median_detrend_mob = mob_quants[0.5]
-            ax.plot(median_detrend_mob.index, median_detrend_mob, color="green", linewidth=2.0, linestyle=":")
+            ax.plot(median_detrend_mob.index, median_detrend_mob, color=colour, linewidth=2.0)
 
     for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
@@ -1174,7 +1174,7 @@ def plot_mob_exp_violins(
     flat_axes = axes.ravel()
 
     norm = Normalize(vmin=min(ratios.values()), vmax=max(ratios.values()))
-    cmap = get_cmap(MOB_SOURCE_COLOURS[mob_source].capitalize() + "s")
+    cmap = get_cmap(MOB_SOURCE_COLOURS[mob_source].replace("dark", "").replace("lime", "").capitalize() + "s")
     palette = {c: cmap(norm(v)) for c, v in ratios.items()}
 
     grouping = get_avail_groupings(mob_exp_df.columns)
@@ -1191,6 +1191,10 @@ def plot_mob_exp_violins(
     sm.set_array([])
     fig.colorbar(sm, ax=ax, location="left")
     ax.remove()
+
+    for a in range(r + 1, len(flat_axes)):
+        ax = flat_axes[a]
+        ax.set_axis_off()
 
     fig.tight_layout()
     plt.close()

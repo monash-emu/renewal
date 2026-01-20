@@ -137,8 +137,8 @@ DUR_REL_MAX = 2.5
 # Plotting and outputs
 MOB_SOURCE_COLOURS = {
     "no_mob": "black",
-    "g_mob": "green",
-    "g_mob_detrend": "darkgreen",
+    "g_mob": "darkgreen",
+    "g_mob_detrend": "limegreen",
     "fb_visited_mob": "red",
     "fb_singletile_mob": "blue",
     "fb_no_mob": "grey",
@@ -241,3 +241,7 @@ SHORT_COUNTRY_NAMES = {
     "Russian Federation": "Russian Fed",
     "Dominican Republic": "Domin Rep"
 }
+
+FULL_RUN = ["50038825"]
+TIMEOUTS = ["50079832", "50083214", "50083223", "50089444", "50083280"]
+RERUNS = ["50097738", "50097781"]

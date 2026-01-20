@@ -369,6 +369,10 @@ def get_ratios_from_disps(
             ref = disp_post["no_mob"].sample(frac=1.0).reset_index(drop=True)
             mob = disp_post["g_mob"].reset_index(drop=True)
             ratio_df["g_mob"] = ref / mob
+        if "g_mob_detrend" in disp_post:
+            ref = disp_post["no_mob"].sample(frac=1.0).reset_index(drop=True)
+            mob = disp_post["g_mob_detrend"].reset_index(drop=True)
+            ratio_df["g_mob_detrend"] = ref / mob
         if "fb_visited_mob" in disp_post:
             ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_mob"
             ref = disp_post[ref_name].sample(frac=1.0).reset_index(drop=True)
