@@ -45,7 +45,7 @@ def build_active_run():
     print("STDOUT:", result.stdout)
     print("STDERR:", result.stderr)
 
-    if result != 0:
+    if result.returncode != 0:
         raise Exception(result)
 
 
