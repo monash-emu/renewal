@@ -1,4 +1,4 @@
-from typing import List, Dict, Union
+from typing import List, Dict
 from pathlib import Path
 import warnings
 from os import listdir as ls
@@ -45,6 +45,8 @@ from emu_renewal.constants import (
     SHORT_COUNTRY_NAMES,
     EXP_PRIOR_LOWER,
     EXP_PRIOR_UPPER,
+    G_MOB_DETREND_END_PERIOD,
+    G_MOB_DETREND_THRESHOLD,
 )
 from emu_renewal.inputs import (
     DATA_PATH,
@@ -56,6 +58,7 @@ from emu_renewal.inputs import (
     get_g_mob_weight_posts,
     get_g_mob_quants,
     get_smoothed_trunc_g_mob,
+    get_linear_series_trend,
 )
 from emu_renewal.outputs import (
     get_idatas_for_mob_type,
@@ -65,7 +68,6 @@ from emu_renewal.outputs import (
 from emu_renewal.utils import (
     get_param_dim,
     get_beta_params_from_mean_var,
-    get_cont_of_country,
     get_country_short_name,
     get_country_name,
 )
@@ -645,6 +647,13 @@ def compare_proc_mob(
             else MOB_SOURCE_COLOURS[mob_location]
         )
         ax.plot(smoothed_mob.index, smoothed_mob, color=colour, linewidth=2.0)
+
+        # Detrended mobility
+        all_mob = get_google_mobility(iso3)
+        if mob_source == "g_mob" and all_mob.tail(G_MOB_DETREND_END_PERIOD).mean().max() > G_MOB_DETREND_THRESHOLD:
+            detrend_mob = mobility / get_linear_series_trend(mobility, G_MOB_DETREND_END_PERIOD)
+            smoothed_detrend_mob = detrend_mob.rolling(7, center=True).mean().dropna()
+            ax.plot(smoothed_detrend_mob.index, smoothed_detrend_mob, color=colour, linewidth=2.0, linestyle=":")
 
     # Switch off unused axes
     for ax in flat_axes[c + 1 :]:
