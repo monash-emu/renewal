@@ -649,11 +649,11 @@ def compare_proc_mob(
         ax.plot(smoothed_mob.index, smoothed_mob, color=colour, linewidth=2.0)
 
         # Detrended mobility
-        all_mob = get_google_mobility(iso3)
-        if mob_source == "g_mob" and all_mob.tail(G_MOB_DETREND_END_PERIOD).mean().max() > G_MOB_DETREND_THRESHOLD:
-            detrend_mob = mobility / get_linear_series_trend(mobility, G_MOB_DETREND_END_PERIOD)
-            smoothed_detrend_mob = detrend_mob.rolling(7, center=True).mean().dropna()
-            ax.plot(smoothed_detrend_mob.index, smoothed_detrend_mob, color=colour, linewidth=2.0, linestyle=":")
+        if mob_source == "g_mob":
+            if get_google_mobility(iso3).tail(G_MOB_DETREND_END_PERIOD).mean().max() > G_MOB_DETREND_THRESHOLD:
+                detrend_mob = mobility / get_linear_series_trend(mobility, G_MOB_DETREND_END_PERIOD)
+                smoothed_detrend_mob = detrend_mob.rolling(7, center=True).mean().dropna()
+                ax.plot(smoothed_detrend_mob.index, smoothed_detrend_mob, color=colour, linewidth=2.0, linestyle=":")
 
     # Switch off unused axes
     for ax in flat_axes[c + 1 :]:
