@@ -129,7 +129,6 @@ def plot_analysis_fit(
 
 
 def plot_multianalysis_fit(
-    iso3: str,
     targets: Dict[str, pd.Series],
     spaghs: Dict[str, pd.DataFrame],
 ) -> plt.Figure:
@@ -137,15 +136,12 @@ def plot_multianalysis_fit(
     using spaghetti and calibration targets.
 
     Args:
-        country: Name of the country
         targets: The calibration targets
         spaghs: The spaghettis
-        line_width: Width of spaghetti's lines
 
     Returns:
         The figure
     """
-    cont = get_cont_of_country(iso3)
     msg = ".*axis already has a converter set*"
     warnings.filterwarnings("ignore", message=msg)
     pd.options.plotting.backend = "matplotlib"
