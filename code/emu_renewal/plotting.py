@@ -47,6 +47,7 @@ from emu_renewal.constants import (
     EXP_PRIOR_UPPER,
     G_MOB_DETREND_END_PERIOD,
     G_MOB_DETREND_THRESHOLD,
+    MOBILITY_SMOOTH_PERIOD,
 )
 from emu_renewal.inputs import (
     DATA_PATH,
@@ -715,6 +716,14 @@ def compare_proc_weighted_gmob(
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
+
+        # Detrended mobility
+        all_mob = get_google_mobility(iso3)
+        if all_mob.tail(G_MOB_DETREND_END_PERIOD).mean().max() > G_MOB_DETREND_THRESHOLD:
+            smoothed_mob = all_mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
+            median_mob = get_g_mob_quants(smoothed_mob, params, n_samples)[0.5]
+            detrend_mob = median_mob / get_linear_series_trend(median_mob, G_MOB_DETREND_END_PERIOD)
+            ax.plot(detrend_mob.index, detrend_mob, color="green", linewidth=2.0, linestyle=":")
 
     for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
