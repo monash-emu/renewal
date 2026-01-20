@@ -13,7 +13,14 @@ DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
 # Analysis types
-ANALYSIS_TYPES = ["no_mob", "g_mob", "g_mob_detrend", "fb_no_mob", "fb_visited_mob", "fb_singletile_mob"]
+ANALYSIS_TYPES = [
+    "no_mob",
+    "g_mob",
+    "g_mob_detrend",
+    "fb_no_mob",
+    "fb_visited_mob",
+    "fb_singletile_mob",
+]
 
 # Dates
 CASES_START = "1 June 2020"
@@ -65,7 +72,19 @@ DEATHS_WEIGHT = 20
 DEATHS_START_THRESHOLD = 2
 
 # Hospitalisation-related
-ALREADY_WEEKLY_ADMIT_COUNTRIES = ["HRV", "ZAF", "IRL", "GRC", "SVN", "NOR", "MLT", "EST", "LUX", "SVK", "LVA"]
+ALREADY_WEEKLY_ADMIT_COUNTRIES = [
+    "HRV",
+    "ZAF",
+    "IRL",
+    "GRC",
+    "SVN",
+    "NOR",
+    "MLT",
+    "EST",
+    "LUX",
+    "SVK",
+    "LVA",
+]
 ALREADY_WEEKLY_OCCUP_COUNTRIES = ["JPN", "BGR"]
 
 # Variant-related
@@ -179,12 +198,7 @@ VAR_NAME_MAP = {
     "ba2": "BA.2",
     "ba5": "BA.5",
 }
-INCLUSION_COLOURS = {
-    "neither": "lightgrey",
-    "Google": "green",
-    "FB": "blue",
-    "both": "purple"
-}
+INCLUSION_COLOURS = {"neither": "lightgrey", "Google": "green", "FB": "blue", "both": "purple"}
 MOB_LOCATION_SOURCE_MAP = {
     "retail_and_recreation": "g_mob",
     "grocery_and_pharmacy": "g_mob",
@@ -237,11 +251,8 @@ MOB_LOCATION_ABBREVS = {
     "fb_visited_mob": "FB visit",
     "fb_singletile_mob": "FB tile",
 }
-SHORT_COUNTRY_NAMES = {
-    "Russian Federation": "Russian Fed",
-    "Dominican Republic": "Domin Rep"
-}
+SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic": "Domin Rep"}
 
 FULL_RUN = ["50038825"]
 TIMEOUTS = ["50079832", "50083214", "50083223", "50089444", "50083280"]
-RERUNS = ["50097738", "50097781"]
+RERUNS = ["50097738", "50097781", "50118739"]
