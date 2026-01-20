@@ -720,10 +720,12 @@ def compare_proc_weighted_gmob(
         # Detrended mobility
         all_mob = get_google_mobility(iso3)
         if all_mob.tail(G_MOB_DETREND_END_PERIOD).mean().max() > G_MOB_DETREND_THRESHOLD:
-            smoothed_mob = all_mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
-            median_mob = get_g_mob_quants(smoothed_mob, params, n_samples)[0.5]
-            detrend_mob = median_mob / get_linear_series_trend(median_mob, G_MOB_DETREND_END_PERIOD)
-            ax.plot(detrend_mob.index, detrend_mob, color="green", linewidth=2.0, linestyle=":")
+            params = get_g_mob_weight_posts(analysis_paths[iso3]["g_mob_detrend"])
+            detrend_mob = all_mob.apply(lambda s: s / get_linear_series_trend(s, G_MOB_DETREND_END_PERIOD))
+            smoothed_detrend_mob = detrend_mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
+            mob_quants = get_g_mob_quants(smoothed_detrend_mob, params, n_samples)
+            median_detrend_mob = mob_quants[0.5]
+            ax.plot(median_detrend_mob.index, median_detrend_mob, color="green", linewidth=2.0, linestyle=":")
 
     for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
