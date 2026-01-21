@@ -48,7 +48,8 @@ def get_date_dict_from_str(
     date_info: str,
 ) -> Dict[str, datetime]:
     """Get a dictionary of dates from a
-    single string. For use with ALPHA_DELTA_EXCEPTS.
+    single string. For use with the date constants
+    specified as strings.
 
     Args:
         date_info: The string containing the countries and
@@ -107,10 +108,12 @@ def get_deaths_target(
     The number of deaths by week reported by WHO
     was used as a calibration target for all included countries.
     Any values of zero in this series were replaced with a
-    value of {ZERO_IND_REPLACEMENT} to enable comparison to
-    modelled outputs on the log scale.
+    value of {ZERO_IND_REPLACEMENT} to enable comparison 
+    of the deaths target to our 
+    modelled outputs in logarithmic space.
     The log of the reported target for deaths was compared
-    against the log of the modelled value with a normal distribution.
+    against the log of the modelled value by calculating
+    the density of a normal distribution.
     Deaths was one of up to three  time-series indicators
     for which a common dispersion parameter was used
     for this normal distribution for the target comparison.

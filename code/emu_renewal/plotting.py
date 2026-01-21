@@ -275,7 +275,7 @@ def get_param_display_name(
     Returns:
         The formatted parameter name
     """
-    var_idx = param_idx + 1 if param == "relinfect" else param_idx
+    var_idx = param_idx + 1 if param in ["relinfect", "relseverity"] else param_idx
     var_ext = "" if param_dim == 1 else f", {VAR_NAME_MAP[var_names[var_idx]]}"
     return prior_info[param]["short_name"] + var_ext
 
@@ -334,7 +334,7 @@ def plot_prior_multipost(
             y_vals = get_prior_vals_from_dist(x_vals, priors[p], d)
             ax.fill_between(x_vals, y_vals, color="k", alpha=0.2)
             display_name = get_param_display_name(p, p_dim, d, var_names, prior_info)
-            ax.set_title(display_name)
+            ax.set_title(display_name, fontsize=12)
             plt.setp(ax.xaxis.get_majorticklabels(), fontsize=10)
             n_ax += 1
 
@@ -506,6 +506,7 @@ def plot_proc_comparison(
 
 def plot_kde_comparison(
     data: Dict[str, pd.DataFrame],
+    axis_adjustments: Dict[str, List[float]],
 ) -> plt.figure:
     """Plot the comparison of the kernel density of some
     repeatedly sampled quantity (posterior or parameter)
@@ -513,6 +514,7 @@ def plot_kde_comparison(
 
     Args:
         data: The values of interest for each country
+        axis_adjustments: Any countries for which axes didn't plot well by default
 
     Returns:
         The figure
@@ -521,14 +523,18 @@ def plot_kde_comparison(
     flat_axes = axes.ravel()
 
     # Plot the density distribtion by country
-    for c, (country, likes) in enumerate(data.items()):
+    for c, (iso3, likes) in enumerate(data.items()):
         likes = likes.rename(columns=MOB_SOURCE_ABBREVS)
         ax = flat_axes[c]
-        ax.set_title(pycountry.countries.lookup(country).name)
-        colours = [MOB_SOURCE_COLOURS[a] for a in data[country].columns]
+        ax.set_title(pycountry.countries.lookup(iso3).name)
+        colours = [MOB_SOURCE_COLOURS[a] for a in data[iso3].columns]
         sns.kdeplot(likes, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5, common_norm=False)
         ax.set_yticks([])
         ax.set_ylabel("")
+
+        # Patch x-axis limits
+        if iso3 in axis_adjustments:
+            ax.set_xlim(axis_adjustments[iso3])
 
     # Switch off unused axes
     for ax in flat_axes[c + 1 :]:
