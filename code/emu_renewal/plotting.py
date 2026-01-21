@@ -1324,7 +1324,7 @@ def plot_input_recovery(
     outputs: Dict[str, pd.Series],
     identify_params: Dict[str, float],
     proc: np.array,
-):
+) -> plt.figure:
     """Plot parameter identification outputs.
 
     Args:
@@ -1377,6 +1377,91 @@ def plot_input_recovery(
 
     # Finishing cosmetics
     axes[1, 2].set_axis_off()
+    fig.tight_layout()
+    plt.close()
+    return fig
+
+
+def plot_waning_comparison_spagh(
+    waning_paths: Dict[str, Dict[str, Path]], 
+    analysis_paths: Dict[str, Dict[str, Path]],
+) -> plt.figure:
+    """Plot the variable process median value with
+    and without waning immunity applied.
+
+    Args:
+        waning_paths: The paths to the waning immunity analyses
+        analysis_paths: The paths to the reference/main analyses
+
+    Returns:
+        The comparison figure
+    """
+    fig, axes = plt.subplots(4, 5, figsize=(20, 15))
+    flat_axes = axes.ravel()
+    for c, iso3 in enumerate(waning_paths):
+
+        # Gather the paths together
+        sample_path = waning_paths[iso3]
+        analysis_path = analysis_paths[iso3]
+        mob_type = next(iter(sample_path))
+        run_paths = {"waning": sample_path, "no_waning": analysis_path}
+
+        # Get the variable process spaghetti with and without waning
+        procs = {p: pd.read_hdf(run_paths[p][mob_type] / "spaghetti.h5")["process"] for p in run_paths}
+        quants = {p: procs[p].quantile([0.5], axis=1).T for p in run_paths}
+        
+        # Plot
+        ax = flat_axes[c]
+        for p in run_paths:
+            ax.plot(quants[p].index, quants[p], label=p)
+        ax.legend()
+        ax.set_title(f"{pycountry.countries.lookup(iso3).name},  {ANALYSIS_NAMES[mob_type]}")
+        ax.set_yticks([])
+        ax.set_ylabel("")
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
+
+    fig.tight_layout()
+    plt.close()
+    return fig
+
+
+def plot_waning_comparison_proc_disp(
+    waning_paths: Dict[str, Dict[str, Path]], 
+    analysis_paths: Dict[str, Dict[str, Path]],
+) -> plt.figure:
+    """Plot the variable process dispersion posterior with
+    and without waning immunity applied.
+
+    Args:
+        waning_paths: The paths to the waning immunity analyses
+        analysis_paths: The paths to the reference/main analyses
+
+    Returns:
+        The comparison figure
+    """
+    fig, axes = plt.subplots(4, 5, figsize=(20, 15))
+    flat_axes = axes.ravel()
+    param = "dispersion_proc"
+    for c, iso3 in enumerate(waning_paths):
+        
+        # Gather the paths together
+        sample_path = waning_paths[iso3]
+        analysis_path = analysis_paths[iso3]
+        mob_type = next(iter(sample_path))
+        run_paths = {"waning": sample_path, "no_waning": analysis_path}
+
+        # Get the posterior values with and without waning
+        posts = [get_param_vals_by_analysis(param, p)[mob_type] for p in run_paths.values()]
+        combined_disps = pd.concat(posts, axis=1)
+        combined_disps.columns = run_paths.keys()
+        
+        # Plot the posterior comparison
+        ax = flat_axes[c]
+        sns.kdeplot(combined_disps, ax=ax, fill=True, alpha=0.1, linewidth=1.5, common_norm=False)
+        ax.set_title(f"{pycountry.countries.lookup(iso3).name},  {ANALYSIS_NAMES[mob_type]}")
+        ax.set_yticks([])
+        ax.set_ylabel("")
+
     fig.tight_layout()
     plt.close()
     return fig
