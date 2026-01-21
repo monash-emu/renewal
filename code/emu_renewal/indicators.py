@@ -100,8 +100,9 @@ def get_deaths_target(
         end: The calibration end time
 
     Returns:
-        Number of observations in the deaths series
-        The target
+        Tuple of two elements:
+            - Number of observations in the deaths series
+            - The target
 
     Notes
     -----
@@ -111,16 +112,17 @@ def get_deaths_target(
     value of {ZERO_IND_REPLACEMENT} to enable comparison 
     of the deaths target to our 
     modelled outputs in logarithmic space.
-    The log of the reported target for deaths was compared
-    against the log of the modelled value by calculating
-    the density of a normal distribution.
-    Deaths was one of up to three  time-series indicators
+    The log of the reported target deaths value was compared
+    against modelled deaths by calculating
+    the density of a normal distribution centred
+    at the log-transformed modelled value.
+    Deaths was one of up to three time-series indicators
     for which a common dispersion parameter was used
     for this normal distribution for the target comparison.
     The value for weighting the deaths indicator time series
-    was set to {DEATHS_WEIGHT} (an quantity that can be interpreted
+    was set to {DEATHS_WEIGHT} (a quantity that can be interpreted
     in relation to the weights of the other indicators,
-    but an arbitrary value in itself).__RETURN__
+    but whose absolute size is arbitrary).__RETURN__
     """
     data = get_who_indicator("New_deaths", iso3)
     data = data.dropna()
@@ -152,7 +154,8 @@ def get_cases_target(
     -----
     The number of cases by week reported by WHO
     was included as the second calibration target for all countries.
-    As for deaths, any zero values were replaced with a value of 0.5.
+    As for deaths, any zero values were replaced with a value of 
+    {ZERO_IND_REPLACEMENT}.
     We only calibrated to cases from the {CASES_START} onward,
     because we considered that prior to this time
     many countries were still rapidly scaling
@@ -160,10 +163,11 @@ def get_cases_target(
     been less reliable.
     Cases was the second indicator for which
     a common dispersion parameter was applied.
-    A total weight was applied to the overall time-series of cases
-    such that the weight for each observation (date)
-    within the cases time-series
-    was the same as for each death observation.
+    A total weight was calculated for the overall 
+    time-series of cases
+    such that the weight for each individual 
+    observation (date) of the cases time-series 
+    was equal to that for each death observation.
     """
     data = get_who_indicator("New_cases", iso3)
     data = data.dropna()
@@ -177,7 +181,7 @@ def get_cases_target(
 
 
 def get_owid_hosps(
-    country: str,
+    iso3: str,
     start: datetime,
     end: datetime,
 ) -> Tuple[Union[pd.Series, None], str]:
@@ -186,7 +190,7 @@ def get_owid_hosps(
     their hospitalisation indicator weekly.
 
     Args:
-        country: Country identifier
+        iso3: Country identifier
         start: Data comparison start time
         end: Analysis end time
 
@@ -202,7 +206,7 @@ def get_owid_hosps(
     In selecting the indicator, the number of new admissions was preferred
     over estimates of total bed occupancy, and total hospital
     indicators were preferred over ICU indicators.
-    The final hierarchy of indicators was:
+    As such, the final hierarchy of indicators was:
     __RETURN__1. New hospital admissions
     __RETURN__2. Hospital occupancy
     __RETURN__3. New ICU admissions
@@ -214,43 +218,41 @@ def get_owid_hosps(
     """
 
     # Gather indicators
-    admits = get_owid_hosp_series("Weekly new hospital admissions", country)
-    filt_admits = admits[(start < admits.index) & (admits.index < end) & (admits > 0.0)]
+    admits = get_owid_hosp_series("Weekly new hospital admissions", iso3)
+    mask = (start < admits.index) & (admits.index < end) & (admits > 0.0)
+    filt_admits = admits[mask]
 
-    occup = get_owid_hosp_series("Daily hospital occupancy", country)
-    filt_occup = occup[(start < occup.index) & (occup.index < end)]
+    occup = get_owid_hosp_series("Daily hospital occupancy", iso3)
+    mask = (start < occup.index) & (occup.index < end)
+    filt_occup = occup[mask]
 
-    icu_admits = get_owid_hosp_series("Weekly new ICU admissions", country)
-    filt_icu_admits = icu_admits[(start < icu_admits.index) & (icu_admits.index < end)]
+    icu_admits = get_owid_hosp_series("Weekly new ICU admissions", iso3)
+    mask = (start < icu_admits.index) & (icu_admits.index < end)
+    filt_icu_admits = icu_admits[mask]
 
-    icu_occup = get_owid_hosp_series("Daily ICU occupancy", country)
-    filt_icu_occup = icu_occup[(start < icu_occup.index) & (icu_occup.index < end)]
+    icu_occup = get_owid_hosp_series("Daily ICU occupancy", iso3)
+    mask = (start < icu_occup.index) & (icu_occup.index < end)
+    filt_icu_occup = icu_occup[mask]
 
     # Hierarchically return the best one
-    if not filt_admits.empty and country in ALREADY_WEEKLY_ADMIT_COUNTRIES:
+    if not filt_admits.empty and iso3 in ALREADY_WEEKLY_ADMIT_COUNTRIES:
         weekly_admits = filt_admits.dropna()
         return weekly_admits, "weekly_admissions"
-
     elif not filt_admits.empty:
         weekly_admits = filt_admits.rolling(7).mean()[::7].dropna()
         return weekly_admits, "weekly_admissions"
-
-    elif not filt_occup.empty and country in ALREADY_WEEKLY_OCCUP_COUNTRIES:
+    elif not filt_occup.empty and iso3 in ALREADY_WEEKLY_OCCUP_COUNTRIES:
         weekly_occup = filt_occup.dropna()
         return weekly_occup, "occupancy"
-
     elif not filt_occup.empty:
         weekly_occup = filt_occup.rolling(7).mean()[::7].dropna()
         return weekly_occup, "occupancy"
-
     elif not filt_icu_admits.empty:
         weekly_icu_admits = filt_icu_admits.rolling(7).mean()[::7].dropna()
         return weekly_icu_admits, "icu_weekly_admissions"
-
     elif not filt_icu_occup.empty:
         weekly_icu_occup = filt_icu_occup.rolling(7).mean()[::7].dropna()
         return weekly_icu_occup, "icu_occupancy"
-
     else:
         return None, ""
 
@@ -261,7 +263,7 @@ def get_hosp_target(
     end: datetime,
     n_deaths: int,
 ) -> Dict[str, SharedDispTarget]:
-    """Get the hospitalisations calibration target.
+    """Get the hospitalisation-related calibration target.
 
     Args:
         iso3: The country identifier
@@ -276,10 +278,10 @@ def get_hosp_target(
     -----
     This indicator was the final calibration target for which
     a common dispersion parameter was applied.
-    As for cases, a weight was applied to 
-    the overall hospitalisation series
-    such that the weight for each observation point
-    was the same as for each death observation.
+    As for the cases target, a weight was applied to 
+    the overall hospitalisation time series 
+    such that the weight for each observation point 
+    was equal to that for each death observation.
     """
     data, output_name = get_owid_hosps(iso3, start, end)
     if data is None:
@@ -308,8 +310,8 @@ def get_all_seroprev() -> pd.Series:
     mid-point between the reported start and end sampling dates
     for each survey.
     This date was then lagged earlier by {ANTIBODY_DELAY} days
-    for the purposes
-    of calibration to allow for a delay between infection
+    for comparison to modelled outputs
+    to account for the delay between infection
     and the subsequent development of detectable antibodies.
     """
     data = pd.read_csv(DATA_PATH / "seroprevalence/serotracker.csv")
@@ -341,8 +343,8 @@ def filter_seroprev(
     Unity-aligned national-level surveys for
     which the number of participants was at least {SEROPREV_MIN_SIZE}.
     We also considered only a maximum of one seroprevalence
-    value for any given date (keeping the largest
-    estimate of three surveys done on the same day for Mexico).
+    value for any given date (selecting only the largest
+    of three surveys done on the same day for Mexico).
     """
     country = pycountry.countries.lookup(iso3).name
     country_filt = data["country"] == country
@@ -350,8 +352,7 @@ def filter_seroprev(
     type_filt = data["subgroup_var"] == "Primary Estimate"
     unity_filt = data["is_unity_aligned"] == "Unity-Aligned"
     n_filt = data["denominator_value"] >= SEROPREV_MIN_SIZE
-    all_filt = country_filt & nat_filt & type_filt & unity_filt & n_filt
-    filt_data = data[all_filt]
+    filt_data = data[country_filt & nat_filt & type_filt & unity_filt & n_filt]
     return filt_data[[not i for i in filt_data.index.duplicated()]]
 
 
@@ -375,7 +376,7 @@ def pool_seroprev_totals(
     period_sums = pd.DataFrame()
     idx_to_remove = []
     for start, end in zip(starts, ends):
-        period = data.loc[start:end]
+        period = data.loc[start: end]
         average_date = period.index.mean()
         prevs = period[PREV_KEY]
         denoms = period["denominator_value"]
@@ -393,8 +394,8 @@ def get_seroprev_pooled_totals(
 ) -> pd.Series:
     """Pool any sequences of seroprevalence data
     that are decreasing over time.
-    Continue pooling until all estimates are monotonically
-    increasing.
+    Continue pooling until all 
+    estimates are monotonically increasing.
 
     Args:
         data: The raw seroprevalence data
