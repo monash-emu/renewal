@@ -1396,7 +1396,7 @@ def plot_waning_comparison_spagh(
     Returns:
         The comparison figure
     """
-    fig, axes = plt.subplots(4, 5, figsize=(20, 15))
+    fig, axes = plt.subplots(3, 4, figsize=(15, 12))
     flat_axes = axes.ravel()
     for c, iso3 in enumerate(waning_paths):
 
@@ -1439,7 +1439,7 @@ def plot_waning_comparison_proc_disp(
     Returns:
         The comparison figure
     """
-    fig, axes = plt.subplots(4, 5, figsize=(20, 15))
+    fig, axes = plt.subplots(3, 4, figsize=(15, 12))
     flat_axes = axes.ravel()
     param = "dispersion_proc"
     for c, iso3 in enumerate(waning_paths):
