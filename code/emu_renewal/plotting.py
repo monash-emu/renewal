@@ -1361,7 +1361,7 @@ def plot_input_recovery(
     spaghetti = get_spagh_df_from_dict(run_for_spaghetti(calib, sample_params))
 
     # Plot fit to data
-    fig, axes = plt.subplots(2, 3, figsize=[10, 5])
+    fig, axes = plt.subplots(2, 2, figsize=[10, 8])
     for i, ind in enumerate(outputs):
         ax = axes[0, i]
         ax.set_title(f"fit to {ind}")
@@ -1373,19 +1373,19 @@ def plot_input_recovery(
 
     # Plot recovery of key parameters
     priors["mob_exp"] = dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
-    az.plot_density(idata, var_names=list(identify_params.keys()), shade=0.5, ax=[axes[1, 0:2]])
-    for p, param in enumerate(identify_params):
-        ax = axes[1, p]
-        # ax.axvline(identify_params[param], color="darkblue", linewidth=4.0)
-        prior = priors[param]
-        x_vals = np.linspace(prior.support.lower_bound, prior.support.upper_bound, 100)
-        y_vals = np.exp(prior.log_prob(x_vals))
-        ax.plot(x_vals, y_vals, color="darkgrey", alpha=0.5)
-        ax.fill_between(x_vals, y_vals, alpha=0.5, color="grey", zorder=2)
+    ax = axes[1, 1]
+    az.plot_density(idata, var_names=list(identify_params.keys()), shade=0.5, ax=[ax])
+    ax.axvline(identify_params["mob_exp"], color="darkblue", linewidth=4.0)
+    prior = priors["mob_exp"]
+    x_vals = np.linspace(prior.support.lower_bound, prior.support.upper_bound, 100)
+    y_vals = np.exp(prior.log_prob(x_vals))
+    ax.plot(x_vals, y_vals, color="darkgrey", alpha=0.5)
+    ax.fill_between(x_vals, y_vals, alpha=0.5, color="grey", zorder=2)
 
     # Plot recovery of the variable process
-    times = outputs["weekly_deaths"].index
-    ax = axes[0, 2]
+    model = calib.epi_model
+    times = model.epoch.index_to_dti(model.x_proc_vals)
+    ax = axes[1, 0]
     ax.set_title("variable process recovery")
     ax.plot(times, np.cumsum(proc, axis=0), marker="o", linewidth=0.0)
     procs = pd.DataFrame(sample_params.to_array()[:, 2:]).cumsum(axis=1)
@@ -1395,7 +1395,6 @@ def plot_input_recovery(
     ax.tick_params("x", rotation=70)
 
     # Finishing cosmetics
-    axes[1, 2].set_axis_off()
     fig.tight_layout()
     plt.close()
     return fig
