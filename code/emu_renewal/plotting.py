@@ -1369,7 +1369,7 @@ def plot_input_recovery(
     ax = axes[0, 2]
     ax.set_title("variable process recovery")
     ax.plot(times, np.cumsum(proc, axis=0), marker="o", linewidth=0.0)
-    procs = pd.DataFrame(sample_params.to_array()[:, 3:]).cumsum(axis=1)
+    procs = pd.DataFrame(sample_params.to_array()[:, 2:]).cumsum(axis=1)
     quants = procs.quantile([0.025, 0.5, 0.975]).T
     ax.fill_between(times, quants[0.025], quants[0.975], color="grey", alpha=0.5)
     ax.plot(times, quants[0.5], color="k", alpha=0.5)
@@ -1415,7 +1415,7 @@ def plot_waning_comparison_spagh(
         for p in run_paths:
             ax.plot(quants[p].index, quants[p], label=p)
         ax.legend()
-        ax.set_title(f"{pycountry.countries.lookup(iso3).name},  {ANALYSIS_NAMES[mob_type]}")
+        ax.set_title(f"{pycountry.countries.lookup(iso3).name}, {ANALYSIS_NAMES[mob_type]}")
         ax.set_yticks([])
         ax.set_ylabel("")
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
@@ -1458,7 +1458,7 @@ def plot_waning_comparison_proc_disp(
         # Plot the posterior comparison
         ax = flat_axes[c]
         sns.kdeplot(combined_disps, ax=ax, fill=True, alpha=0.1, linewidth=1.5, common_norm=False)
-        ax.set_title(f"{pycountry.countries.lookup(iso3).name},  {ANALYSIS_NAMES[mob_type]}")
+        ax.set_title(f"{pycountry.countries.lookup(iso3).name}, {ANALYSIS_NAMES[mob_type]}")
         ax.set_yticks([])
         ax.set_ylabel("")
 
