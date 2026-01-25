@@ -386,3 +386,33 @@ def get_analysis_status(
                 out = "not run"
             analysis_status.loc[iso3, a] = out
     return analysis_status
+
+
+def move_idata_full_to_bin(
+    run_id: str,
+    countries: List[str],
+):
+    """Move full idatas to bin if issues with storage.
+    Usually we are working with idata_filtered,
+    so can often discard these outputs,
+    which are nearly half the storage.
+
+    Args:
+        run_id: The run ID to clear
+        countries: The full list of countries for analysis
+    """
+    analysis_paths = get_analysis_paths([run_id], countries)
+    for iso3 in analysis_paths:
+        for analysis_type in analysis_paths[iso3]:
+            src_path = analysis_paths[iso3][analysis_type]
+            filename = "idata_full.nc"
+            src_filename = src_path / filename
+
+            dest_path = Path.home() / ".Trash" / run_id / iso3 / analysis_type
+            dest_path.mkdir(parents=True, exist_ok=True)
+            dest_filename = dest_path / filename
+
+            try:
+                shutil.move(src_filename, dest_filename)
+            except FileNotFoundError:
+                print(f"{src_filename} not found")
