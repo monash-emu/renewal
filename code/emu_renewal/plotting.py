@@ -528,7 +528,9 @@ def plot_kde_comparison(
         ax = flat_axes[c]
         ax.set_title(pycountry.countries.lookup(iso3).name)
         colours = [MOB_SOURCE_COLOURS[a] for a in data[iso3].columns]
-        sns.kdeplot(likes, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5, common_norm=False)
+        sns.kdeplot(
+            likes, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5, common_norm=False
+        )
         ax.set_yticks([])
         ax.set_ylabel("")
 
@@ -657,10 +659,19 @@ def compare_proc_mob(
 
         # Detrended mobility
         if mob_source == "g_mob":
-            if get_google_mobility(iso3).tail(G_MOB_DETREND_END_PERIOD).mean().max() > G_MOB_DETREND_THRESHOLD:
+            if (
+                get_google_mobility(iso3).tail(G_MOB_DETREND_END_PERIOD).mean().max()
+                > G_MOB_DETREND_THRESHOLD
+            ):
                 detrend_mob = mobility / get_linear_series_trend(mobility, G_MOB_DETREND_END_PERIOD)
                 smoothed_detrend_mob = detrend_mob.rolling(7, center=True).mean().dropna()
-                ax.plot(smoothed_detrend_mob.index, smoothed_detrend_mob, color=colour, linewidth=2.0, linestyle=":")
+                ax.plot(
+                    smoothed_detrend_mob.index,
+                    smoothed_detrend_mob,
+                    color=colour,
+                    linewidth=2.0,
+                    linestyle=":",
+                )
 
     # Switch off unused axes
     for ax in flat_axes[c + 1 :]:
@@ -715,7 +726,9 @@ def compare_proc_weighted_gmob(
         # Plot the weighted Google mobility distribution
         colour = MOB_SOURCE_COLOURS["g_mob"]
         ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
-        ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour)
+        ax.fill_between(
+            mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour
+        )
 
         # Residual transmission scaling plotting
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
@@ -727,8 +740,12 @@ def compare_proc_weighted_gmob(
         if all_mob.tail(G_MOB_DETREND_END_PERIOD).mean().max() > G_MOB_DETREND_THRESHOLD:
             colour = MOB_SOURCE_COLOURS["g_mob_detrend"]
             params = get_g_mob_weight_posts(analysis_paths[iso3]["g_mob_detrend"])
-            detrend_mob = all_mob.apply(lambda s: s / get_linear_series_trend(s, G_MOB_DETREND_END_PERIOD))
-            smoothed_detrend_mob = detrend_mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
+            detrend_mob = all_mob.apply(
+                lambda s: s / get_linear_series_trend(s, G_MOB_DETREND_END_PERIOD)
+            )
+            smoothed_detrend_mob = (
+                detrend_mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
+            )
             mob_quants = get_g_mob_quants(smoothed_detrend_mob, params, n_samples)
             median_detrend_mob = mob_quants[0.5]
             ax.plot(median_detrend_mob.index, median_detrend_mob, color=colour, linewidth=2.0)
@@ -1180,7 +1197,9 @@ def plot_mob_exp_violins(
     flat_axes = axes.ravel()
 
     norm = Normalize(vmin=min(ratios.values()), vmax=max(ratios.values()))
-    cmap = get_cmap(MOB_SOURCE_COLOURS[mob_source].replace("dark", "").replace("lime", "").capitalize() + "s")
+    cmap = get_cmap(
+        MOB_SOURCE_COLOURS[mob_source].replace("dark", "").replace("lime", "").capitalize() + "s"
+    )
     palette = {c: cmap(norm(v)) for c, v in ratios.items()}
 
     grouping = get_avail_groupings(mob_exp_df.columns)
@@ -1342,7 +1361,7 @@ def plot_input_recovery(
     spaghetti = get_spagh_df_from_dict(run_for_spaghetti(calib, sample_params))
 
     # Plot fit to data
-    fig, axes = plt.subplots(2, 3, figsize=[10, 5])
+    fig, axes = plt.subplots(2, 2, figsize=[10, 8])
     for i, ind in enumerate(outputs):
         ax = axes[0, i]
         ax.set_title(f"fit to {ind}")
@@ -1354,19 +1373,19 @@ def plot_input_recovery(
 
     # Plot recovery of key parameters
     priors["mob_exp"] = dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
-    az.plot_density(idata, var_names=list(identify_params.keys()), shade=0.5, ax=[axes[1, 0:2]])
-    for p, param in enumerate(identify_params):
-        ax = axes[1, p]
-        ax.axvline(identify_params[param], color="darkblue", linewidth=4.0)
-        prior = priors[param]
-        x_vals = np.linspace(prior.support.lower_bound, prior.support.upper_bound, 100)
-        y_vals = np.exp(prior.log_prob(x_vals))
-        ax.plot(x_vals, y_vals, color="darkgrey", alpha=0.5)
-        ax.fill_between(x_vals, y_vals, alpha=0.5, color="grey", zorder=2)
+    ax = axes[1, 1]
+    az.plot_density(idata, var_names=list(identify_params.keys()), shade=0.5, ax=[ax])
+    ax.axvline(identify_params["mob_exp"], color="darkblue", linewidth=4.0)
+    prior = priors["mob_exp"]
+    x_vals = np.linspace(prior.support.lower_bound, prior.support.upper_bound, 100)
+    y_vals = np.exp(prior.log_prob(x_vals))
+    ax.plot(x_vals, y_vals, color="darkgrey", alpha=0.5)
+    ax.fill_between(x_vals, y_vals, alpha=0.5, color="grey", zorder=2)
 
     # Plot recovery of the variable process
-    times = outputs["weekly_deaths"].index
-    ax = axes[0, 2]
+    model = calib.epi_model
+    times = model.epoch.index_to_dti(model.x_proc_vals)
+    ax = axes[1, 0]
     ax.set_title("variable process recovery")
     ax.plot(times, np.cumsum(proc, axis=0), marker="o", linewidth=0.0)
     procs = pd.DataFrame(sample_params.to_array()[:, 2:]).cumsum(axis=1)
@@ -1376,14 +1395,13 @@ def plot_input_recovery(
     ax.tick_params("x", rotation=70)
 
     # Finishing cosmetics
-    axes[1, 2].set_axis_off()
     fig.tight_layout()
     plt.close()
     return fig
 
 
 def plot_waning_comparison_spagh(
-    waning_paths: Dict[str, Dict[str, Path]], 
+    waning_paths: Dict[str, Dict[str, Path]],
     analysis_paths: Dict[str, Dict[str, Path]],
 ) -> plt.figure:
     """Plot the variable process median value with
@@ -1407,9 +1425,11 @@ def plot_waning_comparison_spagh(
         run_paths = {"waning": sample_path, "no_waning": analysis_path}
 
         # Get the variable process spaghetti with and without waning
-        procs = {p: pd.read_hdf(run_paths[p][mob_type] / "spaghetti.h5")["process"] for p in run_paths}
+        procs = {
+            p: pd.read_hdf(run_paths[p][mob_type] / "spaghetti.h5")["process"] for p in run_paths
+        }
         quants = {p: procs[p].quantile([0.5], axis=1).T for p in run_paths}
-        
+
         # Plot
         ax = flat_axes[c]
         for p in run_paths:
@@ -1426,7 +1446,7 @@ def plot_waning_comparison_spagh(
 
 
 def plot_waning_comparison_proc_disp(
-    waning_paths: Dict[str, Dict[str, Path]], 
+    waning_paths: Dict[str, Dict[str, Path]],
     analysis_paths: Dict[str, Dict[str, Path]],
 ) -> plt.figure:
     """Plot the variable process dispersion posterior with
@@ -1443,7 +1463,7 @@ def plot_waning_comparison_proc_disp(
     flat_axes = axes.ravel()
     param = "dispersion_proc"
     for c, iso3 in enumerate(waning_paths):
-        
+
         # Gather the paths together
         sample_path = waning_paths[iso3]
         analysis_path = analysis_paths[iso3]
@@ -1454,7 +1474,7 @@ def plot_waning_comparison_proc_disp(
         posts = [get_param_vals_by_analysis(param, p)[mob_type] for p in run_paths.values()]
         combined_disps = pd.concat(posts, axis=1)
         combined_disps.columns = run_paths.keys()
-        
+
         # Plot the posterior comparison
         ax = flat_axes[c]
         sns.kdeplot(combined_disps, ax=ax, fill=True, alpha=0.1, linewidth=1.5, common_norm=False)
