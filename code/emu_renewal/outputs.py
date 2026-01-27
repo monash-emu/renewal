@@ -190,8 +190,8 @@ def get_country_procs(
     analysis_paths: Dict[str, Dict[str, Path]],
     countries: List[str],
 ) -> Dict[str, pd.DataFrame]:
-    """Get dataframes containing 
-    the transmission scaling values 
+    """Get dataframes containing
+    the transmission scaling values
     for a combination of countries
     and analysis types.
 
@@ -212,7 +212,8 @@ def get_country_procs(
 
 def get_param_vals_by_analysis(
     param: str,
-    analysis_paths: Dict[str, Dict[str, Path]],) -> pd.DataFrame:
+    analysis_paths: Dict[str, Dict[str, Path]],
+) -> pd.DataFrame:
     """Get dataframe of accepted parameter values
     by analysis for a particular parameter and country.
 
@@ -276,7 +277,7 @@ def get_prop_improve(
     mob_source: str,
 ) -> Dict[str, float]:
     """Find the proportion of results from a particular run that
-    have a lower dispersion parameter than 
+    have a lower dispersion parameter than
     the median value of the no mobility analysis.
 
     Args:
@@ -290,7 +291,7 @@ def get_prop_improve(
     for c in disp_posts:
         c_posts = disp_posts[c]
         no_mob_median = c_posts["no_mob"].median()
-        
+
         if mob_source in c_posts:
             mob_posts = c_posts[mob_source]
             prop_improve_median[c] = (mob_posts < no_mob_median).sum() / len(mob_posts)
@@ -326,8 +327,8 @@ def get_idatas_for_mob_type(
 
 
 def get_param_mean_by_country(
-    job_path: Path, 
-    param: str, 
+    job_path: Path,
+    param: str,
     mob_source: str,
 ) -> Dict[str, float]:
     """Get the mean of the parameter posterior for each
@@ -343,7 +344,9 @@ def get_param_mean_by_country(
     """
     countries = ls(job_path)
     i_datas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
-    return {c: az.summary(i_datas[c], var_names=param, kind="stats")["mean"].values[0] for c in i_datas}
+    return {
+        c: az.summary(i_datas[c], var_names=param, kind="stats")["mean"].values[0] for c in i_datas
+    }
 
 
 def get_ratios_from_disps(
@@ -354,7 +357,7 @@ def get_ratios_from_disps(
     mobility analysis. Randomly permute the baseline for comparison.
 
     Args:
-        disp_posts: Output of get_param_vals_by_analysis 
+        disp_posts: Output of get_param_vals_by_analysis
             with "dispersion_proc" as first argument
             (i.e. process dispersion samples by analysis)
 
@@ -388,11 +391,11 @@ def get_ratios_from_disps(
 
 
 def get_median_ratios(
-    dists: Dict[str, pd.DataFrame], 
+    dists: Dict[str, pd.DataFrame],
     mob_source: str,
 ) -> Dict[str, float]:
     """Get the median ratio of the transmission scaling
-    dispersion parameter sample under a mobility 
+    dispersion parameter sample under a mobility
     analysis to the equivalent baseline.
 
     Args:
@@ -430,15 +433,19 @@ def get_quantmedian_df(
     for iso3 in analysis_paths:
         waning_path = waning_paths[iso3]
         analysis_path = analysis_paths[iso3]
-        
+
         for mob_type in analysis_path:
             run_paths = {"waning": waning_path, "no_waning": analysis_path}
-        
+
             # Get the posterior values with and without waning
-            posts = [get_param_vals_by_analysis(param, p)[mob_type] for p in run_paths.values()]
+            try:
+                posts = [get_param_vals_by_analysis(param, p)[mob_type] for p in run_paths.values()]
+            except:
+                print(iso3)
+                print(mob_type)
             combined_disps = pd.concat(posts, axis=1)
             combined_disps.columns = run_paths.keys()
-            
+
             # Make the calculations
             no_waning_median = combined_disps["no_waning"].median()
             prop_above_median = (combined_disps["waning"] > no_waning_median).mean()
