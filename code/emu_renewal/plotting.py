@@ -1400,51 +1400,6 @@ def plot_input_recovery(
     return fig
 
 
-def plot_waning_comparison_spagh(
-    waning_paths: Dict[str, Dict[str, Path]],
-    analysis_paths: Dict[str, Dict[str, Path]],
-) -> plt.figure:
-    """Plot the variable process median value with
-    and without waning immunity applied.
-
-    Args:
-        waning_paths: The paths to the waning immunity analyses
-        analysis_paths: The paths to the reference/main analyses
-
-    Returns:
-        The comparison figure
-    """
-    fig, axes = plt.subplots(3, 4, figsize=(15, 12))
-    flat_axes = axes.ravel()
-    for c, iso3 in enumerate(waning_paths):
-
-        # Gather the paths together
-        sample_path = waning_paths[iso3]
-        analysis_path = analysis_paths[iso3]
-        mob_type = next(iter(sample_path))
-        run_paths = {"waning": sample_path, "no_waning": analysis_path}
-
-        # Get the variable process spaghetti with and without waning
-        procs = {
-            p: pd.read_hdf(run_paths[p][mob_type] / "spaghetti.h5")["process"] for p in run_paths
-        }
-        quants = {p: procs[p].quantile([0.5], axis=1).T for p in run_paths}
-
-        # Plot
-        ax = flat_axes[c]
-        for p in run_paths:
-            ax.plot(quants[p].index, quants[p], label=p)
-        ax.legend()
-        ax.set_title(f"{pycountry.countries.lookup(iso3).name}, {ANALYSIS_NAMES[mob_type]}")
-        ax.set_yticks([])
-        ax.set_ylabel("")
-        plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
-
-    fig.tight_layout()
-    plt.close()
-    return fig
-
-
 def plot_waning_comparison_proc_disp(
     waning_paths: Dict[str, Dict[str, Path]],
     analysis_paths: Dict[str, Dict[str, Path]],
@@ -1500,8 +1455,9 @@ def plot_waning_quant_comparison(
     Returns:
         The figure
     """
-    fig = sns.kdeplot(quant_df, fill=True, linewidth=1.0, common_norm=False)
-    fig.set_ylabel("")
-    fig.set_xlim([0.0, 1.0])
-    fig.set_yticks([])
-    return fig
+    ax = sns.kdeplot(quant_df, fill=True, linewidth=1.0, common_norm=False)
+    ax.set_ylabel("")
+    ax.set_xlim([0.0, 1.0])
+    ax.set_yticks([])
+    ax.axvline(0.5, color="dimgrey", linestyle="--")
+    return ax
