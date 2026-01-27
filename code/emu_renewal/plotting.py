@@ -1448,6 +1448,8 @@ def plot_waning_comparison_spagh(
 def plot_waning_comparison_proc_disp(
     waning_paths: Dict[str, Dict[str, Path]],
     analysis_paths: Dict[str, Dict[str, Path]],
+    n_samples,
+    sample_analyses,
 ) -> plt.figure:
     """Plot the variable process dispersion posterior with
     and without waning immunity applied.
@@ -1459,29 +1461,28 @@ def plot_waning_comparison_proc_disp(
     Returns:
         The comparison figure
     """
-    fig, axes = plt.subplots(3, 4, figsize=(15, 12))
+    fig, axes = get_standard_subplot(n_samples, 4)
     flat_axes = axes.ravel()
     param = "dispersion_proc"
-    for c, iso3 in enumerate(waning_paths):
-
+    for c, (iso3, mob_type) in enumerate(sample_analyses):
+    
         # Gather the paths together
         sample_path = waning_paths[iso3]
         analysis_path = analysis_paths[iso3]
-        mob_type = next(iter(sample_path))
         run_paths = {"waning": sample_path, "no_waning": analysis_path}
-
+    
         # Get the posterior values with and without waning
         posts = [get_param_vals_by_analysis(param, p)[mob_type] for p in run_paths.values()]
         combined_disps = pd.concat(posts, axis=1)
         combined_disps.columns = run_paths.keys()
-
+    
         # Plot the posterior comparison
         ax = flat_axes[c]
         sns.kdeplot(combined_disps, ax=ax, fill=True, alpha=0.1, linewidth=1.5, common_norm=False)
-        ax.set_title(f"{pycountry.countries.lookup(iso3).name}, {ANALYSIS_NAMES[mob_type]}")
+        ax.set_title(f"{pycountry.countries.lookup(iso3).name}, {MOB_SOURCE_ABBREVS[mob_type]}")
         ax.set_yticks([])
         ax.set_ylabel("")
-
+    
     fig.tight_layout()
     plt.close()
     return fig
