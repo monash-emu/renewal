@@ -18,7 +18,7 @@ import pycountry
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
-from emu_renewal.constants import MOB_SOURCE_COLOURS, N_SAMPLES
+from emu_renewal.constants import MOB_SOURCE_COLOURS, N_SAMPLES, ANALYSIS_TYPES
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.utils import get_subdirs
@@ -408,3 +408,39 @@ def get_median_ratios(
         if mob_source in c_ratios:
             median_ratios[c] = c_ratios.median()[mob_source]
     return median_ratios
+
+
+def get_quantmedian_df(
+    waning_paths: Dict[str, Dict[str, Path]],
+    analysis_paths: Dict[str, Dict[str, Path]],
+) -> pd.DataFrame:
+    """Find the proportion of waning runs for which the
+    output value is greater than the equivalent analysis
+    without waning implemented.
+
+    Args:
+        waning_paths: Paths for the waning analyses
+        analysis_paths: Paths for the reference analyses
+
+    Returns:
+        The compiled results
+    """
+    quantquant = pd.DataFrame(index=analysis_paths, columns=ANALYSIS_TYPES)
+    param = "dispersion_proc"
+    for iso3 in analysis_paths:
+        waning_path = waning_paths[iso3]
+        analysis_path = analysis_paths[iso3]
+        
+        for mob_type in analysis_path:
+            run_paths = {"waning": waning_path, "no_waning": analysis_path}
+        
+            # Get the posterior values with and without waning
+            posts = [get_param_vals_by_analysis(param, p)[mob_type] for p in run_paths.values()]
+            combined_disps = pd.concat(posts, axis=1)
+            combined_disps.columns = run_paths.keys()
+            
+            # Make the calculations
+            no_waning_median = combined_disps["no_waning"].median()
+            prop_above_median = (combined_disps["waning"] > no_waning_median).mean()
+            quantquant.loc[iso3, mob_type] = prop_above_median
+    return quantquant
