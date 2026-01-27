@@ -450,10 +450,13 @@ def get_quantmedian_df(
             no_waning_median = combined_disps["no_waning"].median()
             prop_above_median = (combined_disps["waning"] > no_waning_median).mean()
             quantquant.loc[iso3, mob_type] = prop_above_median
-
     quantquant.rename(columns=MOB_SOURCE_ABBREVS, inplace=True)
     quantquant.rename(index=lambda iso3: pycountry.countries.lookup(iso3).name, inplace=True)
-    quantquant = quantquant.astype(float).round(3)
-    quantquant = quantquant.fillna("no analysis")
-    quantquant = quantquant.sort_index()
     return quantquant
+
+
+def convert_quant_df_for_display(quant_df):
+    quant_df = quant_df.astype(float).round(3)
+    quant_df = quant_df.fillna("no analysis")
+    quant_df = quant_df.sort_index()
+    return quant_df

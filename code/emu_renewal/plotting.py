@@ -1465,24 +1465,43 @@ def plot_waning_comparison_proc_disp(
     flat_axes = axes.ravel()
     param = "dispersion_proc"
     for c, (iso3, mob_type) in enumerate(sample_analyses):
-    
+
         # Gather the paths together
         sample_path = waning_paths[iso3]
         analysis_path = analysis_paths[iso3]
         run_paths = {"waning": sample_path, "no_waning": analysis_path}
-    
+
         # Get the posterior values with and without waning
         posts = [get_param_vals_by_analysis(param, p)[mob_type] for p in run_paths.values()]
         combined_disps = pd.concat(posts, axis=1)
         combined_disps.columns = run_paths.keys()
-    
+
         # Plot the posterior comparison
         ax = flat_axes[c]
         sns.kdeplot(combined_disps, ax=ax, fill=True, alpha=0.1, linewidth=1.5, common_norm=False)
         ax.set_title(f"{pycountry.countries.lookup(iso3).name}, {MOB_SOURCE_ABBREVS[mob_type]}")
         ax.set_yticks([])
         ax.set_ylabel("")
-    
+
     fig.tight_layout()
     plt.close()
+    return fig
+
+
+def plot_waning_quant_comparison(
+    quant_df: pd.DataFrame,
+) -> plt.figure:
+    """Plot the quantile-quantile plot for the dataframe
+    created by get_quantmedian_df.
+
+    Args:
+        quant_df: The data
+
+    Returns:
+        The figure
+    """
+    fig = sns.kdeplot(quant_df, fill=True, linewidth=1.0, common_norm=False)
+    fig.set_ylabel("")
+    fig.set_xlim([0.0, 1.0])
+    fig.set_yticks([])
     return fig
