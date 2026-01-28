@@ -11,6 +11,7 @@
 **/.ipynb_checkpoints/*
 /data/mobility_raw/*
 /outputs/*
+/identify_outputs/*
 /data/population/gadm_input_json/*
 /data/population/gadm_est/*
 /sync/*

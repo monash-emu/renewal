@@ -420,7 +420,7 @@ def run_identifiability(
     thinning = 7
     times = model.epoch.number_to_datetime(pd.Series(model.model_times))[::thinning]
 
-    # Get parameters, using priors distributions for unused parameters that must be specified
+    # Get parameters, using priors' distributions for unused parameters that must be specified
     priors = get_standard_priors(len(vars), "weekly_admissions", iso3, continent, False)
     prior_means = {k: (v if isinstance(v, float) else v.mean) for k, v in priors.items()}
     run_params = prior_means | scalar_params | multi_params
@@ -429,7 +429,7 @@ def run_identifiability(
     # Calibrate
     mob_exp_dist = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
     multi_calib_params = {k: v for k, v in multi_params.items() if k != "proc"}
-    calibrate_params = scalar_params | multi_calib_params | prior_means | mob_exp_dist
+    calibrate_params = prior_means | scalar_params | multi_calib_params | mob_exp_dist
     indicators = ["weekly_deaths", "weekly_cases"]
 
     outputs = {i: pd.Series(results[i][::thinning], index=times) for i in indicators}
