@@ -427,7 +427,8 @@ def run_identifiability(
     results = model.renewal_func(**run_params)
 
     # Calibrate
-    mob_exp_dist = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
+    uniform_dist = dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
+    mob_exp_dist = {} if mob_source == "no_mob" else {"mob_exp": uniform_dist}
     multi_calib_params = {k: v for k, v in multi_params.items() if k != "proc"}
     calibrate_params = prior_means | scalar_params | multi_calib_params | mob_exp_dist
     indicators = ["weekly_deaths", "weekly_cases"]

@@ -1369,9 +1369,12 @@ def plot_input_recovery(
 
     # Plot recovery of key parameters
     ax = axes[1, 1]
-    az.plot_density(idata, var_names="mob_exp", shade=0.5, ax=[ax])
-    ax.axvline(scalar_params["mob_exp"], color="darkblue", linewidth=2.0)
-    ax.set_xlim(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
+    if "mob_exp" in idata.posterior:
+        az.plot_density(idata, var_names="mob_exp", shade=0.5, ax=[ax])
+        ax.axvline(scalar_params["mob_exp"], color="darkblue", linewidth=2.0)
+        ax.set_xlim(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
+    else:
+        ax.set_axis_off()
 
     # Plot recovery of the variable process
     ax = axes[1, 0]
