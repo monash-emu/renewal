@@ -3,6 +3,7 @@ from pathlib import Path
 import warnings
 from os import listdir as ls
 import yaml as yml
+import xarray
 import numpy as np
 from random import choice
 import pandas as pd
@@ -1337,61 +1338,48 @@ def add_cont_to_world_geodf(
 
 
 def plot_input_recovery(
-    priors: Dict[str, float],
-    calib: StandardCalib,
-    idata: az.InferenceData,
-    outputs: Dict[str, pd.Series],
-    identify_params: Dict[str, float],
-    proc: np.array,
+    scalar_params: xarray.core.dataset,
+    multi_params: Dict[str, np.array],
+    idata: az.data.inference_data,
+    targets: Dict[str, pd.Series],
+    spaghetti: pd.DataFrame,
+    updates: pd.DataFrame,
 ) -> plt.figure:
     """Plot parameter identification outputs.
 
     Args:
-        priors: The priors
-        calib: The calibration object
+        scalar_params: The scalar parameters from the sample run to match to
+        multi_params: The multi-dimensional parameters to match to
         idata: The arviz inference data object
-        outputs: The epi targets
-        identify_params: The key parameters to identify
-        proc: The variable process
+        targets: The epi targets
+        spaghetti: The spaghetti output from the run
+        updates: The variable process updates
     """
-
-    # Get necessary data
-    idata_sampled = az.extract(idata, num_samples=50)
-    sample_params = esamp.xarray_to_sampleiterator(idata_sampled)
-    spaghetti = get_spagh_df_from_dict(run_for_spaghetti(calib, sample_params))
 
     # Plot fit to data
     fig, axes = plt.subplots(2, 2, figsize=[10, 8])
-    for i, ind in enumerate(outputs):
+    for i, ind in enumerate(targets):
         ax = axes[0, i]
         ax.set_title(f"fit to {ind}")
         spaghetti[ind].plot(ax=ax, color="k", linewidth=0.1)
         ax.get_legend().remove()
-        output = outputs[ind]
+        output = targets[ind]
         ax.plot(output.index, output, marker="o", linewidth=0.0, markersize=3.0)
         ax.tick_params("x", rotation=70)
 
     # Plot recovery of key parameters
-    priors["mob_exp"] = dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
     ax = axes[1, 1]
-    az.plot_density(idata, var_names=list(identify_params.keys()), shade=0.5, ax=[ax])
-    ax.axvline(identify_params["mob_exp"], color="darkblue", linewidth=4.0)
-    prior = priors["mob_exp"]
-    x_vals = np.linspace(prior.support.lower_bound, prior.support.upper_bound, 100)
-    y_vals = np.exp(prior.log_prob(x_vals))
-    ax.plot(x_vals, y_vals, color="darkgrey", alpha=0.5)
-    ax.fill_between(x_vals, y_vals, alpha=0.5, color="grey", zorder=2)
+    az.plot_density(idata, var_names="mob_exp", shade=0.5, ax=[ax])
+    ax.axvline(scalar_params["mob_exp"], color="darkblue", linewidth=2.0)
+    ax.set_xlim(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
 
     # Plot recovery of the variable process
-    model = calib.epi_model
-    times = model.epoch.index_to_dti(model.x_proc_vals)
     ax = axes[1, 0]
     ax.set_title("variable process recovery")
-    ax.plot(times, np.cumsum(proc, axis=0), marker="o", linewidth=0.0)
-    procs = pd.DataFrame(sample_params.to_array()[:, 2:]).cumsum(axis=1)
-    quants = procs.quantile([0.025, 0.5, 0.975]).T
-    ax.fill_between(times, quants[0.025], quants[0.975], color="grey", alpha=0.5)
-    ax.plot(times, quants[0.5], color="k", alpha=0.5)
+    proc_vals = np.exp(pd.Series(multi_params["proc"]).cumsum())
+    ax.plot(updates.index, proc_vals, marker="o", linewidth=0.0)
+    spaghetti["process"].plot(ax=ax, color="k", linewidth=0.1)
+    ax.get_legend().remove()
     ax.tick_params("x", rotation=70)
 
     # Finishing cosmetics

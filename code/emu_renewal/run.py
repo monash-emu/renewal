@@ -55,7 +55,7 @@ from emu_renewal.indicators import (
     get_ba5_info,
     get_country_vars,
 )
-from emu_renewal.targets import Target
+from emu_renewal.targets import Target, SharedDispTarget
 from emu_renewal.utils import get_cont_of_country
 
 
@@ -393,3 +393,49 @@ def run_single_country(
     logger.info(f"Writing to: {out_path}")
     store_outputs(out_path, model, calib, mcmc)
     logger.info(f"Completed {task_name}/{country}/{mob_source}")
+
+
+def run_identifiability(
+    iso3: str,
+    mob_source: str,
+    task_name: str,
+    scalar_params: Dict[str, float],
+    multi_params: Dict[str, np.array],
+    n_iters: int,
+):
+
+    # Build the model
+    pop = get_country_pop(iso3)
+    data_start = find_run_start_time(pop, iso3)
+    end = find_run_end_time(iso3, mob_source)
+    start = data_start - timedelta(RUN_DATA_DELAY)
+    var_data = get_country_vars(iso3)
+    continent = get_cont_of_country(iso3)
+    delta_var, delta_targ, delta_seed = get_delta_info(iso3, var_data, continent, end)
+    alpha_var, _, alpha_seed = get_alpha_info(iso3, var_data, continent, end, delta_targ)
+    vars = ["eu"] + alpha_var + delta_var  # Not applicable for Omicron-era countries
+    mob_provider = get_mobility_provider(iso3, mob_source)
+    seeds = alpha_seed + delta_seed
+    model = MultiStrainModel(pop, start, end, vars, seeds, mob_provider, True, False)
+    thinning = 7
+    times = model.epoch.number_to_datetime(pd.Series(model.model_times))[::thinning]
+
+    # Get parameters, using priors distributions for unused parameters that must be specified
+    priors = get_standard_priors(len(vars), "weekly_admissions", iso3, continent, False)
+    prior_means = {k: (v if isinstance(v, float) else v.mean) for k, v in priors.items()}
+    run_params = prior_means | scalar_params | multi_params
+    results = model.renewal_func(**run_params)
+
+    # Calibrate
+    mob_exp_dist = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
+    multi_calib_params = {k: v for k, v in multi_params.items() if k != "proc"}
+    calibrate_params = scalar_params | multi_calib_params | prior_means | mob_exp_dist
+    indicators = ["weekly_deaths", "weekly_cases"]
+
+    outputs = {i: pd.Series(results[i][::thinning], index=times) for i in indicators}
+    targets = {ind: SharedDispTarget(targ, weight=targ.size) for ind, targ in outputs.items()}
+    calib, mcmc = run_calibration(model, calibrate_params, targets, True, n_iters)
+
+    out_path = BASE_PATH / "identify_outputs" / task_name / iso3 / mob_source
+    out_path.mkdir(parents=True, exist_ok=True)
+    store_outputs(out_path, model, calib, mcmc)
