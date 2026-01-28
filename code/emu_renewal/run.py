@@ -9,6 +9,7 @@ from jax import random
 import pandas as pd
 import numpy as np
 import sys
+import pickle
 from pathlib import Path
 import git
 
@@ -439,4 +440,6 @@ def run_identifiability(
 
     out_path = BASE_PATH / "identify_outputs" / task_name / iso3 / mob_source
     out_path.mkdir(parents=True, exist_ok=True)
+    pickle.dump(scalar_params, open(out_path / "scalar_params.pkl", "wb"))
+    pickle.dump(multi_params, open(out_path / "multi_params.pkl", "wb"))
     store_outputs(out_path, model, calib, mcmc)
