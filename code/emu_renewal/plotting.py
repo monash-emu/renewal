@@ -1364,7 +1364,7 @@ def plot_input_recovery(
         spaghetti[ind].plot(ax=ax, color="k", linewidth=0.1)
         ax.get_legend().remove()
         output = targets[ind]
-        ax.plot(output.index, output, marker="o", linewidth=0.0, markersize=3.0)
+        pd.Series(output, index=output.index).plot(ax=ax, style="o", markersize=3.0, linewidth=0)
         ax.tick_params("x", rotation=70)
 
     # Plot recovery of key parameters
@@ -1373,14 +1373,15 @@ def plot_input_recovery(
         az.plot_density(idata, var_names="mob_exp", shade=0.5, ax=[ax])
         ax.axvline(scalar_params["mob_exp"], color="darkblue", linewidth=2.0)
         ax.set_xlim(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
+        ax.set_title("mobility exponent mapping posterior")
     else:
         ax.set_axis_off()
 
     # Plot recovery of the variable process
     ax = axes[1, 0]
     ax.set_title("variable process recovery")
-    proc_vals = np.exp(pd.Series(multi_params["proc"]).cumsum())
-    ax.plot(updates.index, proc_vals, marker="o", linewidth=0.0)
+    proc_vals = np.exp(pd.Series(multi_params["proc"], index=updates.index).cumsum())
+    proc_vals.plot(ax=ax, marker="o", linewidth=0.0, markersize=3.0, color="r")
     spaghetti["process"].plot(ax=ax, color="k", linewidth=0.1)
     ax.get_legend().remove()
     ax.tick_params("x", rotation=70)
