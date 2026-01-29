@@ -852,14 +852,14 @@ def plot_select_proc_mob(
 
 
 def plot_exponent_dispersion_comparison(
-    job_path: Path,
+    analysis_paths: Dict[str, Dict[str, Path]],
     ratio_dists: Dict[str, pd.DataFrame],
 ) -> plt.figure:
     """Scatter the mobility exponent against
     the change in the transmission scaling dispersion.
 
     Args:
-        job_path: Path for the runs
+        analysis_paths: The paths to the analyses
         ratio_dists: The posteriors of the dispersion ratio
 
     Returns:
@@ -867,14 +867,15 @@ def plot_exponent_dispersion_comparison(
     """
     fig, axs = plt.subplots(2, 2, figsize=[12, 9])
     flat_axes = axs.ravel()
-    all_countries = ls(job_path)
-    analyses = {k: v for k, v in ANALYSIS_NAMES.items() if "no_mob" not in k}
-    for m, (mob_source, mob_name) in enumerate(analyses.items()):
+    all_countries = analysis_paths.keys()
+    analyses = ["g_mob", "fb_visited_mob", "fb_singletile_mob"]
+    for m, mob_source in enumerate(analyses):
+        mob_name = ANALYSIS_NAMES[mob_source]
         ax = flat_axes[m]
         ax.set_title(mob_name)
 
         # Gather data
-        idatas, _ = get_idatas_for_mob_type(job_path, all_countries, mob_source)
+        idatas, _ = get_idatas_for_mob_type(analysis_paths, all_countries, mob_source)
         plot_df = pd.DataFrame(
             {
                 "mobility exponent": {
@@ -1042,7 +1043,9 @@ def plot_dispersion_analysis(
     flat_axes = axes.ravel()
 
     # Strength of evidence for each mobility type panels
-    for a, (analysis, analysis_name) in enumerate(list(ANALYSIS_NAMES.items())[1:-1]):
+    analysis_types = ["g_mob", "fb_visited_mob", "fb_singletile_mob"]
+    for a, analysis in enumerate(list(analysis_types)):
+        analysis_name = ANALYSIS_NAMES[analysis]
 
         # Find median ratio of the mobility approach to the baseline
         median_ratios = get_median_ratios(ratios, analysis)
