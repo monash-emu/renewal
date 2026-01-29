@@ -785,7 +785,6 @@ def plot_select_proc_mob(
                 SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
             )
             mob_source = mob_location if mob_location.startswith("fb_") else "g_mob"
-            mob_source_name = MOB_LOCATION_ABBREVS[mob_location]
 
             # Plot residual transmission scaling
             proc_samples = pd.read_hdf(analysis_paths[iso3]["no_mob"] / "spaghetti.h5")["process"]
@@ -793,7 +792,7 @@ def plot_select_proc_mob(
             ax = axes[r, c]
             ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
             ax.fill_between(
-                centiles.index, centiles[0.025], centiles[0.975], alpha=0.2, color="navy"
+                centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy"
             )
 
             if "weighted" in mob_location:
@@ -808,7 +807,11 @@ def plot_select_proc_mob(
                 # Plot the weighted Google mobility distribution
                 ax.plot(mob_quants[0.5], color="green")
                 ax.fill_between(
-                    mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.2, color="green"
+                    mob_quants.index,
+                    mob_quants[0.025],
+                    mob_quants[0.975],
+                    alpha=0.15,
+                    color="green",
                 )
 
             else:
@@ -825,10 +828,24 @@ def plot_select_proc_mob(
                 ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
 
             # Finish cosmetics
-            ax.set_title(f"{country_name}, {mob_source_name}", fontsize=10)
+            ax.set_title(country_name, fontsize=10)
             ax.set_xticks([])
             ax.set_yticks([])
-    fig.tight_layout()
+
+            # Column titles
+            if r == 0:
+                mob_source_name = MOB_LOCATION_ABBREVS[mob_location]
+                bbox = ax.get_position()
+                fig.text(
+                    (bbox.x0 + bbox.x1) / 2.0,
+                    bbox.y1 + 0.04,
+                    mob_source_name,
+                    ha="center",
+                    va="bottom",
+                    fontsize=12,
+                    fontweight="bold",
+                )
+    fig.subplots_adjust(wspace=0.16, hspace=0.19)
 
     plt.close()
     return fig
