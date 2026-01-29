@@ -404,6 +404,16 @@ def run_identifiability(
     multi_params: Dict[str, np.array],
     n_iters: int,
 ):
+    """Run an abbreviated analysis 
+
+    Args:
+        iso3: _description_
+        mob_source: _description_
+        task_name: _description_
+        scalar_params: _description_
+        multi_params: _description_
+        n_iters: _description_
+    """
 
     # Build the model
     pop = get_country_pop(iso3)
@@ -425,19 +435,24 @@ def run_identifiability(
     priors = get_standard_priors(len(vars), "weekly_admissions", iso3, continent, False)
     prior_means = {k: (v if isinstance(v, float) else v.mean) for k, v in priors.items()}
     run_params = prior_means | scalar_params | multi_params
+
+    # Run foro synthetic results
     results = model.renewal_func(**run_params)
+    n_deaths = results["weekly_deaths"][::thinning].size
+    hosp_targ = get_hosp_target(iso3, data_start, end, n_deaths)
+    hosp_ind = list(hosp_targ.keys())[0] if hosp_targ else []
+    indicators = ["weekly_deaths", "weekly_cases"] + hosp_ind
+    outputs = {i: pd.Series(results[i][::thinning], index=times) for i in indicators}
 
     # Calibrate
     uniform_dist = dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
     mob_exp_dist = {} if mob_source == "no_mob" else {"mob_exp": uniform_dist}
     multi_calib_params = {k: v for k, v in multi_params.items() if k != "proc"}
     calibrate_params = prior_means | scalar_params | multi_calib_params | mob_exp_dist
-    indicators = ["weekly_deaths", "weekly_cases"]
-
-    outputs = {i: pd.Series(results[i][::thinning], index=times) for i in indicators}
     targets = {ind: SharedDispTarget(targ, weight=targ.size) for ind, targ in outputs.items()}
     calib, mcmc = run_calibration(model, calibrate_params, targets, True, n_iters)
 
+    # Store results
     out_path = BASE_PATH / "identify_outputs" / task_name / iso3 / mob_source
     out_path.mkdir(parents=True, exist_ok=True)
     pickle.dump(scalar_params, open(out_path / "scalar_params.pkl", "wb"))

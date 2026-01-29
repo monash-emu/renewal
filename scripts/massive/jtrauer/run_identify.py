@@ -13,7 +13,7 @@ from emu_renewal.utils import get_analysis_paths
 def run_identifiability_analyses():
     n_iters = 10000
     n_analyses = 12
-    rng = np.random.default_rng(2)
+    rng = np.random.default_rng(4)
 
     all_countries = json.load(open(DATA_PATH / "config/included.json", "r"))
     analysis_paths = get_analysis_paths(RERUNS + FULL_RUN + TIMEOUTS, all_countries)
