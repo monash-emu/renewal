@@ -1245,7 +1245,7 @@ def plot_mob_exp_violins(
 
 
 def plot_composite_calibrations(
-    job_path: Path,
+    analysis_paths: Dict[str, Dict[str, Path]],
     iso3: str,
     analyses: List[str],
     spaghs: Dict[str, pd.DataFrame],
@@ -1255,7 +1255,7 @@ def plot_composite_calibrations(
     with two other plotting approaches.
 
     Args:
-        job_path: Path to the job
+        analysis_paths: The paths to the analyses
         iso3: Country identifier
         analyses: Analyses to consider
         spaghs: Spaghetti results
@@ -1265,7 +1265,7 @@ def plot_composite_calibrations(
         The figure
     """
 
-    c_path = job_path / iso3
+    c_paths = analysis_paths[iso3]
     fig = plt.figure(figsize=[16, 10])
     gs = GridSpec(5, 6)
 
@@ -1296,10 +1296,9 @@ def plot_composite_calibrations(
             else:
                 plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
     fig.tight_layout()
-    # fig.subplots_adjust(wspace=0.05)
 
     # Residual transmission scaling with credible intervals
-    c_procs = [pd.read_hdf(c_path / a / "spaghetti.h5")["process"] for a in analyses]
+    c_procs = [pd.read_hdf(path / "spaghetti.h5")["process"] for path in c_paths.values()]
     procs = pd.concat(c_procs, keys=analyses, axis=1)
 
     ax = fig.add_subplot(gs[0:2, 4:6])
@@ -1315,8 +1314,7 @@ def plot_composite_calibrations(
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
 
     # Residual transmission scaling dispersion posteriors
-    # *** Needs to be adapted to new code structure
-    param_posts = get_param_vals_by_analysis("dispersion_proc", c_path)
+    param_posts = get_param_vals_by_analysis("dispersion_proc", analysis_paths[iso3])
 
     ax = fig.add_subplot(gs[3:5, 4:6])
     colours = [MOB_SOURCE_COLOURS[a] for a in param_posts.columns]
