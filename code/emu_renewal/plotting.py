@@ -913,7 +913,7 @@ def plot_exponent_dispersion_comparison(
 
 
 def plot_exponent_dispersion_comparison_interactive(
-    job_path: Path,
+    analysis_paths: Dict[str, Dict[str, Path]],
     mob_source: str,
     ratio_dists: Dict[str, pd.DataFrame],
 ) -> go.Figure:
@@ -921,15 +921,15 @@ def plot_exponent_dispersion_comparison_interactive(
     but using plotly to create an interactive version.
 
     Args:
-        job_path: Path for the runs
+        analysis_paths: The paths to the analyses
         mob_source: Mobility analysis type
         ratio_dists: The posteriors of the dispersion ratio
 
     Returns:
         The plotly interactive figure
     """
-    countries = ls(job_path)
-    idatas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
+    countries = analysis_paths.keys()
+    idatas, _ = get_idatas_for_mob_type(analysis_paths, countries, mob_source)
     plot_df = pd.DataFrame(
         {
             "mobility exponent": {
