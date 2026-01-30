@@ -404,7 +404,7 @@ def run_identifiability(
     multi_params: Dict[str, np.array],
     n_iters: int,
 ):
-    """Run an abbreviated analysis 
+    """Run an abbreviated analysis
 
     Args:
         iso3: _description_
@@ -449,6 +449,8 @@ def run_identifiability(
     mob_exp_dist = {} if mob_source == "no_mob" else {"mob_exp": uniform_dist}
     multi_calib_params = {k: v for k, v in multi_params.items() if k != "proc"}
     calibrate_params = prior_means | scalar_params | multi_calib_params | mob_exp_dist
+    # Don't use precalibrated dispersion
+    calibrate_params["shared_dispersion"] = prior_means["shared_dispersion"]
     targets = {ind: SharedDispTarget(targ, weight=targ.size) for ind, targ in outputs.items()}
     calib, mcmc = run_calibration(model, calibrate_params, targets, True, n_iters)
 
