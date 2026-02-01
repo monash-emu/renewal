@@ -411,7 +411,6 @@ def plot_duration_params(
     Args:
         duration_params: The duration parameters loaded from the priors yaml
     """
-    mean_xmax = 30.0
     sd_xmax = 15.0
     dur_param_types = [p.rsplit("_", 1)[0] for p in duration_params if p != "gen_mean_oc"]
     dur_types = list(dict.fromkeys(dur_param_types))  # Using set() loses the ordering of this list
@@ -420,20 +419,24 @@ def plot_duration_params(
     for d, dur in enumerate(dur_types):
 
         # Extract prior values
-        mean_param = duration_params[dur + "_mean"]
-        sd_param = duration_params[dur + "_sd"]
+        mean_str = "immune" if dur == "immune" else dur + "_mean"
+        mean_param = duration_params[mean_str]
         mean_mean = mean_param["mean"]
-        sd_mean = sd_param["mean"]
+        mean_sd = mean_param["sd"]
+        if dur != "immune":
+            sd_str = "immune" if dur == "immune" else dur + "_sd"
+            sd_param = duration_params[sd_str]
+            sd_mean = sd_param["mean"]
+            sd_sd = sd_param["sd"]
 
         # Get the distributions
         mean_prior = dist.TruncatedNormal(
-            mean_mean, mean_param["sd"], low=DUR_MIN, high=mean_mean * DUR_REL_MAX
+            mean_mean, mean_sd, low=DUR_MIN, high=mean_mean * DUR_REL_MAX
         )
-        sd_prior = dist.TruncatedNormal(
-            sd_mean, sd_param["sd"], low=DUR_MIN, high=sd_mean * DUR_REL_MAX
-        )
+        sd_prior = dist.TruncatedNormal(sd_mean, sd_sd, low=DUR_MIN, high=sd_mean * DUR_REL_MAX)
 
         # Calculate the values
+        mean_xmax = 300.0 if dur == "immune" else 30.0
         mean_x_vals = np.linspace(0.0, mean_xmax, 1000)
         sd_x_vals = np.linspace(0.0, sd_xmax, 1000)
         mean_y_vals = np.exp(mean_prior.log_prob(mean_x_vals))
@@ -450,12 +453,15 @@ def plot_duration_params(
 
         # Plot SD
         sd_ax = axes[d, 1]
-        sd_ax.fill_between(sd_x_vals, sd_y_vals, color="0.8")
-        sd_ax.plot(sd_x_vals, sd_y_vals, color="k", linewidth=2.0)
-        sd_ax.set_title(sd_param["param_name"].replace(" (days)", ""), fontsize=22)
-        sd_ax.set_xlabel("days", fontsize=18)
-        sd_ax.tick_params(axis="both", labelsize=18)
-        sd_ax.set_yticks([])
+        if dur != "immune":
+            sd_ax.fill_between(sd_x_vals, sd_y_vals, color="0.8")
+            sd_ax.plot(sd_x_vals, sd_y_vals, color="k", linewidth=2.0)
+            sd_ax.set_title(sd_param["param_name"].replace(" (days)", ""), fontsize=22)
+            sd_ax.set_xlabel("days", fontsize=18)
+            sd_ax.tick_params(axis="both", labelsize=18)
+            sd_ax.set_yticks([])
+        else:
+            sd_ax.set_axis_off()
 
     fig.tight_layout()
 
