@@ -92,7 +92,7 @@ def get_standard_subplot(
         The figure and the axes
     """
     n_rows = int(np.ceil(n_subplots / n_cols))
-    height = min([1.0 + n_rows * 2.5, 13])  # Ceiling stops Quarto adding blank pages
+    height = min([1.0 + n_rows * 2.8, 13])  # Ceiling stops Quarto adding blank pages
     return plt.subplots(n_rows, n_cols, figsize=[12, height])
 
 

@@ -407,12 +407,12 @@ def run_identifiability(
     """Run an abbreviated analysis
 
     Args:
-        iso3: _description_
-        mob_source: _description_
-        task_name: _description_
-        scalar_params: _description_
-        multi_params: _description_
-        n_iters: _description_
+        iso3: Country identifier
+        mob_source: Mobility analysis type
+        task_name: Name to use for saving run
+        scalar_params: Scalar parameter values
+        multi_params: Multidimensional parameter values
+        n_iters: Number of iterations for calibration
     """
 
     # Build the model
