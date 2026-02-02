@@ -266,7 +266,6 @@ class MultiStrainModel:
         Notes
         -----
         For all analyses, the starting population
-        minus the seeding values for the first strain
         was assigned to the fully susceptible category.
         __RETURN__### Generation interval__RETURN__
         A gamma-distributed generation interval
@@ -299,7 +298,8 @@ class MultiStrainModel:
         to ensure that the per capita risk
         of infection could not exceed one in a time step.
         __RETURN__### Variant seeding__RETURN__
-        Each newly emerging strain was seeded using a triangular
+        Each strain (including the starting strain) 
+        was seeded into the model using a triangular
         pulse of new infections for which the peak per capita
         seeding rate was specified as a parameter.
         At each calculation day,
@@ -329,6 +329,12 @@ class MultiStrainModel:
         to the infecting strain
         (for example, past infection with Delta conferred
         complete immunity against future infection with Alpha).
+        __RETURN__### Waning immunity__RETURN__
+        For our sensitivity analyses in which waning host-related
+        immunity from past infection was incorporated,
+        individuals were transited from each immune category
+        into the fully susceptible population at a constant rate
+        represented by the reciprocal of the duration immune.
         """
         trans_proc = self.fit_process_curve(proc)
         gen_dist = GammaDens()
@@ -497,7 +503,18 @@ class MultiStrainModel:
         By contrast, deaths were calculated from
         the strain-specific incidence to allow for
         strain-specific severity for analyses
-        that ran during the pre-Omicron/pre-vaccination period.
+        considering the pre-Omicron/pre-vaccination period.
+        The severity of each variant was interpreted 
+        with reference to the preceding modelled variant,
+        such that the severity of each variant
+        relative to the starting variant was 
+        calculated as the cumulative product of
+        the severity parameter for each modelled
+        emerging variant.
+        Strain-specific variant severity was not
+        included for the Omicron era analyses
+        that considered Omicron subvariants 
+        BA.1, BA.2 and BA.5.
         A separate set of parameters governed the
         time from incidence to death
         with the fraction of incident episodes
