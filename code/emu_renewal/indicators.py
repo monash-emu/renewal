@@ -747,9 +747,6 @@ def get_alpha_info(
     (Specifically, the exceptions were {ALPHA_DELTA_EXCEPTS}.)
     If this date occurred after the end of the simulation,
     the Alpha calibration period continued to the end of the simulation.
-    As for the other variants and for the seroprevalence target,
-    decreasing values for the proportion of sequences attributable
-    to Alpha were recursively pooled to ensure they were strictly increasing.
     Comparison of the log of the target estimate against 
     the log of the modelled value was undertaken using 
     a normal distribution with a single dispersion parameter
@@ -806,7 +803,6 @@ def get_delta_info(
     For countries other than those of Oceania and Singapore,
     the Delta variant was included if the end date of the
     calibration fell later than {DELTA_INCLUSION_DATE}.
-    Values were again pooled to ensure they were strictly increasing.
     The target weight for calibration to Delta was set to be {VAR_WEIGHT}
     for most countries. Exceptions were made if the target time series
     for Delta began towards the very end of the calibration (last
