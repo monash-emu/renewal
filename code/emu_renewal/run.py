@@ -193,13 +193,13 @@ def get_mobility_provider(
     We further ran one analysis in which Google mobility
     was used to scale the transmission rate,
     if mobility data was available from Google.
-    For countries for which any of the Google mobility 
-    domains reached an average value of {G_MOB_DETREND_THRESHOLD} 
+    For countries for which any of the Google mobility
+    domains reached an average value of {G_MOB_DETREND_THRESHOLD}
     during the last {G_MOB_DETREND_END_PERIOD}
     (i.e. {G_MOB_DETREND_THRESHOLD} times the starting value
     which is normalised to one),
     we additionally ran a detrended Google mobility analysis.
-    Under this detrended analysis, 
+    Under this detrended analysis,
     each Google location was individually detrended
     by dividing through by a linear estimate of the
     increase in that mobility domain over time.
@@ -450,7 +450,7 @@ def run_identifiability(
     results = model.renewal_func(**run_params)
     n_deaths = results["weekly_deaths"][::thinning].size
     hosp_targ = get_hosp_target(iso3, data_start, end, n_deaths)
-    hosp_ind = list(hosp_targ.keys())[0] if hosp_targ else []
+    hosp_ind = list(hosp_targ.keys())[0:1] if hosp_targ else []
     indicators = ["weekly_deaths", "weekly_cases"] + hosp_ind
     outputs = {i: pd.Series(results[i][::thinning], index=times) for i in indicators}
 

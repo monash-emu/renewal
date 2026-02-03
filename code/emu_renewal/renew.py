@@ -291,14 +291,15 @@ class MultiStrainModel:
         (to obtain the scaled per capita infectious population).
         This was multiplied by the strain-specific vector for
         the relative infectiousness of each strain
-        to derive the calculated per capita rate of infection.
-        We then determined the actual rate of infection
+        to calculate a per capita rate of infection.
+        We then determined the actual force of infection
+        for infection-naive persons
         for each strain as $1 - e^{{-\lambda}}$
         (where $\lambda$ represents the calculated infection rate)
         to ensure that the per capita risk
         of infection could not exceed one in a time step.
         __RETURN__### Variant seeding__RETURN__
-        Each strain (including the starting strain) 
+        Each strain (including the starting strain)
         was seeded into the model using a triangular
         pulse of new infections for which the peak per capita
         seeding rate was specified as a parameter.
@@ -309,7 +310,7 @@ class MultiStrainModel:
         each variant was specified
         with reference to the first modelled variant strain.
         __RETURN__### Immunity__RETURN__
-        These rates of infection were then applied
+        The strain-specific force of infection was then applied
         to each possible immunological past history of
         preceding exposure to variant combinations and
         their associated susceptibility to infection
@@ -504,16 +505,16 @@ class MultiStrainModel:
         the strain-specific incidence to allow for
         strain-specific severity for analyses
         considering the pre-Omicron/pre-vaccination period.
-        The severity of each variant was interpreted 
+        The severity of each variant was interpreted
         with reference to the preceding modelled variant,
         such that the severity of each variant
-        relative to the starting variant was 
+        relative to the starting variant was
         calculated as the cumulative product of
         the severity parameter for each modelled
         emerging variant.
         Strain-specific variant severity was not
         included for the Omicron era analyses
-        that considered Omicron subvariants 
+        that considered Omicron subvariants
         BA.1, BA.2 and BA.5.
         A separate set of parameters governed the
         time from incidence to death

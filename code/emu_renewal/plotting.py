@@ -18,14 +18,13 @@ from matplotlib.pyplot import subplots
 from matplotlib.cm import ScalarMappable
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import Normalize
-from matplotlib.gridspec import GridSpec
 import matplotlib.dates as mdates
 import pycountry
 import pycountry_convert as pc
 from geopandas import GeoDataFrame
 from IPython.display import display, Markdown
 from plotly import graph_objects as go
-from estival.sampling import tools as esamp
+from matplotlib.gridspec import GridSpec
 
 from emu_renewal.outputs import run_for_spaghetti, get_spagh_df_from_dict
 from emu_renewal.calibration import StandardCalib
@@ -1379,36 +1378,35 @@ def plot_input_recovery(
         spaghetti: The spaghetti output from the run
         updates: The variable process updates
     """
-
-    # Plot fit to data
-    fig, axes = plt.subplots(2, 2, figsize=[10, 8])
-    for i, ind in enumerate(targets):
-        ax = axes[0, i]
-        ax.set_title(f"fit to {ind}")
-        spaghetti[ind].plot(ax=ax, color="k", linewidth=0.1)
-        ax.get_legend().remove()
-        output = targets[ind]
-        pd.Series(output, index=output.index).plot(ax=ax, style="o", markersize=3.0, linewidth=0)
-        ax.tick_params("x", rotation=70)
-
-    # Plot recovery of key parameters
-    ax = axes[1, 1]
-    if "mob_exp" in idata.posterior:
-        az.plot_density(idata, var_names="mob_exp", shade=0.5, ax=[ax])
-        ax.axvline(scalar_params["mob_exp"], color="darkblue", linewidth=2.0)
-        ax.set_xlim(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
-        ax.set_title("mobility exponent mapping posterior")
-    else:
-        ax.set_axis_off()
+    fig = plt.figure(figsize=[12, 8])
+    gs = GridSpec(2, 3, figure=fig)
 
     # Plot recovery of the variable process
-    ax = axes[1, 0]
+    ax = fig.add_subplot(gs[0, 0])
     ax.set_title("variable process recovery")
     proc_vals = np.exp(pd.Series(multi_params["proc"], index=updates.index).cumsum())
     proc_vals.plot(ax=ax, marker="o", linewidth=0.0, markersize=3.0, color="r")
     spaghetti["process"].plot(ax=ax, color="k", linewidth=0.1)
     ax.get_legend().remove()
     ax.tick_params("x", rotation=70)
+
+    # Plot recovery of key parameters
+    if "mob_exp" in idata.posterior:
+        ax = fig.add_subplot(gs[0, 1])
+        az.plot_density(idata, var_names="mob_exp", shade=0.5, ax=[ax])
+        ax.axvline(scalar_params["mob_exp"], color="darkblue", linewidth=2.0)
+        ax.set_xlim(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
+        ax.set_title("mobility exponent mapping posterior")
+
+    # Plot fit to data
+    for i, ind in enumerate(targets):
+        ax = fig.add_subplot(gs[1, i])
+        ax.set_title(f"fit to {ind}")
+        spaghetti[ind].plot(ax=ax, color="k", linewidth=0.1)
+        ax.get_legend().remove()
+        output = targets[ind]
+        pd.Series(output, index=output.index).plot(ax=ax, style="o", markersize=3.0, linewidth=0)
+        ax.tick_params("x", rotation=70)
 
     # Finishing cosmetics
     fig.tight_layout()
