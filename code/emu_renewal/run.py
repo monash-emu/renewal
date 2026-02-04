@@ -151,7 +151,7 @@ def find_run_end_time(
     provided that vaccination coverage did reach this
     value before the default end time of {DEFAULT_END_DATE}.
     Otherwise, this default end date was used instead.
-    For Singapore and Oceania, the latest date for which
+    For Oceania and Singapore, the latest date for which
     Google mobility data was available was used.
     """
     cont = get_cont_of_country(iso3)
@@ -194,7 +194,8 @@ def get_mobility_provider(
     was used to scale the transmission rate,
     if mobility data was available from Google.
     For countries for which any of the Google mobility
-    domains reached an average value of {G_MOB_DETREND_THRESHOLD}
+    domains reached an average value of
+    {G_MOB_DETREND_THRESHOLD} or above
     during the last {G_MOB_DETREND_END_PERIOD}
     (i.e. {G_MOB_DETREND_THRESHOLD} times the starting value
     which is normalised to one),

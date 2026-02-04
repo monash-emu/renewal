@@ -62,7 +62,7 @@ def get_worldbank_national_pop(
     [the World Bank](https://databank.worldbank.org/source/population-estimates-and-projections#)
     on 1 April 2025.
     The population size for {POP_YEAR} was used for all countries
-    except for Singapore and countries of Oceania, 
+    except for Singapore and countries of Oceania,
     for which the population size in {OC_POP_YEAR} was used
     (because of the later analysis period for these countries).
     """
@@ -86,8 +86,8 @@ def get_undesa_national_pop(
     Notes
     -----
     [UN DESA population data](https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)/EXCEL_FILES/2_Population/WPP2024_POP_F02_1_POPULATION_5-YEAR_AGE_GROUPS_BOTH_SEXES.xlsx)
-    was downloaded on 18 March 2025 and 
-    where UN DESA population was needed, 
+    was downloaded on 18 March 2025 and
+    where UN DESA population was needed,
     data for {POP_YEAR} was used.
     """
     csv_path = DATA_PATH / f"population/undesa_pops_{POP_YEAR}.csv"
@@ -255,8 +255,8 @@ def get_fb_singletile_mobility(
 
 
 def get_requested_mob(
-    iso3: str, 
-    mob_source: str, 
+    iso3: str,
+    mob_source: str,
     mob_location: str,
 ) -> pd.DataFrame:
     """Get the mobility data based on the type
@@ -276,7 +276,7 @@ def get_requested_mob(
         return get_fb_visited_mobility(iso3)
     elif mob_source == "fb_singletile_mob":
         return get_fb_singletile_mobility(iso3)
-    
+
 
 def get_country_vacc_data(
     iso3: str,
@@ -292,12 +292,12 @@ def get_country_vacc_data(
 
     Notes
     -----
-    We substituted Germany's data for 
+    We substituted Germany's data for
     {SUB_DEU_COUNTRIES} because these two
     countries had almost identical profiles of vaccine doses
     administered per person in the earliest phases of the roll-out
-    and vaccination data were not available for these two countries
-    through the period at which coverage approached the 
+    and vaccination data was not available for these two countries
+    through the period when coverage approached the
     analysis start threshold.
     Similarly, we substituted Great Britain for {SUB_GBR_COUNTRY}
     based on the same rationale.
@@ -359,7 +359,9 @@ def get_income_group(
     [the World Bank](https://datacatalogapi.worldbank.org/ddhxext/ResourceDownload?resource_unique_id=DR0090755).
 
     """
-    assumed_high_income = [pycountry.countries.lookup(c).alpha_3 for c in ASSUMED_HIGH_INCOME.split(", ")]
+    assumed_high_income = [
+        pycountry.countries.lookup(c).alpha_3 for c in ASSUMED_HIGH_INCOME.split(", ")
+    ]
     if iso3 in assumed_high_income:
         return "High income"
     data = pd.read_excel(DATA_PATH / "income/CLASS.xlsx", index_col="Code")
@@ -406,8 +408,8 @@ def get_world_shp():
 
 
 def get_smoothed_trunc_g_mob(
-    iso3: str, 
-    start: datetime, 
+    iso3: str,
+    start: datetime,
     finish: datetime,
 ) -> pd.DataFrame:
     """Get the smoothed, truncated Google mobility data
@@ -444,8 +446,8 @@ def get_g_mob_weight_posts(
 
 
 def get_g_mob_quants(
-    smoothed_mob: pd.DataFrame, 
-    params: pd.DataFrame, 
+    smoothed_mob: pd.DataFrame,
+    params: pd.DataFrame,
     n_samples: int,
 ) -> pd.DataFrame:
     """Get the quantiles of the weighted Google
@@ -466,7 +468,7 @@ def get_g_mob_quants(
 
 
 def get_linear_series_trend(
-    series: pd.Series, 
+    series: pd.Series,
     last_n_days: int,
 ) -> pd.Series:
     """Get the linear trend of a series for
@@ -478,7 +480,7 @@ def get_linear_series_trend(
 
     Args:
         series: The input series to find the trend from
-        last_n_days: The number of days in the end period 
+        last_n_days: The number of days in the end period
             used to estimate the end value
 
     Returns:
@@ -492,4 +494,6 @@ def get_linear_series_trend(
     run = mid_final_period - start_time
     rise = mean_final_period - 1.0
     slope_per_second = rise / run.total_seconds()
-    return pd.Series((series.index - start_time).total_seconds() * slope_per_second + 1.0, index=series.index)
+    return pd.Series(
+        (series.index - start_time).total_seconds() * slope_per_second + 1.0, index=series.index
+    )

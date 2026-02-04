@@ -322,7 +322,7 @@ class FacebookMobilityBuilder:
         -----
         For each geographic region included in the Facebook data,
         we estimated a population by intersecting polygons
-        with the centroid of the population data grids,
+        with the centroid of population data grids,
         and then weighted the resulting series
         by these calculated populations.
         For the small proportion of

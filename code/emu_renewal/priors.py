@@ -20,6 +20,10 @@ from emu_renewal.constants import (
     RELINF_LOW,
     RELINF_UP,
     RELINF_SD,
+    RELSEV_MEAN,
+    RELSEV_SD,
+    RELSEV_LOW,
+    RELSEV_UP,
     SHARED_DISP_SD,
     PROP_DISP,
     SEROPREV_DISP,
@@ -87,11 +91,21 @@ def get_standard_priors(
     using a uniform distribution in untransformed space.
     __RETURN__
     The relative infectiousness of each variant
-    except for the first was calibrated using
+    compared to the preceding variant (other than the first
+    variant included) was calibrated using
     truncated normal distributions with mean {RELINF_MEAN},
     standard deviation {RELINF_SD},
     lower truncation limit {RELINF_LOW}
     and upper truncation limit {RELINF_UP}.
+    __RETURN__
+    As for our approach for infectiousness,
+    the relative severity of each variant
+    compared to the preceding variant (other than the first
+    variant included) was calibrated using
+    truncated normal distributions with mean {RELSEV_MEAN},
+    standard deviation {RELSEV_SD},
+    lower truncation limit {RELSEV_LOW}
+    and upper truncation limit {REL_SEV_UP}.
     __RETURN__
     The prior for the shared dispersion parameter
     for all time series data was a half-normal distribution
@@ -170,8 +184,10 @@ def get_standard_priors(
     elif n_strains == 1:
         severity_dist = jnp.empty(0)
     else:
-        relseverity_mean = jnp.repeat(1.5, n_strains - 1)
-        severity_dist = dist.TruncatedNormal(relseverity_mean, 0.2, low=1.0, high=2.0)
+        relseverity_mean = jnp.repeat(RELSEV_MEAN, n_strains - 1)
+        severity_dist = dist.TruncatedNormal(
+            relseverity_mean, RELSEV_SD, low=RELSEV_LOW, high=RELSEV_UP
+        )
     severity_priors = {"relseverity": severity_dist}
 
     # Miscellaneous

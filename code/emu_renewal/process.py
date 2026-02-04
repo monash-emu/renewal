@@ -5,8 +5,8 @@ from summer2.functions import interpolate as sinterp
 
 
 def _get_cos_curve_at_x(
-    x: float, 
-    x_data: InterpolatorScaleData, 
+    x: float,
+    x_data: InterpolatorScaleData,
     y_data: InterpolatorScaleData,
 ) -> float:
     """Get interpolated function value using half-cosine function.
@@ -21,14 +21,14 @@ def _get_cos_curve_at_x(
 
     Notes
     -----
-    The cosine function was obtained by translating 
-    and scaling a half cosine function 
+    The cosine function was obtained by translating
+    and scaling a half cosine function
     (i.e. a cosine function with support $[0, \pi]$),
     such that it intersected the starting point
     $(t_{{1}}, y_{{1}})$ and finishing point $(t_{{2}}, y_{{2}})$
     with a gradient of zero at both of these points.
-    This choice of fitting approach ensures that 
-    the residual transmission scaling function, its derivative 
+    This choice of fitting approach ensured that
+    the residual transmission scaling function, its derivative
     and its higher order derivatives are continuous.
     """
     idx = sinterp.binary_search_sum_ge(x, x_data.points) - 1
@@ -39,10 +39,11 @@ def _get_cos_curve_at_x(
 
 
 class MultiCurve:
-    """Abstract class for fitting a curve to a series of data.
-    """
+    """Abstract class for fitting a curve to a series of data."""
+
     def get_multicurve(self):
         pass
+
     def get_description(self):
         pass
 
@@ -54,10 +55,11 @@ class CosineMultiCurve(MultiCurve):
     Args:
         MultiCurve: Abstract parent class
     """
+
     def get_multicurve(
         self,
-        t: float, 
-        x_data: InterpolatorScaleData, 
+        t: float,
+        x_data: InterpolatorScaleData,
         y_data: InterpolatorScaleData,
     ) -> callable:
         """Construct a half-cosine-based multi-curve.

@@ -232,7 +232,7 @@ class MultiStrainModel:
         with the calibrated values for each update
         exponentiated before being used to scale the transmission rate.
         Each parameter pertaining to the updates to residual transmission scaling
-        was assigned the same prior centred at zero (i.e. no update),
+        was assigned the same prior centred at zero (i.e. no change),
         and so can be interpreted as the change in the log-transformed
         residual transmission scaling relative to the previous value.
         """
@@ -333,7 +333,7 @@ class MultiStrainModel:
         __RETURN__### Waning immunity__RETURN__
         For our sensitivity analyses in which waning host-related
         immunity from past infection was incorporated,
-        individuals were transited from each immune category
+        individuals were transitioned from each immune category
         into the fully susceptible population at a constant rate
         represented by the reciprocal of the duration immune.
         """
@@ -544,9 +544,12 @@ class MultiStrainModel:
         a hospital admission fraction,
         but the same strain-specific severity parameters
         as for deaths.
-        As for the approach to deaths for Oceania,
+        As for the approach to deaths,
+        strain-specific severity was included for the
+        pre-Omicron period analyses, and
         a reduction in the risk of hospitalisation
-        was applied to account for vaccination.
+        was applied to account for vaccination
+        for the Omicron period analyses.
         The relative reduction in the risk of
         hospitalisation was set according to a vaccination
         protection against hospitalisation given
