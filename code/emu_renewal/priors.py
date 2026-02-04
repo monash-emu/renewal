@@ -105,7 +105,7 @@ def get_standard_priors(
     truncated normal distributions with mean {RELSEV_MEAN},
     standard deviation {RELSEV_SD},
     lower truncation limit {RELSEV_LOW}
-    and upper truncation limit {REL_SEV_UP}.
+    and upper truncation limit {RELSEV_UP}.
     __RETURN__
     The prior for the shared dispersion parameter
     for all time series data was a half-normal distribution
