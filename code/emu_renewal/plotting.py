@@ -1386,7 +1386,7 @@ def plot_input_recovery(
     ax.set_title("variable process recovery")
     proc_vals = np.exp(pd.Series(multi_params["proc"], index=updates.index).cumsum())
     proc_vals.plot(ax=ax, marker="o", linewidth=0.0, markersize=3.0, color="r")
-    spaghetti["process"].plot(ax=ax, color="k", linewidth=0.1)
+    spaghetti["process"].plot(ax=ax, color="k", linewidth=0.1, alpha=0.1)
     ax.get_legend().remove()
     ax.tick_params("x", rotation=70)
 
@@ -1402,7 +1402,7 @@ def plot_input_recovery(
     for i, ind in enumerate(targets):
         ax = fig.add_subplot(gs[1, i])
         ax.set_title(f"fit to {ind}")
-        spaghetti[ind].plot(ax=ax, color="k", linewidth=0.1)
+        spaghetti[ind].plot(ax=ax, color="k", linewidth=0.1, alpha=0.1)
         ax.get_legend().remove()
         output = targets[ind]
         pd.Series(output, index=output.index).plot(ax=ax, style="o", markersize=3.0, linewidth=0)
