@@ -441,8 +441,7 @@ def get_quantmedian_df(
             try:
                 posts = [get_param_vals_by_analysis(param, p)[mob_type] for p in run_paths.values()]
             except:
-                print(iso3)
-                print(mob_type)
+                pass
             combined_disps = pd.concat(posts, axis=1)
             combined_disps.columns = run_paths.keys()
 
