@@ -41,7 +41,7 @@ class GammaDens(Dens):
         Notes
         -----
         The parameters to each gamma distribution
-        used in our anlaysis were parameterised by
+        used in our analysis were parameterised by
         analytically calculating the "a" (shape) 
         and scale parameters
         from the mean and standard deviation

@@ -203,7 +203,7 @@ class SingleSeriesExpMobilityProvider(SingleSeriesMobilityProvider):
 
         Notes
         -----
-        Because weighting was note required,
+        Because weighting was not required,
         only one mobility-related parameter was needed
         under each of these approaches,
         which specifies the mobility exponent value for

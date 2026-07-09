@@ -241,7 +241,7 @@ durations:
     sd: 30.0
     param_name: Duration immune
     short_name: duration immune
-    evidence: For our sensivity analysis considering waning of host-related natural immunity, 
+    evidence: For our sensitivity analysis considering waning of host-related natural immunity, 
       we assumed a mean duration of immunity of around 180 days, 
       consistent with empirical studies showing substantial decline in protection against reinfection 
       over 3 to 9 months.
