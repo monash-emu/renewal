@@ -74,6 +74,7 @@ from emu_renewal.utils import (
 )
 
 plt.style.use("ggplot")
+MM = 1.0 / 25.4
 
 
 def get_standard_subplot(
@@ -1274,8 +1275,8 @@ def plot_composite_calibrations(
     """
 
     c_paths = analysis_paths[iso3]
-    fig = plt.figure(figsize=[16, 10])
-    gs = GridSpec(5, 6)
+    fig = plt.figure(figsize=[185 * MM, 100 * MM])
+    gs = GridSpec(5, 6, hspace=0.2, wspace=0.15)
 
     # Calibration comparison
     msg = ".*axis already has a converter set*"
@@ -1286,13 +1287,13 @@ def plot_composite_calibrations(
         a_spaghs = spaghs[analysis]
         for o, out in enumerate(ordered_targets):
             ax = fig.add_subplot(gs[o, a])
-            a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.8, alpha=0.1)
+            a_spaghs[out].plot(ax=ax, legend=False, color="black", linewidth=0.5, alpha=0.1)
             target = targets[out]
-            ax.plot(target.index, target, linewidth=0.0, marker=".")
+            ax.plot(target.index, target, linewidth=0.0, marker=".", markersize=1.0)
             if o == 0:
-                ax.set_title(MOB_SOURCE_ABBREVS[analysis], fontsize=15)
+                ax.set_title(MOB_SOURCE_ABBREVS[analysis], fontsize=7)
             if a == 0:
-                ax.set_ylabel(TARGET_TYPES[out], fontsize=12)
+                ax.set_ylabel(TARGET_TYPES[out], fontsize=5)
             ymax = ax.get_ylim()[1]
             targ_max = max(targets[out]) * 1.5
             if ymax > targ_max and out != "seropos" and "prop_" not in out:
@@ -1302,7 +1303,7 @@ def plot_composite_calibrations(
             if o < 4:
                 ax.set_xticklabels([])
             else:
-                plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
+                plt.setp(ax.xaxis.get_majorticklabels(), rotation=70, fontsize=6)
     fig.tight_layout()
 
     # Residual transmission scaling with credible intervals
@@ -1310,16 +1311,17 @@ def plot_composite_calibrations(
     procs = pd.concat(c_procs, keys=analyses, axis=1)
 
     ax = fig.add_subplot(gs[0:2, 4:6])
-    ax.set_title("Residual transmission scaling")
+    ax.set_title("residual transmission scaling", fontsize=7)
     ax.set_yticks([])
     ax.tick_params(axis="x", labelrotation=70)
     for a in analyses:
         colour = MOB_SOURCE_COLOURS[a]
         label = MOB_SOURCE_ABBREVS[a]
         quants = procs[a].quantile([0.025, 0.5, 0.975], axis=1).T
-        ax.plot(quants.index, quants[0.5], color=colour, label=label, linewidth=2.0)
+        ax.plot(quants.index, quants[0.5], color=colour, label=label, linewidth=1.0)
         ax.fill_between(quants.index, quants[0.025], quants[0.975], alpha=0.1, color=colour)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=70, fontsize=6)
 
     # Residual transmission scaling dispersion posteriors
     param_posts = get_param_vals_by_analysis("dispersion_proc", analysis_paths[iso3])
@@ -1328,10 +1330,19 @@ def plot_composite_calibrations(
     colours = [MOB_SOURCE_COLOURS[a] for a in param_posts.columns]
     param_posts = param_posts.rename(columns=MOB_SOURCE_ABBREVS)
 
-    sns.kdeplot(param_posts, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5)
+    sns.kdeplot(param_posts, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.0)
     ax.set_yticks([])
     ax.set_ylabel("")
-    ax.set_title("dispersion posterior distributions")
+    ax.set_title("dispersion posterior distributions", fontsize=7)
+    plt.setp(ax.xaxis.get_majorticklabels(), fontsize=6)
+    plt.setp(ax.get_legend().get_texts(), fontsize=7)
+
+    legend = ax.get_legend()
+    legend.set_bbox_to_anchor((1.02, 0.98))
+    for handle in legend.legend_handles:
+        handle.set_height(6)
+    for text in legend.get_texts():
+        text.set_fontsize(5)
 
     plt.close()
     return fig
