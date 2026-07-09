@@ -1303,7 +1303,7 @@ def plot_composite_calibrations(
             if o < 4:
                 ax.set_xticklabels([])
             else:
-                plt.setp(ax.xaxis.get_majorticklabels(), rotation=70, fontsize=6)
+                plt.setp(ax.xaxis.get_majorticklabels(), rotation=70, fontsize=5)
     fig.tight_layout()
 
     # Residual transmission scaling with credible intervals
@@ -1321,7 +1321,7 @@ def plot_composite_calibrations(
         ax.plot(quants.index, quants[0.5], color=colour, label=label, linewidth=1.0)
         ax.fill_between(quants.index, quants[0.025], quants[0.975], alpha=0.1, color=colour)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    plt.setp(ax.xaxis.get_majorticklabels(), rotation=70, fontsize=6)
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=70, fontsize=5)
 
     # Residual transmission scaling dispersion posteriors
     param_posts = get_param_vals_by_analysis("dispersion_proc", analysis_paths[iso3])
@@ -1334,7 +1334,7 @@ def plot_composite_calibrations(
     ax.set_yticks([])
     ax.set_ylabel("")
     ax.set_title("dispersion posterior distributions", fontsize=7)
-    plt.setp(ax.xaxis.get_majorticklabels(), fontsize=6)
+    plt.setp(ax.xaxis.get_majorticklabels(), fontsize=5)
     plt.setp(ax.get_legend().get_texts(), fontsize=7)
 
     legend = ax.get_legend()
