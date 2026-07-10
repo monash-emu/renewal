@@ -780,7 +780,9 @@ def plot_select_proc_mob(
     Returns:
         The figure
     """
-    fig, axes = plt.subplots(4, 9, figsize=(14, 8))
+    fig, axes = plt.subplots(4, 9, figsize=[185 * MM, 100 * MM])
+    plt.rcParams["pdf.fonttype"] = 42
+    plt.rcParams["font.sans-serif"] = ["Arial"]
     for c, col in enumerate(panels):
         for r, row in enumerate(col):
 
@@ -796,7 +798,7 @@ def plot_select_proc_mob(
             proc_samples = pd.read_hdf(analysis_paths[iso3]["no_mob"] / "spaghetti.h5")["process"]
             centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
             ax = axes[r, c]
-            ax.plot(centiles.index, centiles[0.5], label="process", color="navy")
+            ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=1.0)
             ax.fill_between(
                 centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy"
             )
@@ -811,7 +813,7 @@ def plot_select_proc_mob(
                 mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
 
                 # Plot the weighted Google mobility distribution
-                ax.plot(mob_quants[0.5], color="green")
+                ax.plot(mob_quants[0.5], color="green", linewidth=1.0)
                 ax.fill_between(
                     mob_quants.index,
                     mob_quants[0.025],
@@ -831,10 +833,10 @@ def plot_select_proc_mob(
                     if mob_source == "g_mob"
                     else MOB_SOURCE_COLOURS[mob_source]
                 )
-                ax.plot(smoothed_mob.index, smoothed_mob, color=colour)
+                ax.plot(smoothed_mob.index, smoothed_mob, color=colour, linewidth=1.0)
 
             # Finish cosmetics
-            ax.set_title(country_name, fontsize=10)
+            ax.set_title(country_name, fontsize=6, pad=2)
             ax.set_xticks([])
             ax.set_yticks([])
 
@@ -848,7 +850,7 @@ def plot_select_proc_mob(
                     mob_source_name,
                     ha="center",
                     va="bottom",
-                    fontsize=12,
+                    fontsize=7,
                     fontweight="bold",
                 )
     fig.subplots_adjust(wspace=0.16, hspace=0.19)
@@ -1278,7 +1280,7 @@ def plot_composite_calibrations(
     fig = plt.figure(figsize=[185 * MM, 100 * MM])
     gs = GridSpec(5, 6, hspace=0.2, wspace=0.15)
     plt.rcParams["pdf.fonttype"] = 42
-    plt.rcParams["font.sans-serif"] = ["Helvetica"]
+    plt.rcParams["font.sans-serif"] = ["Arial"]
 
     # Calibration comparison
     msg = ".*axis already has a converter set*"
