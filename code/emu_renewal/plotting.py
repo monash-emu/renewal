@@ -1043,12 +1043,14 @@ def plot_dispersion_analysis(
     Returns:
         The figure
     """
-    marker_size = 15
+    marker_size = 5
 
     plt.style.use("default")
     world = get_world_shp()
-    fig, axes = plt.subplots(2, 2, figsize=(20, 8), constrained_layout=True)
+    fig, axes = plt.subplots(2, 2, figsize=[185 * MM, 90 * MM], constrained_layout=True)
     flat_axes = axes.ravel()
+    plt.rcParams["pdf.fonttype"] = 42
+    plt.rcParams["font.sans-serif"] = ["Arial"]
 
     # Strength of evidence for each mobility type panels
     analysis_types = ["g_mob", "fb_visited_mob", "fb_singletile_mob"]
@@ -1064,8 +1066,22 @@ def plot_dispersion_analysis(
 
         # Plot the proportion improvements
         ax = flat_axes[a]
-        ax.set_title(analysis_name)
-        mob_avail.plot(column="disp_ratio", ax=ax, cmap="RdGy_r", legend=True, vmin=0.4, vmax=1.6)
+        ax.set_title(analysis_name, fontsize=7)
+        mob_avail.plot(
+            column="disp_ratio",
+            ax=ax,
+            cmap="RdGy_r",
+            legend=False,
+            vmin=0.4,
+            vmax=1.6,
+        )
+        cbar = fig.colorbar(
+            ScalarMappable(norm=Normalize(vmin=0.4, vmax=1.6), cmap="RdGy_r"),
+            ax=ax,
+            fraction=0.046,
+            pad=0.04,
+        )
+        cbar.ax.tick_params(labelsize=6)
         mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
         world["small"] = world.geometry.area < 2.5
         world["centroid"] = world.geometry.centroid
@@ -1078,7 +1094,7 @@ def plot_dispersion_analysis(
             vmin=0.4,
             vmax=1.6,
             edgecolor="black",
-            linewidth=0.5,
+            linewidth=0.3,
             zorder=3,
         )
 
@@ -1091,7 +1107,7 @@ def plot_dispersion_analysis(
 
     # Plot the best mobility approach
     ax = flat_axes[-1]
-    ax.set_title("best analysis approach")
+    ax.set_title("best analysis approach", fontsize=7)
 
     # Dummy colour bar to get axis in right position with constrained layout
     sm = ScalarMappable(norm=Normalize(vmin=0, vmax=1))
