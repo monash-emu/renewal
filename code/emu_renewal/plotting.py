@@ -568,7 +568,12 @@ def plot_mob_weights_by_country(
     Returns:
         The figure
     """
-    fig, axes = get_standard_subplot(len(countries) + 1, 4)
+    fig, axes = plt.subplots(3, 4, figsize=[80 * MM, 70 * MM])
+    fig.tight_layout()
+    fig.subplots_adjust(wspace=0.05, hspace=0.3)
+    plt.rcParams["pdf.fonttype"] = 42
+    plt.rcParams["font.sans-serif"] = ["Arial"]
+
     x_vals = np.linspace(-0.1, 1.1, 200)
     flat_axes = axes.ravel()
     for c, iso3 in enumerate(countries):
@@ -587,26 +592,37 @@ def plot_mob_weights_by_country(
             colour = G_MOB_LOCATION_CMAP[l]
             kde = gaussian_kde(weights[l])
             label = l.replace("_", " ")
-            ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
+            ax.plot(x_vals, kde(x_vals), linewidth=0.5, label=label, color=colour)
             ax.fill_between(x_vals, kde(x_vals), alpha=0.1, color=colour)
 
         # Extra cosmetics
         country_name = pycountry.countries.lookup(iso3).name
-        ax.set_title(country_name)
+        ax.set_title(country_name, fontsize=6, pad=2)
+        if c > 7:
+            ax.set_xticks(np.linspace(0.0, 1.0, 3))
+        else:
+            ax.set_xticks([])
         ax.set_yticks([])
+        ax.tick_params(labelsize=5)
         legend = ax.legend()
         legend.set_visible(False)
 
     # Legend on blank axis
     handles, labels = flat_axes[0].get_legend_handles_labels()
-    flat_axes[c + 1].legend(handles=handles, labels=labels)
+    legend = flat_axes[c + 1].legend(
+        handles=handles,
+        labels=labels,
+        fontsize=4,
+        handlelength=0.8,
+        handletextpad=0.3,
+        loc="center",
+    )
 
     # Turn off unused axes
     for a in range(c + 1, len(flat_axes)):
         ax = flat_axes[a]
         ax.axis("off")
 
-    fig.tight_layout()
     plt.close()
     return fig
 
@@ -780,7 +796,7 @@ def plot_select_proc_mob(
     Returns:
         The figure
     """
-    fig, axes = plt.subplots(4, 9, figsize=[185 * MM, 100 * MM])
+    fig, axes = plt.subplots(4, 9, figsize=[180 * MM, 100 * MM])
     plt.rcParams["pdf.fonttype"] = 42
     plt.rcParams["font.sans-serif"] = ["Arial"]
     for c, col in enumerate(panels):
@@ -1047,7 +1063,7 @@ def plot_dispersion_analysis(
 
     plt.style.use("default")
     world = get_world_shp()
-    fig, axes = plt.subplots(2, 2, figsize=[185 * MM, 90 * MM], constrained_layout=True)
+    fig, axes = plt.subplots(2, 2, figsize=[180 * MM, 90 * MM], constrained_layout=True)
     flat_axes = axes.ravel()
     plt.rcParams["pdf.fonttype"] = 42
     plt.rcParams["font.sans-serif"] = ["Arial"]
@@ -1293,7 +1309,7 @@ def plot_composite_calibrations(
     """
 
     c_paths = analysis_paths[iso3]
-    fig = plt.figure(figsize=[185 * MM, 100 * MM])
+    fig = plt.figure(figsize=[180 * MM, 100 * MM])
     gs = GridSpec(5, 6, hspace=0.2, wspace=0.15)
     plt.rcParams["pdf.fonttype"] = 42
     plt.rcParams["font.sans-serif"] = ["Arial"]
