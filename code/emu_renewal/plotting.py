@@ -1277,6 +1277,8 @@ def plot_composite_calibrations(
     c_paths = analysis_paths[iso3]
     fig = plt.figure(figsize=[185 * MM, 100 * MM])
     gs = GridSpec(5, 6, hspace=0.2, wspace=0.15)
+    plt.rcParams["pdf.fonttype"] = 42
+    plt.rcParams["font.sans-serif"] = ["Helvetica"]
 
     # Calibration comparison
     msg = ".*axis already has a converter set*"
@@ -1340,7 +1342,7 @@ def plot_composite_calibrations(
     legend = ax.get_legend()
     legend.set_bbox_to_anchor((1.02, 0.98))
     for handle in legend.legend_handles:
-        handle.set_height(6)
+        handle.set_height(5)
     for text in legend.get_texts():
         text.set_fontsize(5)
 
