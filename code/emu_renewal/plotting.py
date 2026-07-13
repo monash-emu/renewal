@@ -1098,7 +1098,7 @@ def plot_dispersion_analysis(
             pad=0.04,
         )
         cbar.ax.tick_params(labelsize=6)
-        mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
+        mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke", linewidth=0.0)
         world["small"] = world.geometry.area < 2.5
         world["centroid"] = world.geometry.centroid
         centroids = world[world["small"]].set_geometry("centroid")
@@ -1131,7 +1131,7 @@ def plot_dispersion_analysis(
     cb.ax.set_visible(False)
 
     mob_avail.plot(ax=ax, color=mob_avail["best_mob_colour"])
-    mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke", linewidth=0)
+    mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke", linewidth=0.0)
     centroids.plot(
         ax=ax,
         markersize=marker_size,
