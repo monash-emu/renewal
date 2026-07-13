@@ -1131,7 +1131,7 @@ def plot_dispersion_analysis(
     cb.ax.set_visible(False)
 
     mob_avail.plot(ax=ax, color=mob_avail["best_mob_colour"])
-    mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke")
+    mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke", linewidth=0)
     centroids.plot(
         ax=ax,
         markersize=marker_size,
