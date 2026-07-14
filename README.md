@@ -10,15 +10,15 @@ If you do not have pixi installed, you can obtain it from https://pixi.sh/latest
 
 ### Execution
 
-Clone the repository and check out the submission_1 branch (or clone as a single branch)
+Clone the repository and check out the main branch (or clone as a single branch)
 
-`git clone https://github.com/monash-emu/renewal.git --single-branch --branch submission_1`
+`git clone https://github.com/monash-emu/renewal.git --single-branch --branch main`
 
-To build the environment for this repository, run `pixi run python` from within the repository root
+To build the environment for this repository, run `pixi install` from within the repository root
 
 This will typically take a few minutes to build and install the environment.  
 
-Exit the python session, after which various aspects of this paper can be explored and reproduced using the notebooks in the notebooks folder, which can
+Various aspects of this paper can be explored and reproduced using the notebooks in the notebooks folder, which can
 be accessed via `pixi run jupyter-lab` (or using your preferred notebook viewer, e.g. VSCode).
 
 In particular, individual countries can be run and then analysed using the notebooks:
