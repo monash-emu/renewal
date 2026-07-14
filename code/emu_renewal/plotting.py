@@ -889,14 +889,14 @@ def plot_exponent_dispersion_comparison(
     Returns:
         The figure
     """
-    fig, axs = plt.subplots(2, 2, figsize=[12, 9])
-    flat_axes = axs.ravel()
+    fig, axes = plt.subplots(4, 1, figsize=[88 * MM, 200 * MM], sharex=True)
+
     all_countries = analysis_paths.keys()
     analyses = ["g_mob", "fb_visited_mob", "fb_singletile_mob"]
     for m, mob_source in enumerate(analyses):
         mob_name = ANALYSIS_NAMES[mob_source]
-        ax = flat_axes[m]
-        ax.set_title(mob_name)
+        ax = axes[m]
+        ax.set_title(mob_name, fontsize=7)
 
         # Gather data
         idatas, _ = get_idatas_for_mob_type(analysis_paths, all_countries, mob_source)
@@ -918,20 +918,25 @@ def plot_exponent_dispersion_comparison(
             hue="GDP per capita",
             size="population (millions)",
             data=plot_df,
-            sizes=(25, 500),
+            sizes=(5, 100),
             ax=ax,
             edgecolors="k",
             palette=sns.color_palette("Reds", as_cmap=True),
         )
+        ax.xaxis.label.set_fontsize(6)
+        ax.yaxis.label.set_fontsize(6)
+        ax.tick_params(labelsize=5)
         handles, labels = ax.get_legend_handles_labels()
         ax.get_legend().remove()
 
+    ax.tick_params(axis="x", labelbottom=True)
+    ax.xaxis.label.set_visible(True)
+
     # Sort out legend
-    ax = flat_axes[-1]
-    ax.legend(handles=handles, labels=labels, loc="center", ncol=2)
+    ax = axes[-1]
+    ax.legend(handles=handles, labels=labels, loc="center", ncol=2, fontsize=5)
     ax.axis("off")
 
-    fig.tight_layout()
     plt.close()
     return fig
 
