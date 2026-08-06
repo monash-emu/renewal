@@ -13,7 +13,6 @@ DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
 # Analysis types
-<<<<<<< HEAD
 ANALYSIS_TYPES = [
     "no_mob",
     "g_mob",
@@ -21,10 +20,9 @@ ANALYSIS_TYPES = [
     "fb_no_mob",
     "fb_visited_mob",
     "fb_singletile_mob",
+    "oxcgrt",
 ]
-=======
 ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_visited_mob", "fb_singletile_mob", "oxcgrt"]
->>>>>>> ox_exp_floor
 
 # Dates
 CASES_START = "1 June 2020"
@@ -76,23 +74,7 @@ DEATHS_WEIGHT = 20
 DEATHS_START_THRESHOLD = 2
 
 # Hospitalisation-related
-<<<<<<< HEAD
-ALREADY_WEEKLY_ADMIT_COUNTRIES = [
-    "HRV",
-    "ZAF",
-    "IRL",
-    "GRC",
-    "SVN",
-    "NOR",
-    "MLT",
-    "EST",
-    "LUX",
-    "SVK",
-    "LVA",
-]
-=======
 ALREADY_WEEKLY_ADMIT_COUNTRIES = ["HRV", "ZAF", "IRL", "GRC", "SVN", "NOR", "MLT", "EST", "LUX", "SVK", "LVA", "CYP"]
->>>>>>> ox_exp_floor
 ALREADY_WEEKLY_OCCUP_COUNTRIES = ["JPN", "BGR"]
 
 # Variant-related
@@ -287,7 +269,6 @@ MOB_LOCATION_ABBREVS = {
     "fb_visited_mob": "FB visit",
     "fb_singletile_mob": "FB tile",
 }
-<<<<<<< HEAD
 SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic": "Domin Rep"}
 
 FULL_RUN = ["50038825"]
@@ -296,7 +277,6 @@ RERUNS = ["50097738", "50097781", "50118739"]
 WANING_COMPARISON = ["50220339"]
 WANING_TIMEOUTS = ["50418203", "50418218", "50418241", "50452726", "50478502", "50486342"]
 WANING_RERUNS = ["50487616", "50539639", "50577608"]
-=======
 SHORT_COUNTRY_NAMES = {
     "Russian Federation": "Russian Fed",
     "Dominican Republic": "Domin Rep"
@@ -335,4 +315,3 @@ OXCGRT_COLMAP = {
     "stringency": [f"C{i}" for i in range(1, 9)] + ["H1"],
     "containment": [f"C{i}" for i in range(1, 9)] + [f"H{i}" for i in range(1, 4)] + [f"H{i}" for i in range(6, 9)],
 }
->>>>>>> ox_exp_floor

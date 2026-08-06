@@ -10,11 +10,7 @@ import pycountry
 import pycountry_convert as pc
 import arviz as az
 
-<<<<<<< HEAD
 from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES, OUTPUTS_PATH, DATA_PATH
-=======
-from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES, OUTPUTS_PATH
->>>>>>> ox_exp_floor
 
 
 def get_col_increases(
