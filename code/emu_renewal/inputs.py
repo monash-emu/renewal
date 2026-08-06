@@ -458,7 +458,7 @@ def get_smoothed_trunc_g_mob(
 
 
 def get_weight_posts(
-    c_path: Path,
+    a_path: Path,
     analysis_type: str,
 ) -> pd.DataFrame:
     """Get a dataframe of the mobility weights
@@ -471,8 +471,8 @@ def get_weight_posts(
     Returns:
         The mobility weights
     """
-    idata = az.from_netcdf(c_path / analysis_type / "idata_filtered.nc")
-    params = idata.posterior["ts_weights"].to_dataframe().unstack(level=-1)
+    idata = az.from_netcdf(a_path / "idata_filtered.nc")
+    params = idata.posterior["mob_weights"].to_dataframe().unstack(level=-1) # FIXME: Probably not OxCGRT compatible (change to ts_weights)
     params.columns = G_MOB_LOCATION_CMAP if analysis_type == "g_mob" else OXCGRT_LOCATION_CMAP
     return params
 

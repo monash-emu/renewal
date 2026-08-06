@@ -596,8 +596,8 @@ def plot_weights_by_country(
         mob = get_google_mobility(iso3) if analysis_type == "g_mob" else get_oxcgrt(iso3, "custom")
     
         # Get weights
-        idata = az.from_netcdf(job_path / iso3 / analysis_type / "idata_filtered.nc")
-        weights = idata.posterior["ts_weights"].to_dataframe().unstack("ts_weights_dim_0")
+        idata = az.from_netcdf(job_path[iso3][analysis_type] / "idata_filtered.nc")
+        weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0") # FIXME: Not OxCGRT compatible
         weights.columns = mob.columns
 
         # Plot
@@ -903,7 +903,7 @@ def plot_select_proc_mob(
                 smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
 
                 # Get the Google mobility weight posteriors and quantiles of weighted series
-                params = get_weight_posts(job_path / iso3, "g_mob")
+                params = get_weight_posts(analysis_paths[iso3]["g_mob"], "g_mob")
                 mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
 
                 # Plot the weighted Google mobility distribution
@@ -980,7 +980,7 @@ def plot_exponent_dispersion_comparison(
         idatas, _ = get_idatas_for_mob_type(analysis_paths, all_countries, mob_source)
         plot_df = pd.DataFrame(
             {
-                "mobility exponent": {c: float(d.posterior["scale_exp"].median()) for c, d in idatas.items()},
+                "mobility exponent": {c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()}, # FIXME: Not OxCGRT compatible
                 "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
                 "GDP per capita": get_gdps(2020),
                 "population (millions)": {c: get_country_pop(c) / 1e6 for c in all_countries},
