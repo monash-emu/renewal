@@ -12,11 +12,32 @@ from emu_renewal.constants import (
     VARIATION_THRESHOLD,
 )
 from emu_renewal.document import get_exp_val_from_string
-from emu_renewal.inputs import DATA_PATH
+from emu_renewal.inputs import DATA_PATH, get_oxcgrt_data
 from emu_renewal.indicators import get_who_indicator
 from emu_renewal.outputs import add_bool_row_to_table
 from emu_renewal.run import find_run_end_time
 from emu_renewal.utils import count_repeat_nans, get_cont_of_country
+
+
+def get_data_avail_countries() -> Tuple[List[str], pd.DataFrame]:
+    """Find the countries for which either mobility
+    or policy data is available.
+
+    Returns:
+        - Countries for which at least one mobility domain or OxCGRT data is available
+        - Table with indices for countries and Yes/No status for each mobility domain
+        - The countries with data available for each source
+    """
+    g_avail = [c[:3] for c in ls(DATA_PATH / "mobility") if "gmob" in c]
+    fb_avail = [c[:3] for c in ls(DATA_PATH / "mobility") if "fbmob" in c]
+    pol_data = get_oxcgrt_data()
+    pol_avail = [iso3 for iso3 in set(pol_data["CountryCode"]) if iso3 != "RKS"]
+    any_data_avail = list(set(g_avail + fb_avail + pol_avail))
+    summary = pd.DataFrame(index=any_data_avail)
+    add_bool_row_to_table(summary, g_avail, "Google available")
+    add_bool_row_to_table(summary, fb_avail, "FB available")
+    add_bool_row_to_table(summary, pol_avail, "OxCGRT")
+    return any_data_avail, summary, g_avail, fb_avail, pol_avail
 
 
 def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
@@ -26,6 +47,7 @@ def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
     Returns:
         - Countries for which at least one mobility domain is available
         - Table with indices for countries and Yes/No status for each mobility domain
+        - The countries with data available for each source
 
     Notes
     -----
@@ -73,7 +95,10 @@ def gather_who_data(
         try:
             end_time = find_run_end_time(c, "g_mob")
         except:
-            end_time = find_run_end_time(c, "fb_visited_mob")
+            try:
+                end_time = find_run_end_time(c, "fb_visited_mob")
+            except:
+                end_time = datetime(2021, 12, 31)
 
         # Get deaths and cases data
         deaths = get_who_indicator("New_deaths", c)
@@ -254,3 +279,19 @@ def has_outlier(
         return second == 0.0 or largest / second > threshold
     else:
         return False
+
+
+def find_pol_countries(
+    countries: List[str],
+) -> List[str]:
+    """Filter a list of countries according to whether
+    OxCGRT data exists for them.
+
+    Args:
+        countries: The countries to consider
+
+    Returns:
+        The countries with data
+    """
+    data = get_oxcgrt_data()
+    return [iso3 for iso3 in countries if any(data["CountryCode"] == iso3)]

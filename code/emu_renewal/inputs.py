@@ -5,6 +5,8 @@ import geopandas as gpd
 import arviz as az
 import pycountry
 from typing import Tuple, List, Dict
+import re
+
 from emu_renewal.constants import (
     DATA_PATH,
     RAW_MOB_PATH,
@@ -15,9 +17,12 @@ from emu_renewal.constants import (
     ASSUMED_HIGH_INCOME,
     G_MOB_LOCATION_CMAP,
     MOBILITY_SMOOTH_PERIOD,
+    OXCGRT_DTYPES,
+    OXCGRT_LOCATION_CMAP,
+    OXCGRT_IND_MAX,
+    OXCGRT_COLMAP,
 )
 from emu_renewal.utils import get_cont_of_country
-from os import listdir as ls
 
 
 def get_country_pop(
@@ -254,6 +259,29 @@ def get_fb_singletile_mobility(
     return 1.0 - mob
 
 
+def get_oxcgrt(
+    iso3: str, 
+    field: str,
+) -> pd.Series:
+    """Get a set of fields for a single country
+    from the Oxford CGRT database 
+    based on the OXCGRT_COLMAP dictionary.
+
+    Args:
+        iso3: The country identifier
+        field: The key for the set of fields
+
+    Returns:
+        The reciprocals of the data values
+    """
+    data = get_oxcgrt_data()
+    pol = find_oxcgrt_country_data(iso3, data)
+    filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]
+    scaled_pol = scale_oxcgrt_pols(filt_pol)
+    pol_vals = scaled_pol[OXCGRT_COLMAP[field]]
+    return 1.0 - pol_vals
+
+
 def get_requested_mob(
     iso3: str,
     mob_source: str,
@@ -411,6 +439,7 @@ def get_smoothed_trunc_g_mob(
     iso3: str,
     start: datetime,
     finish: datetime,
+    mob_type: str="g_mob",
 ) -> pd.DataFrame:
     """Get the smoothed, truncated Google mobility data
 
@@ -418,30 +447,33 @@ def get_smoothed_trunc_g_mob(
         iso3: The country identifier
         start: The start time of the period of interest
         finish: The end time of the period of interest
+        mob_type: Either g_mob or oxcgrt
 
     Returns:
         The mobility data
     """
-    mob = get_google_mobility(iso3)
+    mob = get_google_mobility(iso3) if mob_type == "g_mob" else get_oxcgrt(iso3, "custom")
     smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
     return smoothed_mob[(start < smoothed_mob.index) & (smoothed_mob.index < finish)]
 
 
-def get_g_mob_weight_posts(
-    a_path: Path,
+def get_weight_posts(
+    c_path: Path,
+    analysis_type: str,
 ) -> pd.DataFrame:
     """Get a dataframe of the mobility weights
-    applied to the Google data.
+    applied to the Google or OxCGRT data.
 
     Args:
-        a_path: The analysis path
+        c_path: The country path for the analyses
+        analysis_type: Either "g_mob" or "oxcgrt"
 
     Returns:
         The mobility weights
     """
-    idata = az.from_netcdf(a_path / "idata_filtered.nc")
-    params = idata.posterior["mob_weights"].to_dataframe().unstack(level=-1)
-    params.columns = G_MOB_LOCATION_CMAP
+    idata = az.from_netcdf(c_path / analysis_type / "idata_filtered.nc")
+    params = idata.posterior["ts_weights"].to_dataframe().unstack(level=-1)
+    params.columns = G_MOB_LOCATION_CMAP if analysis_type == "g_mob" else OXCGRT_LOCATION_CMAP
     return params
 
 
@@ -461,10 +493,10 @@ def get_g_mob_quants(
     Returns:
         The quantiles of the weighted series
     """
-    weights = params.sample(n_samples)
-    norm_weights = weights.div(weights.sum(axis=1), axis=0)
-    mob_results = (norm_weights @ smoothed_mob.T).T
-    return mob_results.quantile([0.025, 0.5, 0.975], axis=1).T
+    norm_weights = params.div(params.sum(axis=1), axis=0)
+    vals = (norm_weights @ smoothed_mob.T).T
+    sample_vals = vals.sample(n_samples, axis=1)
+    return sample_vals.quantile([0.025, 0.5, 0.975], axis=1).T
 
 
 def get_linear_series_trend(
@@ -497,3 +529,128 @@ def get_linear_series_trend(
     return pd.Series(
         (series.index - start_time).total_seconds() * slope_per_second + 1.0, index=series.index
     )
+
+
+
+def get_cgrt_quants(
+    smoothed_mob: pd.DataFrame, 
+    params: pd.DataFrame, 
+    floors: pd.Series,
+    n_samples: int,
+) -> pd.DataFrame:
+    norm_weights = params.div(params.sum(axis=1), axis=0)
+    vals = (norm_weights @ smoothed_mob.T).mul(1.0 - floors, axis=0).add(floors, axis=0).T
+    sample_vals = vals.sample(n_samples, axis=1)
+    return sample_vals.quantile([0.025, 0.5, 0.975], axis=1).T
+
+
+def get_oxcgrt_data() -> pd.DataFrame:
+    """Get and process the OXCGRT policy data.
+
+    Returns:
+        The processed policy data
+    """
+    mob = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
+    mob.index = pd.to_datetime(mob["Date"], format="%Y%m%d")
+    drop_strings = ["Index", "Vaccinated", "Confirmed", "Notes", "Unnamed", "Date", "Region", "CountryName", "Jurisdiction", "Flag"]
+    cols_to_keep = [col for col in mob.columns if not any(s in col for s in drop_strings)]
+    mob = mob[cols_to_keep]
+    mob.columns = [col.split("_")[0] for col in mob.columns]
+    return mob
+
+
+def find_oxcgrt_country_data(
+    iso3: str, 
+    data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Get the country-specific data from the OxCGRT dataset
+    produced by get_oxcgrt_raw_data.
+
+    Args:
+        iso3: The country identifier
+        data: The full OxCGRT data
+
+    Returns:
+        The country-specific data
+    """
+    data = data[data["CountryCode"] == iso3]
+    return data.drop("CountryCode", axis=1)
+
+
+def get_oxcgrt_country_indicators(
+    iso3: str,
+) -> pd.DataFrame:
+    """Get and process the OXCGRT policy data.
+
+    Args:
+        iso3: Country identifier
+
+    Returns:
+        The processed policy data
+    """
+    mob = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
+    mob.index = pd.to_datetime(mob["Date"], format="%Y%m%d")
+    mob = mob[mob["CountryCode"] == iso3]
+    # Note we can only drop region because this is assumed to be the national data
+    drop_strings = ["Index", "Vaccinated", "Confirmed", "Notes", "Unnamed", "Date", "Region", "Country", "Jurisdiction", "Flag"]
+    cols_to_keep = [col for col in mob.columns if not any(s in col for s in drop_strings)]
+    mob = mob[cols_to_keep]
+    mob.columns = [col.split("_")[0] for col in mob.columns]
+    return mob
+
+
+def get_rel_oxcgrt_cols(
+    vacc_status: str, 
+    pol_data: pd.DataFrame,
+) -> List[str]:
+    """Get the relevant columns for the OXCGRT data
+    given a particular vaccination status request.
+
+    Args:
+        vacc_status: Must be V, NV, M or E
+        pol_data: The OXCGRT data
+
+    Returns:
+        The relevant columns
+    """
+    matches = []
+    regex_match = r"^([A-Z]+\d+)([A-Z]*)$"
+    for col in pol_data.columns:
+        match = re.match(regex_match, col)
+        base, suffix = match.groups()
+        match_strings = [vacc_status, "", "EV"]
+        # Include all V columns, because V2E violates above assumptions
+        if suffix in match_strings or base.startswith("V"):
+            matches.append(col)
+    return matches
+
+
+def scale_oxcgrt_pols(
+    pol_data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Scale OXCGRT data relative to maximum
+    value for indicator.
+
+    Args:
+        pol_data: The policy data
+
+    Returns:
+        The scaled data for indicators listed in OXCGRT_IND_MAX 
+    """
+    scaled_data = pd.DataFrame(index=pol_data.index)
+    for col in OXCGRT_IND_MAX:
+        scaled_data[col] = pol_data[next((c for c in pol_data.columns if c.startswith(col)))] / OXCGRT_IND_MAX[col]
+    return scaled_data
+
+
+def store_oxcgrt_data():
+    sheets = []
+    for year in range(2020, 2023):
+        url = f"https://github.com/OxCGRT/covid-policy-dataset/raw/refs/heads/main/data/OxCGRT_fullwithnotes_national_{year}_v1.csv"
+        sheets.append(pd.read_csv(url, dtype=OXCGRT_DTYPES))
+    data = pd.concat(sheets)
+    restrictions_path = DATA_PATH / "restrictions"
+    restrictions_path.mkdir(exist_ok=True)
+    file_path = restrictions_path / "oxcgrt.csv"
+    if not file_path.exists():
+        data.to_csv(file_path)

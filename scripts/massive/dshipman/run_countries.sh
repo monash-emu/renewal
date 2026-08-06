@@ -30,7 +30,7 @@
 #SBATCH --array=1-90
 
 # The path to your renewal repo
-cd /projects/sh30/users/dshipman/renewal/renewal
+cd $SCRIPT_DIR/../../../
 
 # The run path to your Python script that will actually do the work
 # Run this with pixi, the environment will be automatically handled

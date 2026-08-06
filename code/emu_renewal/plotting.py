@@ -41,6 +41,7 @@ from emu_renewal.constants import (
     INCLUSION_COLOURS,
     MOB_LOCATION_NAME_MAP,
     G_MOB_LOCATION_CMAP,
+    OXCGRT_LOCATION_CMAP,
     MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
     EXP_PRIOR_LOWER,
@@ -48,6 +49,7 @@ from emu_renewal.constants import (
     G_MOB_DETREND_END_PERIOD,
     G_MOB_DETREND_THRESHOLD,
     MOBILITY_SMOOTH_PERIOD,
+    OXCGRT_COLMAP,
 )
 from emu_renewal.inputs import (
     DATA_PATH,
@@ -56,10 +58,16 @@ from emu_renewal.inputs import (
     get_gdps,
     get_country_pop,
     get_world_shp,
-    get_g_mob_weight_posts,
+    get_weight_posts,
     get_g_mob_quants,
+    get_cgrt_quants,
     get_smoothed_trunc_g_mob,
     get_linear_series_trend,
+    get_oxcgrt_data,
+    find_oxcgrt_country_data,
+    get_rel_oxcgrt_cols,
+    scale_oxcgrt_pols,
+    get_oxcgrt,
 )
 from emu_renewal.outputs import (
     get_idatas_for_mob_type,
@@ -152,6 +160,8 @@ def plot_multianalysis_fit(
     n_analyses = len(spaghs)
     n_targs = len(targets)
     ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
+    # if cont == "OC" and iso3 != "SGP":
+    #     ordered_analyses += ["fb_no_mob"]
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
     fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharey="row")
     for a, analysis in enumerate(ordered_analyses):
@@ -554,16 +564,20 @@ def plot_kde_comparison(
     return fig
 
 
-def plot_mob_weights_by_country(
-    analysis_paths: Dict[str, Dict[str, Path]],
+def plot_weights_by_country(
+    job_path: Path, 
     countries: List[str],
+    analysis_type: str,
 ) -> plt.figure:
     """Plot the mobility weight posteriors for each
-    of the mobility domains implemented for the Google analysis.
+    of the domains implemented under one of the analyses
+    weighting multiple time series to obtain a composite
+    scaling process.
 
     Args:
         analysis_paths: Path for the runs
         countries: The countries identifiers
+        analysis_type: g_mob or oxcgrt
 
     Returns:
         The figure
@@ -579,22 +593,22 @@ def plot_mob_weights_by_country(
     for c, iso3 in enumerate(countries):
 
         # Get mobility
-        mob = get_google_mobility(iso3)
-
+        mob = get_google_mobility(iso3) if analysis_type == "g_mob" else get_oxcgrt(iso3, "custom")
+    
         # Get weights
-        idata = az.from_netcdf(analysis_paths[iso3]["g_mob"] / "idata_filtered.nc")
-        weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
+        idata = az.from_netcdf(job_path / iso3 / analysis_type / "idata_filtered.nc")
+        weights = idata.posterior["ts_weights"].to_dataframe().unstack("ts_weights_dim_0")
         weights.columns = mob.columns
 
         # Plot
         ax = flat_axes[c]
         for l in weights.columns:
-            colour = G_MOB_LOCATION_CMAP[l]
             kde = gaussian_kde(weights[l])
-            label = l.replace("_", " ")
-            ax.plot(x_vals, kde(x_vals), linewidth=0.5, label=label, color=colour)
-            ax.fill_between(x_vals, kde(x_vals), alpha=0.1, color=colour)
-
+            colour = (G_MOB_LOCATION_CMAP | OXCGRT_LOCATION_CMAP)[l]
+            label = l.replace("_", " ") if analysis_type == "g_mob" else MOB_LOCATION_NAME_MAP[l]
+            ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
+            ax.fill_between(x_vals, kde(x_vals), alpha=0.05, color=colour)
+    
         # Extra cosmetics
         country_name = pycountry.countries.lookup(iso3).name
         ax.set_title(country_name, fontsize=6, pad=2)
@@ -705,11 +719,68 @@ def compare_proc_mob(
     return fig
 
 
-def compare_proc_weighted_gmob(
-    analysis_paths: Dict[str, Dict[str, Path]],
+def compare_proc_pol(
+    job_path: Path,
+    countries: List[str],
+    n_cols: int,
+) -> plt.Figure:
+    """Plot comparison of 
+    transmission scaling to policy indices.
+
+    Args:
+        job_path: Path for the runs
+        countries: Requested countries to plot
+        n_cols: Number of subplot columns for the figure
+
+    Returns:
+        The figure
+    """
+    fig, axes = get_standard_subplot(len(countries), n_cols)
+    title = f"Estimated transmission scaling (without scaling) versus policy scaling"
+    fig.suptitle(title, fontsize=14, y=1.0)
+    flat_axes = axes.ravel()
+    data = get_oxcgrt_data()
+
+    for c, iso3 in enumerate(countries):
+        ax = flat_axes[c]
+        country = pycountry.countries.lookup(iso3).name
+        ax.set_title(country)
+        plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
+
+        # Transmission scaling process plotting
+        ref_analysis = "fb_no_mob" if (job_path / iso3 / "fb_no_mob").exists() else "no_mob"
+        proc_samples = pd.read_hdf(job_path / iso3 / ref_analysis / "spaghetti.h5")["process"]
+        centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
+        ax.plot(centiles.index, centiles[0.5], color="navy", linewidth=2.0)
+        ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
+
+        # Policies
+        pol = find_oxcgrt_country_data(iso3, data)
+        filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]
+        scaled_pol = scale_oxcgrt_pols(filt_pol)
+        filtered_pol = scaled_pol.loc[(centiles.index[0] < scaled_pol.index) & (scaled_pol.index < centiles.index[-1])]
+        for index, cols in OXCGRT_COLMAP.items():
+            pol_vals = filtered_pol[cols]
+            ax.plot(pol_vals.index, 1.0 - pol_vals.mean(axis=1), linewidth=2.0, label=index)
+    
+    # Add legend for last plot
+    ax.legend()
+
+    # Switch off unused axes
+    for ax in flat_axes[c + 1 :]:
+        ax.set_axis_off()
+
+    fig.tight_layout()
+    plt.close()
+    return fig
+
+
+def compare_proc_versus_weighted(
+    job_path: Path, 
     countries: List[str],
     n_samples: int,
     n_cols: int,
+    analysis_type: str,
 ) -> plt.Figure:
     """Plot comparison of composite Google time series to
     the transmission scaling process.
@@ -740,12 +811,19 @@ def compare_proc_weighted_gmob(
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
 
         # Get the mobility data
-        smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
-
+        smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1], analysis_type)
+    
         # Get the Google mobility weight posteriors and quantiles of weighted series
-        params = get_g_mob_weight_posts(analysis_paths[iso3]["g_mob"])
-        mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
-
+        params = get_weight_posts(job_path / iso3, analysis_type)
+        
+        if analysis_type == "g_mob":
+            mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
+        elif analysis_type == "oxcgrt":
+            idata = az.from_netcdf(job_path / iso3 / analysis_type / "idata_filtered.nc")
+            param = "scale_floor"
+            floors = idata.posterior[param].to_dataframe()[param]
+            mob_quants = get_cgrt_quants(smoothed_mob, params, floors, n_samples)
+    
         # Plot the weighted Google mobility distribution
         colour = MOB_SOURCE_COLOURS["g_mob"]
         ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
@@ -825,7 +903,7 @@ def plot_select_proc_mob(
                 smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
 
                 # Get the Google mobility weight posteriors and quantiles of weighted series
-                params = get_g_mob_weight_posts(analysis_paths[iso3]["g_mob"])
+                params = get_weight_posts(job_path / iso3, "g_mob")
                 mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
 
                 # Plot the weighted Google mobility distribution
@@ -902,9 +980,7 @@ def plot_exponent_dispersion_comparison(
         idatas, _ = get_idatas_for_mob_type(analysis_paths, all_countries, mob_source)
         plot_df = pd.DataFrame(
             {
-                "mobility exponent": {
-                    c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()
-                },
+                "mobility exponent": {c: float(d.posterior["scale_exp"].median()) for c, d in idatas.items()},
                 "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
                 "GDP per capita": get_gdps(2020),
                 "population (millions)": {c: get_country_pop(c) / 1e6 for c in all_countries},
@@ -961,9 +1037,7 @@ def plot_exponent_dispersion_comparison_interactive(
     idatas, _ = get_idatas_for_mob_type(analysis_paths, countries, mob_source)
     plot_df = pd.DataFrame(
         {
-            "mobility exponent": {
-                c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()
-            },
+            "mobility exponent": {c: float(d.posterior["scale_exp"].median()) for c, d in idatas.items()},
             "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
             "GDP per capita": get_gdps(2020),
             "population (millions)": {c: get_country_pop(c) / 1e6 for c in countries},
@@ -1412,103 +1486,6 @@ def add_cont_to_world_geodf(
             world.loc[world["ISO_A3"] == iso3, "continent"] = "none"
 
 
-def plot_input_recovery(
-    scalar_params: xarray.core.dataset,
-    multi_params: Dict[str, np.array],
-    idata: az.data.inference_data,
-    targets: Dict[str, pd.Series],
-    spaghetti: pd.DataFrame,
-    updates: pd.DataFrame,
-) -> plt.figure:
-    """Plot parameter identification outputs.
-
-    Args:
-        scalar_params: The scalar parameters from the sample run to match to
-        multi_params: The multi-dimensional parameters to match to
-        idata: The arviz inference data object
-        targets: The epi targets
-        spaghetti: The spaghetti output from the run
-        updates: The variable process updates
-    """
-    fig = plt.figure(figsize=[12, 8])
-    gs = GridSpec(2, 3, figure=fig)
-
-    # Plot recovery of the variable process
-    ax = fig.add_subplot(gs[0, 0])
-    ax.set_title("variable process recovery")
-    proc_vals = np.exp(pd.Series(multi_params["proc"], index=updates.index).cumsum())
-    proc_vals.plot(ax=ax, marker="o", linewidth=0.0, markersize=3.0, color="r")
-    spaghetti["process"].plot(ax=ax, color="k", linewidth=0.1, alpha=0.1)
-    ax.get_legend().remove()
-    ax.tick_params("x", rotation=70)
-
-    # Plot recovery of key parameters
-    if "mob_exp" in idata.posterior:
-        ax = fig.add_subplot(gs[0, 1])
-        az.plot_density(idata, var_names="mob_exp", shade=0.5, ax=[ax])
-        ax.axvline(scalar_params["mob_exp"], color="darkblue", linewidth=2.0)
-        ax.set_xlim(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
-        ax.set_title("mobility exponent mapping posterior")
-
-    # Plot fit to data
-    for i, ind in enumerate(targets):
-        ax = fig.add_subplot(gs[1, i])
-        ax.set_title(f"fit to {ind}")
-        spaghetti[ind].plot(ax=ax, color="k", linewidth=0.1, alpha=0.1)
-        ax.get_legend().remove()
-        output = targets[ind]
-        pd.Series(output, index=output.index).plot(ax=ax, style="o", markersize=3.0, linewidth=0)
-        ax.tick_params("x", rotation=70)
-
-    # Finishing cosmetics
-    fig.tight_layout()
-    plt.close()
-    return fig
-
-
-def plot_waning_comparison_proc_disp(
-    waning_paths: Dict[str, Dict[str, Path]],
-    analysis_paths: Dict[str, Dict[str, Path]],
-    n_samples,
-    sample_analyses,
-) -> plt.figure:
-    """Plot the variable process dispersion posterior with
-    and without waning immunity applied.
-
-    Args:
-        waning_paths: The paths to the waning immunity analyses
-        analysis_paths: The paths to the reference/main analyses
-
-    Returns:
-        The comparison figure
-    """
-    fig, axes = get_standard_subplot(n_samples, 4)
-    flat_axes = axes.ravel()
-    param = "dispersion_proc"
-    for c, (iso3, mob_type) in enumerate(sample_analyses):
-
-        # Gather the paths together
-        sample_path = waning_paths[iso3]
-        analysis_path = analysis_paths[iso3]
-        run_paths = {"waning": sample_path, "no_waning": analysis_path}
-
-        # Get the posterior values with and without waning
-        posts = [get_param_vals_by_analysis(param, p)[mob_type] for p in run_paths.values()]
-        combined_disps = pd.concat(posts, axis=1)
-        combined_disps.columns = run_paths.keys()
-
-        # Plot the posterior comparison
-        ax = flat_axes[c]
-        sns.kdeplot(combined_disps, ax=ax, fill=True, alpha=0.1, linewidth=1.5, common_norm=False)
-        ax.set_title(f"{pycountry.countries.lookup(iso3).name}, {MOB_SOURCE_ABBREVS[mob_type]}")
-        ax.set_yticks([])
-        ax.set_ylabel("")
-
-    fig.tight_layout()
-    plt.close()
-    return fig
-
-
 def plot_waning_quant_comparison(
     quant_df: pd.DataFrame,
 ) -> plt.figure:
@@ -1527,3 +1504,44 @@ def plot_waning_quant_comparison(
     ax.set_yticks([])
     ax.axvline(0.5, color="dimgrey", linestyle="--")
     return ax
+
+
+def plot_analysis_specific_post(
+    job_path: Path, 
+    countries: List[str], 
+    analysis_type: str, 
+    param_name: str, 
+    n_cols: int,
+) -> plt.figure:
+    """Plot the posterior distribution of a specific parameter
+    over several countries. Because there is a separate function
+    for plotting all the posteriors for parameters that are common
+    between analysis types, this is intended for parameters that
+    are specific to a particular analysis type.
+
+    Args:
+        job_path: Path for the runs
+        countries: Requested countries to plot
+        analysis_type: The analysis identifier
+        param_name: The parameter identifier
+        n_cols: Number of columns for plot
+
+    Returns:
+        The figure
+    """
+    n_rows = int(np.ceil(len(countries) / n_cols))
+    height = min(2.0 + n_rows * 2.0, 13.0)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height])
+    flat_axes = axes.ravel()
+    for c, iso3 in enumerate(countries):
+        cgrt_path = job_path / iso3 / analysis_type
+        idata = az.from_netcdf(cgrt_path / "idata_filtered.nc")
+        ax = flat_axes[c]
+        az.plot_density(idata, ax=ax, hdi_prob=0.99, var_names=param_name, shade=0.2)
+        ax.set_title(pycountry.countries.lookup(iso3).name)
+        ax.set_xlim(0.0, 1.0)
+        ax.tick_params(axis="x", labelsize=10) 
+    for a in range(c + 1, len(flat_axes)):
+        flat_axes[a].set_axis_off()
+    fig.tight_layout()
+    return fig

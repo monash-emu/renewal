@@ -13,6 +13,7 @@ DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
 # Analysis types
+<<<<<<< HEAD
 ANALYSIS_TYPES = [
     "no_mob",
     "g_mob",
@@ -21,6 +22,9 @@ ANALYSIS_TYPES = [
     "fb_visited_mob",
     "fb_singletile_mob",
 ]
+=======
+ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_visited_mob", "fb_singletile_mob", "oxcgrt"]
+>>>>>>> ox_exp_floor
 
 # Dates
 CASES_START = "1 June 2020"
@@ -72,6 +76,7 @@ DEATHS_WEIGHT = 20
 DEATHS_START_THRESHOLD = 2
 
 # Hospitalisation-related
+<<<<<<< HEAD
 ALREADY_WEEKLY_ADMIT_COUNTRIES = [
     "HRV",
     "ZAF",
@@ -85,6 +90,9 @@ ALREADY_WEEKLY_ADMIT_COUNTRIES = [
     "SVK",
     "LVA",
 ]
+=======
+ALREADY_WEEKLY_ADMIT_COUNTRIES = ["HRV", "ZAF", "IRL", "GRC", "SVN", "NOR", "MLT", "EST", "LUX", "SVK", "LVA", "CYP"]
+>>>>>>> ox_exp_floor
 ALREADY_WEEKLY_OCCUP_COUNTRIES = ["JPN", "BGR"]
 
 # Variant-related
@@ -165,6 +173,7 @@ MOB_SOURCE_COLOURS = {
     "fb_visited_mob": "red",
     "fb_singletile_mob": "blue",
     "fb_no_mob": "grey",
+    "oxcgrt": "purple",
 }
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
@@ -173,6 +182,7 @@ ANALYSIS_NAMES = {
     "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",
     "fb_no_mob": "Facebook no mobility",
+    "oxcgrt": "OxCGRT",
 }
 MOB_SOURCE_ABBREVS = {
     "no_mob": "none",
@@ -181,6 +191,7 @@ MOB_SOURCE_ABBREVS = {
     "fb_visited_mob": "FB tiles visited",
     "fb_singletile_mob": "FB single tile",
     "fb_no_mob": "FB baseline",
+    "oxcgrt": "OxCGRT",
 }
 TARGET_TYPES = {
     "weekly_cases": "weekly cases",
@@ -222,6 +233,16 @@ MOB_LOCATION_NAME_MAP = {
     "residential": "Google residential",
     "fb_visited_mob": "Facebook tiles visited",
     "fb_singletile_mob": "Facebook single tile",
+    "C1": "school closing",
+    "C2": "workplace closing",
+    "C3": "cancel public events",
+    "C4": "gathering restrictions",
+    "C5": "close public transport",
+    "C6": "stay at home",
+    "C7": "movement restrictions",
+    "C8": "international travel",
+    "H1": "public information",
+    "H6": "face coverings"
 }
 MOB_SOURCE_MAP = {
     "g_mob": "Google",
@@ -235,6 +256,17 @@ G_MOB_LOCATION_CMAP = {
     "transit_stations": "dimgrey",
     "workplaces": "purple",
     "residential": "brown",
+}
+OXCGRT_LOCATION_CMAP = {
+    "C1": "blue",
+    "C2": "teal",
+    "C3": "darkgreen",
+    "C4": "purple",
+    "C5": "dimgrey",
+    "C6": "brown",
+    "C7": "black",
+    "H1": "darkgoldenrod",
+    "H6": "red",
 }
 CONT_CMAP = {
     "AF": "black",
@@ -255,6 +287,7 @@ MOB_LOCATION_ABBREVS = {
     "fb_visited_mob": "FB visit",
     "fb_singletile_mob": "FB tile",
 }
+<<<<<<< HEAD
 SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic": "Domin Rep"}
 
 FULL_RUN = ["50038825"]
@@ -263,3 +296,43 @@ RERUNS = ["50097738", "50097781", "50118739"]
 WANING_COMPARISON = ["50220339"]
 WANING_TIMEOUTS = ["50418203", "50418218", "50418241", "50452726", "50478502", "50486342"]
 WANING_RERUNS = ["50487616", "50539639", "50577608"]
+=======
+SHORT_COUNTRY_NAMES = {
+    "Russian Federation": "Russian Fed",
+    "Dominican Republic": "Domin Rep"
+}
+
+# Stringency
+OXCGRT_DTYPES = {
+    "V2B_Vaccine age eligibility/availability age floor (general population summary)": str,
+    "V2C_Vaccine age eligibility/availability age floor (at risk summary)": str,
+    "V4_Notes": str,
+    "M1_Notes": str,
+    "E3_Notes": str,
+    "E4_Notes": str,
+    "H4_Notes": str,
+}
+OXCGRT_IND_MAX = {
+    "C1": 3,
+    "C2": 3,
+    "C3": 2,
+    "C4": 4,
+    "C5": 2,
+    "C6": 3,
+    "C7": 2,
+    "C8": 4,
+    "E1": 2,
+    "E2": 2,
+    "H1": 2,
+    "H2": 3,
+    "H3": 2,
+    "H6": 4,
+    "H7": 5,
+    "H8": 3,
+}
+OXCGRT_COLMAP = {
+    "custom": [f"C{i}" for i in range(1, 8)] + ["H1", "H6"],
+    "stringency": [f"C{i}" for i in range(1, 9)] + ["H1"],
+    "containment": [f"C{i}" for i in range(1, 9)] + [f"H{i}" for i in range(1, 4)] + [f"H{i}" for i in range(6, 9)],
+}
+>>>>>>> ox_exp_floor

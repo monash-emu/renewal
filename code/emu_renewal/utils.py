@@ -10,7 +10,11 @@ import pycountry
 import pycountry_convert as pc
 import arviz as az
 
+<<<<<<< HEAD
 from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES, OUTPUTS_PATH, DATA_PATH
+=======
+from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES, OUTPUTS_PATH
+>>>>>>> ox_exp_floor
 
 
 def get_col_increases(
@@ -312,9 +316,37 @@ def get_analysis_commits_df(
     return commits.sort_index()
 
 
+def get_job_commits_df_new(
+    analysis_paths: Dict[str, Dict[str, Path]],
+) -> pd.DataFrame:
+    """New approach to getting commits used in running each job
+    now based on analysis path dictionary produced by get_analysis_paths.
+
+    Args:
+        analysis_paths: The outputs of get_analysis_paths
+
+    Returns:
+        The dataframe for display
+    """
+    countries = analysis_paths.keys()
+    commits = pd.DataFrame(index=countries, columns=ANALYSIS_TYPES)
+    for iso3 in countries:
+        for analysis in ANALYSIS_TYPES:
+            c_paths = analysis_paths[iso3]
+            if analysis in c_paths:
+                a_path = c_paths[analysis]
+                sha = json.load(open(a_path / "gitinfo.json", "r"))["sha"][:7] if os.path.isdir(a_path) else "no analysis"
+            else:
+                sha = "no analysis"
+            commits.loc[iso3, analysis] = sha
+    commits.rename(columns=ANALYSIS_NAMES, inplace=True)
+    commits.rename(index=lambda c: pycountry.countries.lookup(c).name, inplace=True)
+    return commits.sort_index()
+
+
 def copy_analysis_type_to_run(
     src_id: str,
-    dest_id: str,
+    dest_id: str, 
     analysis_type: str,
 ):
     """Copy all the runs of a particular type
@@ -342,7 +374,7 @@ def get_analysis_paths(
 
     Returns:
         Dictionary with first tier of keys countries
-            and second tier analysis types.
+            and second tier analysis types. 
     """
     job_paths = [OUTPUTS_PATH / p for p in job_ids]
     analysis_paths = {}

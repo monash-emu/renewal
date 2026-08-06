@@ -14,6 +14,7 @@ from pathlib import Path
 import git
 
 from emu_renewal.constants import (
+    DATA_PATH,
     DATE_FORMAT,
     CODE_DATE_FORMAT,
     BASE_PATH,
@@ -38,6 +39,8 @@ from emu_renewal.inputs import (
     get_fb_visited_mobility,
     get_fb_singletile_mobility,
     get_linear_series_trend,
+    get_oxcgrt,
+    store_oxcgrt_data,
 )
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.calibration import StandardCalib
@@ -176,7 +179,7 @@ def find_run_end_time(
 def get_mobility_provider(
     iso3: str,
     mob_source: str,
-) -> mobility.MobilityProvider:
+) -> mobility.ScalerProvider:
     """Get the appropriate mobility provider object.
 
     Args:
@@ -225,13 +228,8 @@ def get_mobility_provider(
     cont = get_cont_of_country(iso3)
 
     # Data processing
-    if mob_source == "no_mob":
-        return mobility.NoMobilityProvider()
-    elif mob_source == "fb_no_mob" and cont == "OC" and iso3 != "SGP":
-        return mobility.NoMobilityProvider()
-    elif mob_source == "fb_no_mob":
-        msg = "Separate Facebook no mobility comparison not required"
-        raise MobilityException(msg)
+    if mob_source in ["no_mob", "fb_no_mob"]:
+        return mobility.NoScalerProvider()
     elif mob_source == "g_mob":
         mob = get_google_mobility(iso3)
     elif mob_source == "g_mob_detrend":
@@ -245,18 +243,19 @@ def get_mobility_provider(
         mob = get_fb_visited_mobility(iso3)
     elif mob_source == "fb_singletile_mob":
         mob = get_fb_singletile_mobility(iso3)
-    else:
-        raise Exception(f"No provider available for analysis type {mob_source}")
+    elif mob_source == "oxcgrt":
+        mob = get_oxcgrt(iso3, "custom")
     smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
     # Priors
-    exp_prior = {"mob_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
-    if mob_source.startswith("g_mob"):
+    exp_prior = {"scale_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
+    floor_prior = {"scale_floor": dist.Beta(9.0, 1.0)}
+    if mob_source in ["g_mob", "oxcgrt"]:
         n_domains = len(mob.columns)
-        weight_prior = {"mob_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
-        return mobility.WeightedExpMobilityProvider(smoothed_mob, weight_prior | exp_prior)
+        weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
+        return mobility.WeightedFloorScalerProvider(smoothed_mob, weight_prior | exp_prior | floor_prior)
     elif mob_source in ["fb_visited_mob", "fb_singletile_mob"]:
-        return mobility.SingleSeriesExpMobilityProvider(smoothed_mob, exp_prior)
+        return mobility.SingleSeriesExpFloorScalerProvider(smoothed_mob, exp_prior | floor_prior)
     else:
         raise Exception(f"No provider available for analysis type {mob_source}")
 
@@ -343,6 +342,11 @@ def run_single_country(
 
     # Population size and analysis time
     pop = get_country_pop(iso3)
+    restriction_path = DATA_PATH / "restrictions"
+    if not restriction_path.exists():
+        restriction_path.mkdir()
+    if not (DATA_PATH / "restrictions/oxcgrt.csv").exists():
+        store_oxcgrt_data()
     data_start = find_run_start_time(pop, iso3)
     end_time = find_run_end_time(iso3, mob_source)
     run_start = data_start - timedelta(RUN_DATA_DELAY)
@@ -376,8 +380,8 @@ def run_single_country(
     except Exception as e:
         msg = f"{mob_source} mobility not available"
         raise MobilityException(msg)
-    if mob_provider.mob_end:
-        end_time = min([end_time, mob_provider.mob_end])
+    if mob_provider.ts_end:
+        end_time = min([end_time, mob_provider.ts_end])
 
     # Model construction
     omicron_period = continent == "OC"
