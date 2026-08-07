@@ -4,11 +4,11 @@ from os import listdir as ls
 from datetime import datetime
 
 from emu_renewal.constants import (
-    OUTLIER_THRESHOLD, 
-    N_REPEATS, 
-    DATA_QUALITY_START_TIME, 
-    DATA_QUALITY_START_TIME_OC, 
-    CODE_DATE_FORMAT, 
+    OUTLIER_THRESHOLD,
+    N_REPEATS,
+    DATA_QUALITY_START_TIME,
+    DATA_QUALITY_START_TIME_OC,
+    CODE_DATE_FORMAT,
     VARIATION_THRESHOLD,
 )
 from emu_renewal.document import get_exp_val_from_string
@@ -19,48 +19,17 @@ from emu_renewal.run import find_run_end_time
 from emu_renewal.utils import count_repeat_nans, get_cont_of_country
 
 
-def get_data_avail_countries() -> Tuple[List[str], pd.DataFrame]:
-    """Find the countries for which either mobility
-    or policy data is available.
-
-    Returns:
-        - Countries for which at least one mobility domain or OxCGRT data is available
-        - Table with indices for countries and Yes/No status for each mobility domain
-        - The countries with data available for each source
-    """
-    g_avail = [c[:3] for c in ls(DATA_PATH / "mobility") if "gmob" in c]
-    fb_avail = [c[:3] for c in ls(DATA_PATH / "mobility") if "fbmob" in c]
-    pol_data = get_oxcgrt_data()
-    pol_avail = [iso3 for iso3 in set(pol_data["CountryCode"]) if iso3 != "RKS"]
-    any_data_avail = list(set(g_avail + fb_avail + pol_avail))
-    summary = pd.DataFrame(index=any_data_avail)
-    add_bool_row_to_table(summary, g_avail, "Google available")
-    add_bool_row_to_table(summary, fb_avail, "FB available")
-    add_bool_row_to_table(summary, pol_avail, "OxCGRT")
-    return any_data_avail, summary, g_avail, fb_avail, pol_avail
-
-
 def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
     """Find the countries for which either
     Google or Facebook mobility is available.
 
     Returns:
         - Countries for which at least one mobility domain is available
-        - Table with indices for countries and Yes/No status for each mobility domain
         - The countries with data available for each source
-
-    Notes
-    -----
-    To select countries for inclusion in our analysis, we first identified all countries
-    for which either Google or Facebook mobility data was available.
     """
     g_avail = [c[:3] for c in ls(DATA_PATH / "mobility") if "gmob" in c]
     fb_avail = [c[:3] for c in ls(DATA_PATH / "mobility") if "fbmob" in c]
-    either_mob_avail = list(set(g_avail + fb_avail))
-    summary = pd.DataFrame(index=either_mob_avail)
-    add_bool_row_to_table(summary, g_avail, "Google available")
-    add_bool_row_to_table(summary, fb_avail, "FB available")
-    return either_mob_avail, summary, g_avail, fb_avail
+    return list(set(g_avail + fb_avail))
 
 
 def gather_who_data(
@@ -113,8 +82,8 @@ def gather_who_data(
 
 
 def find_absent_inds(
-    deaths: pd.Series, 
-    cases: pd.Series, 
+    deaths: pd.Series,
+    cases: pd.Series,
     summary: pd.DataFrame,
 ) -> Tuple[List[str]]:
     """Find the countries for which there is no data
@@ -130,20 +99,20 @@ def find_absent_inds(
 
     Notes
     -----
-    Using this data, we excluded any countries 
+    Using this data, we excluded any countries
     for which no deaths or cases were reported
     throughout this data availability period.
     """
     no_deaths = [c for c, d in deaths.items() if d.empty or d.max() == 0.0 or all(d.isna())]
-    no_cases = [c for c, d in cases.items() if d.empty or d.max() == 0.0 or all (d.isna())]
+    no_cases = [c for c, d in cases.items() if d.empty or d.max() == 0.0 or all(d.isna())]
     add_bool_row_to_table(summary, no_deaths, "No death data")
     add_bool_row_to_table(summary, no_cases, "No case data")
     return no_deaths, no_cases
 
 
 def find_neg_inds(
-    deaths: pd.Series, 
-    cases: pd.Series, 
+    deaths: pd.Series,
+    cases: pd.Series,
     summary: pd.DataFrame,
 ) -> Tuple[List[str]]:
     """Find the countries with negative values
@@ -159,7 +128,7 @@ def find_neg_inds(
 
     Notes
     -----
-    We also excluded any countries for which any negative values were 
+    We also excluded any countries for which any negative values were
     present within the available data.
     """
     neg_deaths = [c for c, d in deaths.items() if d.min() < 0.0]
@@ -169,8 +138,8 @@ def find_neg_inds(
 
 
 def find_outliers(
-    deaths: pd.Series, 
-    cases: pd.Series, 
+    deaths: pd.Series,
+    cases: pd.Series,
     summary: pd.DataFrame,
 ) -> Tuple[List[str]]:
     """Find the countries with outlier values
@@ -197,8 +166,8 @@ def find_outliers(
 
 
 def find_nans_repeats(
-    deaths: pd.Series, 
-    cases: pd.Series, 
+    deaths: pd.Series,
+    cases: pd.Series,
     summary: pd.DataFrame,
 ) -> Tuple[List[str]]:
     """Find the countries to excluded based on
@@ -229,7 +198,7 @@ def find_nans_repeats(
     """
     death_nans = [c for c, d in deaths.items() if count_repeat_nans(d) > N_REPEATS]
     case_nans = [c for c, d in cases.items() if count_repeat_nans(d) > N_REPEATS]
-    
+
     # Excludes Nicaragua that has many ones at the end (so not worth a separate function)
     thresh = get_exp_val_from_string(VARIATION_THRESHOLD)
     death_reps = [c for c, d in deaths.items() if has_reps(d, N_REPEATS, thresh)]
