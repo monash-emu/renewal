@@ -24,8 +24,7 @@ def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
     Google or Facebook mobility is available.
 
     Returns:
-        - Countries for which at least one mobility domain is available
-        - The countries with data available for each source
+        The countries
     """
     g_avail = [c[:3] for c in ls(DATA_PATH / "mobility") if "gmob" in c]
     fb_avail = [c[:3] for c in ls(DATA_PATH / "mobility") if "fbmob" in c]
