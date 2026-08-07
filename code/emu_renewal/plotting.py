@@ -62,7 +62,6 @@ from emu_renewal.inputs import (
     get_g_mob_quants,
     get_cgrt_quants,
     get_smoothed_trunc_g_mob,
-    get_linear_series_trend,
     get_oxcgrt_data,
     find_oxcgrt_country_data,
     get_rel_oxcgrt_cols,
@@ -565,7 +564,7 @@ def plot_kde_comparison(
 
 
 def plot_weights_by_country(
-    job_path: Path, 
+    job_path: Path,
     countries: List[str],
     analysis_type: str,
 ) -> plt.figure:
@@ -594,10 +593,12 @@ def plot_weights_by_country(
 
         # Get mobility
         mob = get_google_mobility(iso3) if analysis_type == "g_mob" else get_oxcgrt(iso3, "custom")
-    
+
         # Get weights
         idata = az.from_netcdf(job_path[iso3][analysis_type] / "idata_filtered.nc")
-        weights = idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0") # FIXME: Not OxCGRT compatible
+        weights = (
+            idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
+        )  # FIXME: Not OxCGRT compatible
         weights.columns = mob.columns
 
         # Plot
@@ -608,7 +609,7 @@ def plot_weights_by_country(
             label = l.replace("_", " ") if analysis_type == "g_mob" else MOB_LOCATION_NAME_MAP[l]
             ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
             ax.fill_between(x_vals, kde(x_vals), alpha=0.05, color=colour)
-    
+
         # Extra cosmetics
         country_name = pycountry.countries.lookup(iso3).name
         ax.set_title(country_name, fontsize=6, pad=2)
@@ -694,22 +695,6 @@ def compare_proc_mob(
         )
         ax.plot(smoothed_mob.index, smoothed_mob, color=colour, linewidth=2.0)
 
-        # Detrended mobility
-        if mob_source == "g_mob":
-            if (
-                get_google_mobility(iso3).tail(G_MOB_DETREND_END_PERIOD).mean().max()
-                > G_MOB_DETREND_THRESHOLD
-            ):
-                detrend_mob = mobility / get_linear_series_trend(mobility, G_MOB_DETREND_END_PERIOD)
-                smoothed_detrend_mob = detrend_mob.rolling(7, center=True).mean().dropna()
-                ax.plot(
-                    smoothed_detrend_mob.index,
-                    smoothed_detrend_mob,
-                    color=colour,
-                    linewidth=2.0,
-                    linestyle=":",
-                )
-
     # Switch off unused axes
     for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
@@ -724,7 +709,7 @@ def compare_proc_pol(
     countries: List[str],
     n_cols: int,
 ) -> plt.Figure:
-    """Plot comparison of 
+    """Plot comparison of
     transmission scaling to policy indices.
 
     Args:
@@ -758,11 +743,13 @@ def compare_proc_pol(
         pol = find_oxcgrt_country_data(iso3, data)
         filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]
         scaled_pol = scale_oxcgrt_pols(filt_pol)
-        filtered_pol = scaled_pol.loc[(centiles.index[0] < scaled_pol.index) & (scaled_pol.index < centiles.index[-1])]
+        filtered_pol = scaled_pol.loc[
+            (centiles.index[0] < scaled_pol.index) & (scaled_pol.index < centiles.index[-1])
+        ]
         for index, cols in OXCGRT_COLMAP.items():
             pol_vals = filtered_pol[cols]
             ax.plot(pol_vals.index, 1.0 - pol_vals.mean(axis=1), linewidth=2.0, label=index)
-    
+
     # Add legend for last plot
     ax.legend()
 
@@ -776,7 +763,7 @@ def compare_proc_pol(
 
 
 def compare_proc_versus_weighted(
-    analysis_paths: Path, 
+    analysis_paths: Path,
     countries: List[str],
     n_samples: int,
     n_cols: int,
@@ -811,11 +798,13 @@ def compare_proc_versus_weighted(
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
 
         # Get the mobility data
-        smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1], analysis_type)
-    
+        smoothed_mob = get_smoothed_trunc_g_mob(
+            iso3, centiles.index[0], centiles.index[-1], analysis_type
+        )
+
         # Get the Google mobility weight posteriors and quantiles of weighted series
         params = get_weight_posts(analysis_paths[iso3][analysis_type], analysis_type)
-        
+
         if analysis_type == "g_mob":
             mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
         elif analysis_type == "oxcgrt":
@@ -823,7 +812,7 @@ def compare_proc_versus_weighted(
             param = "scale_floor"
             floors = idata.posterior[param].to_dataframe()[param]
             mob_quants = get_cgrt_quants(smoothed_mob, params, floors, n_samples)
-    
+
         # Plot the weighted Google mobility distribution
         colour = MOB_SOURCE_COLOURS["g_mob"]
         ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
@@ -835,21 +824,6 @@ def compare_proc_versus_weighted(
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
-
-        # # Detrended mobility
-        # all_mob = get_google_mobility(iso3)
-        # if all_mob.tail(G_MOB_DETREND_END_PERIOD).mean().max() > G_MOB_DETREND_THRESHOLD:
-        #     colour = MOB_SOURCE_COLOURS["g_mob_detrend"]
-        #     params = get_weight_posts(analysis_paths[iso3]["g_mob_detrend"], "g_mob_detrend")
-        #     detrend_mob = all_mob.apply(
-        #         lambda s: s / get_linear_series_trend(s, G_MOB_DETREND_END_PERIOD)
-        #     )
-        #     smoothed_detrend_mob = (
-        #         detrend_mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
-        #     )
-        #     mob_quants = get_g_mob_quants(smoothed_detrend_mob, params, n_samples)
-        #     median_detrend_mob = mob_quants[0.5]
-        #     ax.plot(median_detrend_mob.index, median_detrend_mob, color=colour, linewidth=2.0)
 
     for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
@@ -980,7 +954,9 @@ def plot_exponent_dispersion_comparison(
         idatas, _ = get_idatas_for_mob_type(analysis_paths, all_countries, mob_source)
         plot_df = pd.DataFrame(
             {
-                "mobility exponent": {c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()}, # FIXME: Not OxCGRT compatible
+                "mobility exponent": {
+                    c: float(d.posterior["mob_exp"].median()) for c, d in idatas.items()
+                },  # FIXME: Not OxCGRT compatible
                 "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
                 "GDP per capita": get_gdps(2020),
                 "population (millions)": {c: get_country_pop(c) / 1e6 for c in all_countries},
@@ -1037,7 +1013,9 @@ def plot_exponent_dispersion_comparison_interactive(
     idatas, _ = get_idatas_for_mob_type(analysis_paths, countries, mob_source)
     plot_df = pd.DataFrame(
         {
-            "mobility exponent": {c: float(d.posterior["scale_exp"].median()) for c, d in idatas.items()},
+            "mobility exponent": {
+                c: float(d.posterior["scale_exp"].median()) for c, d in idatas.items()
+            },
             "dispersion ratio": get_median_ratios(ratio_dists, mob_source),
             "GDP per capita": get_gdps(2020),
             "population (millions)": {c: get_country_pop(c) / 1e6 for c in countries},
@@ -1507,10 +1485,10 @@ def plot_waning_quant_comparison(
 
 
 def plot_analysis_specific_post(
-    job_path: Path, 
-    countries: List[str], 
-    analysis_type: str, 
-    param_name: str, 
+    job_path: Path,
+    countries: List[str],
+    analysis_type: str,
+    param_name: str,
     n_cols: int,
 ) -> plt.figure:
     """Plot the posterior distribution of a specific parameter
@@ -1540,7 +1518,7 @@ def plot_analysis_specific_post(
         az.plot_density(idata, ax=ax, hdi_prob=0.99, var_names=param_name, shade=0.2)
         ax.set_title(pycountry.countries.lookup(iso3).name)
         ax.set_xlim(0.0, 1.0)
-        ax.tick_params(axis="x", labelsize=10) 
+        ax.tick_params(axis="x", labelsize=10)
     for a in range(c + 1, len(flat_axes)):
         flat_axes[a].set_axis_off()
     fig.tight_layout()

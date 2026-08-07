@@ -260,11 +260,11 @@ def get_fb_singletile_mobility(
 
 
 def get_oxcgrt(
-    iso3: str, 
+    iso3: str,
     field: str,
 ) -> pd.Series:
     """Get a set of fields for a single country
-    from the Oxford CGRT database 
+    from the Oxford CGRT database
     based on the OXCGRT_COLMAP dictionary.
 
     Args:
@@ -439,7 +439,7 @@ def get_smoothed_trunc_g_mob(
     iso3: str,
     start: datetime,
     finish: datetime,
-    mob_type: str="g_mob",
+    mob_type: str = "g_mob",
 ) -> pd.DataFrame:
     """Get the smoothed, truncated Google mobility data
 
@@ -472,7 +472,9 @@ def get_weight_posts(
         The mobility weights
     """
     idata = az.from_netcdf(a_path / "idata_filtered.nc")
-    params = idata.posterior["mob_weights"].to_dataframe().unstack(level=-1) # FIXME: Probably not OxCGRT compatible (change to ts_weights)
+    params = (
+        idata.posterior["mob_weights"].to_dataframe().unstack(level=-1)
+    )  # FIXME: Probably not OxCGRT compatible (change to ts_weights)
     params.columns = G_MOB_LOCATION_CMAP if analysis_type == "g_mob" else OXCGRT_LOCATION_CMAP
     return params
 
@@ -499,42 +501,9 @@ def get_g_mob_quants(
     return sample_vals.quantile([0.025, 0.5, 0.975], axis=1).T
 
 
-def get_linear_series_trend(
-    series: pd.Series,
-    last_n_days: int,
-) -> pd.Series:
-    """Get the linear trend of a series for
-    multiplicative detrending.
-    Assumes that the series starts from a value of one,
-    as it should with Google mobility metrics.
-    Finds the linear trend through to the mean
-    value of the end period.
-
-    Args:
-        series: The input series to find the trend from
-        last_n_days: The number of days in the end period
-            used to estimate the end value
-
-    Returns:
-        The linear trend with the same indices as the input series
-    """
-    start_time = series.index[0]
-    end_time = series.index[-1]
-    start_final_period = end_time - timedelta(days=last_n_days)
-    mid_final_period = end_time - timedelta(days=last_n_days / 2)
-    mean_final_period = series.loc[series.index >= start_final_period].mean()
-    run = mid_final_period - start_time
-    rise = mean_final_period - 1.0
-    slope_per_second = rise / run.total_seconds()
-    return pd.Series(
-        (series.index - start_time).total_seconds() * slope_per_second + 1.0, index=series.index
-    )
-
-
-
 def get_cgrt_quants(
-    smoothed_mob: pd.DataFrame, 
-    params: pd.DataFrame, 
+    smoothed_mob: pd.DataFrame,
+    params: pd.DataFrame,
     floors: pd.Series,
     n_samples: int,
 ) -> pd.DataFrame:
@@ -552,7 +521,18 @@ def get_oxcgrt_data() -> pd.DataFrame:
     """
     mob = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
     mob.index = pd.to_datetime(mob["Date"], format="%Y%m%d")
-    drop_strings = ["Index", "Vaccinated", "Confirmed", "Notes", "Unnamed", "Date", "Region", "CountryName", "Jurisdiction", "Flag"]
+    drop_strings = [
+        "Index",
+        "Vaccinated",
+        "Confirmed",
+        "Notes",
+        "Unnamed",
+        "Date",
+        "Region",
+        "CountryName",
+        "Jurisdiction",
+        "Flag",
+    ]
     cols_to_keep = [col for col in mob.columns if not any(s in col for s in drop_strings)]
     mob = mob[cols_to_keep]
     mob.columns = [col.split("_")[0] for col in mob.columns]
@@ -560,7 +540,7 @@ def get_oxcgrt_data() -> pd.DataFrame:
 
 
 def find_oxcgrt_country_data(
-    iso3: str, 
+    iso3: str,
     data: pd.DataFrame,
 ) -> pd.DataFrame:
     """Get the country-specific data from the OxCGRT dataset
@@ -592,7 +572,18 @@ def get_oxcgrt_country_indicators(
     mob.index = pd.to_datetime(mob["Date"], format="%Y%m%d")
     mob = mob[mob["CountryCode"] == iso3]
     # Note we can only drop region because this is assumed to be the national data
-    drop_strings = ["Index", "Vaccinated", "Confirmed", "Notes", "Unnamed", "Date", "Region", "Country", "Jurisdiction", "Flag"]
+    drop_strings = [
+        "Index",
+        "Vaccinated",
+        "Confirmed",
+        "Notes",
+        "Unnamed",
+        "Date",
+        "Region",
+        "Country",
+        "Jurisdiction",
+        "Flag",
+    ]
     cols_to_keep = [col for col in mob.columns if not any(s in col for s in drop_strings)]
     mob = mob[cols_to_keep]
     mob.columns = [col.split("_")[0] for col in mob.columns]
@@ -600,7 +591,7 @@ def get_oxcgrt_country_indicators(
 
 
 def get_rel_oxcgrt_cols(
-    vacc_status: str, 
+    vacc_status: str,
     pol_data: pd.DataFrame,
 ) -> List[str]:
     """Get the relevant columns for the OXCGRT data
@@ -635,11 +626,13 @@ def scale_oxcgrt_pols(
         pol_data: The policy data
 
     Returns:
-        The scaled data for indicators listed in OXCGRT_IND_MAX 
+        The scaled data for indicators listed in OXCGRT_IND_MAX
     """
     scaled_data = pd.DataFrame(index=pol_data.index)
     for col in OXCGRT_IND_MAX:
-        scaled_data[col] = pol_data[next((c for c in pol_data.columns if c.startswith(col)))] / OXCGRT_IND_MAX[col]
+        scaled_data[col] = (
+            pol_data[next((c for c in pol_data.columns if c.startswith(col)))] / OXCGRT_IND_MAX[col]
+        )
     return scaled_data
 
 

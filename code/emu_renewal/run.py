@@ -29,8 +29,6 @@ from emu_renewal.constants import (
     N_ITERS,
     RUN_DATA_DELAY,
     N_CHAINS,
-    G_MOB_DETREND_THRESHOLD,
-    G_MOB_DETREND_END_PERIOD,
 )
 from emu_renewal.inputs import (
     get_country_vacc_data,
@@ -38,7 +36,6 @@ from emu_renewal.inputs import (
     get_google_mobility,
     get_fb_visited_mobility,
     get_fb_singletile_mobility,
-    get_linear_series_trend,
     get_oxcgrt,
     store_oxcgrt_data,
 )
@@ -196,17 +193,6 @@ def get_mobility_provider(
     We further ran one analysis in which Google mobility
     was used to scale the transmission rate,
     if mobility data was available from Google.
-    For countries for which any of the Google mobility
-    domains reached an average value of
-    {G_MOB_DETREND_THRESHOLD} or above
-    during the last {G_MOB_DETREND_END_PERIOD}
-    (i.e. {G_MOB_DETREND_THRESHOLD} times the starting value
-    which is normalised to one),
-    we additionally ran a detrended Google mobility analysis.
-    Under this detrended analysis,
-    each Google location was individually detrended
-    by dividing through by a linear estimate of the
-    increase in that mobility domain over time.
     We also ran two analyses in which Facebook mobility
     was used to scale the transmission rate,
     if mobility data was available from Facebook.
@@ -232,13 +218,6 @@ def get_mobility_provider(
         return mobility.NoScalerProvider()
     elif mob_source == "g_mob":
         mob = get_google_mobility(iso3)
-    elif mob_source == "g_mob_detrend":
-        raw_mob = get_google_mobility(iso3)
-        if raw_mob.tail(G_MOB_DETREND_END_PERIOD).mean().max() < G_MOB_DETREND_THRESHOLD:
-            msg = "Detrended Google mobility analysis not run, threshold not reached"
-            raise MobilityException(msg)
-        else:
-            mob = raw_mob.apply(lambda s: s / get_linear_series_trend(s, G_MOB_DETREND_END_PERIOD))
     elif mob_source == "fb_visited_mob":
         mob = get_fb_visited_mobility(iso3)
     elif mob_source == "fb_singletile_mob":

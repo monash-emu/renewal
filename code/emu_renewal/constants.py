@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 # Date formats
 DATE_FORMAT = "%Y%m%d_%H%M"
 WHO_DATE_FORMAT = "%d/%m/%Y"
@@ -16,7 +15,6 @@ RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 ANALYSIS_TYPES = [
     "no_mob",
     "g_mob",
-    "g_mob_detrend",
     "fb_no_mob",
     "fb_visited_mob",
     "fb_singletile_mob",
@@ -74,7 +72,20 @@ DEATHS_WEIGHT = 20
 DEATHS_START_THRESHOLD = 2
 
 # Hospitalisation-related
-ALREADY_WEEKLY_ADMIT_COUNTRIES = ["HRV", "ZAF", "IRL", "GRC", "SVN", "NOR", "MLT", "EST", "LUX", "SVK", "LVA", "CYP"]
+ALREADY_WEEKLY_ADMIT_COUNTRIES = [
+    "HRV",
+    "ZAF",
+    "IRL",
+    "GRC",
+    "SVN",
+    "NOR",
+    "MLT",
+    "EST",
+    "LUX",
+    "SVK",
+    "LVA",
+    "CYP",
+]
 ALREADY_WEEKLY_OCCUP_COUNTRIES = ["JPN", "BGR"]
 
 # Variant-related
@@ -106,8 +117,6 @@ SUB_GBR_COUNTRY = "Qatar"
 MOBILITY_SMOOTH_PERIOD = 7
 EXP_PRIOR_LOWER = 0
 EXP_PRIOR_UPPER = 2
-G_MOB_DETREND_THRESHOLD = 2
-G_MOB_DETREND_END_PERIOD = 30
 
 # Transmission scaling-related
 PROC_UPDATE_FREQ = 7
@@ -151,7 +160,6 @@ DUR_REL_MAX = 2.5
 MOB_SOURCE_COLOURS = {
     "no_mob": "black",
     "g_mob": "darkgreen",
-    "g_mob_detrend": "limegreen",
     "fb_visited_mob": "red",
     "fb_singletile_mob": "blue",
     "fb_no_mob": "grey",
@@ -160,7 +168,6 @@ MOB_SOURCE_COLOURS = {
 ANALYSIS_NAMES = {
     "no_mob": "no mobility",
     "g_mob": "Google mobility",
-    "g_mob_detrend": "de-trended Google mobility",
     "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",
     "fb_no_mob": "Facebook no mobility",
@@ -169,7 +176,6 @@ ANALYSIS_NAMES = {
 MOB_SOURCE_ABBREVS = {
     "no_mob": "none",
     "g_mob": "Google",
-    "g_mob_detrend": "de-trended Google",
     "fb_visited_mob": "FB tiles visited",
     "fb_singletile_mob": "FB single tile",
     "fb_no_mob": "FB baseline",
@@ -224,7 +230,7 @@ MOB_LOCATION_NAME_MAP = {
     "C7": "movement restrictions",
     "C8": "international travel",
     "H1": "public information",
-    "H6": "face coverings"
+    "H6": "face coverings",
 }
 MOB_SOURCE_MAP = {
     "g_mob": "Google",
@@ -277,10 +283,7 @@ RERUNS = ["50097738", "50097781", "50118739"]
 WANING_COMPARISON = ["50220339"]
 WANING_TIMEOUTS = ["50418203", "50418218", "50418241", "50452726", "50478502", "50486342"]
 WANING_RERUNS = ["50487616", "50539639", "50577608"]
-SHORT_COUNTRY_NAMES = {
-    "Russian Federation": "Russian Fed",
-    "Dominican Republic": "Domin Rep"
-}
+SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic": "Domin Rep"}
 
 # Stringency
 OXCGRT_DTYPES = {
@@ -313,5 +316,7 @@ OXCGRT_IND_MAX = {
 OXCGRT_COLMAP = {
     "custom": [f"C{i}" for i in range(1, 8)] + ["H1", "H6"],
     "stringency": [f"C{i}" for i in range(1, 9)] + ["H1"],
-    "containment": [f"C{i}" for i in range(1, 9)] + [f"H{i}" for i in range(1, 4)] + [f"H{i}" for i in range(6, 9)],
+    "containment": [f"C{i}" for i in range(1, 9)]
+    + [f"H{i}" for i in range(1, 4)]
+    + [f"H{i}" for i in range(6, 9)],
 }
