@@ -198,10 +198,6 @@ def get_standard_priors(
     disp_prior = {"shared_dispersion": dist.HalfNormal(SHARED_DISP_SD)}
     prop_disp_prior = {"prop_disp": PROP_DISP}
     seroprev_disp = {"seroprev_disp": SEROPREV_DISP}
-    imm_mean = loaded_priors["durations"]["immune"]["mean"]
-    imm_sd = loaded_priors["durations"]["immune"]["sd"]
-    wane_dist = dist.TruncatedNormal(imm_mean, imm_sd, low=30.0) if waning else 0.0
-    waning_prior = {"imm_time": wane_dist}
 
     return (
         rel_durs
@@ -218,5 +214,4 @@ def get_standard_priors(
         | seroprev_disp
         | vacc_protect_hosp
         | vacc_protect_death
-        | waning_prior
     )
