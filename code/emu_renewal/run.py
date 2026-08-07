@@ -253,7 +253,9 @@ def get_mobility_provider(
     if mob_source in ["g_mob", "oxcgrt"]:
         n_domains = len(mob.columns)
         weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
-        return mobility.WeightedFloorScalerProvider(smoothed_mob, weight_prior | exp_prior | floor_prior)
+        return mobility.WeightedFloorScalerProvider(
+            smoothed_mob, weight_prior | exp_prior | floor_prior
+        )
     elif mob_source in ["fb_visited_mob", "fb_singletile_mob"]:
         return mobility.SingleSeriesExpFloorScalerProvider(smoothed_mob, exp_prior | floor_prior)
     else:
@@ -393,7 +395,6 @@ def run_single_country(
         seed_times,
         mob_provider,
         omicron_period,
-        waning,
     )
 
     # Calibration
@@ -442,7 +443,7 @@ def run_identifiability(
     vars = ["eu"] + alpha_var + delta_var  # Not applicable for Omicron-era countries
     mob_provider = get_mobility_provider(iso3, mob_source)
     seeds = alpha_seed + delta_seed
-    model = MultiStrainModel(pop, start, end, vars, seeds, mob_provider, True, False)
+    model = MultiStrainModel(pop, start, end, vars, seeds, mob_provider, True)
     thinning = 7
     times = model.epoch.number_to_datetime(pd.Series(model.model_times))[::thinning]
 

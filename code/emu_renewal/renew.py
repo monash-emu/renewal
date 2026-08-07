@@ -23,7 +23,6 @@ from emu_renewal.utils import get_col_increases, get_reset_array_from_increases
 from emu_renewal.mobility import ScalerProvider
 from emu_renewal.distributions import GammaDens
 
-
 ModelResult = dict[str, Array]
 
 
@@ -146,7 +145,6 @@ class MultiStrainModel:
         seed_times: List[datetime],
         mobility: ScalerProvider,
         omicron_period: bool,
-        waning: bool,
     ):
         """Construct the object for running the renewal process.
 
@@ -170,7 +168,6 @@ class MultiStrainModel:
         self.seed_duration = SEED_DURATION
         self.init_length = INIT_DURATION
         self.omicron_period = omicron_period
-        self.waning = waning
 
         # Times
         self.epoch = Epoch(start)
@@ -330,12 +327,6 @@ class MultiStrainModel:
         to the infecting strain
         (for example, past infection with Delta conferred
         complete immunity against future infection with Alpha).
-        __RETURN__### Waning immunity__RETURN__
-        For our sensitivity analyses in which waning host-related
-        immunity from past infection was incorporated,
-        individuals were transitioned from each immune category
-        into the fully susceptible population at a constant rate
-        represented by the reciprocal of the duration immune.
         """
         trans_proc = self.fit_process_curve(proc)
         gen_dist = GammaDens()
@@ -377,15 +368,6 @@ class MultiStrainModel:
         half_dur = self.seed_duration / 2.0
 
         def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
-            # Waning immunity for anyone infected in a preceding time step
-            if self.waning:
-                suscepts = state.suscept
-                wanes = suscepts / imm_time
-                total_wanes = wanes.sum()
-                new_sus = suscepts - wanes
-                new_sus = new_sus.at[0].set(new_sus[0] + total_wanes)
-            else:
-                new_sus = state.suscept
             # Residual transmission scaling process (scalar)
             proc_val = trans_proc[t - self.start]
             # Mobility data (scalar)
@@ -402,10 +384,11 @@ class MultiStrainModel:
             # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             # Effective susceptibles (array, n_strains by 2 ** n_strains)
-            effect_suscepts = suscept_levels * new_sus
+            effect_suscepts = suscept_levels * state.suscept
             # Apply infection rates across susceptible categories (array, n_strains by 2 ** n_strains)
             actual_inc = effect_suscepts * actual_inf_rate[:, jnp.newaxis]
             # Move susceptibles to recovered categories
+            new_sus = state.suscept
             for s in range(self.n_strains):
                 new_sus += actual_inc[s] @ self.trans_mats[s]
             # Incidence by strain (vector, n_strains)
