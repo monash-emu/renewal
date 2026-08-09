@@ -13,25 +13,14 @@ from emu_renewal.run import (
 
 if __name__ == "__main__":
     jax_config_cpu_only()
-<<<<<<< HEAD
-    countries = json.load(open(DATA_PATH / "config/included.json", "r"))
-    analyses = json.load(open(DATA_PATH / "config/analyses.json", "r"))
-=======
-
-    countries = json.load(open(DATA_PATH / f"config/inc_with_pol.json", "r"))
->>>>>>> ox_exp_floor
+    countries = json.load(open(DATA_PATH / "config/oxcgrt_included.json", "r"))
+    analyses = "oxcgrt"
     task = sys.argv[1]
     array_task_id = int(sys.argv[2])
     iso3 = countries[array_task_id - 1]  # Convert to Python indexing
     country_path = BASE_PATH / "outputs" / task / iso3
     country_path.mkdir(parents=True, exist_ok=True)
     logger = get_logger(country_path / "run.log")
-<<<<<<< HEAD
-=======
-    cont = get_cont_of_country(c)
-    # analyses = ANALYSIS_TYPES + ["fb_no_mob"] if cont == "OC" and c != "SGP" else ANALYSIS_TYPES
-    analyses = ["fb_visited_mob", "fb_singletile_mob"]
->>>>>>> ox_exp_floor
     for mob_type in analyses:
         try:
             run_single_country(iso3, mob_type, task, True, logger=logger)
