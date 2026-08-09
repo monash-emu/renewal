@@ -5,7 +5,7 @@
 #SBATCH --account=sh30
 
 # The maximum allowed time for a job to run
-#SBATCH --time=24:00:00
+#SBATCH --time=2:00:00
 
 # 
 #SBATCH --ntasks=1
@@ -27,14 +27,10 @@
 # e.g. --array=1-4
 # will result in 4 jobs, receiving 1, 2, 3, 4 respectively
 
-#SBATCH --array=1-133
+#SBATCH --array=1-1
 
 # The path to your renewal repo
-<<<<<<< HEAD
 cd $SCRIPT_DIR/../../../
-=======
-cd /projects/sh30/users/jtrauer/renewal_rerun
->>>>>>> ox_exp_floor
 
 # The run path to your Python script that will actually do the work
 # Run this with pixi, the environment will be automatically handled
