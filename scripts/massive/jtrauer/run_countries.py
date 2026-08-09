@@ -14,7 +14,7 @@ from emu_renewal.run import (
 if __name__ == "__main__":
     jax_config_cpu_only()
     countries = json.load(open(DATA_PATH / "config/oxcgrt_included.json", "r"))
-    analyses = "oxcgrt"
+    analyses = ["oxcgrt"]
     task = sys.argv[1]
     array_task_id = int(sys.argv[2])
     iso3 = countries[array_task_id - 1]  # Convert to Python indexing
