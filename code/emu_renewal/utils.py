@@ -361,24 +361,33 @@ def copy_analysis_type_to_run(
             shutil.copytree(src, dest)
 
 
+
+
+
 def get_analysis_paths(
     job_ids: List[str],
     countries: List[str],
 ) -> Dict[str, Dict[str, Path]]:
-    """Find the analysis paths by country
-    given a user-specified hierarchy of job IDs.
+    """Find analysis output directories for each country.
+    Job IDs are searched in the order provided.
+    For each (country, analysis type) pair,
+    the first matching analysis directory 
+    found in that hierarchy is populated.
+    If an analysis type is not found in any job directory 
+    for a country, that analysis type is 
+    omitted from the country's result dictionary.
 
     Returns:
-        Dictionary with first tier of keys countries
-            and second tier analysis types. 
+        Nested dictionary mapping:
+            country -> analysis type -> directory path
     """
     job_paths = [OUTPUTS_PATH / p for p in job_ids]
     analysis_paths = {}
     for c in countries:
         analysis_paths[c] = {}
         for a in ANALYSIS_TYPES:
-            for jp in job_paths:
-                analysis_path = jp / c / a
+            for j in job_paths:
+                analysis_path = j / c / a
                 if analysis_path.is_dir():
                     analysis_paths[c][a] = analysis_path
                     break
