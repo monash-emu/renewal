@@ -785,25 +785,25 @@ def compare_proc_versus_weighted(
     fig.suptitle(title, fontsize=14, y=1.0)
 
     for c, iso3 in enumerate(countries):
+        c_path = analysis_paths[iso3]
         ax = flat_axes[c]
         ax.set_title(pycountry.countries.lookup(iso3).name)
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
         # Residual transmission process under no mobility configuration
-        proc_samples = pd.read_hdf(analysis_paths[iso3]["no_mob"] / "spaghetti.h5")["process"]
+        proc_samples = pd.read_hdf(c_path["no_mob"] / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
 
-        # Get the time series weight posteriors and quantiles of weighted series
-        path = analysis_paths[iso3][analysis_type]
-        params = get_weight_posts(path, analysis_type)
-        idata = az.from_netcdf(path / "idata_filtered.nc")
+        # Get the weighted time series and then plot
+        a_path = c_path[analysis_type]
+        idata = az.from_netcdf(a_path / "idata_filtered.nc")
+        mob = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1], analysis_type)
+        weights = get_weight_posts(a_path, analysis_type)
         floors = idata.posterior["scale_floor"].to_dataframe()["scale_floor"]
-        smoothed_mob = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1], analysis_type)
-        mob_quants = get_cgrt_quants(smoothed_mob, params, floors, n_samples)
-        
+        mob_quants = get_cgrt_quants(mob, weights, floors, n_samples)
         colour = MOB_SOURCE_COLOURS[analysis_type]
         ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
         ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour)
