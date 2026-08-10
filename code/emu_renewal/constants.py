@@ -130,7 +130,7 @@ CONV_TRUNC_POINT = 50
 DAYS_IN_WEEK = 7
 
 # Calibration-related
-N_ITERS = 100
+N_ITERS = 10000
 N_CHAINS = 8
 INIT_RADIUS = 0.1
 SEED_RATE_LOW = "1\\times10^{-7}"
@@ -201,7 +201,7 @@ VAR_NAME_MAP = {
     "ba2": "BA.2",
     "ba5": "BA.5",
 }
-INCLUSION_COLOURS = {"neither": "lightgrey", "Google": "green", "FB": "blue", "both": "purple"}
+INCLUSION_COLOURS = {"neither": "lightgrey", "oxcgrt_avail": "green", "mob_avail": "blue", "both": "purple"}
 MOB_LOCATION_SOURCE_MAP = {
     "retail_and_recreation": "g_mob",
     "grocery_and_pharmacy": "g_mob",
