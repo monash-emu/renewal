@@ -184,12 +184,12 @@ def get_mobility_provider(
         mob_source: Mobility approach
 
     Returns:
-        The mobility provider
+        The scaling provider
 
     Notes
     -----
     For each country, we ran one analysis with
-    no mobility scaling to the transmission rate.
+    no scaling to the transmission rate.
     We further ran one analysis in which Google mobility
     was used to scale the transmission rate,
     if mobility data was available from Google.
