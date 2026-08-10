@@ -781,7 +781,7 @@ def compare_proc_versus_weighted(
     """
     fig, axes = get_standard_subplot(len(countries), n_cols)
     flat_axes = axes.ravel()
-    title = f"Estimated scaling for transmission versus composite {analysis_type} mobility time series"
+    title = f"Estimated scaling for transmission versus composite {analysis_type} scaling process"
     fig.suptitle(title, fontsize=14, y=1.0)
 
     for c, iso3 in enumerate(countries):
@@ -797,7 +797,7 @@ def compare_proc_versus_weighted(
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
 
-        # Get the weighted time series and then plot
+        # Get the weighted scaling process and plot
         a_path = c_path[analysis_type]
         idata = az.from_netcdf(a_path / "idata_filtered.nc")
         mob = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1], analysis_type)
