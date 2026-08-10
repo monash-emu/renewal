@@ -211,7 +211,6 @@ def get_mobility_provider(
     was assigned a uniform prior over domain
     [{EXP_PRIOR_LOWER}, {EXP_PRIOR_UPPER}].
     """
-    cont = get_cont_of_country(iso3)
 
     # Data processing
     if mob_source in ["no_mob", "fb_no_mob"]:
@@ -232,9 +231,8 @@ def get_mobility_provider(
     if mob_source in ["g_mob", "oxcgrt"]:
         n_domains = len(mob.columns)
         weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
-        return mobility.WeightedFloorScalerProvider(
-            smoothed_mob, weight_prior | exp_prior | floor_prior
-        )
+        priors = weight_prior | exp_prior | floor_prior
+        return mobility.WeightedFloorScalerProvider(smoothed_mob, priors)
     elif mob_source in ["fb_visited_mob", "fb_singletile_mob"]:
         return mobility.SingleSeriesExpFloorScalerProvider(smoothed_mob, exp_prior | floor_prior)
     else:
