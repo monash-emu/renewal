@@ -201,7 +201,7 @@ VAR_NAME_MAP = {
     "ba2": "BA.2",
     "ba5": "BA.5",
 }
-INCLUSION_COLOURS = {"neither": "lightgrey", "oxcgrt_avail": "green", "mob_avail": "blue", "both": "purple"}
+INCLUSION_COLOURS = {"neither": "lightgrey", "OxCGRT only": "green", "mobility only": "blue", "both": "purple"}
 MOB_LOCATION_SOURCE_MAP = {
     "retail_and_recreation": "g_mob",
     "grocery_and_pharmacy": "g_mob",

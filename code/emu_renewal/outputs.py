@@ -251,25 +251,26 @@ def add_bool_row_to_table(
     table[col_name] = table[col_name].map({True: "Yes", False: "No"})
 
 
-def add_mob_avail_to_world(
+def add_data_avail_to_world(
     world: GeoDataFrame,
-    g_avail: List[str],
-    fb_avail: List[str],
+    oxcgrt_avail: List[str],
+    mob_avail: List[str],
 ):
     """Add columns to world geopandas dataframe
-    for whether Google and Facebook mobility are present.
+    for whether OxCGRT and mobility data are available.
 
     Args:
         world: The world geopandas dataframe
-        g_avail: Whether Google mobility available
-        fb_avail: Whether Facebook mobility available
+        oxcgrt_avail: Whether OxCGRT available
+        mob_avail: Whether either mobility source is available
     """
-    world["g_avail"] = world["ISO_A3"].isin(g_avail)
-    world["fb_avail"] = world["ISO_A3"].isin(fb_avail)
-    world["mob"] = "neither"
-    world.loc[world["g_avail"] == True, "mob"] = "Google"
-    world.loc[world["fb_avail"] == True, "mob"] = "FB"
-    world.loc[(world["fb_avail"] == True) & (world["g_avail"] == True), "mob"] = "both"
+    world["oxcgrt_avail"] = world["ISO_A3"].isin(oxcgrt_avail)
+    world["mob_avail"] = world["ISO_A3"].isin(mob_avail)
+
+    world["status"] = "neither"
+    world.loc[world["oxcgrt_avail"] == True, "status"] = "OxCGRT only"
+    world.loc[world["mob_avail"] == True, "status"] = "mobility only"
+    world.loc[(world["oxcgrt_avail"] == True) & (world["mob_avail"] == True), "status"] = "both"
 
 
 def get_prop_improve(

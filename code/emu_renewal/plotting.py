@@ -1069,7 +1069,7 @@ def plot_inclusion(
     fig, ax = plt.subplots(1, 1, figsize=(20, 10))
     ax.set_xticks([])
     ax.set_yticks([])
-    world.plot(ax=ax, color=world["mob"].map(INCLUSION_COLOURS), edgecolor="black", linewidth=0.2)
+    world.plot(ax=ax, color=world["status"].map(INCLUSION_COLOURS), edgecolor="black", linewidth=0.2)
     world[world["included"]].geometry.centroid.plot(ax=ax, color="red", marker="o", markersize=50)
     return fig
 

@@ -51,8 +51,9 @@ class NoScalerProvider(ScalerProvider):
 
         Notes
         -----
-        For the analysis without scaling, no empiric data
-        was used to scale the transmission rate over time
+        For the analysis without scaling for policy or mobility,
+        no empiric data was used to scale 
+        the transmission rate over time
         (which was implemented by setting the scaling value to 
         one throughout the simulation).
         """
@@ -91,7 +92,7 @@ class WeightedScalerProvider(ScalerProvider):
         self.scaling_arr = scaling_array
 
 
-class WeightedExpScalerProvider(WeightedScalerProvider):
+class WeightedFloorScalerProvider(WeightedScalerProvider):
     def __init__(self, ts_data: pd.DataFrame, priors: PriorDict):
         """Provide a scaling array to a RenewalModel, which is the weighted
         sum of a DataFrame, which is then exponentiated.
@@ -104,17 +105,23 @@ class WeightedExpScalerProvider(WeightedScalerProvider):
         -----
         This approach to analysis used
         a set of priors weighting each time series component,
-        along with one further prior governing the overall
-        effect of the weighted scaling estimate in adjusting 
-        the transmission rate.
+        with the weights for each time series component
+        normalised to sum to one.
+        Next, a further prior parameter is used to
+        set the floor value for the effect of the time series
+        (i.e. creating a ceiling on the effect of the
+        time series used for scaling).
+        This floored time series is then exponentiated
+        to the value specified by the scaling exponential
+        parameter.
         """
         self.ts_data = ts_data
-        assert set(priors.keys()) == set(["ts_weights", "scale_exp"])
+        assert set(priors.keys()) == set(["ts_weights", "scale_floor", "scale_exp"])
         assert priors["ts_weights"].batch_shape == (len(self.ts_data.columns),)
         self.priors = priors
         self.ts_end = ts_data.index[-1]
 
-    def get_parameterised_scaler(self, ts_weights, scale_exp, **kwargs) -> Array:
+    def get_parameterised_scaler(self, ts_weights, scale_exp, scale_floor, **kwargs) -> Array:
         """See methods to parent class ScalerProvider.
 
         Args:
@@ -123,26 +130,7 @@ class WeightedExpScalerProvider(WeightedScalerProvider):
 
         Returns:
             The scaling values
-        
-        Notes
-        -----
-        The weights for each time series component were normalised to sum to one,
-        with the resulting weighted scaling profile exponentiated
-        to the value specified by the scaling exponential parameter.
         """
-        norm_ts_weights = ts_weights / ts_weights.sum()
-        return (self.scaling_arr * norm_ts_weights).sum(axis=1) ** scale_exp
-
-
-class WeightedFloorScalerProvider(WeightedScalerProvider):
-    def __init__(self, ts_data: pd.DataFrame, priors: PriorDict):
-        self.ts_data = ts_data
-        assert set(priors.keys()) == set(["ts_weights", "scale_floor", "scale_exp"])
-        assert priors["ts_weights"].batch_shape == (len(self.ts_data.columns),)
-        self.priors = priors
-        self.ts_end = ts_data.index[-1]
-
-    def get_parameterised_scaler(self, ts_weights, scale_exp, scale_floor, **kwargs) -> Array:
         norm_ts_weights = ts_weights / ts_weights.sum()
         return (scale_floor + (self.scaling_arr * norm_ts_weights).sum(axis=1) * (1.0 - scale_floor)) ** scale_exp
 
