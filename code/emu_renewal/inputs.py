@@ -435,7 +435,7 @@ def get_world_shp():
     return world
 
 
-def get_smoothed_trunc_g_mob(
+def get_smoothed_trunc_scale_ts(
     iso3: str,
     start: datetime,
     finish: datetime,
@@ -462,7 +462,7 @@ def get_weight_posts(
     analysis_type: str,
 ) -> pd.DataFrame:
     """Get a dataframe of the mobility weights
-    applied to the Google or OxCGRT data.
+    applied to the OxCGRT or Google data.
 
     Args:
         c_path: The country path for the analyses
@@ -472,9 +472,7 @@ def get_weight_posts(
         The mobility weights
     """
     idata = az.from_netcdf(a_path / "idata_filtered.nc")
-    params = (
-        idata.posterior["mob_weights"].to_dataframe().unstack(level=-1)
-    )  # FIXME: Probably not OxCGRT compatible (change to ts_weights)
+    params = idata.posterior["ts_weights"].to_dataframe().unstack(level=-1)
     params.columns = G_MOB_LOCATION_CMAP if analysis_type == "g_mob" else OXCGRT_LOCATION_CMAP
     return params
 

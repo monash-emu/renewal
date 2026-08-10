@@ -59,7 +59,7 @@ from emu_renewal.inputs import (
     get_weight_posts,
     get_g_mob_quants,
     get_cgrt_quants,
-    get_smoothed_trunc_g_mob,
+    get_smoothed_trunc_scale_ts,
     get_oxcgrt_data,
     find_oxcgrt_country_data,
     get_rel_oxcgrt_cols,
@@ -781,47 +781,32 @@ def compare_proc_versus_weighted(
     """
     fig, axes = get_standard_subplot(len(countries), n_cols)
     flat_axes = axes.ravel()
-    title = f"Estimated scaling for transmission (without mobility) versus composite Google mobility time series"
+    title = f"Estimated scaling for transmission versus composite {analysis_type} mobility time series"
     fig.suptitle(title, fontsize=14, y=1.0)
 
     for c, iso3 in enumerate(countries):
-
-        # Starting cosmetics
         ax = flat_axes[c]
         ax.set_title(pycountry.countries.lookup(iso3).name)
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
-        # Get the transmission scaling process
+        # Residual transmission process under no mobility configuration
         proc_samples = pd.read_hdf(analysis_paths[iso3]["no_mob"] / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
-
-        # Get the mobility data
-        smoothed_mob = get_smoothed_trunc_g_mob(
-            iso3, centiles.index[0], centiles.index[-1], analysis_type
-        )
-
-        # Get the Google mobility weight posteriors and quantiles of weighted series
-        params = get_weight_posts(analysis_paths[iso3][analysis_type], analysis_type)
-
-        if analysis_type == "g_mob":
-            mob_quants = get_g_mob_quants(smoothed_mob, params, n_samples)
-        elif analysis_type == "oxcgrt":
-            idata = az.from_netcdf(job_path / iso3 / analysis_type / "idata_filtered.nc")
-            param = "scale_floor"
-            floors = idata.posterior[param].to_dataframe()[param]
-            mob_quants = get_cgrt_quants(smoothed_mob, params, floors, n_samples)
-
-        # Plot the weighted Google mobility distribution
-        colour = MOB_SOURCE_COLOURS["g_mob"]
-        ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
-        ax.fill_between(
-            mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour
-        )
-
-        # Residual transmission scaling plotting
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
+
+        # Get the time series weight posteriors and quantiles of weighted series
+        path = analysis_paths[iso3][analysis_type]
+        params = get_weight_posts(path, analysis_type)
+        idata = az.from_netcdf(path / "idata_filtered.nc")
+        floors = idata.posterior["scale_floor"].to_dataframe()["scale_floor"]
+        smoothed_mob = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1], analysis_type)
+        mob_quants = get_cgrt_quants(smoothed_mob, params, floors, n_samples)
+        
+        colour = MOB_SOURCE_COLOURS[analysis_type]
+        ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
+        ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour)
 
     for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
@@ -872,7 +857,7 @@ def plot_select_proc_mob(
             if "weighted" in mob_location:
 
                 # Get the mobility data
-                smoothed_mob = get_smoothed_trunc_g_mob(iso3, centiles.index[0], centiles.index[-1])
+                smoothed_mob = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1])
 
                 # Get the Google mobility weight posteriors and quantiles of weighted series
                 params = get_weight_posts(analysis_paths[iso3]["g_mob"], "g_mob")
