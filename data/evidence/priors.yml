@@ -236,15 +236,6 @@ durations:
       \newline\newline
       We therefore chose a standard deviation of 2.5 days for 
       this prior distribution and assigned a standard deviation for the spread of this parameter of 0.5 days.
-  immune:
-    mean: 180.0
-    sd: 30.0
-    param_name: Duration immune
-    short_name: duration immune
-    evidence: For our sensitivity analysis considering waning of host-related natural immunity, 
-      we assumed a mean duration of immunity of around 180 days, 
-      consistent with empirical studies showing substantial decline in protection against reinfection 
-      over 3 to 9 months.
 beta:
   cdr:
     mean: 0.4
