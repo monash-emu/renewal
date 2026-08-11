@@ -1550,4 +1550,5 @@ def plot_param_post_comparison(
     for c in range(c + 1, len(flat_axes)):
         flat_axes[c].set_axis_off()
     fig.tight_layout()
+    plt.close()
     return fig

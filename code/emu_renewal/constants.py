@@ -201,7 +201,12 @@ VAR_NAME_MAP = {
     "ba2": "BA.2",
     "ba5": "BA.5",
 }
-INCLUSION_COLOURS = {"neither": "lightgrey", "OxCGRT only": "green", "mobility only": "blue", "both": "purple"}
+INCLUSION_COLOURS = {
+    "neither": "lightgrey",
+    "OxCGRT only": "green",
+    "mobility only": "blue",
+    "both": "purple",
+}
 MOB_LOCATION_SOURCE_MAP = {
     "retail_and_recreation": "g_mob",
     "grocery_and_pharmacy": "g_mob",
@@ -277,9 +282,8 @@ MOB_LOCATION_ABBREVS = {
 }
 SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic": "Domin Rep"}
 
-FULL_RUN = ["50038825"]
-TIMEOUTS = ["50079832", "50083214", "50083223", "50601713", "50083280"]
-RERUNS = ["50097738", "50097781", "50118739"]
+# Run identifiers
+FULL_RUN = ["58997677"]
 
 # Stringency
 OXCGRT_DTYPES = {
