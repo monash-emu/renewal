@@ -800,13 +800,17 @@ def compare_proc_versus_weighted(
         # Get the weighted scaling process and plot
         a_path = c_path[analysis_type]
         idata = az.from_netcdf(a_path / "idata_filtered.nc")
-        mob = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1], analysis_type)
+        mob = get_smoothed_trunc_scale_ts(
+            iso3, centiles.index[0], centiles.index[-1], analysis_type
+        )
         weights = get_weight_posts(a_path, analysis_type)
         floors = idata.posterior["scale_floor"].to_dataframe()["scale_floor"]
         mob_quants = get_cgrt_quants(mob, weights, floors, n_samples)
         colour = MOB_SOURCE_COLOURS[analysis_type]
         ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
-        ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour)
+        ax.fill_between(
+            mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour
+        )
 
     for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
@@ -857,7 +861,9 @@ def plot_select_proc_mob(
             if "weighted" in mob_location:
 
                 # Get the mobility data
-                smoothed_mob = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1])
+                smoothed_mob = get_smoothed_trunc_scale_ts(
+                    iso3, centiles.index[0], centiles.index[-1]
+                )
 
                 # Get the Google mobility weight posteriors and quantiles of weighted series
                 params = get_weight_posts(analysis_paths[iso3]["g_mob"], "g_mob")
@@ -1054,7 +1060,9 @@ def plot_inclusion(
     fig, ax = plt.subplots(1, 1, figsize=(20, 10))
     ax.set_xticks([])
     ax.set_yticks([])
-    world.plot(ax=ax, color=world["status"].map(INCLUSION_COLOURS), edgecolor="black", linewidth=0.2)
+    world.plot(
+        ax=ax, color=world["status"].map(INCLUSION_COLOURS), edgecolor="black", linewidth=0.2
+    )
     world[world["included"]].geometry.centroid.plot(ax=ax, color="red", marker="o", markersize=50)
     return fig
 
@@ -1504,5 +1512,42 @@ def plot_analysis_specific_post(
         ax.tick_params(axis="x", labelsize=10)
     for a in range(c + 1, len(flat_axes)):
         flat_axes[a].set_axis_off()
+    fig.tight_layout()
+    return fig
+
+
+def plot_param_post_comparison(
+    countries: List[str],
+    analysis_paths: Dict[str, Dict[str, Path]],
+    param: str,
+) -> plt.figure:
+    """Plot posterior comparisons by country
+    for a requested parameter.
+
+    Args:
+        countries: The country identifiers
+        analysis_paths: The path locations
+        param: The parameter name
+
+    Returns:
+        The figure
+    """
+    n_cols = 4
+    n_rows = int(np.ceil(len(countries) / n_cols))
+    height = min(2.0 + n_rows * 2.0, 13.0)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=[12, height], sharex=True)
+    flat_axes = axes.ravel()
+    for c, iso3 in enumerate(countries):
+        a_paths = analysis_paths[iso3]
+        ax = flat_axes[c]
+        analyses = [p for p in a_paths if p != "no_mob"]
+        for a in analyses:
+            a_path = a_paths[a]
+            idata = az.from_netcdf(a_path / "idata_filtered.nc")
+            colour = MOB_SOURCE_COLOURS[a]
+            az.plot_density(idata, ax=ax, hdi_prob=0.99, var_names=param, shade=0.2, colors=colour)
+        ax.set_title(pycountry.countries.lookup(iso3).name)
+    for c in range(c + 1, len(flat_axes)):
+        flat_axes[c].set_axis_off()
     fig.tight_layout()
     return fig
