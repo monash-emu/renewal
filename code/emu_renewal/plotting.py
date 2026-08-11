@@ -477,6 +477,7 @@ def plot_proc_comparison(
     procs: Dict[str, pd.DataFrame],
     countries: List[str],
     analysis_paths: Dict[str, Dict[str, Path]],
+    req_analyses: List[StandardCalib],
 ) -> plt.Figure:
     """Plot the comparison of
     the transmission scaling process
@@ -486,6 +487,7 @@ def plot_proc_comparison(
         procs: Transmission process data
         countries: Names of the countries
         analysis_paths: Paths for the runs
+        req_analyses: User request of the analyses to plot
 
     Returns:
         The figure
@@ -497,14 +499,14 @@ def plot_proc_comparison(
     for c, iso3 in enumerate(countries):
         ax = flat_axes[c]
         ax.set_title(pycountry.countries.lookup(iso3).name)
-        analyses = analysis_paths[iso3]
-        sorted_analyses = [a for a in MOB_SOURCE_COLOURS if a in analyses]
-        for a in sorted_analyses:
-            colour = MOB_SOURCE_COLOURS[a]
+        analyses = [
+            a for a in MOB_SOURCE_COLOURS if a in analysis_paths[iso3] and a in req_analyses
+        ]
+        for a in analyses:
             quants = procs[iso3][a].quantile([0.025, 0.5, 0.975], axis=1).T
-            ax.plot(
-                quants.index, quants[0.5], color=colour, label=MOB_SOURCE_ABBREVS[a], linewidth=2.0
-            )
+            colour = MOB_SOURCE_COLOURS[a]
+            label = MOB_SOURCE_ABBREVS[a]
+            ax.plot(quants.index, quants[0.5], color=colour, label=label, linewidth=2.0)
             ax.fill_between(quants.index, quants[0.025], quants[0.975], alpha=0.1, color=colour)
         ax.legend()
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
