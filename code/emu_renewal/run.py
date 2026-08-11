@@ -227,7 +227,7 @@ def get_mobility_provider(
 
     # Priors
     exp_prior = {"scale_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
-    floor_prior = {"scale_floor": dist.Beta(9.0, 1.0)}
+    floor_prior = {"scale_floor": dist.Beta(1.0, 1.0)}
     if mob_source in ["g_mob", "oxcgrt"]:
         n_domains = len(mob.columns)
         weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
