@@ -581,38 +581,30 @@ def plot_weights_by_country(
     Returns:
         The figure
     """
-    fig, axes = plt.subplots(3, 4, figsize=[80 * MM, 70 * MM])
+    fig, axes = plt.subplots(3, 4, figsize=[10, 8])
     fig.tight_layout()
-    fig.subplots_adjust(wspace=0.05, hspace=0.3)
-    plt.rcParams["pdf.fonttype"] = 42
-    plt.rcParams["font.sans-serif"] = ["Arial"]
 
     x_vals = np.linspace(-0.1, 1.1, 200)
     flat_axes = axes.ravel()
     for c, iso3 in enumerate(countries):
 
-        # Get mobility
-        mob = get_google_mobility(iso3) if analysis_type == "g_mob" else get_oxcgrt(iso3, "custom")
-
         # Get weights
         idata = az.from_netcdf(job_path[iso3][analysis_type] / "idata_filtered.nc")
-        weights = (
-            idata.posterior["mob_weights"].to_dataframe().unstack("mob_weights_dim_0")
-        )  # FIXME: Not OxCGRT compatible
-        weights.columns = mob.columns
+        weights = idata.posterior["ts_weights"].to_dataframe().unstack("ts_weights_dim_0")
+        weights.columns = get_oxcgrt(iso3, "custom").columns
 
         # Plot
         ax = flat_axes[c]
         for l in weights.columns:
             kde = gaussian_kde(weights[l])
-            colour = (G_MOB_LOCATION_CMAP | OXCGRT_LOCATION_CMAP)[l]
-            label = l.replace("_", " ") if analysis_type == "g_mob" else MOB_LOCATION_NAME_MAP[l]
-            ax.plot(x_vals, kde(x_vals), linewidth=2.0, label=label, color=colour)
+            colour = OXCGRT_LOCATION_CMAP[l]
+            label = MOB_LOCATION_NAME_MAP[l]
+            ax.plot(x_vals, kde(x_vals), label=label, color=colour)
             ax.fill_between(x_vals, kde(x_vals), alpha=0.05, color=colour)
 
         # Extra cosmetics
         country_name = pycountry.countries.lookup(iso3).name
-        ax.set_title(country_name, fontsize=6, pad=2)
+        ax.set_title(country_name)
         if c > 7:
             ax.set_xticks(np.linspace(0.0, 1.0, 3))
         else:
@@ -624,14 +616,7 @@ def plot_weights_by_country(
 
     # Legend on blank axis
     handles, labels = flat_axes[0].get_legend_handles_labels()
-    legend = flat_axes[c + 1].legend(
-        handles=handles,
-        labels=labels,
-        fontsize=4,
-        handlelength=0.8,
-        handletextpad=0.3,
-        loc="center",
-    )
+    legend = flat_axes[c + 1].legend(handles=handles, labels=labels, loc="center")
 
     # Turn off unused axes
     for a in range(c + 1, len(flat_axes)):
