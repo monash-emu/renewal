@@ -522,7 +522,6 @@ def plot_proc_comparison(
 
 def plot_kde_comparison(
     data: Dict[str, pd.DataFrame],
-    axis_adjustments: Dict[str, List[float]],
 ) -> plt.figure:
     """Plot the comparison of the kernel density of some
     repeatedly sampled quantity (posterior or parameter)
@@ -530,7 +529,6 @@ def plot_kde_comparison(
 
     Args:
         data: The values of interest for each country
-        axis_adjustments: Any countries for which axes didn't plot well by default
 
     Returns:
         The figure
@@ -549,10 +547,6 @@ def plot_kde_comparison(
         )
         ax.set_yticks([])
         ax.set_ylabel("")
-
-        # Patch x-axis limits
-        if iso3 in axis_adjustments:
-            ax.set_xlim(axis_adjustments[iso3])
 
     # Switch off unused axes
     for ax in flat_axes[c + 1 :]:
