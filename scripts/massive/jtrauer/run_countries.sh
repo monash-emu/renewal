@@ -27,7 +27,7 @@
 # e.g. --array=1-4
 # will result in 4 jobs, receiving 1, 2, 3, 4 respectively
 
-#SBATCH --array=1-127
+#SBATCH --array=1-23
 
 # The path to your renewal repo
 cd $SCRIPT_DIR/../../../
