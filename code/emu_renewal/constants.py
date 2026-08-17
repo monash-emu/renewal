@@ -1,4 +1,5 @@
 from pathlib import Path
+import seaborn as sns
 
 # Date formats
 DATE_FORMAT = "%Y%m%d_%H%M"
@@ -217,15 +218,7 @@ MOB_LOCATION_SOURCE_MAP = {
     "fb_visited_mob": "fb_visited_mob",
     "fb_singletile_mob": "fb_singletile_mob",
 }
-MOB_LOCATION_NAME_MAP = {
-    "retail_and_recreation": "Google retail and recreation",
-    "grocery_and_pharmacy": "Google grocery and pharmacy",
-    "parks": "Google parks",
-    "transit_stations": "Google transit stations",
-    "workplaces": "Google workplaces",
-    "residential": "Google residential",
-    "fb_visited_mob": "Facebook tiles visited",
-    "fb_singletile_mob": "Facebook single tile",
+OXCGRT_LOCS = {
     "C1": "school closing",
     "C2": "workplace closing",
     "C3": "cancel public events",
@@ -237,6 +230,16 @@ MOB_LOCATION_NAME_MAP = {
     "H1": "public information",
     "H6": "face coverings",
 }
+MOB_LOCATION_NAME_MAP = {
+    "retail_and_recreation": "Google retail and recreation",
+    "grocery_and_pharmacy": "Google grocery and pharmacy",
+    "parks": "Google parks",
+    "transit_stations": "Google transit stations",
+    "workplaces": "Google workplaces",
+    "residential": "Google residential",
+    "fb_visited_mob": "Facebook tiles visited",
+    "fb_singletile_mob": "Facebook single tile",
+} | OXCGRT_LOCS
 MOB_SOURCE_MAP = {
     "g_mob": "Google",
     "fb_visited_mob": "Facebook tiles visited",
@@ -250,17 +253,8 @@ G_MOB_LOCATION_CMAP = {
     "workplaces": "purple",
     "residential": "brown",
 }
-OXCGRT_LOCATION_CMAP = {
-    "C1": "blue",
-    "C2": "teal",
-    "C3": "darkgreen",
-    "C4": "purple",
-    "C5": "dimgrey",
-    "C6": "brown",
-    "C7": "black",
-    "H1": "darkgoldenrod",
-    "H6": "red",
-}
+OXCGRT_LOCATION_CMAP = sns.color_palette("husl", len(OXCGRT_LOCS))
+
 CONT_CMAP = {
     "AF": "black",
     "AS": "yellow",
