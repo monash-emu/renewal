@@ -575,11 +575,14 @@ def plot_weights_by_country(
     Returns:
         The figure
     """
-    fig, axes = plt.subplots(3, 4, figsize=[10, 8])
+    n_cols = 4
+    n_rows = int(np.ceil((len(countries) + 1) / n_cols))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=[10, 8 * n_rows / 3])
     fig.tight_layout()
 
     x_vals = np.linspace(-0.1, 1.1, 200)
-    flat_axes = axes.ravel()
+    flat_axes = np.atleast_1d(axes).ravel()
+    last_country_row = (len(countries) - 1) // n_cols
     for c, iso3 in enumerate(countries):
 
         # Get weights
@@ -599,7 +602,7 @@ def plot_weights_by_country(
         # Extra cosmetics
         country_name = pycountry.countries.lookup(iso3).name
         ax.set_title(country_name)
-        if c > 7:
+        if c // n_cols == last_country_row:
             ax.set_xticks(np.linspace(0.0, 1.0, 3))
         else:
             ax.set_xticks([])
@@ -608,13 +611,13 @@ def plot_weights_by_country(
         legend = ax.legend()
         legend.set_visible(False)
 
-    # Legend on blank axis
+    # Legend on blank axis (always reserved as countries + 1)
     handles, labels = flat_axes[0].get_legend_handles_labels()
-    legend = flat_axes[c + 1].legend(handles=handles, labels=labels, loc="center")
+    legend_ax_idx = len(countries)
+    legend = flat_axes[legend_ax_idx].legend(handles=handles, labels=labels, loc="center")
 
-    # Turn off unused axes
-    for a in range(c + 1, len(flat_axes)):
-        ax = flat_axes[a]
+    # Turn off unused axes, including the legend panel
+    for ax in flat_axes[legend_ax_idx:]:
         ax.axis("off")
 
     plt.close()
