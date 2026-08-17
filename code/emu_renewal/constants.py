@@ -253,7 +253,12 @@ G_MOB_LOCATION_CMAP = {
     "workplaces": "purple",
     "residential": "brown",
 }
-OXCGRT_LOCATION_CMAP = sns.color_palette("husl", len(OXCGRT_LOCS))
+# C8 is named in OXCGRT_LOCS but is not a custom-analysis weight.
+_OXCGRT_CMAP_KEYS = [k for k in OXCGRT_LOCS if k != "C8"]
+light_palette = sns.husl_palette(len(_OXCGRT_CMAP_KEYS), s=0.55, l=0.72).as_hex()
+dark_palette = sns.husl_palette(len(_OXCGRT_CMAP_KEYS), s=0.9, l=0.38).as_hex()
+OXCGRT_LOCATION_CMAP = dict(zip(_OXCGRT_CMAP_KEYS, light_palette))
+OXCGRT_LOCATION_LINE_CMAP = dict(zip(_OXCGRT_CMAP_KEYS, dark_palette))
 
 CONT_CMAP = {
     "AF": "black",

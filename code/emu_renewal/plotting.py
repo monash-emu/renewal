@@ -1,9 +1,7 @@
 from typing import List, Dict
 from pathlib import Path
 import warnings
-from os import listdir as ls
 import yaml as yml
-import xarray
 import numpy as np
 from random import choice
 import pandas as pd
@@ -25,6 +23,10 @@ from geopandas import GeoDataFrame
 from IPython.display import display, Markdown
 from plotly import graph_objects as go
 from matplotlib.gridspec import GridSpec
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib as mpl
+import matplotlib.colors as mcolors
+from matplotlib.patches import Patch
 
 from emu_renewal.outputs import run_for_spaghetti, get_spagh_df_from_dict
 from emu_renewal.calibration import StandardCalib
@@ -41,13 +43,15 @@ from emu_renewal.constants import (
     INCLUSION_COLOURS,
     MOB_LOCATION_NAME_MAP,
     G_MOB_LOCATION_CMAP,
-    OXCGRT_LOCATION_CMAP,
+    OXCGRT_LOCATION_LINE_CMAP,
     MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
     EXP_PRIOR_LOWER,
     EXP_PRIOR_UPPER,
     MOBILITY_SMOOTH_PERIOD,
     OXCGRT_COLMAP,
+    OXCGRT_LOCATION_CMAP,
+    OXCGRT_LOCS,
 )
 from emu_renewal.inputs import (
     DATA_PATH,
@@ -592,10 +596,10 @@ def plot_weights_by_country(
 
         # Plot
         ax = flat_axes[c]
-        for l in weights.columns:
-            kde = gaussian_kde(weights[l])
-            colour = OXCGRT_LOCATION_CMAP[l]
-            label = MOB_LOCATION_NAME_MAP[l]
+        for pol in weights.columns:
+            kde = gaussian_kde(weights[pol])
+            colour = OXCGRT_LOCATION_LINE_CMAP[pol]
+            label = MOB_LOCATION_NAME_MAP[pol]
             ax.plot(x_vals, kde(x_vals), label=label, color=colour)
             ax.fill_between(x_vals, kde(x_vals), alpha=0.05, color=colour)
 
@@ -1544,3 +1548,40 @@ def plot_param_post_comparison(
     fig.tight_layout()
     plt.close()
     return fig
+
+
+def plot_param_map(world, param_name, upper_val, excluded=None, title="",
+) -> plt.figure:
+    plt.style.use("default")
+    mpl.rcParams["hatch.color"] = "lightgrey"
+    fig, ax = plt.subplots(1, 1, figsize=(20, 10))
+    world.boundary.plot(ax=ax, color="k", linewidth=0.4)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    missing = world[world["best_policy"].isna()]
+    cax = make_axes_locatable(ax).append_axes("right", size=0.4, pad=0.25)
+    world.plot(ax=ax, column=param_name, cmap="Blues", legend=True, vmin=0, vmax=upper_val, legend_kwds={"cax": cax})
+    missing.plot(ax=ax, facecolor="white", edgecolor="none", hatch="//")
+    ax.set_title(title, fontsize=22.0)
+    if excluded is not None:
+        excluded.plot(ax=ax, facecolor="lightgrey")
+
+
+def plot_best_policy(world, missing, exclude
+) -> plt.figure:
+    plt.style.use("default")
+    mpl.rcParams["hatch.color"] = "lightgrey"
+    policy_codes = OXCGRT_COLMAP["custom"]
+    fig, ax = plt.subplots(1, 1, figsize=(20, 10))
+    world.boundary.plot(ax=ax, color="k", linewidth=0.4)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    cmap = mcolors.ListedColormap([OXCGRT_LOCATION_CMAP[p] for p in policy_codes])
+    avail = world[world["best_policy"].notna()]
+    avail.plot(ax=ax, column="best_name", categorical=True, categories=policy_codes, cmap=cmap, edgecolor="none")
+    missing.plot(ax=ax, facecolor="white", edgecolor="none", hatch="//")
+    exclude.plot(ax=ax, facecolor="lightgrey")
+
+    handles = [Patch(facecolor=OXCGRT_LOCATION_CMAP[p], label=OXCGRT_LOCS[p]) for p in policy_codes]
+    ax.legend(handles=handles, loc="lower left", fontsize=16)
