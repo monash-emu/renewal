@@ -747,6 +747,8 @@ def compare_proc_versus_weighted(
     n_samples: int,
     n_cols: int,
     analysis_type: str,
+    flat_average: bool,
+    assumed_floor: float=0.5,
 ) -> plt.Figure:
     """Plot comparison of composite Google time series to
     the transmission scaling process.
@@ -756,13 +758,18 @@ def compare_proc_versus_weighted(
         countries: Requested countries to plot
         n_samples: Number of samples from Google weights to create composite series
         n_cols: Number of subplot columns for the figure
+        flat_average: Whether to use the actual weights or just assume a flat average across all domains
+        assumed_floor: The floor to use if doing a flat average
 
     Returns:
         The figure
     """
     fig, axes = get_standard_subplot(len(countries), n_cols)
     flat_axes = axes.ravel()
-    title = f"Estimated scaling for transmission versus composite {analysis_type} scaling process"
+    analysis_name = ANALYSIS_NAMES[analysis_type]
+    flat_average_txt = f"with flat average applied and assumed floor of {assumed_floor}"
+    weight_txt = "weighted according to policy weights" if flat_average else flat_average_txt
+    title = f"Residual scaling versus {analysis_name} {weight_txt}"
     fig.suptitle(title, fontsize=14, y=1.0)
 
     for c, iso3 in enumerate(countries):
@@ -780,18 +787,18 @@ def compare_proc_versus_weighted(
 
         # Get the weighted scaling process and plot
         a_path = c_path[analysis_type]
-        idata = az.from_netcdf(a_path / "idata_filtered.nc")
-        mob = get_smoothed_trunc_scale_ts(
-            iso3, centiles.index[0], centiles.index[-1], analysis_type
-        )
-        weights = get_weight_posts(a_path, analysis_type)
-        floors = idata.posterior["scale_floor"].to_dataframe()["scale_floor"]
-        mob_quants = get_cgrt_quants(mob, weights, floors, n_samples)
+        scale_ts = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1], analysis_type)
         colour = MOB_SOURCE_COLOURS[analysis_type]
-        ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
-        ax.fill_between(
-            mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour
-        )
+        if flat_average:
+            flat_average_ts = scale_ts.mean(axis=1) * (1.0 - assumed_floor) + assumed_floor
+            ax.plot(flat_average_ts, color=colour, linewidth=2.0, alpha=0.6)
+        else:
+            idata = az.from_netcdf(a_path / "idata_filtered.nc")
+            weights = get_weight_posts(a_path, analysis_type)
+            floors = idata.posterior["scale_floor"].to_dataframe()["scale_floor"]
+            mob_quants = get_cgrt_quants(scale_ts, weights, floors, n_samples)
+            ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
+            ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour)
 
     for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
