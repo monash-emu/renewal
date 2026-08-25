@@ -43,7 +43,7 @@ from emu_renewal.renew import MultiStrainModel
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.priors import get_standard_priors
 from emu_renewal.outputs import store_outputs
-from emu_renewal import mobility
+from emu_renewal import scaling
 from emu_renewal.indicators import (
     get_who_indicator,
     get_deaths_target,
@@ -176,7 +176,7 @@ def find_run_end_time(
 def get_mobility_provider(
     iso3: str,
     mob_source: str,
-) -> mobility.ScalerProvider:
+) -> scaling.ScalerProvider:
     """Get the appropriate mobility provider object.
 
     Args:
@@ -214,7 +214,7 @@ def get_mobility_provider(
 
     # Data processing
     if mob_source in ["no_mob", "fb_no_mob"]:
-        return mobility.NoScalerProvider()
+        return scaling.NoScalerProvider()
     elif mob_source == "g_mob":
         mob = get_google_mobility(iso3)
     elif mob_source == "fb_visited_mob":
@@ -232,9 +232,9 @@ def get_mobility_provider(
         n_domains = len(mob.columns)
         weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
         priors = weight_prior | exp_prior | floor_prior
-        return mobility.WeightedFloorScalerProvider(smoothed_mob, priors)
+        return scaling.WeightedFloorScalerProvider(smoothed_mob, priors)
     elif mob_source in ["fb_visited_mob", "fb_singletile_mob"]:
-        return mobility.SingleSeriesExpFloorScalerProvider(smoothed_mob, exp_prior | floor_prior)
+        return scaling.SingleSeriesExpFloorScalerProvider(smoothed_mob, exp_prior | floor_prior)
     else:
         raise Exception(f"No provider available for analysis type {mob_source}")
 

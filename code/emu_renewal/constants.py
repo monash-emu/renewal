@@ -167,7 +167,7 @@ MOB_SOURCE_COLOURS = {
     "oxcgrt": "purple",
 }
 ANALYSIS_NAMES = {
-    "no_mob": "no mobility",
+    "no_mob": "no scaling",
     "g_mob": "Google mobility",
     "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",

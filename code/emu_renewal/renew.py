@@ -20,7 +20,7 @@ from emu_renewal.constants import (
 from emu_renewal.process import sinterp, CosineMultiCurve
 from emu_renewal.distributions import Dens
 from emu_renewal.utils import get_col_increases, get_reset_array_from_increases
-from emu_renewal.mobility import ScalerProvider
+from emu_renewal.scaling import ScalerProvider
 from emu_renewal.distributions import GammaDens
 
 ModelResult = dict[str, Array]
@@ -143,7 +143,7 @@ class MultiStrainModel:
         end: datetime,
         strains: List[str],
         seed_times: List[datetime],
-        mobility: ScalerProvider,
+        scaling: ScalerProvider,
         omicron_period: bool,
     ):
         """Construct the object for running the renewal process.
@@ -175,7 +175,7 @@ class MultiStrainModel:
         self.end = int(self.epoch.dti_to_index(end))
         self.model_times = jnp.arange(self.start, self.end + 1)
         self.n_times = len(self.model_times)
-        self.mob_provider = mobility
+        self.mob_provider = scaling
         self.mob_provider.reconcile_times(start, end)
 
         # Population

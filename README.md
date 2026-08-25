@@ -1,4 +1,4 @@
-## Evaluating the effects of population mobility on the COVID-19 pandemic</b>
+## Evaluating the effects of policy measures on the COVID-19 pandemic</b>
 
 ### Source code and data.
 

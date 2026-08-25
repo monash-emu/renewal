@@ -441,7 +441,7 @@ def get_smoothed_trunc_scale_ts(
     finish: datetime,
     mob_type: str = "g_mob",
 ) -> pd.DataFrame:
-    """Get the smoothed, truncated Google mobility data
+    """Get the smoothed, truncated Google mobility or OxCGRT data.
 
     Args:
         iso3: The country identifier
@@ -450,7 +450,7 @@ def get_smoothed_trunc_scale_ts(
         mob_type: Either g_mob or oxcgrt
 
     Returns:
-        The mobility data
+        The data
     """
     mob = get_google_mobility(iso3) if mob_type == "g_mob" else get_oxcgrt(iso3, "custom")
     smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
@@ -461,7 +461,7 @@ def get_weight_posts(
     a_path: Path,
     analysis_type: str,
 ) -> pd.DataFrame:
-    """Get a dataframe of the mobility weights
+    """Get a dataframe of the time series component weights
     applied to the OxCGRT or Google data.
 
     Args:
@@ -469,7 +469,7 @@ def get_weight_posts(
         analysis_type: Either "g_mob" or "oxcgrt"
 
     Returns:
-        The mobility weights
+        The weights
     """
     idata = az.from_netcdf(a_path / "idata_filtered.nc")
     params = idata.posterior["ts_weights"].to_dataframe().unstack(level=-1)

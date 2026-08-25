@@ -46,9 +46,6 @@ from emu_renewal.constants import (
     OXCGRT_LOCATION_LINE_CMAP,
     MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
-    EXP_PRIOR_LOWER,
-    EXP_PRIOR_UPPER,
-    MOBILITY_SMOOTH_PERIOD,
     OXCGRT_COLMAP,
     OXCGRT_LOCATION_CMAP,
     OXCGRT_LOCS,
@@ -71,7 +68,7 @@ from emu_renewal.inputs import (
     get_oxcgrt,
 )
 from emu_renewal.outputs import (
-    get_idatas_for_mob_type,
+    get_idatas_for_analysis_type,
     get_median_ratios,
     get_param_vals_by_analysis,
 )

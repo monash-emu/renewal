@@ -279,11 +279,11 @@ def get_prop_improve(
 ) -> Dict[str, float]:
     """Find the proportion of results from a particular run that
     have a lower dispersion parameter than
-    the median value of the no mobility analysis.
+    the median value of the no scaling analysis.
 
     Args:
         disp_posts: The posteriors of the dispersion parameter by country and analysis
-        mob_type: The mobility analysis of interest
+        mob_type: The scaled analysis of interest
 
     Returns:
         The proportions by country
@@ -299,10 +299,10 @@ def get_prop_improve(
     return prop_improve_median
 
 
-def get_idatas_for_mob_type(
+def get_idatas_for_analysis_type(
     analysis_paths: Path,
     countries: List[str],
-    mob_source: str,
+    analysis_type: str,
 ) -> Dict[str, az.InferenceData]:
     """Collate all the inference data objects for
     a requested group of countries.
@@ -310,7 +310,7 @@ def get_idatas_for_mob_type(
     Args:
         job_path: Path for the runs
         countries: Countries identifiers
-        mob_source: Mobility type considered
+        mob_source: Analysis type considered
 
     Returns:
         The inference data objects
@@ -320,8 +320,8 @@ def get_idatas_for_mob_type(
     for iso3 in countries:
         country = pycountry.countries.lookup(iso3).name
         c_paths = analysis_paths[iso3]
-        if mob_source in c_paths:
-            country_idatas[iso3] = az.from_netcdf(c_paths[mob_source] / "idata_filtered.nc")
+        if analysis_type in c_paths:
+            country_idatas[iso3] = az.from_netcdf(c_paths[analysis_type] / "idata_filtered.nc")
         else:
             unavailable_countries.append(country)
     return country_idatas, unavailable_countries
@@ -330,21 +330,21 @@ def get_idatas_for_mob_type(
 def get_param_mean_by_country(
     job_path: Path,
     param: str,
-    mob_source: str,
+    analysis_type: str,
 ) -> Dict[str, float]:
     """Get the mean of the parameter posterior for each
-    country analysed under a particular mobility approach.
+    country analysed under a particular analysis type.
 
     Args:
         job_path: Path for the runs
         param: Name of the parameter
-        mob_source: Mobility analysis type
+        mob_source: The analysis type
 
     Returns:
         The parameter mean by country
     """
     countries = ls(job_path)
-    i_datas, _ = get_idatas_for_mob_type(job_path, countries, mob_source)
+    i_datas, _ = get_idatas_for_analysis_type(job_path, countries, analysis_type)
     return {
         c: az.summary(i_datas[c], var_names=param, kind="stats")["mean"].values[0] for c in i_datas
     }
@@ -389,15 +389,15 @@ def get_ratios_from_disps(
 
 def get_median_ratios(
     dists: Dict[str, pd.DataFrame],
-    mob_source: str,
+    analysis_type: str,
 ) -> Dict[str, float]:
     """Get the median ratio of the transmission scaling
-    dispersion parameter sample under a mobility
+    dispersion parameter sample under a particular
     analysis to the equivalent baseline.
 
     Args:
         dists: The output from get_ratios_from_disps
-        mob_source: The mobility type
+        mob_source: The analysis type
 
     Returns:
         The ratio values by country
@@ -405,8 +405,8 @@ def get_median_ratios(
     median_ratios = {}
     for c in dists:
         c_ratios = dists[c]
-        if mob_source in c_ratios:
-            median_ratios[c] = c_ratios.median()[mob_source]
+        if analysis_type in c_ratios:
+            median_ratios[c] = c_ratios.median()[analysis_type]
     return median_ratios
 
 
