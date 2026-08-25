@@ -41,7 +41,7 @@ from emu_renewal.constants import (
 )
 from emu_renewal.inputs import get_income_group, get_owid_hosp_series, find_decreasing_groups
 from emu_renewal.targets import SharedDispTarget, UnivariateDispersionTarget, SharedPropTarget
-from emu_renewal.utils import get_cont_of_country
+from emu_renewal.utils import get_cont_of_country, iso3_to_iso2
 
 
 def get_date_dict_from_str(
@@ -81,7 +81,7 @@ def get_who_indicator(
         The data
     """
     who_data = pd.read_csv(DATA_PATH / "who/WHO-COVID-19-global-data_21_8_24.csv")
-    iso2 = pycountry.countries.lookup(iso3).alpha_2
+    iso2 = iso3_to_iso2(iso3)
     select_data = who_data.loc[who_data["Country_code"] == iso2]
     select_data.index = pd.to_datetime(select_data["Date_reported"], format=WHO_DATE_FORMAT)
     return select_data[indicator]

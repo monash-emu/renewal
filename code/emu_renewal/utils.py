@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 import os
 from os import listdir as ls
@@ -10,7 +10,7 @@ import pycountry
 import pycountry_convert as pc
 import arviz as az
 
-from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES, OUTPUTS_PATH, DATA_PATH
+from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES, OUTPUTS_PATH, DATA_PATH, UNOFFICIAL_COUNTRIES
 
 
 def get_col_increases(
@@ -106,8 +106,8 @@ def sort_countries_by_name(
     Returns:
         The sorted list of country codes
     """
-    sorted_country_names = sorted([pycountry.countries.lookup(c).name for c in countries])
-    return [pycountry.countries.lookup(c).alpha_3 for c in sorted_country_names]
+    name_to_iso3 = {get_country_name(c): c for c in countries}
+    return [name_to_iso3[name] for name in sorted(name_to_iso3)]
 
 
 def get_countries_by_continent(
@@ -166,6 +166,32 @@ def split_list_into_segments(
     return [l[i : i + segment_length] for i in range(0, len(l), segment_length)]
 
 
+def iso3_to_iso2(
+    iso3: str,
+) -> Optional[str]:
+    """Map an ISO3 code to the ISO2 country code used by WHO.
+
+    Args:
+        iso3: The country identifier
+
+    Returns:
+        The ISO2 code, or None if no mapping is available.
+
+    Notes
+    -----
+    WHO surveillance data are keyed by ISO2 "Country_code".
+    ISO 3166-1 does not include Kosovo, which appears as "RKS" in OxCGRT
+    and as "XK" in the WHO dataset. We map these user-assigned codes
+    explicitly so that Kosovo is joined to WHO indicators in the same
+    way as other countries, rather than dropped as a special case.
+    """
+    try:
+        return pycountry.countries.lookup(iso3).alpha_2
+    except LookupError:
+        unofficial = UNOFFICIAL_COUNTRIES.get(iso3)
+        return unofficial["alpha_2"] if unofficial else None
+
+
 def get_cont_of_country(
     iso3: str,
 ) -> str:
@@ -186,10 +212,12 @@ def get_cont_of_country(
     """
     if iso3 == "SGP":
         return "OC"
+    if iso3 in UNOFFICIAL_COUNTRIES:
+        return UNOFFICIAL_COUNTRIES[iso3]["continent"]
     try:
         iso2 = pycountry.countries.lookup(iso3).alpha_2
         return pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(iso2)
-    except KeyError:
+    except (KeyError, LookupError):
         return "NOCONT"
 
 
@@ -219,7 +247,6 @@ def get_country_short_name(
     Returns:
         The abbreviated name
     """
-    info = pycountry.countries.lookup(iso3)
     abbrevs = {
         "GBR": "UK",
         "ARE": "UAE",
@@ -230,7 +257,10 @@ def get_country_short_name(
     }
     if iso3 in abbrevs:
         return abbrevs[iso3]
-    elif hasattr(info, "common_name"):
+    if iso3 in UNOFFICIAL_COUNTRIES:
+        return UNOFFICIAL_COUNTRIES[iso3]["name"]
+    info = pycountry.countries.lookup(iso3)
+    if hasattr(info, "common_name"):
         return info.common_name
     else:
         return info.name
@@ -248,9 +278,11 @@ def get_country_name(
     Returns:
         The name of the country
     """
+    if iso3 in UNOFFICIAL_COUNTRIES:
+        return UNOFFICIAL_COUNTRIES[iso3]["name"]
     try:
         return pycountry.countries.lookup(iso3).name
-    except:
+    except LookupError:
         return iso3
 
 
