@@ -14,36 +14,30 @@ from emu_renewal.targets import Target
 ParamDict = dict[str, dist.Distribution | float]
 
 
-def custom_init(
-    site=None, 
-    n_proc: int=0,
-):
-    """Initialize a numpyro MCMC run, 
+def custom_init(site, n_proc: int):
+    """Initialize a numpyro MCMC run,
     returning 0.0 for "proc" (random process values),
     otherwise defaulting to init_to_uniform(radius).
 
     Args:
-        site: 
+        site: A numpyro sample site (one model parameter)
         n_proc: Number of updates in the transmission scaling process
 
     Returns:
-        The initialisation for the calibration
+        The initial value for this site, or None to leave it to numpyro
 
     Notes
     -----
     To initialise the model parameters,
     we started all the updates to the transmission scaling
     process from a value of zero (in logarithmic space)
-    to represent no update, such that the 
+    to represent no update, such that the
     initialisation commenced with transmission
     scaling being constant over time.
     For all other parameters,
     we used `numpyro`'s `init_to_uniform` method,
     with a radius of {INIT_RADIUS}.
     """
-    if site is None:
-        return partial(custom_init, n_proc=n_proc)
-
     if (
         site["type"] == "sample"
         and not site["is_observed"]
@@ -51,11 +45,10 @@ def custom_init(
     ):
         if site["value"] is not None:
             return site["value"]
-        else:
-            if site["name"] == "proc":
-                return jnp.zeros(n_proc)
-            else:
-                return infer.init_to_uniform(site, INIT_RADIUS)
+        if site["name"] == "proc":
+            return jnp.zeros(n_proc)
+        return infer.init_to_uniform(site, INIT_RADIUS)
+    return None
 
 
 class StandardCalib:
@@ -85,9 +78,9 @@ class StandardCalib:
         """
         self.epi_model = epi_model
         self.n_proc_periods = len(self.epi_model.x_proc_data.points)
-        self.custom_init = custom_init(n_proc=self.n_proc_periods)
+        self.init_strategy = partial(custom_init, n_proc=self.n_proc_periods)
         analysis_idx = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
-        self.targets = targets
+        self.targets = targets.copy()
         self.common_idx = {}
         self.active_targets = []
         for ind in targets.keys():
@@ -102,7 +95,6 @@ class StandardCalib:
                 self.common_idx[ind] = common_abs_idx - self.epi_model.model_times[0]
                 self.active_targets.append(ind)
 
-        params = params
         # Compile transformed dists first to avoid memory leaks from
         # numpyro/jax buggy interaction
         _ = [p.mean for p in params.values() if isinstance(p, dist.Distribution)]

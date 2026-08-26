@@ -270,8 +270,7 @@ def run_calibration(
     and mass matrix adaptation from `numpyro`.
     """
     calib = StandardCalib(model, priors, targets)
-    init = calib.custom_init()
-    kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=init)
+    kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=calib.init_strategy)
     mcmc = infer.MCMC(
         kernel, num_chains=N_CHAINS, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar
     )
