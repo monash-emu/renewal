@@ -17,7 +17,6 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.pyplot import get_cmap
 from matplotlib.colors import Normalize
 import matplotlib.dates as mdates
-import pycountry
 import pycountry_convert as pc
 from geopandas import GeoDataFrame
 from IPython.display import display, Markdown
@@ -77,6 +76,8 @@ from emu_renewal.utils import (
     get_beta_params_from_mean_var,
     get_country_short_name,
     get_country_name,
+    to_iso3,
+    iso3_to_iso2,
 )
 
 plt.style.use("ggplot")
@@ -206,7 +207,7 @@ def plot_prior_post(
     Returns:
         The figure
     """
-    country = pycountry.countries.lookup(iso3).name
+    country = get_country_name(iso3)
     n_rows = int(np.ceil(len(priors) / 2)) + 3
     grid = [n_rows, 3]
     fig = az.plot_density(idata, var_names=req_vars, shade=0.3, grid=grid, figsize=[10, 40])
@@ -499,7 +500,7 @@ def plot_proc_comparison(
     # Plot results by country
     for c, iso3 in enumerate(countries):
         ax = flat_axes[c]
-        ax.set_title(pycountry.countries.lookup(iso3).name)
+        ax.set_title(get_country_name(iso3))
         analyses = [
             a for a in MOB_SOURCE_COLOURS if a in analysis_paths[iso3] and a in req_analyses
         ]
@@ -541,7 +542,7 @@ def plot_kde_comparison(
     for c, (iso3, likes) in enumerate(data.items()):
         likes = likes.rename(columns=MOB_SOURCE_ABBREVS)
         ax = flat_axes[c]
-        ax.set_title(pycountry.countries.lookup(iso3).name)
+        ax.set_title(get_country_name(iso3))
         colours = [MOB_SOURCE_COLOURS[a] for a in data[iso3].columns]
         sns.kdeplot(
             likes, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5, common_norm=False
@@ -601,7 +602,7 @@ def plot_weights_by_country(
             ax.fill_between(x_vals, kde(x_vals), alpha=0.05, color=colour)
 
         # Extra cosmetics
-        country_name = pycountry.countries.lookup(iso3).name
+        country_name = get_country_name(iso3)
         ax.set_title(country_name)
         if c // n_cols == last_country_row:
             ax.set_xticks(np.linspace(0.0, 1.0, 3))
@@ -651,7 +652,7 @@ def compare_proc_mob(
     flat_axes = axes.ravel()
     for c, iso3 in enumerate(countries):
         ax = flat_axes[c]
-        country = pycountry.countries.lookup(iso3).name
+        country = get_country_name(iso3)
         ax.set_title(country)
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
@@ -711,7 +712,7 @@ def compare_proc_pol(
 
     for c, iso3 in enumerate(countries):
         ax = flat_axes[c]
-        country = pycountry.countries.lookup(iso3).name
+        country = get_country_name(iso3)
         ax.set_title(country)
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
@@ -780,7 +781,7 @@ def compare_proc_versus_weighted(
     for c, iso3 in enumerate(countries):
         c_path = analysis_paths[iso3]
         ax = flat_axes[c]
-        ax.set_title(pycountry.countries.lookup(iso3).name)
+        ax.set_title(get_country_name(iso3))
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
         # Residual transmission process under no mobility configuration
@@ -836,7 +837,7 @@ def plot_select_proc_mob(
 
             # Gather data
             mob_location, country = row
-            iso3 = pycountry.countries.lookup(country).alpha_3
+            iso3 = to_iso3(country)
             country_name = (
                 SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
             )
@@ -1436,7 +1437,9 @@ def add_cont_to_world_geodf(
     """
     for iso3 in world["ISO_A3"]:
         try:
-            iso2 = pycountry.countries.lookup(iso3).alpha_2
+            iso2 = iso3_to_iso2(iso3)
+            if iso2 is None:
+                raise LookupError
             cont = pc.convert_country_alpha2_to_continent_code.country_alpha2_to_continent_code(
                 iso2
             )
@@ -1500,7 +1503,7 @@ def plot_analysis_specific_post(
         idata = az.from_netcdf(cgrt_path / "idata_filtered.nc")
         ax = flat_axes[c]
         az.plot_density(idata, ax=ax, hdi_prob=0.99, var_names=param_name, shade=0.2)
-        ax.set_title(pycountry.countries.lookup(iso3).name)
+        ax.set_title(get_country_name(iso3))
         ax.set_xlim(0.0, 1.0)
         ax.tick_params(axis="x", labelsize=10)
     for a in range(c + 1, len(flat_axes)):
@@ -1539,7 +1542,7 @@ def plot_param_post_comparison(
             idata = az.from_netcdf(a_path / "idata_filtered.nc")
             colour = MOB_SOURCE_COLOURS[a]
             az.plot_density(idata, ax=ax, hdi_prob=0.99, var_names=param, shade=0.2, colors=colour)
-        ax.set_title(pycountry.countries.lookup(iso3).name)
+        ax.set_title(get_country_name(iso3))
     for c in range(c + 1, len(flat_axes)):
         flat_axes[c].set_axis_off()
     fig.tight_layout()

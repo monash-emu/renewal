@@ -41,7 +41,7 @@ from emu_renewal.constants import (
 )
 from emu_renewal.inputs import get_income_group, get_owid_hosp_series, find_decreasing_groups
 from emu_renewal.targets import SharedDispTarget, UnivariateDispersionTarget, SharedPropTarget
-from emu_renewal.utils import get_cont_of_country, iso3_to_iso2
+from emu_renewal.utils import get_cont_of_country, iso3_to_iso2, get_country_name
 
 
 def get_date_dict_from_str(
@@ -346,7 +346,7 @@ def filter_seroprev(
     value for any given date (selecting only the largest
     of three surveys done on the same day for Mexico).
     """
-    country = pycountry.countries.lookup(iso3).name
+    country = get_country_name(iso3)
     country_filt = data["country"] == country
     nat_filt = data["estimate_grade"] == "National"
     type_filt = data["subgroup_var"] == "Primary Estimate"
@@ -526,7 +526,7 @@ def get_country_vars(
     elif iso3 == "USA":
         country = iso3
     else:
-        country = pycountry.countries.lookup(iso3).name
+        country = get_country_name(iso3)
     data = pd.DataFrame()
     var_names = [v.split(".json")[0] for v in ls(DATA_PATH / "nextclade") if v.startswith("2")]
     for var in var_names:

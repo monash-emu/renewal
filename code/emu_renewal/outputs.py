@@ -13,7 +13,6 @@ from numpyro import infer
 from os import listdir as ls
 import os
 from geopandas import GeoDataFrame
-import pycountry
 
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
@@ -21,7 +20,7 @@ from estival.sampling import tools as esamp
 from emu_renewal.constants import MOB_SOURCE_COLOURS, N_SAMPLES, ANALYSIS_TYPES, MOB_SOURCE_ABBREVS
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
-from emu_renewal.utils import get_subdirs
+from emu_renewal.utils import get_subdirs, get_country_name
 
 plt.style.use("ggplot")
 
@@ -318,7 +317,7 @@ def get_idatas_for_analysis_type(
     country_idatas = {}
     unavailable_countries = []
     for iso3 in countries:
-        country = pycountry.countries.lookup(iso3).name
+        country = get_country_name(iso3)
         c_paths = analysis_paths[iso3]
         if analysis_type in c_paths:
             country_idatas[iso3] = az.from_netcdf(c_paths[analysis_type] / "idata_filtered.nc")
@@ -447,7 +446,7 @@ def get_quantmedian_df(
             prop_above_median = (combined_disps["waning"] > no_waning_median).mean()
             quantquant.loc[iso3, mob_type] = prop_above_median
     quantquant.rename(columns=MOB_SOURCE_ABBREVS, inplace=True)
-    quantquant.rename(index=lambda iso3: pycountry.countries.lookup(iso3).name, inplace=True)
+    quantquant.rename(index=get_country_name, inplace=True)
     return quantquant
 
 

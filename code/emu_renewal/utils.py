@@ -166,6 +166,44 @@ def split_list_into_segments(
     return [l[i : i + segment_length] for i in range(0, len(l), segment_length)]
 
 
+def to_iso3(
+    country: str,
+) -> str:
+    """Resolve a country name or code to this project's ISO3 identifier.
+
+    Args:
+        country: Name or ISO code
+
+    Returns:
+        The ISO3 code used elsewhere in the project (e.g. RKS for Kosovo)
+    """
+    if country in UNOFFICIAL_COUNTRIES:
+        return country
+    for iso3, info in UNOFFICIAL_COUNTRIES.items():
+        if country.lower() == info["name"].lower():
+            return iso3
+        if country in (info.get("alpha_2"), info.get("wb_code")):
+            return iso3
+    return pycountry.countries.lookup(country).alpha_3
+
+
+def wb_iso3(
+    iso3: str,
+) -> str:
+    """ISO3 code used by World Bank and UN population/income datasets.
+
+    Args:
+        iso3: The project country identifier
+
+    Returns:
+        The dataset code (XKX for Kosovo)
+    """
+    unofficial = UNOFFICIAL_COUNTRIES.get(iso3)
+    if unofficial and "wb_code" in unofficial:
+        return unofficial["wb_code"]
+    return iso3
+
+
 def iso3_to_iso2(
     iso3: str,
 ) -> Optional[str]:
@@ -340,7 +378,7 @@ def get_analysis_commits_df(
                 sha = "no analysis"
             commits.loc[iso3, analysis] = sha
     commits.rename(columns=ANALYSIS_NAMES, inplace=True)
-    commits.rename(index=lambda c: pycountry.countries.lookup(c).name, inplace=True)
+    commits.rename(index=get_country_name, inplace=True)
     return commits.sort_index()
 
 
@@ -368,7 +406,7 @@ def get_job_commits_df_new(
                 sha = "no analysis"
             commits.loc[iso3, analysis] = sha
     commits.rename(columns=ANALYSIS_NAMES, inplace=True)
-    commits.rename(index=lambda c: pycountry.countries.lookup(c).name, inplace=True)
+    commits.rename(index=get_country_name, inplace=True)
     return commits.sort_index()
 
 

@@ -22,7 +22,7 @@ from emu_renewal.constants import (
     OXCGRT_IND_MAX,
     OXCGRT_COLMAP,
 )
-from emu_renewal.utils import get_cont_of_country
+from emu_renewal.utils import get_cont_of_country, get_country_name, to_iso3, wb_iso3, iso3_to_iso2
 
 
 def get_country_pop(
@@ -74,7 +74,7 @@ def get_worldbank_national_pop(
     path = DATA_PATH / "population/173b86cf-b697-4715-8bd5-cbb5a6cc3885_Data.csv"
     year = OC_POP_YEAR if get_cont_of_country(iso3) == "OC" else POP_YEAR
     year_str = f"{year} [YR{year}]"
-    return pd.read_csv(path, index_col="Country Code", na_values=[".."]).loc[iso3, year_str]
+    return pd.read_csv(path, index_col="Country Code", na_values=[".."]).loc[wb_iso3(iso3), year_str]
 
 
 def get_undesa_national_pop(
@@ -97,7 +97,7 @@ def get_undesa_national_pop(
     """
     csv_path = DATA_PATH / f"population/undesa_pops_{POP_YEAR}.csv"
     data = pd.read_csv(csv_path, index_col=["ISO3 Alpha-code"])
-    return data.loc[iso3, "population"]
+    return data.loc[wb_iso3(iso3), "population"]
 
 
 def get_owid_hosp_series(
@@ -116,7 +116,7 @@ def get_owid_hosp_series(
     """
     hosp = pd.read_csv(DATA_PATH / "owid/owid_hosp.csv", index_col="date")
     hosp.index = pd.to_datetime(hosp.index)
-    iso3 = pycountry.countries.lookup(iso3).alpha_3
+    iso3 = to_iso3(iso3)
     data = hosp[hosp["iso_code"] == iso3]
     return data.loc[data["indicator"] == indicator, "value"]
 
@@ -141,7 +141,7 @@ def process_raw_google_mobility(
     """
     mob_col_identifier = "_percent_change_from_baseline"
     years = range(2020, 2023)
-    iso2 = pycountry.countries.lookup(iso3).alpha_2
+    iso2 = iso3_to_iso2(iso3)
     file_end = f"_{iso2}_Region_Mobility_Report.csv"
     data_files = [
         pd.read_csv(RAW_MOB_PATH / (str(y) + file_end), index_col="date", low_memory=False)
@@ -338,7 +338,7 @@ def get_country_vacc_data(
     elif iso3 == SUB_GBR_COUNTRY:
         country = "GBR"
     else:
-        country = pycountry.countries.lookup(iso3).name
+        country = get_country_name(iso3)
     filename = "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv"
     data = pd.read_csv(DATA_PATH / filename, index_col="Day")
     data.index = pd.to_datetime(data.index)
@@ -393,7 +393,7 @@ def get_income_group(
     if iso3 in assumed_high_income:
         return "High income"
     data = pd.read_excel(DATA_PATH / "income/CLASS.xlsx", index_col="Code")
-    return data.loc[iso3, "Income group"]
+    return data.loc[wb_iso3(iso3), "Income group"]
 
 
 def get_gdps(

@@ -50,7 +50,8 @@ def gather_who_data(
     of the analysis for each country.
     We considered data quality from {DATA_QUALITY_START_TIME_OC}
     for countries of Oceania and from {DATA_QUALITY_START_TIME}
-    for the countries of all other continents.
+    for the countries of all other continents
+    over the period for which an OxCGRT simulation would apply.
     """
     death_data = {}
     case_data = {}
@@ -60,13 +61,7 @@ def gather_who_data(
         cont = get_cont_of_country(c)
         start_time = DATA_QUALITY_START_TIME_OC if cont == "OC" else DATA_QUALITY_START_TIME
         start = datetime.strptime(start_time, CODE_DATE_FORMAT)
-        try:
-            end_time = find_run_end_time(c, "g_mob")
-        except:
-            try:
-                end_time = find_run_end_time(c, "fb_visited_mob")
-            except:
-                end_time = datetime(2021, 12, 31)
+        end_time = find_run_end_time(c, "oxcgrt")
 
         # Get deaths and cases data
         deaths = get_who_indicator("New_deaths", c)

@@ -1,7 +1,6 @@
 from typing import Dict, Tuple
 from datetime import datetime, timedelta
 from socket import gethostname
-import pycountry
 import logging
 from numpyro import distributions as dist
 from numpyro import infer
@@ -57,7 +56,7 @@ from emu_renewal.indicators import (
     get_country_vars,
 )
 from emu_renewal.targets import Target, SharedDispTarget
-from emu_renewal.utils import get_cont_of_country
+from emu_renewal.utils import get_cont_of_country, to_iso3
 
 
 def get_logger(log_file: Path = None):
@@ -152,15 +151,18 @@ def find_run_end_time(
     value before the default end time of {DEFAULT_END_DATE}.
     Otherwise, this default end date was used instead.
     For Oceania and Singapore, the latest date for which
-    Google mobility data was available was used.
+    the applicable time series data was available was used.
     """
     cont = get_cont_of_country(iso3)
     try:
         if cont == "OC" and "fb_" in mob_source:
             mob = get_fb_visited_mobility(iso3)
             return mob.index[-1].to_pydatetime()
-        elif cont == "OC":
+        elif cont == "OC" and "g_mob" in mob_source:
             mob = get_google_mobility(iso3)
+            return mob.index[-1].to_pydatetime()
+        elif cont == "OC" and "oxcgrt" in mob_source:
+            mob = get_oxcgrt(iso3, "custom")
             return mob.index[-1].to_pydatetime()
     except Exception as e:
         msg = f"{mob_source} mobility not available"
@@ -305,7 +307,7 @@ def run_single_country(
     """
 
     # Country identifiers
-    iso3 = pycountry.countries.lookup(country).alpha_3
+    iso3 = to_iso3(country)
     continent = get_cont_of_country(iso3)
 
     # Logging

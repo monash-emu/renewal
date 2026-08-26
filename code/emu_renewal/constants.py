@@ -26,7 +26,7 @@ ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_visited_mob", "fb_singletile_mob", "oxc
 # Dates
 CASES_START = "1 June 2020"
 DEFAULT_START_DATE = "1 June 2020"
-DEFAULT_END_DATE = "1 December 2021"
+DEFAULT_END_DATE = "31 December 2021"
 ALPHA_PERIOD_START = "1 January 2020"
 ALPHA_DELTA_TRANS = "1 March 2021"
 ALPHA_DELTA_EXCEPTS = (
@@ -52,7 +52,7 @@ DATA_QUALITY_START_TIME = "1 April 2020"
 DATA_QUALITY_START_TIME_OC = "1 November 2021"
 NO_CONT_COUNTRIES = ["ATA", "ATF", "ESH", "PCN", "SXM", "TLS", "UMI", "VAT"]
 UNOFFICIAL_COUNTRIES = {
-    "RKS": {"alpha_2": "XK", "name": "Kosovo", "continent": "EU"},
+    "RKS": {"alpha_2": "XK", "wb_code": "XKX", "name": "Kosovo", "continent": "EU"},
 }
 
 # Population-related
