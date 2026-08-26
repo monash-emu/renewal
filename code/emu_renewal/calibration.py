@@ -83,14 +83,13 @@ class StandardCalib:
         self.targets = targets.copy()
         self.common_idx = {}
         self.active_targets = []
-        for ind in targets.keys():
-            self.targets[ind].set_key(ind)
-            ind_data = targets[ind].data
+        for ind, target in self.targets.items():
+            ind_data = target.data
             common_dates_idx = ind_data.index.intersection(analysis_idx)
             if len(common_dates_idx) == 0:
                 warn(f"Model dates exclude all data for target {ind}, disabling target")
             else:
-                self.targets[ind].set_calibration_data(jnp.array(ind_data.loc[common_dates_idx]))
+                target.set_calibration_data(jnp.array(ind_data.loc[common_dates_idx]))
                 common_abs_idx = np.array(self.epi_model.epoch.dti_to_index(common_dates_idx).astype(int))
                 self.common_idx[ind] = common_abs_idx - self.epi_model.model_times[0]
                 self.active_targets.append(ind)

@@ -1,28 +1,17 @@
-from typing import Callable, Union
+from typing import Callable
 import pandas as pd
 from jax import Array, numpy as jnp
 from numpyro import distributions as dist
 from numpyro.distributions.distribution import DistributionMeta
 
 
-Transform = Union[Callable | None]
-DispersionSpec = Union[dist.Distribution, float, str]
+Transform = Callable | None
+ParamValues = dict[str, Array | float]
 
 
 class Target:
     data: pd.Series
-    key: str
     calibration_data: Array
-
-    def set_key(self, key):
-        """
-        Called by StandardCalib, used to set the parameter name of this target
-
-        Args:
-            key: Parameter name referenced by the rest of the calibration
-                 infrastructure
-        """
-        self.key = key
 
     def set_calibration_data(self, data: Array):
         """Called by StandardCalib
@@ -33,39 +22,11 @@ class Target:
         """
         self.calibration_data = data
 
-    def loglikelihood(self, modelled: Array, parameters: dict[str, float]) -> float:
+    def loglikelihood(self, modelled: Array, parameters: ParamValues) -> float:
         raise NotImplementedError
 
 
-class TransformTarget(Target):
-    _transform: Transform
-
-    def __init__(self, data: pd.Series, transform: Transform = None):
-        self.data = data
-        self._transform = transform
-
-    def set_calibration_data(self, data):
-        self.calibration_data = self.transform(data)
-
-    def transform(self, x):
-        if self._transform is None:
-            return x
-        else:
-            return self._transform(x)
-
-
-class WeightedTransformTarget(TransformTarget):
-    def __init__(self, data: pd.Series, transform: Transform = None, weight: float = None):
-        super().__init__(data, transform)
-        self.weight = weight
-
-    def set_calibration_data(self, data):
-        super().set_calibration_data(data)
-        if self.weight is None:
-            self.weight = float(len(self.calibration_data))
-
-
-class UnivariateDispersionTarget(WeightedTransformTarget):
+class UnivariateDispersionTarget(Target):
     def __init__(
         self,
         data: pd.Series,
@@ -82,17 +43,25 @@ class UnivariateDispersionTarget(WeightedTransformTarget):
             dist: The likelihood distribution
             dispersion: Key of sampled parameter to use as dispersion
             transform: Optional function to apply to both data and input
+            weight: Total series weight; defaults to the number of observations
         """
-        super().__init__(data, transform, weight)
-
         self.data = data
         self.dist = dist
         self.dispersion = dispersion
-        self.transform_func = transform
-        self.key: str = None
-        self.calibration_data: Array = None
+        self._transform = transform
+        self.weight = weight
 
-    def loglikelihood(self, modelled, parameters):
+    def set_calibration_data(self, data: Array):
+        self.calibration_data = self.transform(data)
+        if self.weight is None:
+            self.weight = float(len(self.calibration_data))
+
+    def transform(self, x):
+        if self._transform is None:
+            return x
+        return self._transform(x)
+
+    def loglikelihood(self, modelled: Array, parameters: ParamValues) -> float:
         result = self.transform(modelled)
         dispersion = parameters[self.dispersion]
         return self.dist(result, dispersion).log_prob(self.calibration_data).mean() * self.weight
@@ -108,5 +77,5 @@ class SharedDispTarget(UnivariateDispersionTarget):
 
 
 class SharedPropTarget(UnivariateDispersionTarget):
-    def __init__(self, data, weight: float):
+    def __init__(self, data: pd.Series, weight: float):
         super().__init__(data, dist.Normal, "prop_disp", None, weight)
