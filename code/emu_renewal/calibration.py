@@ -102,14 +102,14 @@ class StandardCalib:
                 self.common_idx[ind] = common_abs_idx - self.epi_model.model_times[0]
                 self.active_targets.append(ind)
 
-        self.params = params
+        params = params
         # Compile transformed dists first to avoid memory leaks from
         # numpyro/jax buggy interaction
-        _ = [p.mean for p in self.params.values() if isinstance(p, dist.Distribution)]
+        _ = [p.mean for p in params.values() if isinstance(p, dist.Distribution)]
 
         # Separate parameters to sample vs fixed values
-        self.sampled_params = {k: v for k, v in self.params.items() if isinstance(v, dist.Distribution)}
-        self.fixed_params = {k: v for k, v in self.params.items() if not isinstance(v, dist.Distribution)}
+        self.sampled_params = {k: v for k, v in params.items() if isinstance(v, dist.Distribution)}
+        self.fixed_params = {k: v for k, v in params.items() if not isinstance(v, dist.Distribution)}
 
         self.proc_dispersion = dist.HalfNormal(PROC_DISP_SD)
 
@@ -132,10 +132,10 @@ class StandardCalib:
         The calibration process estimated parameters for each
         consecutive update to the transmission scaling process 
         in logarithmic space.
-        The prior distribution for the update for each period 
-        of was given by a normal distribution
-        centred at a value of zero to represent no change
-        from the previous value.
+        The prior for the update for each period 
+        of time relative to the previous period
+        was assigned a normal distribution
+        centred at zero, representing no change.
         The standard deviation of each normal distribution
         is provided by the (single) dispersion parameter
         of the transmission scaling process introduced above.
