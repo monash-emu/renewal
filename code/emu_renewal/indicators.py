@@ -349,7 +349,8 @@ def filter_seroprev(
     unity_filt = data["is_unity_aligned"] == "Unity-Aligned"
     n_filt = data["denominator_value"] >= SEROPREV_MIN_SIZE
     filt_data = data[country_filt & nat_filt & type_filt & unity_filt & n_filt]
-    return filt_data[[not i for i in filt_data.index.duplicated()]]
+    filt_data = filt_data.sort_values("denominator_value", ascending=False)
+    return filt_data[~filt_data.index.duplicated()]
 
 
 def pool_seroprev_totals(
@@ -768,6 +769,8 @@ def get_alpha_info(
     # Filter
     mask = (alpha_start < data.index) & (data.index < alpha_end)
     target = data[mask]["alpha_prop"]
+    if target is None or target.empty:
+        return [], {}, []
     var_start = target.index[0]
 
     # Three pieces of information needed for analysis
@@ -870,11 +873,13 @@ def get_ba2_info(
     ba2_start = datetime.strptime(BA2_PERIOD_START, CODE_DATE_FORMAT)
     ba2_end = datetime.strptime(BA2_PERIOD_END, CODE_DATE_FORMAT)
     mask = (ba2_start < data.index) & (data.index < ba2_end)
-    data = data[mask]["ba2_prop"]
-    var_start = data.index[0]
+    target = data[mask]["ba2_prop"]
+    if target is None or target.empty:
+        return [], {}, []
+    var_start = target.index[0]
 
     # Three pieces of information needed for analysis
-    return ["ba2"], {"prop_ba2": SharedPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
+    return ["ba2"], {"prop_ba2": SharedPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
 
 
 def get_ba5_info(
@@ -913,8 +918,10 @@ def get_ba5_info(
     ba5_start = datetime.strptime(BA5_PERIOD_START, CODE_DATE_FORMAT)
     ba5_end = datetime.strptime(BA5_PERIOD_END, CODE_DATE_FORMAT)
     mask = (ba5_start < data.index) & (data.index < ba5_end)
-    data = data[mask]["ba5_prop"]
-    var_start = data.index[0]
+    target = data[mask]["ba5_prop"]
+    if target is None or target.empty:
+        return [], {}, []
+    var_start = target.index[0]
 
     # Three pieces of information needed for analysis
-    return ["ba5"], {"prop_ba5": SharedPropTarget(data, weight=VAR_WEIGHT)}, [var_start]
+    return ["ba5"], {"prop_ba5": SharedPropTarget(target, weight=VAR_WEIGHT)}, [var_start]
