@@ -284,18 +284,14 @@ def get_hosp_target(
     was equal to that for each death observation.
     """
     data, output_name = get_owid_hosps(iso3, start, end)
-    if data is None:
+    if data is None or data.empty:
         return {}
-    mask = (start < data.index) & (data.index < end)
-    select_data = data.loc[mask]
-    if select_data.empty:
-        return {}
-    weight = DEATHS_WEIGHT * len(select_data) / n_deaths
-    target = SharedDispTarget(select_data, weight=weight)
+    weight = DEATHS_WEIGHT * len(data) / n_deaths
+    target = SharedDispTarget(data, weight=weight)
     return {output_name: target}
 
 
-def get_all_seroprev() -> pd.Series:
+def get_all_seroprev() -> pd.DataFrame:
     """Get all the seroprevalence data.
 
     Returns:
@@ -326,7 +322,7 @@ def get_all_seroprev() -> pd.Series:
 def filter_seroprev(
     iso3: str,
     data: pd.DataFrame,
-) -> pd.Series:
+) -> pd.DataFrame:
     """Get and filter the seroprevalence data.
 
     Args:
@@ -357,10 +353,10 @@ def filter_seroprev(
 
 
 def pool_seroprev_totals(
-    starts: datetime,
-    ends: datetime,
-    data: pd.Series,
-) -> pd.Series:
+    starts: pd.DatetimeIndex,
+    ends: pd.DatetimeIndex,
+    data: pd.DataFrame,
+) -> pd.DataFrame:
     """Pool groups of seroprevalence data that are
     decreasing over time and were identified by
     find_decreasing_groups.
@@ -390,7 +386,7 @@ def pool_seroprev_totals(
 
 
 def get_seroprev_pooled_totals(
-    data: pd.Series,
+    data: pd.DataFrame,
 ) -> pd.Series:
     """Pool any sequences of seroprevalence data
     that are decreasing over time.
@@ -428,9 +424,9 @@ def get_seroprev_target(
 
     Args:
         iso3: The country identifier
+        continent: The country's continent
         start: The calibration start time
         end: The calibration end time
-        continent: The country's continent
 
     Returns:
         The seroprevalence calibration target
@@ -484,7 +480,7 @@ def get_seroprev_target(
     some countries.
     """
     income = get_income_group(iso3)
-    if continent == "OC" or continent in "AF" and income in ["Lower middle income", "Low income"]:
+    if continent == "OC" or continent == "AF" and income in ["Lower middle income", "Low income"]:
         return {}
     seroprev = get_all_seroprev()
     seroprev = filter_seroprev(iso3, seroprev)
@@ -593,8 +589,8 @@ def extract_specific_var(
         var_name: The name of the variant of interest
 
     Returns:
-        Data for the number of pre-Alpha specimens, total specimens and
-            proportion pre-Alpha by date - where available
+        Data for the number of variant-specific specimens, total specimens and
+            proportion of variant-specific specimens by date - where available
 
     Notes
     -----
@@ -625,7 +621,7 @@ def get_continent_data(
     countries that don't have an associated continent.
 
     Args:
-        continent: The continent identifier
+        cont: The continent identifier
         var: The variant of interest
 
     Returns:
@@ -643,7 +639,7 @@ def get_continent_data(
 def get_continent_vars(
     data: Dict[str, pd.DataFrame],
     var_name: str = "prealpha",
-) -> Dict[str, pd.DataFrame]:
+) -> pd.DataFrame:
     """Get the overall variant proportions for a continent
     from the country data for that continent.
     (Recalculate the proportions because these
@@ -747,8 +743,8 @@ def get_alpha_info(
     (Specifically, the exceptions were {ALPHA_DELTA_EXCEPTS}.)
     If this date occurred after the end of the simulation,
     the Alpha calibration period continued to the end of the simulation.
-    Comparison of the log of the target estimate against
-    the log of the modelled value was undertaken using
+    Comparison of the target estimate against
+    the modelled value was undertaken using
     a normal distribution with a single dispersion parameter
     that applied to all modelled variants
     (but was independent of the time series dispersion parameter).
@@ -769,7 +765,7 @@ def get_alpha_info(
     ad_trans = ad_excepts[iso3] if iso3 in ad_excepts else ad_trans_req
     alpha_end = min([ad_trans, end_time]) if delta_targ else end_time
 
-    # Filter and ensure strictly increasing
+    # Filter
     mask = (alpha_start < data.index) & (data.index < alpha_end)
     target = data[mask]["alpha_prop"]
     var_start = target.index[0]
@@ -806,7 +802,7 @@ def get_delta_info(
     The target weight for calibration to Delta was set to {VAR_WEIGHT}
     for most countries. Exceptions were made if the target time series
     for Delta began towards the very end of the calibration (last
-    {LATE_DELTA_WEIGHT} days), in which case a higher weight
+    {LATE_DELTA_TIME} days), in which case a higher weight
     (of {LATE_DELTA_WEIGHT}) was needed to achieve a plausible
     fit to the profile of the emergence of this variant with
     fewer data points.
@@ -825,7 +821,7 @@ def get_delta_info(
     delta_start = ad_excepts[iso3] if iso3 in ad_excepts else ad_trans
     delta_end = min([delta_end_date, end_time])
 
-    # Get the data and ensure strictly increasing
+    # Get the data
     mask = (delta_start < data.index) & (data.index < delta_end)
     target = data[mask]["delta_prop"]
     if target is None or target.empty or max(target) < MIN_DELTA_PROP:
@@ -839,7 +835,7 @@ def get_delta_info(
 
 
 def get_ba2_info(
-    var_data: pd.Series,
+    var_data: pd.DataFrame,
     continent: str,
 ) -> Tuple[List[str], Dict[str, SharedPropTarget], List[datetime]]:
     """Get the required information relating
@@ -882,7 +878,7 @@ def get_ba2_info(
 
 
 def get_ba5_info(
-    var_data: pd.Series,
+    var_data: pd.DataFrame,
     continent: str,
 ) -> Tuple[List[str], Dict[str, SharedPropTarget], List[datetime]]:
     """Get the required information relating
