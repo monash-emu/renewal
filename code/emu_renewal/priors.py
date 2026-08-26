@@ -112,6 +112,7 @@ def get_standard_priors(
     with standard deviation {SHARED_DISP_SD}.
     The dispersion parameter for
     all variant incidence proportions
+    (applied on the logit scale)
     was set at {PROP_DISP}.
     The dispersion parameter for
     all seroprevalence targets

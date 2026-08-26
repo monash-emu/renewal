@@ -9,7 +9,7 @@ from emu_renewal.constants import (
     DATA_PATH,
     DEATHS_WEIGHT,
     CASES_START,
-    SEROPREV_EXTREME,
+    PROP_EXTREME,
     SEROPREV_WEIGHT,
     SEROPREV_MIN_SIZE,
     VAR_WEIGHT,
@@ -463,7 +463,7 @@ def get_seroprev_target(
     the time series indicators.
     __RETURN__
     We discarded seroprevalence estimates that fell less than
-    {SEROPREV_EXTREME}% away from a value of zero or 100%.
+    {PROP_EXTREME} away from a value of zero or one.
     We also ignored seroprevalence estimates for Oceania and Singapore,
     for which the analysis was run largely through 2022,
     during which time seroprevalence values would not reflect
@@ -490,7 +490,7 @@ def get_seroprev_target(
     data = get_seroprev_pooled_totals(seroprev)
     time_filt = (start + timedelta(SEROPREV_START_DELAY) < data.index) & (data.index < end)
     data = data[time_filt]
-    seroprev_mask = (SEROPREV_EXTREME / 1e2 < data) & (data < 1.0 - SEROPREV_EXTREME / 1e2)
+    seroprev_mask = (PROP_EXTREME < data) & (data < 1.0 - PROP_EXTREME)
     data = data[seroprev_mask]
     if data.empty:
         return {}
@@ -744,11 +744,14 @@ def get_alpha_info(
     (Specifically, the exceptions were {ALPHA_DELTA_EXCEPTS}.)
     If this date occurred after the end of the simulation,
     the Alpha calibration period continued to the end of the simulation.
-    Comparison of the target estimate against
-    the modelled value was undertaken using
+    Comparison of the logit-transformed target estimate against
+    the logit-transformed modelled value was undertaken using
     a normal distribution with a single dispersion parameter
     that applied to all modelled variants
     (but was independent of the time series dispersion parameter).
+    Proportions were clipped to the interval
+    from {PROP_EXTREME} to one minus this value
+    before the logit was applied.
     The target weight for the Alpha target was set to {VAR_WEIGHT}.
     """
 

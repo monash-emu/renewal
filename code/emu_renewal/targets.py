@@ -4,9 +4,17 @@ from jax import Array, numpy as jnp
 from numpyro import distributions as dist
 from numpyro.distributions.distribution import DistributionMeta
 
+from emu_renewal.constants import PROP_EXTREME
+
 
 Transform = Callable | None
 ParamValues = dict[str, Array | float]
+
+
+def logit(x):
+    """Logit transform, with clipping away from 0 and 1."""
+    x = jnp.clip(x, PROP_EXTREME, 1.0 - PROP_EXTREME)
+    return jnp.log(x) - jnp.log1p(-x)
 
 
 class Target:
@@ -77,5 +85,9 @@ class SharedDispTarget(UnivariateDispersionTarget):
 
 
 class SharedPropTarget(UnivariateDispersionTarget):
+    """Normal likelihood target over the logit-transformed indicator,
+    with a shared dispersion parameter.
+    """
+
     def __init__(self, data: pd.Series, weight: float):
-        super().__init__(data, dist.Normal, "prop_disp", None, weight)
+        super().__init__(data, dist.Normal, "prop_disp", logit, weight)
