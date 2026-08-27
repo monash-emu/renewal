@@ -456,7 +456,7 @@ def run_identifiability(
 
     # Calibrate
     uniform_dist = dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
-    scale_exp_dist = {} if analysis_type == "no_scaling" else {"mob_exp": uniform_dist}
+    scale_exp_dist = {} if analysis_type == "no_scaling" else {"scale_exp": uniform_dist}
     multi_calib_params = {k: v for k, v in multi_params.items() if k != "proc"}
     calibrate_params = prior_means | scalar_params | multi_calib_params | scale_exp_dist
     calibrate_params["shared_dispersion"] = prior_means["shared_dispersion"]

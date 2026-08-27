@@ -174,18 +174,11 @@ class SingleSeriesScalerProvider(ScalerProvider):
 class SingleSeriesExpScalerProvider(SingleSeriesScalerProvider):
     def __init__(self, ts_data: pd.Series, priors: PriorDict):
         """Provide a time series array to a RenewalModel, from a single series
-        that is exponentiated by a sampled value
+        that is exponentiated by a sampled value.
 
         Args:
             ts_data: The untransformed source data
             priors: Priors for the transform parameters
-
-        Notes
-        -----
-        This time series approach was used for each of the two 
-        analyses that incorporated Facebook data,
-        using both the tiles visited and the within tile
-        estimates.
         """
         self.ts_data = ts_data
         assert set(priors.keys()) == set(["scale_exp"])
@@ -203,7 +196,7 @@ class SingleSeriesExpScalerProvider(SingleSeriesScalerProvider):
 
         Returns:
             The time series values
-        
+
         Notes
         -----
         One prior value was incorporated with each of these approaches, 
@@ -215,6 +208,21 @@ class SingleSeriesExpScalerProvider(SingleSeriesScalerProvider):
 
 class SingleSeriesExpFloorScalerProvider(SingleSeriesExpScalerProvider):
     def __init__(self, ts_data: pd.Series, priors: PriorDict):
+        """Provide a time series array to a RenewalModel,
+        from a single series that is floored and then
+        exponentiated by a sampled value.
+
+        Args:
+            ts_data: The untransformed source data
+            priors: Priors for the transform parameters
+
+        Notes
+        -----
+        This time series approach was used for each of the two 
+        analyses that incorporated Facebook data,
+        using both the tiles visited and the within tile
+        estimates.
+        """
         self.ts_data = ts_data
         assert set(priors.keys()) == set(["scale_exp", "scale_floor"])
         self.priors = priors
