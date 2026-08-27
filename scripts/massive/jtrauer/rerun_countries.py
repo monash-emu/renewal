@@ -20,6 +20,6 @@ if __name__ == "__main__":
     country_path.mkdir(parents=True, exist_ok=True)
     logger = get_logger(country_path / "run.log")
     try:
-        run_single_country(iso3, mob_type, task, True, logger=logger)
+        run_single_country(iso3, mob_type, task, logger=logger)
     except ScalerException as e:
         logger.warning(e)

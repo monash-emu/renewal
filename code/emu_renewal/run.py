@@ -96,6 +96,11 @@ def get_logger(log_file: Path = None):
 
 
 class ScalerException(Exception):
+    """Raised when the requested scaler time series is unavailable.
+
+    Launch scripts catch this to skip the country/analysis rather than
+    fail the whole job. Other exceptions should propagate.
+    """
     pass
 
 
@@ -145,6 +150,17 @@ def find_run_start_time(
         return start
 
 
+def load_scaler_data(iso3: str, analysis_type: str, loader):
+    """Load a scaler series, converting missing-file / empty data into ScalerException."""
+    try:
+        scaler = loader(iso3)
+    except FileNotFoundError as e:
+        raise ScalerException(f"{analysis_type} data not available for {iso3}") from e
+    if scaler.empty:
+        raise ScalerException(f"{analysis_type} data not available for {iso3}")
+    return scaler
+
+
 def find_run_end_time(
     iso3: str,
     analysis_type: str,
@@ -172,19 +188,15 @@ def find_run_end_time(
     the applicable time series data was available was used.
     """
     cont = get_cont_of_country(iso3)
-    try:
-        if cont == "OC" and "fb_" in analysis_type:
-            scaler = get_fb_visited_mobility(iso3)
-            return scaler.index[-1].to_pydatetime()
-        elif cont == "OC" and "g_mob" in analysis_type:
-            scaler = get_google_mobility(iso3)
-            return scaler.index[-1].to_pydatetime()
-        elif cont == "OC" and "oxcgrt" in analysis_type:
-            scaler = get_oxcgrt(iso3, "custom")
-            return scaler.index[-1].to_pydatetime()
-    except Exception as e:
-        msg = f"{analysis_type} mobility not available"
-        raise ScalerException(msg)
+    if cont == "OC" and "fb_" in analysis_type:
+        scaler = load_scaler_data(iso3, analysis_type, get_fb_visited_mobility)
+        return scaler.index[-1].to_pydatetime()
+    elif cont == "OC" and "g_mob" in analysis_type:
+        scaler = load_scaler_data(iso3, analysis_type, get_google_mobility)
+        return scaler.index[-1].to_pydatetime()
+    elif cont == "OC" and "oxcgrt" in analysis_type:
+        scaler = load_scaler_data(iso3, analysis_type, lambda c: get_oxcgrt(c, "custom"))
+        return scaler.index[-1].to_pydatetime()
     vacc_data = get_country_vacc_data(iso3)
     default_end_time = datetime.strptime(DEFAULT_END_DATE, CODE_DATE_FORMAT)
     if vacc_data.empty or vacc_data.max() < END_VACC_THRESHOLD:
@@ -219,7 +231,7 @@ def get_scaler_provider(
     For all time series data sources, we smoothed the raw
     data using a {MOBILITY_SMOOTH_PERIOD}-day centred
     rolling average.
-    For all analyses incorporating mobility scaling,
+    For all analyses incorporating scaling,
     we used an exponential scaling parameter
     (described in more detail below) which
     was assigned a uniform prior over domain
@@ -230,13 +242,15 @@ def get_scaler_provider(
     if analysis_type in ["no_scaling", "fb_no_mob"]:
         return scaling.NoScalerProvider()
     elif analysis_type == "g_mob":
-        scaler = get_google_mobility(iso3)
+        scaler = load_scaler_data(iso3, analysis_type, get_google_mobility)
     elif analysis_type == "fb_visited_mob":
-        scaler = get_fb_visited_mobility(iso3)
+        scaler = load_scaler_data(iso3, analysis_type, get_fb_visited_mobility)
     elif analysis_type == "fb_singletile_mob":
-        scaler = get_fb_singletile_mobility(iso3)
+        scaler = load_scaler_data(iso3, analysis_type, get_fb_singletile_mobility)
     elif analysis_type == "oxcgrt":
-        scaler = get_oxcgrt(iso3, "custom")
+        scaler = load_scaler_data(iso3, analysis_type, lambda c: get_oxcgrt(c, "custom"))
+    else:
+        raise ValueError(f"No provider available for analysis type {analysis_type}")
     smoothed_scaler = scaler.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
     # Priors
@@ -249,8 +263,6 @@ def get_scaler_provider(
         return scaling.WeightedFloorScalerProvider(smoothed_scaler, priors)
     elif analysis_type in ["fb_visited_mob", "fb_singletile_mob"]:
         return scaling.SingleSeriesExpFloorScalerProvider(smoothed_scaler, exp_prior | floor_prior)
-    else:
-        raise Exception(f"No provider available for analysis type {analysis_type}")
 
 
 def run_calibration(
@@ -306,8 +318,8 @@ def run_single_country(
         logger: The logging object
 
     Raises:
-        ScalerException: Error if unable to get the time series
-            provider (assuming this is because data is unavailable)
+        ScalerException: If the time series for this analysis type is unavailable
+        ValueError: If analysis_type has no matching scaler provider
 
     Notes
     -----
@@ -364,11 +376,7 @@ def run_single_country(
     var_targs = alpha_targ | delta_targ | ba2_targ | ba5_targ
 
     # Scaling
-    try:
-        scaler_provider = get_scaler_provider(iso3, analysis_type)
-    except Exception as e:
-        msg = f"{analysis_type} data not available"
-        raise ScalerException(msg)
+    scaler_provider = get_scaler_provider(iso3, analysis_type)
     if scaler_provider.ts_end:
         end_time = min([end_time, scaler_provider.ts_end])
 
