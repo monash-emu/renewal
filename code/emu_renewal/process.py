@@ -29,7 +29,7 @@ def _get_cos_curve_at_x(
     with a gradient of zero at both of these points.
     This choice of fitting approach ensured that
     the residual transmission scaling function, its derivative
-    and its higher order derivatives are continuous.
+    are continuous.
     """
     idx = sinterp.binary_search_sum_ge(x, x_data.points) - 1
     offset = x - x_data.points[idx]
@@ -38,22 +38,8 @@ def _get_cos_curve_at_x(
     return y_data.points[idx] + (rely * y_data.ranges[idx])
 
 
-class MultiCurve:
-    """Abstract class for fitting a curve to a series of data."""
-
-    def get_multicurve(self):
-        pass
-
-    def get_description(self):
-        pass
-
-
-class CosineMultiCurve(MultiCurve):
+class CosineMultiCurve:
     """Fit a cosine-based curve to a series of data.
-    See get_description below for details.
-
-    Args:
-        MultiCurve: Abstract parent class
     """
 
     def get_multicurve(
@@ -61,7 +47,7 @@ class CosineMultiCurve(MultiCurve):
         t: float,
         x_data: InterpolatorScaleData,
         y_data: InterpolatorScaleData,
-    ) -> callable:
+    ) -> float:
         """Construct a half-cosine-based multi-curve.
 
         Args:
@@ -70,7 +56,7 @@ class CosineMultiCurve(MultiCurve):
             y_data: Values of dependent variable
 
         Returns:
-            Curve fitting function
+            The interpolated value
         """
         # Branch on whether t is in bounds
         bounds_state = sum(t > x_data.bounds)

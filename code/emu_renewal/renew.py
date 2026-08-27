@@ -17,7 +17,8 @@ from emu_renewal.constants import (
     CONV_TRUNC_POINT,
     DAYS_IN_WEEK,
 )
-from emu_renewal.process import sinterp, CosineMultiCurve
+from summer2.functions import interpolate as sinterp
+from emu_renewal.process import CosineMultiCurve
 from emu_renewal.utils import get_col_increases, get_reset_array_from_increases
 from emu_renewal.scaling import ScalerProvider
 from emu_renewal.distributions import GammaDens
