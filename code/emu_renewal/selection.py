@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import pandas as pd
 from os import listdir as ls
 from datetime import datetime
@@ -10,9 +10,9 @@ from emu_renewal.constants import (
     DATA_QUALITY_START_TIME_OC,
     CODE_DATE_FORMAT,
     VARIATION_THRESHOLD,
+    DATA_PATH,
 )
 from emu_renewal.document import get_exp_val_from_string
-from emu_renewal.constants import DATA_PATH
 from emu_renewal.inputs import get_oxcgrt_data
 from emu_renewal.indicators import get_who_indicator
 from emu_renewal.outputs import add_bool_row_to_table
@@ -20,7 +20,7 @@ from emu_renewal.run import find_run_end_time
 from emu_renewal.utils import count_repeat_nans, get_cont_of_country
 
 
-def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
+def get_mob_avail_countries() -> List:
     """Find the countries for which either
     Google or Facebook mobility is available.
 
@@ -34,7 +34,7 @@ def get_mob_avail_countries() -> Tuple[List[str], pd.DataFrame]:
 
 def gather_who_data(
     countries: List[str],
-) -> Tuple[pd.Series]:
+) -> Tuple[Dict[str, pd.Series]]:
     """Get the two main WHO indicators for a set of countries.
 
     Args:
@@ -66,12 +66,12 @@ def gather_who_data(
 
         # Get deaths and cases data
         deaths = get_who_indicator("New_deaths", c)
-        filter = (start < deaths.index) & (deaths.index < end_time)
-        death_data[c] = deaths[filter]
+        mask = (start < deaths.index) & (deaths.index < end_time)
+        death_data[c] = deaths[mask]
 
         cases = get_who_indicator("New_cases", c)
-        filter = (start < cases.index) & (cases.index < end_time)
-        case_data[c] = cases[filter]
+        mask = (start < cases.index) & (cases.index < end_time)
+        case_data[c] = cases[mask]
 
     return death_data, case_data
 
@@ -86,7 +86,7 @@ def find_absent_inds(
 
     Args:
         deaths, cases: Output of gather_who_data
-        summary: Second output of get_mob_avail_countries
+        summary: Summary table of exclusions
 
     Returns:
         - The countries with no reported deaths
@@ -115,7 +115,7 @@ def find_neg_inds(
 
     Args:
         deaths, cases: Output of gather_who_data
-        summary: Second output of get_mob_avail_countries
+        summary: Summary table of exclusions
 
     Returns:
         - The countries with negative death values
@@ -142,7 +142,7 @@ def find_outliers(
 
     Args:
         deaths, cases: Outputs of gather_who_data
-        summary: Second output of get_mob_avail_countries
+        summary: Summary table of exclusions
 
     Returns:
         - The countries with outlier death values
@@ -165,12 +165,12 @@ def find_nans_repeats(
     cases: pd.Series,
     summary: pd.DataFrame,
 ) -> Tuple[List[str]]:
-    """Find the countries to excluded based on
+    """Find the countries to exclude based on
     consecutive NaN or repeated values.
 
     Args:
         deaths, cases: Output of gather_who_data
-        summary: Second output of get_mob_avail_countries
+        summary: Summary table of exclusions
 
     Returns:
         The countries with too many consecutive NaNs for deaths
@@ -243,19 +243,3 @@ def has_outlier(
         return second == 0.0 or largest / second > threshold
     else:
         return False
-
-
-def find_pol_countries(
-    countries: List[str],
-) -> List[str]:
-    """Filter a list of countries according to whether
-    OxCGRT data exists for them.
-
-    Args:
-        countries: The countries to consider
-
-    Returns:
-        The countries with data
-    """
-    data = get_oxcgrt_data()
-    return [iso3 for iso3 in countries if any(data["CountryCode"] == iso3)]
