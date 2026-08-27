@@ -1,10 +1,10 @@
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 import pandas as pd
 import geopandas as gpd
 import arviz as az
 import pycountry
-from typing import Tuple, List, Dict
+from typing import Tuple, List
 import re
 
 from emu_renewal.constants import (
@@ -45,7 +45,7 @@ def get_country_pop(
     """
     try:
         return get_worldbank_national_pop(iso3)
-    except:
+    except Exception:
         return get_undesa_national_pop(iso3)
 
 
@@ -182,34 +182,6 @@ def get_google_mobility(
     return 1.0 + g_mob / 100.0
 
 
-def get_cont_g_mob(
-    countries: List[str],
-) -> Dict[str, pd.DataFrame]:
-    """Collate the Google mobility data
-    for a list of countries.
-
-    Args:
-        countries: The country identifiers
-
-    Returns:
-        The mobility data
-    """
-    mob = {}
-    no_mob_countries = []
-    for iso3 in countries:
-        try:
-            c_mob = get_google_mobility(iso3)
-            # Don't include country (Guinea-Bissau) with locations missing
-            if c_mob.isnull().all().any():
-                no_mob_countries.append(iso3)
-            else:
-                mob[iso3] = c_mob
-        except FileNotFoundError:
-            no_mob_countries.append(iso3)
-
-    return mob, no_mob_countries
-
-
 def get_fb_visited_mobility(
     iso3,
 ) -> pd.Series:
@@ -261,7 +233,7 @@ def get_fb_singletile_mobility(
 def get_oxcgrt(
     iso3: str,
     field: str,
-) -> pd.Series:
+) -> pd.DataFrame:
     """Get a set of fields for a single country
     from the Oxford CGRT database
     based on the OXCGRT_COLMAP dictionary.
@@ -271,7 +243,7 @@ def get_oxcgrt(
         field: The key for the set of fields
 
     Returns:
-        The reciprocals of the data values
+        The complements of the data values
     """
     data = get_oxcgrt_data()
     pol = find_oxcgrt_country_data(iso3, data)
@@ -281,27 +253,26 @@ def get_oxcgrt(
     return 1.0 - pol_vals
 
 
-def get_requested_mob(
+def get_requested_scaler(
     iso3: str,
-    mob_source: str,
-    mob_location: str,
+    analysis_type: str,
+    field: str,
 ) -> pd.DataFrame:
-    """Get the mobility data based on the type
-    source and type of data being requested.
+    """Get the time series data based on the analysis type requested.
 
     Args:
         iso3: The country identifier
-        mob_source: The source, either Google or a Facebook type
-        mob_location: The Google location
+        analysis_type: The source, currently either Google or Facebook
+        field: The time series location
 
     Returns:
         The mobility data
     """
-    if mob_source == "g_mob":
-        return get_google_mobility(iso3)[mob_location]
-    elif mob_source == "fb_visited_mob":
+    if analysis_type == "g_mob":
+        return get_google_mobility(iso3)[field]
+    elif analysis_type == "fb_visited_mob":
         return get_fb_visited_mobility(iso3)
-    elif mob_source == "fb_singletile_mob":
+    elif analysis_type == "fb_singletile_mob":
         return get_fb_singletile_mobility(iso3)
 
 
@@ -335,7 +306,7 @@ def get_country_vacc_data(
     elif iso3 in sub_deu:
         country = pycountry.countries.lookup("DEU").name
     elif iso3 == pycountry.countries.lookup(SUB_GBR_COUNTRY).alpha_3:
-        country = "GBR"
+        country = pycountry.countries.lookup("GBR").name
     else:
         country = get_country_name(iso3)
     filename = "owid/share-of-people-who-completed-the-initial-covid-19-vaccination-protocol.csv"
@@ -451,8 +422,8 @@ def get_smoothed_trunc_scale_ts(
     Returns:
         The data
     """
-    mob = get_google_mobility(iso3) if mob_type == "g_mob" else get_oxcgrt(iso3, "custom")
-    smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
+    data = get_google_mobility(iso3) if mob_type == "g_mob" else get_oxcgrt(iso3, "custom")
+    smoothed_mob = data.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
     return smoothed_mob[(start < smoothed_mob.index) & (smoothed_mob.index < finish)]
 
 
@@ -516,8 +487,8 @@ def get_oxcgrt_data() -> pd.DataFrame:
     Returns:
         The processed policy data
     """
-    mob = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
-    mob.index = pd.to_datetime(mob["Date"], format="%Y%m%d")
+    data = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
+    data.index = pd.to_datetime(data["Date"], format="%Y%m%d")
     drop_strings = [
         "Index",
         "Vaccinated",
@@ -530,10 +501,10 @@ def get_oxcgrt_data() -> pd.DataFrame:
         "Jurisdiction",
         "Flag",
     ]
-    cols_to_keep = [col for col in mob.columns if not any(s in col for s in drop_strings)]
-    mob = mob[cols_to_keep]
-    mob.columns = [col.split("_")[0] for col in mob.columns]
-    return mob
+    cols_to_keep = [col for col in data.columns if not any(s in col for s in drop_strings)]
+    data = data[cols_to_keep]
+    data.columns = [col.split("_")[0] for col in data.columns]
+    return data
 
 
 def find_oxcgrt_country_data(
@@ -552,39 +523,6 @@ def find_oxcgrt_country_data(
     """
     data = data[data["CountryCode"] == iso3]
     return data.drop("CountryCode", axis=1)
-
-
-def get_oxcgrt_country_indicators(
-    iso3: str,
-) -> pd.DataFrame:
-    """Get and process the OXCGRT policy data.
-
-    Args:
-        iso3: Country identifier
-
-    Returns:
-        The processed policy data
-    """
-    mob = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
-    mob.index = pd.to_datetime(mob["Date"], format="%Y%m%d")
-    mob = mob[mob["CountryCode"] == iso3]
-    # Note we can only drop region because this is assumed to be the national data
-    drop_strings = [
-        "Index",
-        "Vaccinated",
-        "Confirmed",
-        "Notes",
-        "Unnamed",
-        "Date",
-        "Region",
-        "Country",
-        "Jurisdiction",
-        "Flag",
-    ]
-    cols_to_keep = [col for col in mob.columns if not any(s in col for s in drop_strings)]
-    mob = mob[cols_to_keep]
-    mob.columns = [col.split("_")[0] for col in mob.columns]
-    return mob
 
 
 def get_rel_oxcgrt_cols(
@@ -634,13 +572,15 @@ def scale_oxcgrt_pols(
 
 
 def store_oxcgrt_data():
+    restrictions_path = DATA_PATH / "restrictions"
+    restrictions_path.mkdir(exist_ok=True)
+    file_path = restrictions_path / "oxcgrt.csv"
+    if file_path.exists():
+        return
+
     sheets = []
     for year in range(2020, 2023):
         url = f"https://github.com/OxCGRT/covid-policy-dataset/raw/refs/heads/main/data/OxCGRT_fullwithnotes_national_{year}_v1.csv"
         sheets.append(pd.read_csv(url, dtype=OXCGRT_DTYPES))
     data = pd.concat(sheets)
-    restrictions_path = DATA_PATH / "restrictions"
-    restrictions_path.mkdir(exist_ok=True)
-    file_path = restrictions_path / "oxcgrt.csv"
-    if not file_path.exists():
-        data.to_csv(file_path)
+    data.to_csv(file_path)

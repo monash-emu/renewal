@@ -11,7 +11,7 @@ from pathlib import Path
 from xarray import Dataset, DataArray
 from typing import Optional
 
-from emu_renewal.inputs import DATA_PATH, RAW_MOB_PATH
+from emu_renewal.constants import DATA_PATH, RAW_MOB_PATH
 
 # Stop GeoPandas warning about area intersection calculations
 import warnings
@@ -78,7 +78,6 @@ def raster_to_polydf(
                 out_data[valid_idx] = cell_data
                 valid_idx += 1
 
-    data = data.flatten()
     return gp.GeoDataFrame({data_name: out_data}, geometry=geoms)
 
 
@@ -87,7 +86,7 @@ def retag_poly_revision(poly_id, new_rev=1):
     return f"{parts[0]}_{new_rev}"
 
 
-def retag_gidcol(poly_df, gadm_level, revision=1) -> gp.GeoDataFrame:
+def retag_gidcol(poly_df, gadm_level) -> gp.GeoDataFrame:
     pdf = poly_df.copy()
     gid_col = f"GID_{gadm_level}"
     pdf[gid_col] = [retag_poly_revision(pid) for pid in pdf[gid_col]]
@@ -137,6 +136,15 @@ def polydf_from_gadm(iso3: str, gadm_level: int, force_rev: int = 1):
     return poly_df
 
 
+def gadm_pop_json_path(iso3: str, gadm_level: int | None) -> Path:
+    """Population-estimate cache path. USA uses FIPS counties, not GADM, so the
+    filename has no level suffix.
+    """
+    if iso3 == "USA":
+        return DATA_PATH / "population/gadm_est/USA.json"
+    return DATA_PATH / f"population/gadm_est/{iso3}_{gadm_level}.json"
+
+
 def population_from_gadm(
     iso3: str,
     gadm_level: int,
@@ -151,11 +159,7 @@ def population_from_gadm(
     if poly_ids is None:
         poly_ids = []
 
-    # Use cached json if available;
-    if iso3 == "USA":
-        json_pop_path = DATA_PATH / f"population/gadm_est/{iso3}.json"
-    else:
-        json_pop_path = DATA_PATH / f"population/gadm_est/{iso3}_{gadm_level}.json"
+    json_pop_path = gadm_pop_json_path(iso3, gadm_level)
     if json_pop_path.exists() and not force_rebuild:
         logger.info(f"Loading existing population from {json_pop_path}")
         return json.load(open(json_pop_path, "r"))
@@ -167,13 +171,6 @@ def population_from_gadm(
     # https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_{iso3}_{gadm_level}.json.zip
     # Download the appropriate GADM boundaries json (or use cached if it exists)
     poly_df = polydf_from_gadm(iso3, gadm_level)
-
-    # source = f"https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_{iso3}_{gadm_level}.json.zip"
-    # dest = DATA_PATH / f"population/gadm_input_json/gadm41_{iso3}_{gadm_level}.json.zip"
-    # if not dest.exists():
-    #     urllib.request.urlretrieve(source, dest)
-
-    # poly_df = gp.read_file(dest)
 
     if process_gadm_func is not None:
         poly_df = process_gadm_func(poly_df)
@@ -230,7 +227,7 @@ def population_from_gadm(
             logger.info(f"{poly_id} has population of {round(pop_val / 1e3)} thousand")
 
     if write_json:
-        json.dump(pop_dict, open(DATA_PATH / f"population/gadm_est/{iso3}_{gadm_level}.json", "w"))
+        json.dump(pop_dict, open(json_pop_path, "w"))
 
     return pop_dict
 
@@ -241,17 +238,15 @@ def mobility_from_population(
     gadm_level: int,
     country_pop_data: dict[str, float],
     data_col: str = "all_day_bing_tiles_visited_relative_change",
-) -> pd.DataFrame:
+) -> pd.Series:
     # Calculate weighted average over patches
     country_mob_series = pd.Series(0.0, index=country_mobility["ds"].unique(), dtype=float)
     total_pop = 0.0
-    regional_df = pd.DataFrame(index=country_mobility["ds"].unique(), dtype=float)
     for pid in country_pop_data:
         if pid in country_mobility["polygon_id"]:
             cur_data = country_mobility.filter(pl.col("polygon_id") == pid)
             mob_series = pd.Series(index=cur_data["ds"].unique(), data=cur_data[data_col]).dropna()
             region_pop = country_pop_data[pid]
-            regional_df[pid] = mob_series
             country_mob_series += (
                 mob_series.reindex(country_mob_series.index, method="nearest") * region_pop
             )
@@ -259,7 +254,7 @@ def mobility_from_population(
         else:
             logger.warn(f"PID {pid} not contained in Facebook data for {iso3}/{gadm_level}")
     weighted_country_mob = country_mob_series / total_pop
-    return regional_df, weighted_country_mob
+    return weighted_country_mob
 
 
 def infer_gadm_level(country_mobility):
@@ -373,7 +368,7 @@ class FacebookMobilityBuilder:
         else:
             data_col = "all_day_bing_tiles_visited_relative_change"
 
-        regional_df, weighted_country_mob = mobility_from_population(
+        weighted_country_mob = mobility_from_population(
             country_mobility, iso3, gadm_level, pop_dict, data_col
         )
 

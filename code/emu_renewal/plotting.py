@@ -48,7 +48,7 @@ from emu_renewal.constants import (
 )
 from emu_renewal.inputs import (
     DATA_PATH,
-    get_requested_mob,
+    get_requested_scaler,
     get_gdps,
     get_country_pop,
     get_world_shp,
@@ -665,7 +665,7 @@ def compare_proc_mob(
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
 
         # Mobility
-        mob = get_requested_mob(iso3, mob_source, mob_location)
+        mob = get_requested_scaler(iso3, mob_source, mob_location)
         mobility = mob.loc[(centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])]
         if mobility.isna().sum() / len(mobility) > 0.5:
             mob_name = MOB_LOCATION_NAME_MAP[mob_location]
@@ -874,7 +874,7 @@ def plot_select_proc_mob(
                 )
 
             else:
-                mob = get_requested_mob(iso3, mob_source, mob_location)
+                mob = get_requested_scaler(iso3, mob_source, mob_location)
                 mobility = mob.loc[
                     (centiles.index[0] < mob.index) & (mob.index < centiles.index[-1])
                 ]

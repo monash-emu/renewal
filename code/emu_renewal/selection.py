@@ -12,7 +12,8 @@ from emu_renewal.constants import (
     VARIATION_THRESHOLD,
 )
 from emu_renewal.document import get_exp_val_from_string
-from emu_renewal.inputs import DATA_PATH, get_oxcgrt_data
+from emu_renewal.constants import DATA_PATH
+from emu_renewal.inputs import get_oxcgrt_data
 from emu_renewal.indicators import get_who_indicator
 from emu_renewal.outputs import add_bool_row_to_table
 from emu_renewal.run import find_run_end_time

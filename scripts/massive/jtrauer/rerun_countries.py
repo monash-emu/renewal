@@ -1,8 +1,7 @@
 import json
 import sys
 
-from emu_renewal.inputs import DATA_PATH
-from emu_renewal.constants import BASE_PATH
+from emu_renewal.constants import BASE_PATH, DATA_PATH
 from emu_renewal.run import (
     run_single_country,
     get_logger,
