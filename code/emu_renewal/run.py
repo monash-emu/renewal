@@ -28,6 +28,7 @@ from emu_renewal.constants import (
     N_ITERS,
     RUN_DATA_DELAY,
     N_CHAINS,
+    ANALYSIS_TYPES,
 )
 from emu_renewal.inputs import (
     get_country_vacc_data,
@@ -57,6 +58,23 @@ from emu_renewal.indicators import (
 )
 from emu_renewal.targets import Target, SharedDispTarget
 from emu_renewal.utils import get_cont_of_country, to_iso3
+
+
+def is_fb_visited_avail(iso3: str) -> bool:
+    """Whether visited-tile Facebook mobility is available for this country."""
+    return (DATA_PATH / "mobility" / f"{iso3}_fbmob_data.csv").exists()
+
+
+def get_analyses_for_country(iso3: str) -> list[str]:
+    """Find the analysis types to launch for the specified country.
+
+    Facebook no-scaling is only included for Oceania (including Singapore)
+    when visited Facebook mobility data is available, so the residual
+    process can be compared over a matched Facebook time window.
+    """
+    analyses = ANALYSIS_TYPES.copy()
+    avail = get_cont_of_country(iso3) == "OC" and is_fb_visited_avail(iso3)
+    return analyses + ["fb_no_mob"] if avail else analyses
 
 
 def get_logger(log_file: Path = None):

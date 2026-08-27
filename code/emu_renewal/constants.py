@@ -1,5 +1,4 @@
 from pathlib import Path
-import seaborn as sns
 
 # Date formats
 DATE_FORMAT = "%Y%m%d_%H%M"
@@ -13,14 +12,6 @@ DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
 # Analysis types
-ANALYSIS_TYPES = [
-    "no_mob",
-    "g_mob",
-    "fb_no_mob",
-    "fb_visited_mob",
-    "fb_singletile_mob",
-    "oxcgrt",
-]
 ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_visited_mob", "fb_singletile_mob", "oxcgrt"]
 
 # Dates
@@ -64,7 +55,6 @@ ASSUMED_HIGH_INCOME = "French Guiana, Martinique"
 ZERO_IND_REPLACEMENT = 0.5
 OUTLIER_THRESHOLD = 2
 N_REPEATS = 15
-ROUND_THRESHOLD = 1e-10
 SEVERITY_ADJS = (
     "Low income: 0.4, Lower middle income: 0.6, Upper middle income: 0.8, High income: 1.0"
 )
@@ -243,11 +233,6 @@ MOB_LOCATION_NAME_MAP = {
     "fb_visited_mob": "Facebook tiles visited",
     "fb_singletile_mob": "Facebook single tile",
 } | OXCGRT_LOCS
-MOB_SOURCE_MAP = {
-    "g_mob": "Google",
-    "fb_visited_mob": "Facebook tiles visited",
-    "fb_singletile_mob": "Facebook single tile",
-}
 G_MOB_LOCATION_CMAP = {
     "retail_and_recreation": "darkgoldenrod",
     "grocery_and_pharmacy": "teal",
@@ -256,13 +241,6 @@ G_MOB_LOCATION_CMAP = {
     "workplaces": "purple",
     "residential": "brown",
 }
-# C8 is named in OXCGRT_LOCS but is not a custom-analysis weight.
-_OXCGRT_CMAP_KEYS = [k for k in OXCGRT_LOCS if k != "C8"]
-light_palette = sns.husl_palette(len(_OXCGRT_CMAP_KEYS), s=0.55, l=0.72).as_hex()
-line_palette = sns.husl_palette(len(_OXCGRT_CMAP_KEYS), s=1.0, l=0.35).as_hex()
-OXCGRT_LOCATION_CMAP = dict(zip(_OXCGRT_CMAP_KEYS, light_palette))
-OXCGRT_LOCATION_LINE_CMAP = dict(zip(_OXCGRT_CMAP_KEYS, line_palette))
-
 CONT_CMAP = {
     "AF": "black",
     "AS": "yellow",

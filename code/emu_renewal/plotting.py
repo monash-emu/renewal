@@ -27,7 +27,6 @@ import matplotlib as mpl
 import matplotlib.colors as mcolors
 from matplotlib.patches import Patch
 
-from emu_renewal.outputs import run_for_spaghetti, get_spagh_df_from_dict
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.constants import (
     ANALYSIS_TYPES,
@@ -42,16 +41,13 @@ from emu_renewal.constants import (
     INCLUSION_COLOURS,
     MOB_LOCATION_NAME_MAP,
     G_MOB_LOCATION_CMAP,
-    OXCGRT_LOCATION_LINE_CMAP,
     MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
     OXCGRT_COLMAP,
-    OXCGRT_LOCATION_CMAP,
     OXCGRT_LOCS,
 )
 from emu_renewal.inputs import (
     DATA_PATH,
-    get_google_mobility,
     get_requested_mob,
     get_gdps,
     get_country_pop,
@@ -82,6 +78,10 @@ from emu_renewal.utils import (
 
 plt.style.use("ggplot")
 MM = 1.0 / 25.4
+light_palette = sns.husl_palette(len(OXCGRT_COLMAP["custom"]), s=0.55, l=0.72).as_hex()
+line_palette = sns.husl_palette(len(OXCGRT_COLMAP["custom"]), s=1.0, l=0.35).as_hex()
+OXCGRT_LOCATION_CMAP = dict(zip(OXCGRT_COLMAP["custom"], light_palette))
+OXCGRT_LOCATION_LINE_CMAP = dict(zip(OXCGRT_COLMAP["custom"], line_palette))
 
 
 def get_standard_subplot(

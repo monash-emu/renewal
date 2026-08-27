@@ -18,7 +18,6 @@ from emu_renewal.constants import (
     G_MOB_LOCATION_CMAP,
     MOBILITY_SMOOTH_PERIOD,
     OXCGRT_DTYPES,
-    OXCGRT_LOCATION_CMAP,
     OXCGRT_IND_MAX,
     OXCGRT_COLMAP,
 )
@@ -335,7 +334,7 @@ def get_country_vacc_data(
         country = pycountry.countries.lookup(iso3).common_name
     elif iso3 in sub_deu:
         country = pycountry.countries.lookup("DEU").name
-    elif iso3 == SUB_GBR_COUNTRY:
+    elif iso3 == pycountry.countries.lookup(SUB_GBR_COUNTRY).alpha_3:
         country = "GBR"
     else:
         country = get_country_name(iso3)
@@ -473,7 +472,7 @@ def get_weight_posts(
     """
     idata = az.from_netcdf(a_path / "idata_filtered.nc")
     params = idata.posterior["ts_weights"].to_dataframe().unstack(level=-1)
-    params.columns = G_MOB_LOCATION_CMAP if analysis_type == "g_mob" else OXCGRT_LOCATION_CMAP
+    params.columns = G_MOB_LOCATION_CMAP if analysis_type == "g_mob" else OXCGRT_COLMAP["custom"]
     return params
 
 

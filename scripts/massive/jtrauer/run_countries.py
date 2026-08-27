@@ -2,12 +2,13 @@ import json
 import sys
 
 from emu_renewal.inputs import DATA_PATH
-from emu_renewal.constants import BASE_PATH, ANALYSIS_TYPES
+from emu_renewal.constants import BASE_PATH
 from emu_renewal.run import (
     run_single_country,
     get_logger,
     jax_config_cpu_only,
     MobilityException,
+    get_analyses_for_country,
 )
 
 
@@ -20,7 +21,7 @@ if __name__ == "__main__":
     country_path = BASE_PATH / "outputs" / task / iso3
     country_path.mkdir(parents=True, exist_ok=True)
     logger = get_logger(country_path / "run.log")
-    for mob_type in ANALYSIS_TYPES:
+    for mob_type in get_analyses_for_country(iso3):
         try:
             run_single_country(iso3, mob_type, task, True, logger=logger)
         except MobilityException as e:
