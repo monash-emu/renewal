@@ -95,7 +95,7 @@ def get_logger(log_file: Path = None):
     return root_logger
 
 
-class MobilityException(Exception):
+class ScalerException(Exception):
     pass
 
 
@@ -147,13 +147,13 @@ def find_run_start_time(
 
 def find_run_end_time(
     iso3: str,
-    mob_source: str,
+    analysis_type: str,
 ) -> datetime:
     """Find the end time for the analysis.
 
     Args:
         iso3: The country identifier
-        mob_source: The mobility approach
+        analysis_type: The analysis approach
 
     Returns:
         The date at which to end the analysis period
@@ -173,18 +173,18 @@ def find_run_end_time(
     """
     cont = get_cont_of_country(iso3)
     try:
-        if cont == "OC" and "fb_" in mob_source:
-            mob = get_fb_visited_mobility(iso3)
-            return mob.index[-1].to_pydatetime()
-        elif cont == "OC" and "g_mob" in mob_source:
-            mob = get_google_mobility(iso3)
-            return mob.index[-1].to_pydatetime()
-        elif cont == "OC" and "oxcgrt" in mob_source:
-            mob = get_oxcgrt(iso3, "custom")
-            return mob.index[-1].to_pydatetime()
+        if cont == "OC" and "fb_" in analysis_type:
+            scaler = get_fb_visited_mobility(iso3)
+            return scaler.index[-1].to_pydatetime()
+        elif cont == "OC" and "g_mob" in analysis_type:
+            scaler = get_google_mobility(iso3)
+            return scaler.index[-1].to_pydatetime()
+        elif cont == "OC" and "oxcgrt" in analysis_type:
+            scaler = get_oxcgrt(iso3, "custom")
+            return scaler.index[-1].to_pydatetime()
     except Exception as e:
-        msg = f"{mob_source} mobility not available"
-        raise MobilityException(msg)
+        msg = f"{analysis_type} mobility not available"
+        raise ScalerException(msg)
     vacc_data = get_country_vacc_data(iso3)
     default_end_time = datetime.strptime(DEFAULT_END_DATE, CODE_DATE_FORMAT)
     if vacc_data.empty or vacc_data.max() < END_VACC_THRESHOLD:
@@ -193,15 +193,15 @@ def find_run_end_time(
         return min([default_end_time, vacc_data[vacc_data.gt(END_VACC_THRESHOLD)].idxmin()])
 
 
-def get_mobility_provider(
+def get_scaler_provider(
     iso3: str,
-    mob_source: str,
+    analysis_type: str,
 ) -> scaling.ScalerProvider:
-    """Get the appropriate mobility provider object.
+    """Get the appropriate scaler provider object.
 
     Args:
         iso3: Country identifier
-        mob_source: Mobility approach
+        analysis_type: The analysis approach
 
     Returns:
         The scaling provider
@@ -216,13 +216,7 @@ def get_mobility_provider(
     We also ran two analyses in which Facebook mobility
     was used to scale the transmission rate,
     if mobility data was available from Facebook.
-    Although Apple mobility data was available
-    and we were able to run analyses using this
-    data source, Apple's terms of use indicate
-    that this source of data cannot be used for this purpose.
-    We contacted Apple, who declined to allow
-    their data to be used for this project.
-    For all mobility sources, we smoothed the raw
+    For all time series data sources, we smoothed the raw
     data using a {MOBILITY_SMOOTH_PERIOD}-day centred
     rolling average.
     For all analyses incorporating mobility scaling,
@@ -233,38 +227,37 @@ def get_mobility_provider(
     """
 
     # Data processing
-    if mob_source in ["no_scaling", "fb_no_mob"]:
+    if analysis_type in ["no_scaling", "fb_no_mob"]:
         return scaling.NoScalerProvider()
-    elif mob_source == "g_mob":
-        mob = get_google_mobility(iso3)
-    elif mob_source == "fb_visited_mob":
-        mob = get_fb_visited_mobility(iso3)
-    elif mob_source == "fb_singletile_mob":
-        mob = get_fb_singletile_mobility(iso3)
-    elif mob_source == "oxcgrt":
-        mob = get_oxcgrt(iso3, "custom")
-    smoothed_mob = mob.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
+    elif analysis_type == "g_mob":
+        scaler = get_google_mobility(iso3)
+    elif analysis_type == "fb_visited_mob":
+        scaler = get_fb_visited_mobility(iso3)
+    elif analysis_type == "fb_singletile_mob":
+        scaler = get_fb_singletile_mobility(iso3)
+    elif analysis_type == "oxcgrt":
+        scaler = get_oxcgrt(iso3, "custom")
+    smoothed_scaler = scaler.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
     # Priors
     exp_prior = {"scale_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
     floor_prior = {"scale_floor": dist.Beta(1.0, 1.0)}
-    if mob_source in ["g_mob", "oxcgrt"]:
-        n_domains = len(mob.columns)
+    if analysis_type in ["g_mob", "oxcgrt"]:
+        n_domains = len(scaler.columns)
         weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
         priors = weight_prior | exp_prior | floor_prior
-        return scaling.WeightedFloorScalerProvider(smoothed_mob, priors)
-    elif mob_source in ["fb_visited_mob", "fb_singletile_mob"]:
-        return scaling.SingleSeriesExpFloorScalerProvider(smoothed_mob, exp_prior | floor_prior)
+        return scaling.WeightedFloorScalerProvider(smoothed_scaler, priors)
+    elif analysis_type in ["fb_visited_mob", "fb_singletile_mob"]:
+        return scaling.SingleSeriesExpFloorScalerProvider(smoothed_scaler, exp_prior | floor_prior)
     else:
-        raise Exception(f"No provider available for analysis type {mob_source}")
+        raise Exception(f"No provider available for analysis type {analysis_type}")
 
 
 def run_calibration(
     model: MultiStrainModel,
     priors: Dict[str, dist.Distribution],
     targets: Dict[str, Target],
-    prog_bar: bool,
-    n_iters: int,
+    prog_bar: bool=True,
 ) -> Tuple[StandardCalib, infer.MCMC]:
     """Run a calibration using a standard approach.
 
@@ -290,7 +283,7 @@ def run_calibration(
     calib = StandardCalib(model, priors, targets)
     kernel = infer.NUTS(calib.calibration, dense_mass=True, init_strategy=calib.init_strategy)
     mcmc = infer.MCMC(
-        kernel, num_chains=N_CHAINS, num_samples=n_iters, num_warmup=n_iters, progress_bar=prog_bar
+        kernel, num_chains=N_CHAINS, num_samples=N_ITERS, num_warmup=N_ITERS, progress_bar=prog_bar
     )
     mcmc.run(random.PRNGKey(3), extra_fields=["potential_energy"])
     return calib, mcmc
@@ -298,24 +291,23 @@ def run_calibration(
 
 def run_single_country(
     country: str,
-    mob_source: str,
+    analysis_type: str,
     task_name: str,
-    waning: bool,
     prog_bar=False,
     logger=None,
 ):
-    """Run an analysis for a single country / mobility approach.
+    """Run an analysis for a single country / analysis approach.
 
     Args:
         country: The country identifier
-        mob_source: The mobility analysis type
+        analysis_type: The analysis approach
         task_name: Identifier for the set of tasks
         prog_bar: Whether to display the progress bar
         logger: The logging object
 
     Raises:
-        MobilityException: Error if unable to get the mobility
-            provider (assuming this is because mobility is unavailable)
+        ScalerException: Error if unable to get the time series
+            provider (assuming this is because data is unavailable)
 
     Notes
     -----
@@ -331,12 +323,11 @@ def run_single_country(
     logger = logger or logging.getLogger()
     logger.info(f"\n________________________\nRunning job at {task_name}")
     logger.info(f"Country: {iso3}")
-    logger.info(f"Mobility approach: {mob_source}")
+    logger.info(f"Scaling approach: {analysis_type}")
     commit = git.Repo(search_parent_directories=True).head
     logger.info(f"Git commit hash: {commit.object.hexsha}")
     logger.info(f"Commit message: {commit.reference.commit.message}")
     logger.info(f"Hostname: {gethostname()}")
-    logger.info(f"Waning status: {waning}")
 
     # Population size and analysis time
     pop = get_country_pop(iso3)
@@ -346,11 +337,11 @@ def run_single_country(
     if not (DATA_PATH / "restrictions/oxcgrt.csv").exists():
         store_oxcgrt_data()
     data_start = find_run_start_time(pop, iso3)
-    end_time = find_run_end_time(iso3, mob_source)
+    end_time = find_run_end_time(iso3, analysis_type)
     run_start = data_start - timedelta(RUN_DATA_DELAY)
     start_str = run_start.strftime(DATE_FORMAT)
-    end_str = data_start.strftime(DATE_FORMAT)
-    logger.info(f"Running from {start_str} with data starting from {end_str}")
+    data_start_str = data_start.strftime(DATE_FORMAT)
+    logger.info(f"Running from {start_str} with data starting from {data_start_str}")
     logger.info(f"Running to {end_time.strftime(DATE_FORMAT)}")
 
     # Targets
@@ -369,17 +360,17 @@ def run_single_country(
     ba5_var, ba5_targ, ba5_seed = get_ba5_info(var_data, continent)
     start_var = "ba1" if continent == "OC" else "eu"
     var_names = [start_var] + alpha_var + delta_var + ba2_var + ba5_var
-    seed_times = [] + alpha_seed + delta_seed + ba2_seed + ba5_seed
+    seed_times = alpha_seed + delta_seed + ba2_seed + ba5_seed
     var_targs = alpha_targ | delta_targ | ba2_targ | ba5_targ
 
-    # Mobility
+    # Scaling
     try:
-        mob_provider = get_mobility_provider(iso3, mob_source)
+        scaler_provider = get_scaler_provider(iso3, analysis_type)
     except Exception as e:
-        msg = f"{mob_source} mobility not available"
-        raise MobilityException(msg)
-    if mob_provider.ts_end:
-        end_time = min([end_time, mob_provider.ts_end])
+        msg = f"{analysis_type} data not available"
+        raise ScalerException(msg)
+    if scaler_provider.ts_end:
+        end_time = min([end_time, scaler_provider.ts_end])
 
     # Model construction
     omicron_period = continent == "OC"
@@ -389,38 +380,37 @@ def run_single_country(
         end_time,
         var_names,
         seed_times,
-        mob_provider,
+        scaler_provider,
         omicron_period,
     )
 
     # Calibration
     hosp_key = list(hosp_targ.keys())[0] if hosp_targ else ""
     standard_priors = get_standard_priors(len(var_names), hosp_key, iso3, continent)
-    priors = standard_priors | mob_provider.get_priors()
+    priors = standard_priors | scaler_provider.get_priors()
     targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | var_targs
-    calib, mcmc = run_calibration(model, priors, targets, prog_bar, N_ITERS)
+    calib, mcmc = run_calibration(model, priors, targets, prog_bar)
 
     # Outputs
-    out_path = BASE_PATH / "outputs" / task_name / country / mob_source
+    out_path = BASE_PATH / "outputs" / task_name / country / analysis_type
     out_path.mkdir(parents=True, exist_ok=True)
     logger.info(f"Writing to: {out_path}")
     store_outputs(out_path, model, calib, mcmc)
-    logger.info(f"Completed {task_name}/{country}/{mob_source}")
+    logger.info(f"Completed {task_name}/{country}/{analysis_type}")
 
 
 def run_identifiability(
     iso3: str,
-    mob_source: str,
+    analysis_type: str,
     task_name: str,
     scalar_params: Dict[str, float],
     multi_params: Dict[str, np.array],
-    n_iters: int,
 ):
     """Run an abbreviated analysis
 
     Args:
         iso3: Country identifier
-        mob_source: Mobility analysis type
+        analysis_type: The analysis type
         task_name: Name to use for saving run
         scalar_params: Scalar parameter values
         multi_params: Multidimensional parameter values
@@ -430,16 +420,16 @@ def run_identifiability(
     # Build the model
     pop = get_country_pop(iso3)
     data_start = find_run_start_time(pop, iso3)
-    end = find_run_end_time(iso3, mob_source)
+    end = find_run_end_time(iso3, analysis_type)
     start = data_start - timedelta(RUN_DATA_DELAY)
     var_data = get_country_vars(iso3)
     continent = get_cont_of_country(iso3)
     delta_var, delta_targ, delta_seed = get_delta_info(iso3, var_data, continent, end)
     alpha_var, _, alpha_seed = get_alpha_info(iso3, var_data, continent, end, delta_targ)
     vars = ["eu"] + alpha_var + delta_var  # Not applicable for Omicron-era countries
-    mob_provider = get_mobility_provider(iso3, mob_source)
+    scaler_provider = get_scaler_provider(iso3, analysis_type)
     seeds = alpha_seed + delta_seed
-    model = MultiStrainModel(pop, start, end, vars, seeds, mob_provider, True)
+    model = MultiStrainModel(pop, start, end, vars, seeds, scaler_provider, True)
     thinning = 7
     times = model.epoch.number_to_datetime(pd.Series(model.model_times))[::thinning]
 
@@ -458,15 +448,15 @@ def run_identifiability(
 
     # Calibrate
     uniform_dist = dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
-    mob_exp_dist = {} if mob_source == "no_scaling" else {"mob_exp": uniform_dist}
+    scale_exp_dist = {} if analysis_type == "no_scaling" else {"mob_exp": uniform_dist}
     multi_calib_params = {k: v for k, v in multi_params.items() if k != "proc"}
-    calibrate_params = prior_means | scalar_params | multi_calib_params | mob_exp_dist
+    calibrate_params = prior_means | scalar_params | multi_calib_params | scale_exp_dist
     calibrate_params["shared_dispersion"] = prior_means["shared_dispersion"]
     targets = {ind: SharedDispTarget(targ, weight=targ.size) for ind, targ in outputs.items()}
-    calib, mcmc = run_calibration(model, calibrate_params, targets, True, n_iters)
+    calib, mcmc = run_calibration(model, calibrate_params, targets)
 
     # Store results
-    out_path = BASE_PATH / "identify_outputs" / task_name / iso3 / mob_source
+    out_path = BASE_PATH / "identify_outputs" / task_name / iso3 / analysis_type
     out_path.mkdir(parents=True, exist_ok=True)
     pickle.dump(scalar_params, open(out_path / "scalar_params.pkl", "wb"))
     pickle.dump(multi_params, open(out_path / "multi_params.pkl", "wb"))

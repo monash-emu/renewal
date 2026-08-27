@@ -6,7 +6,7 @@ from emu_renewal.run import (
     run_single_country,
     get_logger,
     jax_config_cpu_only,
-    MobilityException,
+    ScalerException,
 )
 
 
@@ -21,5 +21,5 @@ if __name__ == "__main__":
     logger = get_logger(country_path / "run.log")
     try:
         run_single_country(iso3, mob_type, task, True, logger=logger)
-    except MobilityException as e:
+    except ScalerException as e:
         logger.warning(e)

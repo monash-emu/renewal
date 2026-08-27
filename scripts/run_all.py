@@ -5,7 +5,7 @@ import time
 from emu_renewal.constants import ANALYSIS_TYPES, BASE_PATH, DATA_PATH
 from emu_renewal.run import (
     run_single_country,
-    MobilityException,
+    ScalerException,
     get_logger,
     jax_config_cpu_only,
 )
@@ -31,6 +31,6 @@ if __name__ == "__main__":
         )
         for mob_type in analyses:
             try:
-                run_single_country(c, mob_type, task, False, logger=logger)
-            except MobilityException as e:
+                run_single_country(c, mob_type, task, logger=logger)
+            except ScalerException as e:
                 logger.warning(e)

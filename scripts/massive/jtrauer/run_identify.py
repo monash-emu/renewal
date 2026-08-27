@@ -45,7 +45,7 @@ def run_identifiability_analyses():
         multi_params[iso3] = {p: v.values for p, v in draw_params.items() if v.ndim > 0}
         
         # Run analysis
-        run_identifiability(iso3, mob_source, analysis_time, scalar_params[iso3], multi_params[iso3], n_iters)
+        run_identifiability(iso3, mob_source, analysis_time, scalar_params[iso3], multi_params[iso3])
 
 
 if __name__ == "__main__":
