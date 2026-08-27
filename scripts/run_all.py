@@ -14,7 +14,7 @@ from emu_renewal.run import (
 
 if __name__ == "__main__":
     jax_config_cpu_only()
-    countries = json.load(open(DATA_PATH / f"config/included.json", "r"))
+    countries = json.load(open(DATA_PATH / f"config/oxcgrt_included.json", "r"))
     if len(sys.argv) < 3:
         task = str(int(time.time()))
     else:

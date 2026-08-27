@@ -23,10 +23,7 @@
 #SBATCH --mail-type=END
 #SBATCH --mail-type=FAIL
 
-# Set this to the range of values that will be received in your script
-# e.g. --array=1-4
-# will result in 4 jobs, receiving 1, 2, 3, 4 respectively
-
+# Overridden by launch.sh via sbatch --array
 #SBATCH --array=1-1
 
 # The path to your renewal repo
@@ -34,4 +31,4 @@ cd $SCRIPT_DIR/../../../
 
 # The run path to your Python script that will actually do the work
 # Run this with pixi, the environment will be automatically handled
-pixi run python scripts/massive/jtrauer/rerun_countries.py $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
+pixi run python scripts/massive/jtrauer/run_countries.py $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID

@@ -1,8 +1,5 @@
-To launch jobs that automatically set SLURM batch sizes from JSON configuration,
-edit your config, then;
+From a Massive login node, at the repo root:
 
-pixi run python scripts/massive/jtrauer/launch_from_config.py
+    bash scripts/massive/jtrauer/launch.sh
 
-You can still manually run these jobs via launch.sh; however the active script that 
-your jobs will eventually see is now run_countries_active.sh, with run_countries.sh
-serving solely as a template
+This sizes `--array` from `data/config/oxcgrt_included.json` and submits `run_countries.sh`.
