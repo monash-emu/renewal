@@ -18,7 +18,6 @@ from emu_renewal.constants import (
     DAYS_IN_WEEK,
 )
 from emu_renewal.process import sinterp, CosineMultiCurve
-from emu_renewal.distributions import Dens
 from emu_renewal.utils import get_col_increases, get_reset_array_from_increases
 from emu_renewal.scaling import ScalerProvider
 from emu_renewal.distributions import GammaDens
@@ -177,16 +176,13 @@ class MultiStrainModel:
         self.n_times = len(self.model_times)
         self.mob_provider = scaling
         self.mob_provider.reconcile_times(start, end)
+        self.window_len = INIT_DURATION
 
         # Population
         self.pop = population
 
         # Process
         self.initialise_var_proc()
-
-        # Generation interval
-        self.dens_obj = GammaDens()
-        self.window_len = INIT_DURATION
 
     def initialise_var_proc(self):
         """Initialise the structures needed for
@@ -640,7 +636,7 @@ class MultiStrainModel:
         dist_mean: float,
         dist_sd: float,
         outcome_prop: float,
-        output_dist: Dens,
+        output_dist: GammaDens,
     ) -> jnp.array:
         """Apply an observation distribution
         as a convolution to calculate an epidemiological output series.
@@ -681,7 +677,7 @@ class MultiStrainModel:
         full_admits: jnp.array,
         stay_mean: float,
         stay_sd: float,
-        discharge_dist: Dens,
+        discharge_dist: GammaDens,
     ) -> jnp.array:
         """Calculate hospital or ICU occupancy
         (a prevalent quantity) from the admissions time series.
