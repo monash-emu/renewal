@@ -2,27 +2,22 @@ from typing import List
 from pathlib import Path
 import git
 import json
-import numpy as np
 import pandas as pd
 from jax import jit
 from typing import Dict
-import matplotlib.pyplot as plt
 import arviz as az
 import pickle
 from numpyro import infer
 from os import listdir as ls
-import os
 from geopandas import GeoDataFrame
 
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
-from emu_renewal.constants import MOB_SOURCE_COLOURS, N_SAMPLES, ANALYSIS_TYPES, MOB_SOURCE_ABBREVS
+from emu_renewal.constants import N_SAMPLES, ANALYSIS_TYPES, SOURCE_COLOURS, SOURCE_ABBREVS
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
-from emu_renewal.utils import get_subdirs, get_country_name
-
-plt.style.use("ggplot")
+from emu_renewal.utils import get_country_name
 
 TARGET_KEY = "target_"
 
@@ -217,7 +212,7 @@ def get_param_vals_by_analysis(
     by analysis for a particular parameter and country.
 
     Args:
-        param_name: Name of the parameter
+        param: Name of the parameter
         analysis_paths: Paths for the runs
 
     Returns:
@@ -228,7 +223,7 @@ def get_param_vals_by_analysis(
         idata = az.from_netcdf(p / "idata_filtered.nc")
         param_df.append(idata.posterior[param].to_series())
     result = pd.concat(param_df, axis=1, keys=analysis_paths)
-    ordered_cols = [c for c in MOB_SOURCE_COLOURS if c in result.columns]
+    ordered_cols = [c for c in SOURCE_COLOURS if c in result.columns]
     return result[ordered_cols]
 
 
@@ -274,7 +269,7 @@ def add_data_avail_to_world(
 
 def get_prop_improve(
     disp_posts: Dict[str, pd.DataFrame],
-    mob_source: str,
+    analysis_type: str,
 ) -> Dict[str, float]:
     """Find the proportion of results from a particular run that
     have a lower dispersion parameter than
@@ -282,7 +277,7 @@ def get_prop_improve(
 
     Args:
         disp_posts: The posteriors of the dispersion parameter by country and analysis
-        mob_type: The scaled analysis of interest
+        analysis_type: The scaled analysis of interest
 
     Returns:
         The proportions by country
@@ -292,24 +287,24 @@ def get_prop_improve(
         c_posts = disp_posts[c]
         no_scaling_median = c_posts["no_scaling"].median()
 
-        if mob_source in c_posts:
-            mob_posts = c_posts[mob_source]
-            prop_improve_median[c] = (mob_posts < no_scaling_median).sum() / len(mob_posts)
+        if analysis_type in c_posts:
+            scale_posts = c_posts[analysis_type]
+            prop_improve_median[c] = (scale_posts < no_scaling_median).sum() / len(scale_posts)
     return prop_improve_median
 
 
 def get_idatas_for_analysis_type(
-    analysis_paths: Path,
+    analysis_paths: Dict[str, Path],
     countries: List[str],
     analysis_type: str,
-) -> Dict[str, az.InferenceData]:
+) -> tuple:
     """Collate all the inference data objects for
     a requested group of countries.
 
     Args:
-        job_path: Path for the runs
+        analysis_paths: Path for the runs
         countries: Countries identifiers
-        mob_source: Analysis type considered
+        analysis_type: Analysis type considered
 
     Returns:
         The inference data objects
@@ -337,7 +332,7 @@ def get_param_mean_by_country(
     Args:
         job_path: Path for the runs
         param: Name of the parameter
-        mob_source: The analysis type
+        analysis_type: The analysis type
 
     Returns:
         The parameter mean by country
@@ -354,7 +349,7 @@ def get_ratios_from_disps(
 ) -> Dict[str, pd.DataFrame]:
     """Find the ratio of the transmission scaling dispersion parameters
     under the relevant baseline analysis compared to each
-    mobility analysis. Randomly permute the baseline for comparison.
+    scaling analysis. Randomly permute the baseline for comparison.
 
     Args:
         disp_posts: Output of get_param_vals_by_analysis
@@ -396,7 +391,7 @@ def get_median_ratios(
 
     Args:
         dists: The output from get_ratios_from_disps
-        mob_source: The analysis type
+        analysis_type: The analysis type
 
     Returns:
         The ratio values by country
@@ -430,22 +425,22 @@ def get_quantmedian_df(
         waning_path = waning_paths[iso3]
         analysis_path = analysis_paths[iso3]
 
-        for mob_type in analysis_path:
+        for a_type in analysis_path:
             run_paths = {"waning": waning_path, "no_waning": analysis_path}
 
             # Get the posterior values with and without waning
             try:
-                posts = [get_param_vals_by_analysis(param, p)[mob_type] for p in run_paths.values()]
-            except:
-                pass
+                posts = [get_param_vals_by_analysis(param, p)[a_type] for p in run_paths.values()]
+            except (FileNotFoundError, KeyError):
+                continue
             combined_disps = pd.concat(posts, axis=1)
             combined_disps.columns = run_paths.keys()
 
             # Make the calculations
             no_waning_median = combined_disps["no_waning"].median()
             prop_above_median = (combined_disps["waning"] > no_waning_median).mean()
-            quantquant.loc[iso3, mob_type] = prop_above_median
-    quantquant.rename(columns=MOB_SOURCE_ABBREVS, inplace=True)
+            quantquant.loc[iso3, a_type] = prop_above_median
+    quantquant.rename(columns=SOURCE_ABBREVS, inplace=True)
     quantquant.rename(index=get_country_name, inplace=True)
     return quantquant
 

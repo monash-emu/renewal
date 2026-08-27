@@ -934,7 +934,7 @@ def plot_exponent_dispersion_comparison(
         ax.set_title(mob_name, fontsize=7)
 
         # Gather data
-        idatas, _ = get_idatas_for_mob_type(analysis_paths, all_countries, mob_source)
+        idatas, _ = get_idatas_for_analysis_type(analysis_paths, all_countries, mob_source)
         plot_df = pd.DataFrame(
             {
                 "mobility exponent": {
@@ -993,7 +993,7 @@ def plot_exponent_dispersion_comparison_interactive(
         The plotly interactive figure
     """
     countries = analysis_paths.keys()
-    idatas, _ = get_idatas_for_mob_type(analysis_paths, countries, mob_source)
+    idatas, _ = get_idatas_for_analysis_type(analysis_paths, countries, mob_source)
     plot_df = pd.DataFrame(
         {
             "mobility exponent": {
