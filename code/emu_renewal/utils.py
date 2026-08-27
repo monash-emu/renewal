@@ -101,7 +101,7 @@ def sort_countries_by_name(
     to the alphabetical order of the country name.
 
     Args:
-        countries: The to sort
+        countries: The country identifiers to sort
 
     Returns:
         The sorted list of country codes
@@ -259,20 +259,6 @@ def get_cont_of_country(
         return "NOCONT"
 
 
-def get_subdirs(
-    path: Path,
-) -> List[str]:
-    """Get the subdirectories of a folder.
-
-    Args:
-        path: The path to the folder
-
-    Returns:
-        The names (only) of the subdirectories
-    """
-    return [d.name for d in os.scandir(path) if d.is_dir()]
-
-
 def get_country_short_name(
     iso3: str,
 ) -> str:
@@ -308,7 +294,7 @@ def get_country_name(
     iso3: str,
 ) -> str:
     """Safely get name of a country, returning
-    the original ISO3 request if not availble.
+    the original ISO3 request if not available.
 
     Args:
         iso3: The country identifier
@@ -322,32 +308,6 @@ def get_country_name(
         return pycountry.countries.lookup(iso3).name
     except LookupError:
         return iso3
-
-
-def get_analysis_commits(
-    job_path: Path,
-    iso3: str,
-) -> Dict[str, str]:
-    """Gather together the commit IDs for
-    each analysis type of a given country's run.
-
-    Args:
-        iso3: The path to the job
-        country: The country identifer
-
-    Returns:
-        Dictionary with keys for each analysis type
-            and values short commit SHA
-    """
-    commits = {}
-    for analysis in ANALYSIS_TYPES:
-        a_path = job_path / iso3 / analysis
-        if os.path.isdir(a_path):
-            commit = json.load(open(a_path / "gitinfo.json", "r"))["sha"][:7]
-        else:
-            commit = "no analysis"
-        commits[analysis] = commit
-    return commits
 
 
 def get_analysis_commits_df(
@@ -382,34 +342,6 @@ def get_analysis_commits_df(
     return commits.sort_index()
 
 
-def get_job_commits_df_new(
-    analysis_paths: Dict[str, Dict[str, Path]],
-) -> pd.DataFrame:
-    """New approach to getting commits used in running each job
-    now based on analysis path dictionary produced by get_analysis_paths.
-
-    Args:
-        analysis_paths: The outputs of get_analysis_paths
-
-    Returns:
-        The dataframe for display
-    """
-    countries = analysis_paths.keys()
-    commits = pd.DataFrame(index=countries, columns=ANALYSIS_TYPES)
-    for iso3 in countries:
-        for analysis in ANALYSIS_TYPES:
-            c_paths = analysis_paths[iso3]
-            if analysis in c_paths:
-                a_path = c_paths[analysis]
-                sha = json.load(open(a_path / "gitinfo.json", "r"))["sha"][:7] if os.path.isdir(a_path) else "no analysis"
-            else:
-                sha = "no analysis"
-            commits.loc[iso3, analysis] = sha
-    commits.rename(columns=ANALYSIS_NAMES, inplace=True)
-    commits.rename(index=get_country_name, inplace=True)
-    return commits.sort_index()
-
-
 def copy_analysis_type_to_run(
     src_id: str,
     dest_id: str, 
@@ -429,9 +361,6 @@ def copy_analysis_type_to_run(
         dest = OUTPUTS_PATH / dest_id / iso3 / analysis_type
         if src.exists() and not dest.exists():
             shutil.copytree(src, dest)
-
-
-
 
 
 def get_analysis_paths(
@@ -462,37 +391,6 @@ def get_analysis_paths(
                     analysis_paths[c][a] = analysis_path
                     break
     return analysis_paths
-
-
-def get_analysis_status(
-    run_id: str,
-) -> pd.DataFrame:
-    """Find out what happened for each possible country-analysis combination.
-
-    Args:
-        run_id: The run ID
-
-    Returns:
-        Whether the analysis is complete, skipped, not run or no log available
-    """
-    countries = json.load(open(DATA_PATH / "config/included.json", "r"))
-    analysis_status = pd.DataFrame("blank", index=countries, columns=ANALYSIS_TYPES, dtype=str)
-    run_path = OUTPUTS_PATH / run_id
-    for iso3 in countries:
-        c_path = run_path / iso3
-        if not (run_path / iso3 / "run.log").exists():
-            analysis_status.loc[iso3, :] = "no log"
-            continue
-        text = open(run_path / iso3 / "run.log", "r").read()
-        for a in ANALYSIS_TYPES:
-            if (c_path / a / "updates.h5").exists():
-                out = "complete"
-            elif f"{a} mobility not available" in text:
-                out = "skipped"
-            else:
-                out = "not run"
-            analysis_status.loc[iso3, a] = out
-    return analysis_status
 
 
 def move_idata_full_to_bin(
