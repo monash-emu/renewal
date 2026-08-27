@@ -40,7 +40,7 @@ class GammaDens:
         window_len: float,
         mean: float,
         sd: float,
-    ) -> jnp.Array:
+    ) -> jnp.array:
         return jnp.diff(self.get_cum_dens(window_len, mean, sd))
 
     def get_cum_dens(
@@ -48,5 +48,5 @@ class GammaDens:
         window_len: int,
         mean: float, 
         sd: float,
-    ) -> jnp.Array:
+    ) -> jnp.array:
         return jaxgamma.cdf(jnp.arange(window_len + 1), **self.get_params(mean, sd))
