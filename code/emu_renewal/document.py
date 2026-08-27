@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Callable
 import re
 from emu_renewal import constants
 
@@ -11,7 +11,7 @@ def get_exp_val_from_string(
 
     Args:
         num_str: The string for the number in exponential markdown notation
-    
+
     Returns:
         The value of the number as a float
     """
@@ -33,13 +33,13 @@ def get_float_dict_from_str(
     c_dict = {}
     for i in float_info.split(", "):
         str_parts = i.split(": ")
-        c_date = float(str_parts[1])
-        c_dict[str_parts[0]] = c_date
+        c_float = float(str_parts[1])
+        c_dict[str_parts[0]] = c_float
     return c_dict
 
 
 def get_func_blurb(
-    function: callable,
+    function: Callable,
 ) -> str:
     """Get appropriately formatted text
     based on the Notes section (followed by five dashes)
