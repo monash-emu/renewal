@@ -5,7 +5,6 @@ from jax import lax, vmap, Array, numpy as jnp
 from jax.experimental import sparse
 from datetime import datetime
 import numpy as np
-import copy
 
 from summer2.utils import Epoch
 
@@ -72,7 +71,7 @@ def get_dests(
         for i, imm in enumerate(strain_map.T):
 
             # Destination strain history
-            dest = copy.copy(imm)
+            dest = imm.copy()
             dest[s] = True
 
             # Find its location within the mapping matrix
@@ -152,18 +151,16 @@ class MultiStrainModel:
             population: Number of people considered in the analysis
             start: Time to run the model from
             end: Time to run the model until
-            discharge_dens: Distribution for the time from hospital admission to discharge
             strains: Names of the variants to be implemented
-            seed_times: Times to seed each variant (including the first one)
-            mobility: The mobility time series to scale transmission with
+            seed_times: Times to seed each variant (except for the first one)
+            scaling: The time series used to scale transmission
             omicron_period: Whether to reduce severity based on vaccination effects
         """
         self.strains = strains
-        self.start_strain = strains[0]
         self.n_strains = len(strains)
         self.strain_map = get_combs(len(strains))
-        self.dests = get_dests(self.strain_map)
-        self.trans_mats = get_trans_mats(self.dests)
+        dests = get_dests(self.strain_map)
+        self.trans_mats = get_trans_mats(dests)
         self.var_times = seed_times
         self.seed_duration = SEED_DURATION
         self.init_length = INIT_DURATION
@@ -174,9 +171,8 @@ class MultiStrainModel:
         self.start = int(self.epoch.dti_to_index(start))
         self.end = int(self.epoch.dti_to_index(end))
         self.model_times = jnp.arange(self.start, self.end + 1)
-        self.n_times = len(self.model_times)
-        self.mob_provider = scaling
-        self.mob_provider.reconcile_times(start, end)
+        self.scaler = scaling
+        self.scaler.reconcile_times(start, end)
         self.window_len = INIT_DURATION
 
         # Population
@@ -202,7 +198,6 @@ class MultiStrainModel:
         self.x_proc_vals = jnp.arange(self.end, self.start, -self.proc_update_freq)[::-1]
         self.x_proc_data = sinterp.get_scale_data(self.x_proc_vals)
         self.proc_fitter = CosineMultiCurve()
-        self.process_start = int(self.x_proc_vals[0])
 
     def fit_process_curve(
         self,
@@ -246,7 +241,7 @@ class MultiStrainModel:
         relinfect: Optional[List[float]],
         seed_offsets: Optional[List[float]],
         **kwargs,
-    ) -> jnp.array:
+    ) -> ModelResult:
         """Main function implementing the renewal process,
         see Notes for description.
 
@@ -279,7 +274,7 @@ class MultiStrainModel:
         infectious individuals for each strain.
         These quantities were then multiplied by scalar values
         representing residual transmission scaling and
-        adjustment for mobility and divided through
+        adjustment for policy or mobility scaling and divided through
         by the population size
         (to obtain the scaled per capita infectious population).
         This was multiplied by the strain-specific vector for
@@ -350,8 +345,8 @@ class MultiStrainModel:
         reset_array = get_reset_array_from_increases(earlier_strain)
         suscept_levels = suscept_levels * (~reset_array).astype(float)
 
-        # Mobility
-        mobility = self.mob_provider.get_parameterised_scaler(**kwargs)
+        # Policy or mobility scaling
+        scaling = self.scaler.get_parameterised_scaler(**kwargs)
 
         # Seeding
         first_data_start = jnp.array([-1.0])
@@ -366,8 +361,8 @@ class MultiStrainModel:
         def update(state: MultivarState, t) -> tuple[MultivarState, jnp.array]:
             # Residual transmission scaling process (scalar)
             proc_val = trans_proc[t - self.start]
-            # Mobility data (scalar)
-            mob_val = mobility[t - self.start]
+            # Scaling data (scalar)
+            scale_val = scaling[t - self.start]
             # Seed (vector, n_strains)
             peak = data_starts - offsets + half_dur
             seed = get_triang_vals(t, peak, seed_abs_rates, half_dur)
@@ -376,7 +371,7 @@ class MultiStrainModel:
             # Incidence convolved with generation (vector, n_strains)
             contributions = (gen_densities * past_inc).sum(axis=1)
             # Calculated infection rate (vector, n_strains)
-            calc_inf_rates = contributions * beta * proc_val * mob_val * relinfect_vals / self.pop
+            calc_inf_rates = contributions * beta * proc_val * scale_val * relinfect_vals / self.pop
             # Ceiling in case of very high incidence rates within a given day (vector, n_strains)
             actual_inf_rate = 1.0 - jnp.exp(-calc_inf_rates)
             # Effective susceptibles (array, n_strains by 2 ** n_strains)
@@ -448,7 +443,7 @@ class MultiStrainModel:
             stay_sd: Standard deviation of time from hospitalisation to discharge
             har: Hospital admission rate (proportion)
             icu_admit_mean: Mean time from infection to ICU admission
-            icu_admit_sd: Standard deviation of time from infectino to ICU admission
+            icu_admit_sd: Standard deviation of time from infection to ICU admission
             icu_stay_mean: Mean time from ICU admission to ICU discharge
             icu_stay_sd: Standard deviation of time from ICU admission to ICU discharge
             icuar: ICU admission rate (proportion)
@@ -532,6 +527,8 @@ class MultiStrainModel:
         hospitalisation was set according to a vaccination
         protection against hospitalisation given
         infection parameter.
+        The same vaccination-related reduction
+        was applied to ICU admissions.
         As for cases, deaths and hospitalisations,
         the convolution of time to ICU admission
         was parameterised independently.__RETURN__
@@ -542,7 +539,7 @@ class MultiStrainModel:
         time to hospital or ICU discharge.
         For comparison to serosurveillance data,
         seropositivity was calculated as the complement of
-        as the proportion of the population remaining
+        the proportion of the population remaining
         in the entirely infection-na&iuml;ve immunity
         sub-population.
         Finally, the proportion of incidence attributable
