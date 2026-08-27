@@ -290,11 +290,11 @@ def get_prop_improve(
     prop_improve_median = {}
     for c in disp_posts:
         c_posts = disp_posts[c]
-        no_mob_median = c_posts["no_mob"].median()
+        no_scaling_median = c_posts["no_scaling"].median()
 
         if mob_source in c_posts:
             mob_posts = c_posts[mob_source]
-            prop_improve_median[c] = (mob_posts < no_mob_median).sum() / len(mob_posts)
+            prop_improve_median[c] = (mob_posts < no_scaling_median).sum() / len(mob_posts)
     return prop_improve_median
 
 
@@ -369,16 +369,16 @@ def get_ratios_from_disps(
         disp_post = disp_posts[c]
         ratio_df = pd.DataFrame()
         if "g_mob" in disp_post:
-            ref = disp_post["no_mob"].sample(frac=1.0).reset_index(drop=True)
+            ref = disp_post["no_scaling"].sample(frac=1.0).reset_index(drop=True)
             mob = disp_post["g_mob"].reset_index(drop=True)
             ratio_df["g_mob"] = ref / mob
         if "fb_visited_mob" in disp_post:
-            ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_mob"
+            ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_scaling"
             ref = disp_post[ref_name].sample(frac=1.0).reset_index(drop=True)
             mob = disp_post["fb_visited_mob"].reset_index(drop=True)
             ratio_df["fb_visited_mob"] = ref / mob
         if "fb_singletile_mob" in disp_post:
-            ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_mob"
+            ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_scaling"
             ref = disp_post[ref_name].sample(frac=1.0).reset_index(drop=True)
             mob = disp_post["fb_singletile_mob"].reset_index(drop=True)
             ratio_df["fb_singletile_mob"] = ref / mob

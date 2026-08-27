@@ -12,7 +12,7 @@ DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
 # Analysis types
-ANALYSIS_TYPES = ["no_mob", "g_mob", "fb_visited_mob", "fb_singletile_mob", "oxcgrt"]
+ANALYSIS_TYPES = ["no_scaling", "g_mob", "fb_visited_mob", "fb_singletile_mob", "oxcgrt"]
 
 # Dates
 CASES_START = "1 June 2020"
@@ -106,7 +106,7 @@ START_VACC_THRESHOLD_OC = 90
 SUB_DEU_COUNTRIES = "Switzerland and Ireland"
 SUB_GBR_COUNTRY = "Qatar"
 
-# Mobility-related
+# Scaling-related
 MOBILITY_SMOOTH_PERIOD = 7
 EXP_PRIOR_LOWER = 0
 EXP_PRIOR_UPPER = 2
@@ -151,8 +151,8 @@ DUR_MIN = 1
 DUR_REL_MAX = 2.5
 
 # Plotting and outputs
-MOB_SOURCE_COLOURS = {
-    "no_mob": "black",
+SOURCE_COLOURS = {
+    "no_scaling": "black",
     "g_mob": "darkgreen",
     "fb_visited_mob": "red",
     "fb_singletile_mob": "blue",
@@ -160,15 +160,15 @@ MOB_SOURCE_COLOURS = {
     "oxcgrt": "purple",
 }
 ANALYSIS_NAMES = {
-    "no_mob": "no scaling",
+    "no_scaling": "no scaling",
     "g_mob": "Google mobility",
     "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",
     "fb_no_mob": "Facebook no mobility",
     "oxcgrt": "OxCGRT",
 }
-MOB_SOURCE_ABBREVS = {
-    "no_mob": "none",
+SOURCE_ABBREVS = {
+    "no_scaling": "none",
     "g_mob": "Google",
     "fb_visited_mob": "FB tiles visited",
     "fb_singletile_mob": "FB single tile",
@@ -223,7 +223,7 @@ OXCGRT_LOCS = {
     "H1": "public information",
     "H6": "face coverings",
 }
-MOB_LOCATION_NAME_MAP = {
+LOCATION_NAME_MAP = {
     "retail_and_recreation": "Google retail and recreation",
     "grocery_and_pharmacy": "Google grocery and pharmacy",
     "parks": "Google parks",

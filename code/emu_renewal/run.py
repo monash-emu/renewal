@@ -233,7 +233,7 @@ def get_mobility_provider(
     """
 
     # Data processing
-    if mob_source in ["no_mob", "fb_no_mob"]:
+    if mob_source in ["no_scaling", "fb_no_mob"]:
         return scaling.NoScalerProvider()
     elif mob_source == "g_mob":
         mob = get_google_mobility(iso3)
@@ -458,7 +458,7 @@ def run_identifiability(
 
     # Calibrate
     uniform_dist = dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)
-    mob_exp_dist = {} if mob_source == "no_mob" else {"mob_exp": uniform_dist}
+    mob_exp_dist = {} if mob_source == "no_scaling" else {"mob_exp": uniform_dist}
     multi_calib_params = {k: v for k, v in multi_params.items() if k != "proc"}
     calibrate_params = prior_means | scalar_params | multi_calib_params | mob_exp_dist
     calibrate_params["shared_dispersion"] = prior_means["shared_dispersion"]

@@ -416,7 +416,7 @@ def copy_analysis_type_to_run(
     analysis_type: str,
 ):
     """Copy all the runs of a particular type
-    (e.g. no_mob, g_mob, oxcgrt) from one run ID folder
+    (e.g. no_scaling, g_mob, oxcgrt) from one run ID folder
     to another.
 
     Args:

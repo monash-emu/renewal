@@ -307,7 +307,7 @@ def plot_prior_multipost(
     """
 
     # Preparation
-    idata = idatas["no_mob"]
+    idata = idatas["no_scaling"]
     prior_info = get_flat_priors()
     params = [p for p in prior_info if "proc" not in p and p in idata.posterior]
     n_axes = sum([get_param_dim(p, idata) for p in params]) + 1
@@ -658,7 +658,7 @@ def compare_proc_mob(
 
         # Transmission scaling process plotting
         a_paths = analysis_paths[iso3]
-        ref_analysis = "fb_no_mob" if "fb_no_mob" in a_paths else "no_mob"
+        ref_analysis = "fb_no_mob" if "fb_no_mob" in a_paths else "no_scaling"
         proc_samples = pd.read_hdf(a_paths[ref_analysis] / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
@@ -718,7 +718,7 @@ def compare_proc_pol(
 
         # Transmission scaling process plotting
         path = job_path[iso3]
-        ref_analysis = "fb_no_mob" if "fb_no_mob" in path else "no_mob"
+        ref_analysis = "fb_no_mob" if "fb_no_mob" in path else "no_scaling"
         proc_samples = pd.read_hdf(job_path[iso3][ref_analysis] / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], color="navy", linewidth=2.0)
@@ -785,7 +785,7 @@ def compare_proc_versus_weighted(
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
         # Residual transmission process under no mobility configuration
-        proc_samples = pd.read_hdf(c_path["no_mob"] / "spaghetti.h5")["process"]
+        proc_samples = pd.read_hdf(c_path["no_scaling"] / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
@@ -844,7 +844,7 @@ def plot_select_proc_mob(
             mob_source = mob_location if mob_location.startswith("fb_") else "g_mob"
 
             # Plot residual transmission scaling
-            proc_samples = pd.read_hdf(analysis_paths[iso3]["no_mob"] / "spaghetti.h5")["process"]
+            proc_samples = pd.read_hdf(analysis_paths[iso3]["no_scaling"] / "spaghetti.h5")["process"]
             centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
             ax = axes[r, c]
             ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=1.0)
@@ -1159,7 +1159,7 @@ def plot_dispersion_analysis(
     # Best mobility approach
     best_mob = {c: disp_posts[c].mean().idxmin() for c in disp_posts}
     world["best_mob"] = world["ISO_A3"].map(best_mob)
-    world["best_mob_colour"] = world["best_mob"].map(MOB_SOURCE_COLOURS | {"no_mob": "0.45"})
+    world["best_mob_colour"] = world["best_mob"].map(MOB_SOURCE_COLOURS | {"no_scaling": "0.45"})
     mob_avail = world[world["best_mob_colour"].notna()]
     mob_unavail = world[world["best_mob_colour"].isna()]
 
@@ -1536,7 +1536,7 @@ def plot_param_post_comparison(
     for c, iso3 in enumerate(countries):
         a_paths = analysis_paths[iso3]
         ax = flat_axes[c]
-        analyses = [p for p in a_paths if p != "no_mob"]
+        analyses = [p for p in a_paths if p != "no_scaling"]
         for a in analyses:
             a_path = a_paths[a]
             idata = az.from_netcdf(a_path / "idata_filtered.nc")
