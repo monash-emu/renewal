@@ -37,8 +37,7 @@ def get_standard_priors(
     n_strains: int,
     hosp_out_type: str,
     iso3: str,
-    continent: str,
-    waning: bool,
+    cont: str,
 ) -> Dict[str, dist.Distribution]:
     """Load the priors from the yml and combine with
     standard hard-coded priors.
@@ -48,7 +47,7 @@ def get_standard_priors(
         hosp_out_type: The hospital-related indicator name
             Must be one of the keys to relevant_duration_priors below
         iso3: The country identifier
-        continent: The continent identifier
+        cont: The continent identifier
 
     Returns:
         The prior distributions
@@ -124,9 +123,8 @@ def get_standard_priors(
     duration_priors = {
         k: dist.TruncatedNormal(v["mean"], v["sd"], low=DUR_MIN, high=v["mean"] * DUR_REL_MAX)
         for k, v in loaded_priors["durations"].items()
-        if k != "immune"
     }
-    if get_cont_of_country(iso3) == "OC":
+    if cont == "OC":
         duration_priors["gen_mean"] = duration_priors["gen_mean_oc"]
     universal_prior_names = [
         "gen_mean",
@@ -139,7 +137,7 @@ def get_standard_priors(
     rel_durations_dict = {
         "weekly_admissions": ["admit_mean", "admit_sd"],
         "occupancy": ["admit_mean", "admit_sd", "stay_mean", "stay_sd"],
-        "icu_admissions": ["icu_admit_mean", "icu_admit_sd"],
+        "icu_weekly_admissions": ["icu_admit_mean", "icu_admit_sd"],
         "icu_occupancy": ["icu_admit_mean", "icu_admit_sd", "icu_stay_mean", "icu_stay_sd"],
         "": [],
     }
@@ -157,8 +155,10 @@ def get_standard_priors(
     rel_betas = {k: v for k, v in beta_reqs.items() if k not in betas_to_drop}
     irrel_betas = {k: 1.0 for k in beta_reqs if k in betas_to_drop}
     beta_dists = {}
+    severity_keys = ["ifr", "cdr", "har", "icuar"]
     for k, v in rel_betas.items():
-        a, b = get_beta_params_from_mean_var(v["mean"] * adjuster, v["std"])
+        mean = v["mean"] * adjuster if k in severity_keys else v["mean"]
+        a, b = get_beta_params_from_mean_var(mean, v["std"])
         beta_dists[k] = dist.Beta(a, b)
     if "icu_" not in hosp_out_type:
         beta_dists["icuar"] = 1.0
@@ -180,7 +180,7 @@ def get_standard_priors(
     infect_dist_prior = dist.TruncatedNormal(relinf_mean, RELINF_SD, low=RELINF_LOW, high=RELINF_UP)
     infect_dist = infect_dist_prior if n_strains > 1 else None
     inf_priors = {"relinfect": infect_dist}
-    if continent == "OC":
+    if cont == "OC":
         severity_dist = jnp.ones(n_strains - 1)
     elif n_strains == 1:
         severity_dist = jnp.empty(0)

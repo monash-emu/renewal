@@ -395,7 +395,7 @@ def run_single_country(
 
     # Calibration
     hosp_key = list(hosp_targ.keys())[0] if hosp_targ else ""
-    standard_priors = get_standard_priors(len(var_names), hosp_key, iso3, continent, waning)
+    standard_priors = get_standard_priors(len(var_names), hosp_key, iso3, continent)
     priors = standard_priors | mob_provider.get_priors()
     targets = deaths_targ | cases_targ | hosp_targ | seroprev_targ | var_targs
     calib, mcmc = run_calibration(model, priors, targets, prog_bar, N_ITERS)
@@ -444,7 +444,7 @@ def run_identifiability(
     times = model.epoch.number_to_datetime(pd.Series(model.model_times))[::thinning]
 
     # Get parameters, using priors' distributions for unused parameters that must be specified
-    priors = get_standard_priors(len(vars), "weekly_admissions", iso3, continent, False)
+    priors = get_standard_priors(len(vars), "weekly_admissions", iso3, continent)
     prior_means = {k: (v if isinstance(v, float) else v.mean) for k, v in priors.items()}
     run_params = prior_means | scalar_params | multi_params
 
