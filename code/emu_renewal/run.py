@@ -197,6 +197,9 @@ def find_run_end_time(
     elif cont == "OC" and "oxcgrt" in analysis_type:
         scaler = load_scaler_data(iso3, analysis_type, lambda c: get_oxcgrt(c, "custom"))
         return scaler.index[-1].to_pydatetime()
+    elif cont == "OC":
+        scaler = load_scaler_data(iso3, analysis_type, get_google_mobility)
+        return scaler.index[-1].to_pydatetime()
     vacc_data = get_country_vacc_data(iso3)
     default_end_time = datetime.strptime(DEFAULT_END_DATE, CODE_DATE_FORMAT)
     if vacc_data.empty or vacc_data.max() < END_VACC_THRESHOLD:

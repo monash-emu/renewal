@@ -31,15 +31,15 @@ from emu_renewal.calibration import StandardCalib
 from emu_renewal.constants import (
     ANALYSIS_TYPES,
     ANALYSIS_NAMES,
-    MOB_SOURCE_ABBREVS,
-    MOB_SOURCE_COLOURS,
+    SOURCE_ABBREVS,
+    SOURCE_COLOURS,
     MOB_LOCATION_SOURCE_MAP,
     DUR_MIN,
     DUR_REL_MAX,
     TARGET_TYPES,
     VAR_NAME_MAP,
     INCLUSION_COLOURS,
-    MOB_LOCATION_NAME_MAP,
+    LOCATION_NAME_MAP,
     G_MOB_LOCATION_CMAP,
     MOB_LOCATION_ABBREVS,
     SHORT_COUNTRY_NAMES,
@@ -324,7 +324,7 @@ def plot_prior_multipost(
         analyses = [a for a in ANALYSIS_NAMES if a in idatas]
         for a in analyses:
             idata = idatas[a]
-            colour = [MOB_SOURCE_COLOURS[a]]
+            colour = [SOURCE_COLOURS[a]]
             az.plot_density(idata, ax=axes[n_ax:], hdi_prob=0.99, colors=colour, var_names=p)
 
             # Legend
