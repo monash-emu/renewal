@@ -142,6 +142,8 @@ def find_run_start_time(
     cont = get_cont_of_country(iso3)
     if cont == "OC":
         vacc_data = get_country_vacc_data(iso3)
+        if vacc_data.empty:
+            raise ValueError(f"Vaccination data not available for Oceania country {iso3}")
         norm_vacc_data = vacc_data / vacc_data.iloc[-1]
         return norm_vacc_data[norm_vacc_data.gt(START_VACC_THRESHOLD_OC / 100.0)].idxmin()
     elif pd.isna(start) or start > datetime.strptime(DEFAULT_START_DATE, CODE_DATE_FORMAT):

@@ -13,7 +13,7 @@ from emu_renewal.constants import (
     DATA_PATH,
 )
 from emu_renewal.document import get_exp_val_from_string
-from emu_renewal.inputs import get_oxcgrt_data
+from emu_renewal.inputs import get_country_vacc_data
 from emu_renewal.indicators import get_who_indicator
 from emu_renewal.outputs import add_bool_row_to_table
 from emu_renewal.run import find_run_end_time
@@ -103,6 +103,33 @@ def find_absent_inds(
     add_bool_row_to_table(summary, no_deaths, "No death data")
     add_bool_row_to_table(summary, no_cases, "No case data")
     return no_deaths, no_cases
+
+
+def find_oc_missing_vacc(
+    countries: List[str],
+    summary: pd.DataFrame,
+) -> List[str]:
+    """Find Oceania countries without vaccination coverage data.
+
+    Args:
+        countries: Candidate country identifiers
+        summary: Summary table of exclusions
+
+    Returns:
+        Oceania countries with no vaccination series
+
+    Notes
+    -----
+    For Singapore and countries of Oceania, vaccination coverage
+    is required to determine the start of the analysis period.
+    We therefore excluded any such country for which this series
+    was unavailable from Our World in Data.
+    """
+    missing = [
+        c for c in countries if get_cont_of_country(c) == "OC" and get_country_vacc_data(c).empty
+    ]
+    add_bool_row_to_table(summary, missing, "No Oceania vaccination data")
+    return missing
 
 
 def find_neg_inds(
