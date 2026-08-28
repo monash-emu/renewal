@@ -10,9 +10,9 @@ If you do not have pixi installed, you can obtain it from https://pixi.sh/latest
 
 ### Execution
 
-Clone the repository and check out the submission_1 branch (or clone as a single branch)
+Clone the repository and check out the relevant branch (or clone as a single branch)
 
-`git clone https://github.com/monash-emu/renewal.git --single-branch --branch submission_1`
+`git clone https://github.com/monash-emu/renewal.git --single-branch --branch <<relevant_branch>>`
 
 To build the environment for this repository, run `pixi run python` from within the repository root
 
