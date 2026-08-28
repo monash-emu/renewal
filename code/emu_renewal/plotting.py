@@ -166,7 +166,7 @@ def plot_multianalysis_fit(
     for a, analysis in enumerate(ordered_analyses):
         a_spaghs = spaghs[analysis]
         analysis_name = (
-            ANALYSIS_NAMES[analysis] if len(ordered_analyses) < 4 else MOB_SOURCE_ABBREVS[analysis]
+            ANALYSIS_NAMES[analysis] if len(ordered_analyses) < 4 else SOURCE_ABBREVS[analysis]
         )
         for o, out in enumerate(ordered_targets):
             ax = axes[o] if n_analyses == 1 else axes[o, a]
