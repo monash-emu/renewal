@@ -263,7 +263,7 @@ MOB_LOCATION_ABBREVS = {
 SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic": "Domin Rep"}
 
 # Run identifiers
-FULL_RUN = ["59207938", "59149036", "58997677"]
+FULL_RUN = ["59541039"]
 
 # Stringency
 OXCGRT_DTYPES = {
