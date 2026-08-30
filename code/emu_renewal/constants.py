@@ -12,7 +12,11 @@ DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
 # Analysis types
-ANALYSIS_TYPES = ["no_scaling", "g_mob", "fb_visited_mob", "fb_singletile_mob", "oxcgrt"]
+# Facebook and OxCGRT each have a family of analyses that share a data
+# source and differ in how that source is mapped to transmission.
+FB_ANALYSIS_TYPES = ["fb_visited_mob", "fb_singletile_mob"]
+OXCGRT_ANALYSIS_TYPES = ["oxcgrt_floored", "oxcgrt_independent"]
+ANALYSIS_TYPES = ["no_scaling", "g_mob"] + FB_ANALYSIS_TYPES + OXCGRT_ANALYSIS_TYPES
 
 # Dates
 CASES_START = "1 June 2020"
@@ -157,7 +161,8 @@ SOURCE_COLOURS = {
     "fb_visited_mob": "red",
     "fb_singletile_mob": "blue",
     "fb_no_mob": "grey",
-    "oxcgrt": "purple",
+    "oxcgrt_floored": "purple",
+    "oxcgrt_independent": "darkmagenta",
 }
 ANALYSIS_NAMES = {
     "no_scaling": "no scaling",
@@ -165,7 +170,8 @@ ANALYSIS_NAMES = {
     "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",
     "fb_no_mob": "Facebook no mobility",
-    "oxcgrt": "OxCGRT",
+    "oxcgrt_floored": "OxCGRT floored",
+    "oxcgrt_independent": "OxCGRT independent",
 }
 SOURCE_ABBREVS = {
     "no_scaling": "none",
@@ -173,7 +179,8 @@ SOURCE_ABBREVS = {
     "fb_visited_mob": "FB tiles visited",
     "fb_singletile_mob": "FB single tile",
     "fb_no_mob": "FB baseline",
-    "oxcgrt": "OxCGRT",
+    "oxcgrt_floored": "OxCGRT floor",
+    "oxcgrt_independent": "OxCGRT indep",
 }
 TARGET_TYPES = {
     "weekly_cases": "weekly cases",

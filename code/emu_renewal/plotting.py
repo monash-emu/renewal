@@ -33,6 +33,7 @@ from emu_renewal.constants import (
     ANALYSIS_NAMES,
     SOURCE_ABBREVS,
     SOURCE_COLOURS,
+    FB_ANALYSIS_TYPES,
     MOB_LOCATION_SOURCE_MAP,
     DUR_MIN,
     DUR_REL_MAX,
@@ -75,6 +76,9 @@ from emu_renewal.utils import (
     to_iso3,
     iso3_to_iso2,
 )
+
+MOB_SOURCE_COLOURS = SOURCE_COLOURS
+MOB_SOURCE_ABBREVS = SOURCE_ABBREVS
 
 plt.style.use("ggplot")
 MM = 1.0 / 25.4
@@ -572,7 +576,7 @@ def plot_weights_by_country(
     Args:
         analysis_paths: Path for the runs
         countries: The countries identifiers
-        analysis_type: g_mob or oxcgrt
+        analysis_type: g_mob or an OxCGRT analysis type
 
     Returns:
         The figure
@@ -841,7 +845,7 @@ def plot_select_proc_mob(
             country_name = (
                 SHORT_COUNTRY_NAMES[country] if country in SHORT_COUNTRY_NAMES else country
             )
-            mob_source = mob_location if mob_location.startswith("fb_") else "g_mob"
+            mob_source = mob_location if mob_location in FB_ANALYSIS_TYPES else "g_mob"
 
             # Plot residual transmission scaling
             proc_samples = pd.read_hdf(analysis_paths[iso3]["no_scaling"] / "spaghetti.h5")["process"]
@@ -927,7 +931,7 @@ def plot_exponent_dispersion_comparison(
     fig, axes = plt.subplots(4, 1, figsize=[88 * MM, 200 * MM], sharex=True)
 
     all_countries = analysis_paths.keys()
-    analyses = ["g_mob", "fb_visited_mob", "fb_singletile_mob"]
+    analyses = ["g_mob"] + FB_ANALYSIS_TYPES
     for m, mob_source in enumerate(analyses):
         mob_name = ANALYSIS_NAMES[mob_source]
         ax = axes[m]
@@ -1111,7 +1115,7 @@ def plot_dispersion_analysis(
     plt.rcParams["font.sans-serif"] = ["Arial"]
 
     # Strength of evidence for each mobility type panels
-    analysis_types = ["g_mob", "fb_visited_mob", "fb_singletile_mob"]
+    analysis_types = ["g_mob"] + FB_ANALYSIS_TYPES
     for a, analysis in enumerate(list(analysis_types)):
         analysis_name = ANALYSIS_NAMES[analysis]
 

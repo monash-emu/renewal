@@ -29,6 +29,8 @@ from emu_renewal.constants import (
     RUN_DATA_DELAY,
     N_CHAINS,
     ANALYSIS_TYPES,
+    FB_ANALYSIS_TYPES,
+    OXCGRT_ANALYSIS_TYPES,
 )
 from emu_renewal.inputs import (
     get_country_vacc_data,
@@ -190,13 +192,13 @@ def find_run_end_time(
     the applicable time series data was available was used.
     """
     cont = get_cont_of_country(iso3)
-    if cont == "OC" and "fb_" in analysis_type:
+    if cont == "OC" and analysis_type in FB_ANALYSIS_TYPES + ["fb_no_mob"]:
         scaler = load_scaler_data(iso3, analysis_type, get_fb_visited_mobility)
         return scaler.index[-1].to_pydatetime()
     elif cont == "OC" and "g_mob" in analysis_type:
         scaler = load_scaler_data(iso3, analysis_type, get_google_mobility)
         return scaler.index[-1].to_pydatetime()
-    elif cont == "OC" and "oxcgrt" in analysis_type:
+    elif cont == "OC" and analysis_type in OXCGRT_ANALYSIS_TYPES:
         scaler = load_scaler_data(iso3, analysis_type, lambda c: get_oxcgrt(c, "custom"))
         return scaler.index[-1].to_pydatetime()
     elif cont == "OC":
@@ -233,6 +235,8 @@ def get_scaler_provider(
     We also ran two analyses in which Facebook mobility
     was used to scale the transmission rate,
     if mobility data was available from Facebook.
+    FIXME We further ran analyses in which OxCGRT policy indicators
+    were used to scale the transmission rate.
     For all time series data sources, we smoothed the raw
     data using a {MOBILITY_SMOOTH_PERIOD}-day centred
     rolling average.
@@ -252,22 +256,31 @@ def get_scaler_provider(
         scaler = load_scaler_data(iso3, analysis_type, get_fb_visited_mobility)
     elif analysis_type == "fb_singletile_mob":
         scaler = load_scaler_data(iso3, analysis_type, get_fb_singletile_mobility)
-    elif analysis_type == "oxcgrt":
+    elif analysis_type in OXCGRT_ANALYSIS_TYPES:
         scaler = load_scaler_data(iso3, analysis_type, lambda c: get_oxcgrt(c, "custom"))
     else:
         raise ValueError(f"No provider available for analysis type {analysis_type}")
     smoothed_scaler = scaler.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
-    # Priors
+    # Priors and mapping from the loaded series to transmission
     exp_prior = {"scale_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
     floor_prior = {"scale_floor": dist.Beta(1.0, 1.0)}
-    if analysis_type in ["g_mob", "oxcgrt"]:
+    if analysis_type in ["g_mob", "oxcgrt_floored"]:
         n_domains = len(scaler.columns)
         weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
         priors = weight_prior | exp_prior | floor_prior
         return scaling.WeightedFloorScalerProvider(smoothed_scaler, priors)
-    elif analysis_type in ["fb_visited_mob", "fb_singletile_mob"]:
+    elif analysis_type in FB_ANALYSIS_TYPES:
         return scaling.SingleSeriesExpFloorScalerProvider(smoothed_scaler, exp_prior | floor_prior)
+    elif analysis_type in OXCGRT_ANALYSIS_TYPES:
+        # oxcgrt_independent shares the custom policy series with oxcgrt_floored
+        # but will use a different mapping from those series to transmission.
+        n_domains = len(scaler.columns)
+        weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
+        priors = weight_prior | exp_prior | floor_prior
+        return scaling.WeightedFloorScalerProvider(smoothed_scaler, priors)
+    else:
+        raise ValueError(f"No scaler process available for analysis type {analysis_type}")
 
 
 def run_calibration(

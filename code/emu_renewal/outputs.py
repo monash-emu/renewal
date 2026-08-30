@@ -14,7 +14,7 @@ from geopandas import GeoDataFrame
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
-from emu_renewal.constants import N_SAMPLES, ANALYSIS_TYPES, SOURCE_COLOURS, SOURCE_ABBREVS
+from emu_renewal.constants import N_SAMPLES, ANALYSIS_TYPES, FB_ANALYSIS_TYPES, SOURCE_COLOURS, SOURCE_ABBREVS
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.utils import get_country_name
@@ -363,20 +363,15 @@ def get_ratios_from_disps(
     for c in disp_posts:
         disp_post = disp_posts[c]
         ratio_df = pd.DataFrame()
-        if "g_mob" in disp_post:
-            ref = disp_post["no_scaling"].sample(frac=1.0).reset_index(drop=True)
-            mob = disp_post["g_mob"].reset_index(drop=True)
-            ratio_df["g_mob"] = ref / mob
-        if "fb_visited_mob" in disp_post:
-            ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_scaling"
+        for a_type in ANALYSIS_TYPES:
+            if a_type == "no_scaling" or a_type not in disp_post:
+                continue
+            if a_type in FB_ANALYSIS_TYPES:
+                ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_scaling"
+            else:
+                ref_name = "no_scaling"
             ref = disp_post[ref_name].sample(frac=1.0).reset_index(drop=True)
-            mob = disp_post["fb_visited_mob"].reset_index(drop=True)
-            ratio_df["fb_visited_mob"] = ref / mob
-        if "fb_singletile_mob" in disp_post:
-            ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_scaling"
-            ref = disp_post[ref_name].sample(frac=1.0).reset_index(drop=True)
-            mob = disp_post["fb_singletile_mob"].reset_index(drop=True)
-            ratio_df["fb_singletile_mob"] = ref / mob
+            ratio_df[a_type] = ref / disp_post[a_type].reset_index(drop=True)
         ratios[c] = ratio_df
     return ratios
 

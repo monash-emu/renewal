@@ -20,6 +20,7 @@ from emu_renewal.constants import (
     OXCGRT_DTYPES,
     OXCGRT_IND_MAX,
     OXCGRT_COLMAP,
+    OXCGRT_ANALYSIS_TYPES,
 )
 from emu_renewal.utils import get_cont_of_country, get_country_name, to_iso3, wb_iso3, iso3_to_iso2
 
@@ -274,6 +275,10 @@ def get_requested_scaler(
         return get_fb_visited_mobility(iso3)
     elif analysis_type == "fb_singletile_mob":
         return get_fb_singletile_mobility(iso3)
+    elif analysis_type in OXCGRT_ANALYSIS_TYPES:
+        return get_oxcgrt(iso3, "custom")[field]
+    else:
+        raise ValueError(f"No scaler series for analysis type {analysis_type}")
 
 
 def get_country_vacc_data(
@@ -417,12 +422,17 @@ def get_smoothed_trunc_scale_ts(
         iso3: The country identifier
         start: The start time of the period of interest
         finish: The end time of the period of interest
-        mob_type: Either g_mob or oxcgrt
+        mob_type: g_mob or an OxCGRT analysis type
 
     Returns:
         The data
     """
-    data = get_google_mobility(iso3) if mob_type == "g_mob" else get_oxcgrt(iso3, "custom")
+    if mob_type == "g_mob":
+        data = get_google_mobility(iso3)
+    elif mob_type in OXCGRT_ANALYSIS_TYPES:
+        data = get_oxcgrt(iso3, "custom")
+    else:
+        raise ValueError(f"No smoothed scaler series for analysis type {mob_type}")
     smoothed_mob = data.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
     return smoothed_mob[(start < smoothed_mob.index) & (smoothed_mob.index < finish)]
 
@@ -436,14 +446,19 @@ def get_weight_posts(
 
     Args:
         c_path: The country path for the analyses
-        analysis_type: Either "g_mob" or "oxcgrt"
+        analysis_type: g_mob or an OxCGRT analysis type
 
     Returns:
         The weights
     """
     idata = az.from_netcdf(a_path / "idata_filtered.nc")
     params = idata.posterior["ts_weights"].to_dataframe().unstack(level=-1)
-    params.columns = G_MOB_LOCATION_CMAP if analysis_type == "g_mob" else OXCGRT_COLMAP["custom"]
+    if analysis_type == "g_mob":
+        params.columns = G_MOB_LOCATION_CMAP
+    elif analysis_type in OXCGRT_ANALYSIS_TYPES:
+        params.columns = OXCGRT_COLMAP["custom"]
+    else:
+        raise ValueError(f"No time-series weights for analysis type {analysis_type}")
     return params
 
 
