@@ -190,6 +190,9 @@ def find_run_end_time(
     Otherwise, this default end date was used instead.
     For Oceania and Singapore, the latest date for which
     the applicable time series data was available was used.
+    For OxCGRT analyses this is the last date in the downloaded
+    series (through 2022), which is the intended end of the
+    Oceania and Singapore window rather than {DEFAULT_END_DATE}.
     """
     cont = get_cont_of_country(iso3)
     if cont == "OC" and analysis_type in FB_ANALYSIS_TYPES + ["fb_no_mob"]:
@@ -235,7 +238,7 @@ def get_scaler_provider(
     We also ran two analyses in which Facebook mobility
     was used to scale the transmission rate,
     if mobility data was available from Facebook.
-    FIXME We further ran analyses in which OxCGRT policy indicators
+    FIXME: We further ran analyses in which OxCGRT policy indicators
     were used to scale the transmission rate.
     For all time series data sources, we smoothed the raw
     data using a {MOBILITY_SMOOTH_PERIOD}-day centred
@@ -262,7 +265,7 @@ def get_scaler_provider(
         raise ValueError(f"No provider available for analysis type {analysis_type}")
     smoothed_scaler = scaler.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
 
-    # Priors and mapping from the loaded series to transmission
+    # Priors
     exp_prior = {"scale_exp": dist.Uniform(EXP_PRIOR_LOWER, EXP_PRIOR_UPPER)}
     floor_prior = {"scale_floor": dist.Beta(1.0, 1.0)}
     if analysis_type in ["g_mob", "oxcgrt_floored"]:
@@ -272,9 +275,8 @@ def get_scaler_provider(
         return scaling.WeightedFloorScalerProvider(smoothed_scaler, priors)
     elif analysis_type in FB_ANALYSIS_TYPES:
         return scaling.SingleSeriesExpFloorScalerProvider(smoothed_scaler, exp_prior | floor_prior)
-    elif analysis_type in OXCGRT_ANALYSIS_TYPES:
-        # oxcgrt_independent shares the custom policy series with oxcgrt_floored
-        # but will use a different mapping from those series to transmission.
+    elif analysis_type == "oxcgrt_independent":
+        # FIXME - need to populate this code
         n_domains = len(scaler.columns)
         weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
         priors = weight_prior | exp_prior | floor_prior

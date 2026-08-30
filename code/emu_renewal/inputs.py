@@ -414,7 +414,7 @@ def get_smoothed_trunc_scale_ts(
     iso3: str,
     start: datetime,
     finish: datetime,
-    mob_type: str = "g_mob",
+    analysis_type: str = "g_mob",
 ) -> pd.DataFrame:
     """Get the smoothed, truncated Google mobility or OxCGRT data.
 
@@ -427,12 +427,12 @@ def get_smoothed_trunc_scale_ts(
     Returns:
         The data
     """
-    if mob_type == "g_mob":
+    if analysis_type == "g_mob":
         data = get_google_mobility(iso3)
-    elif mob_type in OXCGRT_ANALYSIS_TYPES:
+    elif analysis_type in OXCGRT_ANALYSIS_TYPES:
         data = get_oxcgrt(iso3, "custom")
     else:
-        raise ValueError(f"No smoothed scaler series for analysis type {mob_type}")
+        raise ValueError(f"No smoothed scaler series for analysis type {analysis_type}")
     smoothed_mob = data.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
     return smoothed_mob[(start < smoothed_mob.index) & (smoothed_mob.index < finish)]
 
@@ -458,7 +458,7 @@ def get_weight_posts(
     elif analysis_type in OXCGRT_ANALYSIS_TYPES:
         params.columns = OXCGRT_COLMAP["custom"]
     else:
-        raise ValueError(f"No time-series weights for analysis type {analysis_type}")
+        raise ValueError(f"No time series weights for analysis type {analysis_type}")
     return params
 
 
@@ -587,6 +587,15 @@ def scale_oxcgrt_pols(
 
 
 def store_oxcgrt_data():
+    """Download national OxCGRT data for 2020 through 2022.
+
+    Notes
+    -----
+    Annual OxCGRT files are available for later years, but we
+    only retrieved 2020 to 2022. That extract is the intended
+    analysis window, including for Oceania and Singapore
+    whose run end is the last date in this series.
+    """
     restrictions_path = DATA_PATH / "restrictions"
     restrictions_path.mkdir(exist_ok=True)
     file_path = restrictions_path / "oxcgrt.csv"

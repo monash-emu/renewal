@@ -12,8 +12,6 @@ DATA_PATH = BASE_PATH / "data"
 RAW_MOB_PATH = DATA_PATH / "mobility_raw"
 
 # Analysis types
-# Facebook and OxCGRT each have a family of analyses that share a data
-# source and differ in how that source is mapped to transmission.
 FB_ANALYSIS_TYPES = ["fb_visited_mob", "fb_singletile_mob"]
 OXCGRT_ANALYSIS_TYPES = ["oxcgrt_floored", "oxcgrt_independent"]
 ANALYSIS_TYPES = ["no_scaling", "g_mob"] + FB_ANALYSIS_TYPES + OXCGRT_ANALYSIS_TYPES
