@@ -127,8 +127,8 @@ CONV_TRUNC_POINT = 50
 DAYS_IN_WEEK = 7
 
 # Calibration-related
-N_ITERS = 100
-N_CHAINS = 4
+N_ITERS = 10000
+N_CHAINS = 8
 INIT_RADIUS = 0.1
 SEED_RATE_LOW = "1\\times10^{-7}"
 SEED_RATE_UP = "5\\times10^{-6}"
