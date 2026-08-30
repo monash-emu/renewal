@@ -249,12 +249,14 @@ def get_oxcgrt(
     Notes
     -----
     OxCGRT policy indicators were scaled to the unit interval
-    by dividing by each indicator's documented maximum,
+    by dividing by each indicator's maximum possible value,
     and then converted to complements so that a value of one
     represented no restriction and a value of zero represented
     maximum restriction.
-    This coding matches the direction of the mobility series,
-    in which larger values correspond to greater mixing.
+    This coding matches the direction of the mobility series
+    used in previous analyses,
+    for which larger values correspond to greater
+    community mobility.
     """
     data = get_oxcgrt_data()
     pol = find_oxcgrt_country_data(iso3, data)
@@ -511,6 +513,14 @@ def get_oxcgrt_data() -> pd.DataFrame:
 
     Returns:
         The processed policy data
+
+    Notes
+    -----
+    Countries were considered for inclusion if they appeared
+    as a national jurisdiction in this OxCGRT extract.
+    Google or Facebook mobility data was not required for inclusion;
+    mobility series were used only for comparative analyses,
+    and only for the pre-Omicron countries, as described above.
     """
     data = pd.read_csv(DATA_PATH / f"restrictions/oxcgrt.csv", dtype=OXCGRT_DTYPES)
     data.index = pd.to_datetime(data["Date"], format="%Y%m%d")

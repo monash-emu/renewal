@@ -127,7 +127,7 @@ def find_run_start_time(
 
     Notes
     -----
-    For these countries,
+    For countries other than Singapore and those of Oceania,
     the start of the calibration period was
     set to be the time at which the per capita
     daily rate of deaths passed {DEATHS_START_THRESHOLD}

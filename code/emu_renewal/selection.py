@@ -45,7 +45,7 @@ def gather_who_data(
 
     Notes
     -----
-    Next, we considered the quality of the data for our two main WHO indicators
+    We considered the quality of the data for our two main WHO indicators
     which we required for inclusion in the analysis: `New_cases` and `New_deaths`
     from the start of data availability through to the end time
     of the analysis for each country.

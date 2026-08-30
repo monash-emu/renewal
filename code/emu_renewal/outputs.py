@@ -358,6 +358,18 @@ def get_ratios_from_disps(
 
     Returns:
         The ratios by country
+
+    Notes
+    -----
+    We compared each scaled analysis to no scaling
+    over the same country-specific window,
+    using the ratio of residual-process dispersion parameters
+    (`dispersion_proc`).
+    A ratio greater than one indicates that scaling reduced
+    unexplained transmission variation.
+    Because mobility analyses were not run for Oceania and Singapore,
+    comparison of policy versus mobility scaling was restricted
+    to pre-Omicron countries.
     """
     ratios = {}
     for c in disp_posts:
