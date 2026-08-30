@@ -747,8 +747,8 @@ def get_alpha_info(
     (Specifically, the exceptions were {ALPHA_DELTA_EXCEPTS}.)
     If this date occurred after the end of the simulation,
     the Alpha calibration period continued to the end of the simulation.
-    Comparison of the log of the target estimate against
-    the log of the modelled value was undertaken using
+    Comparison of the target estimate against
+    the modelled value was undertaken using
     a normal distribution with a single dispersion parameter
     that applied to all modelled variants
     (but was independent of the time series dispersion parameter).

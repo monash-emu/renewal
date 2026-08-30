@@ -1484,7 +1484,7 @@ def plot_waning_comparison_proc_disp(
         # Plot the posterior comparison
         ax = flat_axes[c]
         sns.kdeplot(combined_disps, ax=ax, fill=True, alpha=0.1, linewidth=1.5, common_norm=False)
-        ax.set_title(f"{pycountry.countries.lookup(iso3).name}, {MOB_SOURCE_ABBREVS[mob_type]}")
+        ax.set_title(f"{get_country_short_name(iso3)}, {MOB_SOURCE_ABBREVS[mob_type]}")
         ax.set_yticks([])
         ax.set_ylabel("")
 
