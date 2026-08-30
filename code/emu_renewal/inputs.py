@@ -245,6 +245,16 @@ def get_oxcgrt(
 
     Returns:
         The complements of the data values
+
+    Notes
+    -----
+    OxCGRT policy indicators were scaled to the unit interval
+    by dividing by each indicator's documented maximum,
+    and then converted to complements so that a value of one
+    represented no restriction and a value of zero represented
+    maximum restriction.
+    This coding matches the direction of the mobility series,
+    in which larger values correspond to greater mixing.
     """
     data = get_oxcgrt_data()
     pol = find_oxcgrt_country_data(iso3, data)

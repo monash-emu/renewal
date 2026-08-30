@@ -225,12 +225,14 @@ def get_scaler_provider(
     and two analyses in which Facebook mobility
     was used to scale the transmission rate,
     if mobility data was available from Facebook.
-    We further ran analyses in which OxCGRT policy indicators
-    were used to scale the transmission rate.
+    We ran two analyses in which OxCGRT policy indicators
+    were used to scale the transmission rate,
+    which differed in how those series were mapped to transmission.
     For all time series data sources, we smoothed the raw
     data using a {MOBILITY_SMOOTH_PERIOD}-day centred
     rolling average.
-    For all analyses incorporating scaling,
+    For analyses that used a floor and exponent
+    (Google mobility, Facebook mobility, and the floored OxCGRT analysis),
     we used an exponential scaling parameter
     (described in more detail below) which
     was assigned a uniform prior over domain

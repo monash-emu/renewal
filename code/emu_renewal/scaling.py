@@ -152,8 +152,8 @@ class IndependentEffectScalerProvider(WeightedScalerProvider):
         Each indicator is coded as one when unrestricted and zero
         at maximum restriction.
         Transmission is then scaled by the exponential of minus
-        the sum over policies of each effect parameter times 
-        the complemented of that indicator.
+        the sum over policies of each effect parameter times
+        the complement of that indicator.
         Each effect parameter was assigned an independent
         half-normal prior with scale {INDEP_EFFECT_SD}.
         """
