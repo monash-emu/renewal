@@ -198,7 +198,7 @@ def get_fb_visited_mobility(
     -----
     We used the `all_day_bing_tiles_visited_relative_change`
     for the first Facebook mobility analysis,
-    and scaled transmission transmission according
+    and scaled transmission according
     to one plus this mobility metric.
     """
     filename = f"mobility/{iso3}_fbmob_data.csv"

@@ -138,8 +138,8 @@ durations:
       while a study from Belgium reported the mean duration from symptom onset to hospitalisation to be 5.6 days.[@faes2020] 
       The final report of the ISARIC collaboration reported a mean of 5.4 days from symptom onset to admission.[@isaric2023]
       \newline\newline
-      Given this evidence, we chose a mean value for the time from infection to death prior of five days. 
-      As for the time from infection to hospital admission parameter, 
+      Given this evidence, we chose a mean value for the time from symptom onset to hospitalisation prior of five days. 
+      As for the time from infection to death parameter, 
       we inflated this by five days to allow for the incubation period.
   admit_sd:
     mean: 2.0

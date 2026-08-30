@@ -229,20 +229,6 @@ class SingleSeriesExpScalerProvider(SingleSeriesScalerProvider):
         return self.priors
 
     def get_parameterised_scaler(self, scale_exp, **kwargs) -> Array:
-        """See methods to parent class ScalerProvider.
-
-        Args:
-            scale_exp: The scaler exponent parameter
-
-        Returns:
-            The time series values
-
-        Notes
-        -----
-        One prior value was incorporated with each of these approaches, 
-        which specifies the exponent parameter for 
-        the effect of the time series data in scaling the transmission rate.
-        """
         return self.ts_arr ** scale_exp
 
 
@@ -267,6 +253,7 @@ class SingleSeriesExpFloorScalerProvider(SingleSeriesExpScalerProvider):
         assert set(priors.keys()) == set(["scale_exp", "scale_floor"])
         self.priors = priors
         self.ts_end = ts_data.index[-1]
+        
     def get_parameterised_scaler(self, scale_exp, scale_floor, **kwargs) -> Array:
         return (scale_floor + self.ts_arr * (1.0 - scale_floor)) ** scale_exp
     
