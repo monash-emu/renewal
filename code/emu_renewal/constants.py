@@ -158,7 +158,6 @@ SOURCE_COLOURS = {
     "g_mob": "darkgreen",
     "fb_visited_mob": "red",
     "fb_singletile_mob": "blue",
-    "fb_no_mob": "grey",
     "oxcgrt_floored": "purple",
     "oxcgrt_independent": "darkmagenta",
 }
@@ -167,7 +166,6 @@ ANALYSIS_NAMES = {
     "g_mob": "Google mobility",
     "fb_visited_mob": "Facebook tiles visited mobility",
     "fb_singletile_mob": "Facebook single tile mobility",
-    "fb_no_mob": "Facebook no mobility",
     "oxcgrt_floored": "OxCGRT floored",
     "oxcgrt_independent": "OxCGRT independent",
 }
@@ -176,7 +174,6 @@ SOURCE_ABBREVS = {
     "g_mob": "Google",
     "fb_visited_mob": "FB tiles visited",
     "fb_singletile_mob": "FB single tile",
-    "fb_no_mob": "FB baseline",
     "oxcgrt_floored": "OxCGRT floor",
     "oxcgrt_independent": "OxCGRT indep",
 }

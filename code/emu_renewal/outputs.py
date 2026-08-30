@@ -14,7 +14,7 @@ from geopandas import GeoDataFrame
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
-from emu_renewal.constants import N_SAMPLES, ANALYSIS_TYPES, FB_ANALYSIS_TYPES, SOURCE_COLOURS, SOURCE_ABBREVS
+from emu_renewal.constants import N_SAMPLES, ANALYSIS_TYPES, SOURCE_COLOURS, SOURCE_ABBREVS
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.utils import get_country_name
@@ -366,11 +366,7 @@ def get_ratios_from_disps(
         for a_type in ANALYSIS_TYPES:
             if a_type == "no_scaling" or a_type not in disp_post:
                 continue
-            if a_type in FB_ANALYSIS_TYPES:
-                ref_name = "fb_no_mob" if "fb_no_mob" in disp_post else "no_scaling"
-            else:
-                ref_name = "no_scaling"
-            ref = disp_post[ref_name].sample(frac=1.0).reset_index(drop=True)
+            ref = disp_post["no_scaling"].sample(frac=1.0).reset_index(drop=True)
             ratio_df[a_type] = ref / disp_post[a_type].reset_index(drop=True)
         ratios[c] = ratio_df
     return ratios

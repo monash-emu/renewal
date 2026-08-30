@@ -62,21 +62,20 @@ from emu_renewal.targets import Target, SharedDispTarget
 from emu_renewal.utils import get_cont_of_country, to_iso3
 
 
-def is_fb_visited_avail(iso3: str) -> bool:
-    """Whether visited-tile Facebook mobility is available for this country."""
-    return (DATA_PATH / "mobility" / f"{iso3}_fbmob_data.csv").exists()
-
-
 def get_analyses_for_country(iso3: str) -> list[str]:
     """Find the analysis types to launch for the specified country.
 
-    Facebook no-scaling is only included for Oceania (including Singapore)
-    when visited Facebook mobility data is available, so the residual
-    process can be compared over a matched Facebook time window.
+    Notes
+    -----
+    Mobility analyses were only run for countries other than
+    Singapore and those of Oceania, so that policy and mobility
+    scaling could be compared over a shared pre-Omicron window.
+    For Oceania and Singapore we ran the no-scaling analysis
+    and the OxCGRT analyses only.
     """
-    analyses = ANALYSIS_TYPES.copy()
-    avail = get_cont_of_country(iso3) == "OC" and is_fb_visited_avail(iso3)
-    return analyses + ["fb_no_mob"] if avail else analyses
+    if get_cont_of_country(iso3) == "OC":
+        return ["no_scaling"] + OXCGRT_ANALYSIS_TYPES
+    return ANALYSIS_TYPES.copy()
 
 
 def get_logger(log_file: Path = None):
@@ -167,13 +166,11 @@ def load_scaler_data(iso3: str, analysis_type: str, loader):
 
 def find_run_end_time(
     iso3: str,
-    analysis_type: str,
 ) -> datetime:
     """Find the end time for the analysis.
 
     Args:
         iso3: The country identifier
-        analysis_type: The analysis approach
 
     Returns:
         The date at which to end the analysis period
@@ -188,24 +185,12 @@ def find_run_end_time(
     provided that vaccination coverage did reach this
     value before the default end time of {DEFAULT_END_DATE}.
     Otherwise, this default end date was used instead.
-    For Oceania and Singapore, the latest date for which
-    the applicable time series data was available was used.
-    For OxCGRT analyses this is the last date in the downloaded
-    series (through 2022), which is the intended end of the
-    Oceania and Singapore window rather than {DEFAULT_END_DATE}.
+    For Oceania and Singapore, the last date in the downloaded
+    OxCGRT series (through 2022) was used, which is the intended
+    end of this later analysis window rather than {DEFAULT_END_DATE}.
     """
-    cont = get_cont_of_country(iso3)
-    if cont == "OC" and analysis_type in FB_ANALYSIS_TYPES + ["fb_no_mob"]:
-        scaler = load_scaler_data(iso3, analysis_type, get_fb_visited_mobility)
-        return scaler.index[-1].to_pydatetime()
-    elif cont == "OC" and "g_mob" in analysis_type:
-        scaler = load_scaler_data(iso3, analysis_type, get_google_mobility)
-        return scaler.index[-1].to_pydatetime()
-    elif cont == "OC" and analysis_type in OXCGRT_ANALYSIS_TYPES:
-        scaler = load_scaler_data(iso3, analysis_type, lambda c: get_oxcgrt(c, "custom"))
-        return scaler.index[-1].to_pydatetime()
-    elif cont == "OC":
-        scaler = load_scaler_data(iso3, analysis_type, get_google_mobility)
+    if get_cont_of_country(iso3) == "OC":
+        scaler = load_scaler_data(iso3, "oxcgrt", lambda c: get_oxcgrt(c, "custom"))
         return scaler.index[-1].to_pydatetime()
     vacc_data = get_country_vacc_data(iso3)
     default_end_time = datetime.strptime(DEFAULT_END_DATE, CODE_DATE_FORMAT)
@@ -232,13 +217,14 @@ def get_scaler_provider(
     -----
     For each country, we ran one analysis with
     no scaling to the transmission rate.
-    We further ran one analysis in which Google mobility
+    For countries other than Singapore and those of Oceania,
+    we further ran one analysis in which Google mobility
     was used to scale the transmission rate,
-    if mobility data was available from Google.
-    We also ran two analyses in which Facebook mobility
+    if mobility data was available from Google,
+    and two analyses in which Facebook mobility
     was used to scale the transmission rate,
     if mobility data was available from Facebook.
-    FIXME: We further ran analyses in which OxCGRT policy indicators
+    We further ran analyses in which OxCGRT policy indicators
     were used to scale the transmission rate.
     For all time series data sources, we smoothed the raw
     data using a {MOBILITY_SMOOTH_PERIOD}-day centred
@@ -251,7 +237,7 @@ def get_scaler_provider(
     """
 
     # Data processing
-    if analysis_type in ["no_scaling", "fb_no_mob"]:
+    if analysis_type == "no_scaling":
         return scaling.NoScalerProvider()
     elif analysis_type == "g_mob":
         scaler = load_scaler_data(iso3, analysis_type, get_google_mobility)
@@ -369,7 +355,7 @@ def run_single_country(
     if not (DATA_PATH / "restrictions/oxcgrt.csv").exists():
         store_oxcgrt_data()
     data_start = find_run_start_time(pop, iso3)
-    end_time = find_run_end_time(iso3, analysis_type)
+    end_time = find_run_end_time(iso3)
     run_start = data_start - timedelta(RUN_DATA_DELAY)
     start_str = run_start.strftime(DATE_FORMAT)
     data_start_str = data_start.strftime(DATE_FORMAT)
@@ -448,7 +434,7 @@ def run_identifiability(
     # Build the model
     pop = get_country_pop(iso3)
     data_start = find_run_start_time(pop, iso3)
-    end = find_run_end_time(iso3, analysis_type)
+    end = find_run_end_time(iso3)
     start = data_start - timedelta(RUN_DATA_DELAY)
     var_data = get_country_vars(iso3)
     continent = get_cont_of_country(iso3)

@@ -62,7 +62,7 @@ def gather_who_data(
         cont = get_cont_of_country(c)
         start_time = DATA_QUALITY_START_TIME_OC if cont == "OC" else DATA_QUALITY_START_TIME
         start = datetime.strptime(start_time, CODE_DATE_FORMAT)
-        end_time = find_run_end_time(c, "oxcgrt_floored")
+        end_time = find_run_end_time(c)
 
         # Get deaths and cases data
         deaths = get_who_indicator("New_deaths", c)

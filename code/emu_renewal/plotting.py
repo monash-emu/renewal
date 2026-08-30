@@ -163,8 +163,6 @@ def plot_multianalysis_fit(
     n_analyses = len(spaghs)
     n_targs = len(targets)
     ordered_analyses = [a for a in ANALYSIS_TYPES if a in spaghs]
-    # if cont == "OC" and iso3 != "SGP":
-    #     ordered_analyses += ["fb_no_mob"]
     ordered_targets = [t for t in TARGET_TYPES if t in targets]
     fig, axes = plt.subplots(n_targs, n_analyses, figsize=[12, 13], sharey="row")
     for a, analysis in enumerate(ordered_analyses):
@@ -662,8 +660,7 @@ def compare_proc_mob(
 
         # Transmission scaling process plotting
         a_paths = analysis_paths[iso3]
-        ref_analysis = "fb_no_mob" if "fb_no_mob" in a_paths else "no_scaling"
-        proc_samples = pd.read_hdf(a_paths[ref_analysis] / "spaghetti.h5")["process"]
+        proc_samples = pd.read_hdf(a_paths["no_scaling"] / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
@@ -721,9 +718,7 @@ def compare_proc_pol(
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
         # Transmission scaling process plotting
-        path = job_path[iso3]
-        ref_analysis = "fb_no_mob" if "fb_no_mob" in path else "no_scaling"
-        proc_samples = pd.read_hdf(job_path[iso3][ref_analysis] / "spaghetti.h5")["process"]
+        proc_samples = pd.read_hdf(job_path[iso3]["no_scaling"] / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], color="navy", linewidth=2.0)
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
