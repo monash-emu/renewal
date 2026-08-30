@@ -31,6 +31,7 @@ from emu_renewal.constants import (
     ANALYSIS_TYPES,
     FB_ANALYSIS_TYPES,
     OXCGRT_ANALYSIS_TYPES,
+    INDEP_EFFECT_SD,
 )
 from emu_renewal.inputs import (
     get_country_vacc_data,
@@ -262,11 +263,9 @@ def get_scaler_provider(
     elif analysis_type in FB_ANALYSIS_TYPES:
         return scaling.SingleSeriesExpFloorScalerProvider(smoothed_scaler, exp_prior | floor_prior)
     elif analysis_type == "oxcgrt_independent":
-        # FIXME - need to populate this code
         n_domains = len(scaler.columns)
-        weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
-        priors = weight_prior | exp_prior | floor_prior
-        return scaling.WeightedFloorScalerProvider(smoothed_scaler, priors)
+        weight_prior = {"ts_weights": dist.HalfNormal(np.full(n_domains, INDEP_EFFECT_SD))}
+        return scaling.IndependentEffectScalerProvider(smoothed_scaler, weight_prior)
     else:
         raise ValueError(f"No scaler process available for analysis type {analysis_type}")
 

@@ -135,6 +135,46 @@ class WeightedFloorScalerProvider(WeightedScalerProvider):
         return (scale_floor + (self.scaling_arr * norm_ts_weights).sum(axis=1) * (1.0 - scale_floor)) ** scale_exp
 
 
+class IndependentEffectScalerProvider(WeightedScalerProvider):
+    def __init__(self, ts_data: pd.DataFrame, priors: PriorDict):
+        """Provide a scaling array to a RenewalModel from independent
+        multiplicative effects of each time series component.
+
+        Args:
+            ts_data: The untransformed source data, coded as openness
+                (one when unrestricted, zero at maximum restriction)
+            priors: Priors for the per-component effect parameters
+
+        Notes
+        -----
+        This analysis scaled transmission by independent multiplicative
+        effects of each OxCGRT policy indicator.
+        Each indicator is coded as one when unrestricted and zero
+        at maximum restriction.
+        Transmission is then scaled by the exponential of minus
+        the sum over policies of each effect parameter times 
+        the complemented of that indicator.
+        Each effect parameter was assigned an independent
+        half-normal prior with scale {INDEP_EFFECT_SD}.
+        """
+        self.ts_data = ts_data
+        assert set(priors.keys()) == set(["ts_weights"])
+        assert priors["ts_weights"].batch_shape == (len(self.ts_data.columns),)
+        self.priors = priors
+        self.ts_end = ts_data.index[-1]
+
+    def get_parameterised_scaler(self, ts_weights, **kwargs) -> Array:
+        """See methods to parent class ScalerProvider.
+
+        Args:
+            ts_weights: Independent effect of each time series component
+
+        Returns:
+            The scaling values
+        """
+        return jnp.exp(-((1.0 - self.scaling_arr) * ts_weights).sum(axis=1))
+
+
 class SingleSeriesScalerProvider(ScalerProvider):
     def __init__(self, ts_data: pd.Series):
         """Provide a time series array to a RenewalModel.

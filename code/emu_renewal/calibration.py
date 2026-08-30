@@ -6,7 +6,7 @@ from jax import numpy as jnp
 from numpyro import distributions as dist
 from numpyro import infer
 
-from emu_renewal.constants import INIT_RADIUS, PROC_DISP_SD
+from emu_renewal.constants import INIT_RADIUS, PROC_DISP_SD, INDEP_EFFECT_INIT
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.targets import Target
 
@@ -34,6 +34,10 @@ def custom_init(site, n_proc: int):
     to represent no update, such that the
     initialisation commenced with transmission
     scaling being constant over time.
+    For the independent OxCGRT policy effects,
+    we started each effect parameter from {INDEP_EFFECT_INIT},
+    so that initialisation likewise commenced with no
+    policy-driven change to transmission.
     For all other parameters,
     we used `numpyro`'s `init_to_uniform` method,
     with a radius of {INIT_RADIUS}.
@@ -47,6 +51,8 @@ def custom_init(site, n_proc: int):
             return site["value"]
         if site["name"] == "proc":
             return jnp.zeros(n_proc)
+        if site["name"] == "ts_weights" and isinstance(site["fn"], dist.HalfNormal):
+            return jnp.full(site["fn"].batch_shape, INDEP_EFFECT_INIT)
         return infer.init_to_uniform(site, INIT_RADIUS)
     return None
 
