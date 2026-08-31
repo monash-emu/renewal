@@ -6,7 +6,7 @@ from jax import numpy as jnp
 from numpyro import distributions as dist
 from numpyro import infer
 
-from emu_renewal.constants import INIT_RADIUS, PROC_DISP_SD, INDEP_EFFECT_INIT
+from emu_renewal.constants import INIT_RADIUS, PROC_DISP_SD, INDEP_EFFECT_INIT, BETA_INIT_OC
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.targets import Target
 
@@ -14,7 +14,7 @@ from emu_renewal.targets import Target
 ParamDict = dict[str, dist.Distribution | float]
 
 
-def custom_init(site, n_proc: int):
+def custom_init(site, n_proc: int, omicron_period: bool):
     """Initialize a numpyro MCMC run,
     returning 0.0 for "proc" (random process values),
     otherwise defaulting to init_to_uniform(radius).
@@ -22,6 +22,7 @@ def custom_init(site, n_proc: int):
     Args:
         site: A numpyro sample site (one model parameter)
         n_proc: Number of updates in the transmission scaling process
+        omicron_period: Whether this is an Omicron-era (Oceania/Singapore) analysis
 
     Returns:
         The initial value for this site, or None to leave it to numpyro
@@ -38,6 +39,10 @@ def custom_init(site, n_proc: int):
     we started each effect parameter from {INDEP_EFFECT_INIT},
     so that initialisation likewise commenced with no
     policy-driven change to transmission.
+    For Singapore and countries of Oceania,
+    the starting transmissibility parameter was initialised at {BETA_INIT_OC}
+    rather than the centre of its prior,
+    so that initialisation did not commence from a rapidly saturating epidemic.
     For all other parameters,
     we used `numpyro`'s `init_to_uniform` method,
     with a radius of {INIT_RADIUS}.
@@ -53,6 +58,8 @@ def custom_init(site, n_proc: int):
             return jnp.zeros(n_proc)
         if site["name"] == "ts_weights" and isinstance(site["fn"], dist.HalfNormal):
             return jnp.full(site["fn"].batch_shape, INDEP_EFFECT_INIT)
+        if site["name"] == "beta" and omicron_period:
+            return jnp.array(BETA_INIT_OC)
         return infer.init_to_uniform(site, INIT_RADIUS)
     return None
 
@@ -84,7 +91,11 @@ class StandardCalib:
         """
         self.epi_model = epi_model
         self.n_proc_periods = len(self.epi_model.x_proc_data.points)
-        self.init_strategy = partial(custom_init, n_proc=self.n_proc_periods)
+        self.init_strategy = partial(
+            custom_init,
+            n_proc=self.n_proc_periods,
+            omicron_period=self.epi_model.omicron_period,
+        )
         analysis_idx = self.epi_model.epoch.index_to_dti(self.epi_model.model_times)
         self.targets = targets.copy()
         self.common_idx = {}

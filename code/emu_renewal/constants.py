@@ -127,9 +127,10 @@ CONV_TRUNC_POINT = 50
 DAYS_IN_WEEK = 7
 
 # Calibration-related
-N_ITERS = 10000
-N_CHAINS = 8
+N_ITERS = 50
+N_CHAINS = 4
 INIT_RADIUS = 0.1
+BETA_INIT_OC = 1.0
 SEED_RATE_LOW = "1\\times10^{-7}"
 SEED_RATE_UP = "5\\times10^{-6}"
 SEED_OFF_LOW = 4.0
@@ -267,7 +268,7 @@ MOB_LOCATION_ABBREVS = {
 SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic": "Domin Rep"}
 
 # Run identifiers
-FULL_RUN = ["59541039"]
+FULL_RUN = ["59597639"]
 
 # Stringency
 OXCGRT_DTYPES = {
