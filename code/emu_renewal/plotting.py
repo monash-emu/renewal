@@ -592,14 +592,17 @@ def plot_weights_by_country(
         # Get weights
         idata = az.from_netcdf(job_path[iso3][analysis_type] / "idata_filtered.nc")
         weights = idata.posterior["ts_weights"].to_dataframe().unstack("ts_weights_dim_0")
-        weights.columns = get_oxcgrt(iso3, "custom").columns
+        cols = list(get_oxcgrt(iso3, "custom").columns)
+        if weights.shape[1] == 9:  # TODO: remove when calibrations rerun without H1
+            cols = [f"C{i}" for i in range(1, 8)] + ["H1", "H6"]
+        weights.columns = cols
 
         # Plot
         ax = flat_axes[c]
         for pol in weights.columns:
             kde = gaussian_kde(weights[pol])
-            colour = OXCGRT_LOCATION_LINE_CMAP[pol]
-            label = MOB_LOCATION_NAME_MAP[pol]
+            colour = OXCGRT_LOCATION_LINE_CMAP.get(pol, "gray")
+            label = LOCATION_NAME_MAP[pol]
             ax.plot(x_vals, kde(x_vals), label=label, color=colour)
             ax.fill_between(x_vals, kde(x_vals), alpha=0.05, color=colour)
 
