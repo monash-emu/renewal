@@ -1518,6 +1518,10 @@ def plot_param_post_comparison(
 ) -> plt.figure:
     """Plot posterior comparisons by country
     for a requested parameter.
+    Analyses whose posterior does not contain
+    the parameter are omitted, including
+    no_scaling and oxcgrt_independent when
+    plotting scale_exp.
 
     Args:
         countries: The country identifiers
@@ -1535,10 +1539,10 @@ def plot_param_post_comparison(
     for c, iso3 in enumerate(countries):
         a_paths = analysis_paths[iso3]
         ax = flat_axes[c]
-        analyses = [p for p in a_paths if p != "no_scaling"]
-        for a in analyses:
-            a_path = a_paths[a]
+        for a, a_path in a_paths.items():
             idata = az.from_netcdf(a_path / "idata_filtered.nc")
+            if param not in idata.posterior:
+                continue
             colour = MOB_SOURCE_COLOURS[a]
             az.plot_density(idata, ax=ax, hdi_prob=0.99, var_names=param, shade=0.2, colors=colour)
         ax.set_title(get_country_name(iso3))
