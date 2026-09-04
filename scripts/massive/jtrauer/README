@@ -2,4 +2,5 @@ From a Massive login node, at the repo root:
 
     bash scripts/massive/jtrauer/launch.sh
 
-This sizes `--array` from `data/config/oxcgrt_included.json` and submits `run_countries.sh`.
+This sizes `--array` from `data/config/rerun_pairs.json` and submits `rerun_countries.sh`,
+so each array task runs one country/analysis pair.
