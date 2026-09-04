@@ -147,12 +147,13 @@ class IndependentEffectScalerProvider(WeightedScalerProvider):
 
         Notes
         -----
-        This analysis scaled transmission by independent multiplicative
+        This analysis scales transmission by independent multiplicative
         effects of each OxCGRT policy indicator.
-        Each indicator is coded as one when unrestricted and zero
+        As for the mobility analysis types, 
+        each indicator is coded as one when unrestricted and zero
         at maximum restriction.
-        Each indicator was then referenced to its own value on the
-        first day of the analysis period for the country considered,
+        Each indicator was then referenced to its value on the
+        first day of the analysis period for the country considered
         by subtracting this starting value from the series.
         Transmission is scaled by the exponential of minus
         the sum over policies of each effect parameter times
@@ -163,7 +164,7 @@ class IndependentEffectScalerProvider(WeightedScalerProvider):
         they ease.
         This referencing is a reparameterisation that leaves the
         epidemiological structure of the model unchanged.
-        However, it means that the transmissibility parameter
+        However, it implies that the transmissibility parameter
         represents transmission under the policy settings observed at
         the start of the analysis period, rather than under the
         counterfactual of a complete absence of policy restrictions,
