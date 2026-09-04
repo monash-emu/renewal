@@ -151,9 +151,24 @@ class IndependentEffectScalerProvider(WeightedScalerProvider):
         effects of each OxCGRT policy indicator.
         Each indicator is coded as one when unrestricted and zero
         at maximum restriction.
-        Transmission is then scaled by the exponential of minus
+        Each indicator was then referenced to its own value on the
+        first day of the analysis period for the country considered,
+        by subtracting this starting value from the series.
+        Transmission is scaled by the exponential of minus
         the sum over policies of each effect parameter times
-        the complement of that indicator.
+        the referenced complement of that indicator.
+        The scaling value is therefore one at the start of the
+        simulation, falling below one as policies tighten relative to
+        the settings in place at that time and rising above one as
+        they ease.
+        This referencing is a reparameterisation that leaves the
+        epidemiological structure of the model unchanged.
+        However, it means that the transmissibility parameter
+        represents transmission under the policy settings observed at
+        the start of the analysis period, rather than under the
+        counterfactual of a complete absence of policy restrictions,
+        which was not observed for any country during the analysis
+        period and so could only be reached by extrapolation.
         Each effect parameter was assigned an independent
         half-normal prior with scale {INDEP_EFFECT_SD}.
         """
@@ -172,7 +187,8 @@ class IndependentEffectScalerProvider(WeightedScalerProvider):
         Returns:
             The scaling values
         """
-        return jnp.exp(-((1.0 - self.scaling_arr) * ts_weights).sum(axis=1))
+        rel_restriction = self.scaling_arr[0] - self.scaling_arr
+        return jnp.exp(-(rel_restriction * ts_weights).sum(axis=1))
 
 
 class SingleSeriesScalerProvider(ScalerProvider):
