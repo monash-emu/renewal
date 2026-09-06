@@ -159,6 +159,7 @@ def store_outputs(
     resulting ``idata_filtered.nc`` is written.
     """
     idata_full = az.from_numpyro(mcmc)
+    # idata_full.to_netcdf(out_dir / "idata_full.nc")
 
     energy = pd.DataFrame(mcmc.get_extra_fields(True)["potential_energy"]).T
     likelihood = 0.0 - energy
