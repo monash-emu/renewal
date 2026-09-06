@@ -14,7 +14,13 @@ from geopandas import GeoDataFrame
 from estival.sampling.tools import SampleIterator
 from estival.sampling import tools as esamp
 
-from emu_renewal.constants import N_SAMPLES, ANALYSIS_TYPES, SOURCE_COLOURS, SOURCE_ABBREVS
+from emu_renewal.constants import (
+    ANALYSIS_TYPES,
+    IDATA_DRAW_THIN,
+    N_SAMPLES,
+    SOURCE_ABBREVS,
+    SOURCE_COLOURS,
+)
 from emu_renewal.calibration import StandardCalib
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.utils import get_country_name
@@ -145,9 +151,14 @@ def store_outputs(
         model: Renewal model
         calib: Calibration object
         mcmc: MCMC object
+
+    Notes
+    -----
+    The full posterior is kept in memory only long enough to drop
+    poor chains and thin draws by {IDATA_DRAW_THIN}. Only the
+    resulting ``idata_filtered.nc`` is written.
     """
     idata_full = az.from_numpyro(mcmc)
-    idata_full.to_netcdf(out_dir / "idata_full.nc")
 
     energy = pd.DataFrame(mcmc.get_extra_fields(True)["potential_energy"]).T
     likelihood = 0.0 - energy
@@ -161,7 +172,7 @@ def store_outputs(
 
     print(f"Selected chains {good_chains}")
 
-    idata_filtered = idata_full.sel(chain=good_chains)
+    idata_filtered = idata_full.sel(chain=good_chains).isel(draw=slice(None, None, IDATA_DRAW_THIN))
     idata_filtered.to_netcdf(out_dir / "idata_filtered.nc")
 
     idata_sampled = az.extract(idata_filtered, num_samples=N_SAMPLES)
