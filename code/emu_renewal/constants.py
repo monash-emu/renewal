@@ -270,7 +270,7 @@ SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic"
 
 # Run identifiers
 FULL_RUN = ["59824578", "59746206", "59597639"]
-CURRENT_METHOD_SHAS = {"cb8324a", "b934196"}
+CURRENT_METHOD_SHAS = ["cb8324a", "b934196", "048722d"]
 MIN_IDATA_BYTES = 10_000_000
 
 # Stringency
