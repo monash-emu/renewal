@@ -135,29 +135,68 @@ class WeightedFloorScalerProvider(WeightedScalerProvider):
         return (scale_floor + (self.scaling_arr * norm_ts_weights).sum(axis=1) * (1.0 - scale_floor)) ** scale_exp
 
 
+class WeightedFloorRestrictionScalerProvider(WeightedFloorScalerProvider):
+    def __init__(self, ts_data: pd.DataFrame, priors: PriorDict):
+        """Provide a scaling array from a weighted combination of
+        restriction time series, which is then floored and exponentiated.
+
+        Args:
+            ts_data: The untransformed source data, coded as restriction
+                (zero when unrestricted, one at maximum restriction)
+            priors: Priors for the transform parameters
+
+        Notes
+        -----
+        This analysis used a weighted combination of OxCGRT
+        policy indicators, with the weights for each indicator
+        normalised to sum to one.
+        Indicators were coded as restriction
+        (zero when unrestricted, one at maximum restriction).
+        The complement of the weighted restriction series was
+        then reduced toward a calibrated floor and exponentiated
+        to the value specified by the scaling exponential
+        parameter, so that greater restriction reduced
+        transmission toward the floor.
+        """
+        super().__init__(ts_data, priors)
+
+    def get_parameterised_scaler(self, ts_weights, scale_exp, scale_floor, **kwargs) -> Array:
+        """See methods to parent class ScalerProvider.
+
+        Args:
+            ts_weights: The weights for each time series component domain
+            scale_exp: The scaling factor for the weighted time series estimate
+
+        Returns:
+            The scaling values
+        """
+        norm_ts_weights = ts_weights / ts_weights.sum()
+        weighted_restriction = (self.scaling_arr * norm_ts_weights).sum(axis=1)
+        return (scale_floor + (1.0 - weighted_restriction) * (1.0 - scale_floor)) ** scale_exp
+
+
 class IndependentEffectScalerProvider(WeightedScalerProvider):
     def __init__(self, ts_data: pd.DataFrame, priors: PriorDict):
         """Provide a scaling array to a RenewalModel from independent
         multiplicative effects of each time series component.
 
         Args:
-            ts_data: The untransformed source data, coded as openness
-                (one when unrestricted, zero at maximum restriction)
+            ts_data: The untransformed source data, coded as restriction
+                (zero when unrestricted, one at maximum restriction)
             priors: Priors for the per-component effect parameters
 
         Notes
         -----
         This analysis scales transmission by independent multiplicative
         effects of each OxCGRT policy indicator.
-        As for the mobility analysis types, 
-        each indicator is coded as one when unrestricted and zero
+        Each indicator is coded as zero when unrestricted and one
         at maximum restriction.
         Each indicator was then referenced to its value on the
         first day of the analysis period for the country considered
         by subtracting this starting value from the series.
         Transmission is scaled by the exponential of minus
         the sum over policies of each effect parameter times
-        the referenced complement of that indicator.
+        the referenced indicator.
         The scaling value is therefore one at the start of the
         simulation, falling below one as policies tighten relative to
         the settings in place at that time and rising above one as
@@ -188,7 +227,7 @@ class IndependentEffectScalerProvider(WeightedScalerProvider):
         Returns:
             The scaling values
         """
-        rel_restriction = self.scaling_arr[0] - self.scaling_arr
+        rel_restriction = self.scaling_arr - self.scaling_arr[0]
         return jnp.exp(-(rel_restriction * ts_weights).sum(axis=1))
 
 

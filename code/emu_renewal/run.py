@@ -261,6 +261,8 @@ def get_scaler_provider(
         n_domains = len(scaler.columns)
         weight_prior = {"ts_weights": dist.Uniform(np.zeros(n_domains), np.ones(n_domains))}
         priors = weight_prior | exp_prior | floor_prior
+        if analysis_type == "oxcgrt_floored":
+            return scaling.WeightedFloorRestrictionScalerProvider(smoothed_scaler, priors)
         return scaling.WeightedFloorScalerProvider(smoothed_scaler, priors)
     elif analysis_type in FB_ANALYSIS_TYPES:
         return scaling.SingleSeriesExpFloorScalerProvider(smoothed_scaler, exp_prior | floor_prior)

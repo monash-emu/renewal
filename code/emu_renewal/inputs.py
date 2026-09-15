@@ -244,26 +244,20 @@ def get_oxcgrt(
         field: The key for the set of fields
 
     Returns:
-        The complements of the data values
+        The scaled policy indicator values
 
     Notes
     -----
     OxCGRT policy indicators were scaled to the unit interval
     by dividing by each indicator's maximum possible value,
-    and then converted to complements so that a value of one
-    represented no restriction and a value of zero represented
-    maximum restriction.
-    This coding matches the direction of the mobility series
-    used in previous analyses,
-    for which larger values correspond to greater
-    community mobility.
+    so that a value of zero represented no restriction and
+    a value of one represented maximum restriction.
     """
     data = get_oxcgrt_data()
     pol = find_oxcgrt_country_data(iso3, data)
     filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]
     scaled_pol = scale_oxcgrt_pols(filt_pol)
-    pol_vals = scaled_pol[OXCGRT_COLMAP[field]]
-    return 1.0 - pol_vals
+    return scaled_pol[OXCGRT_COLMAP[field]]
 
 
 def get_requested_scaler(
@@ -503,7 +497,8 @@ def get_cgrt_quants(
     n_samples: int,
 ) -> pd.DataFrame:
     norm_weights = params.div(params.sum(axis=1), axis=0)
-    vals = (norm_weights @ smoothed_mob.T).mul(1.0 - floors, axis=0).add(floors, axis=0).T
+    weighted_restriction = norm_weights @ smoothed_mob.T
+    vals = (1.0 - weighted_restriction).mul(1.0 - floors, axis=0).add(floors, axis=0).T
     sample_vals = vals.sample(n_samples, axis=1)
     return sample_vals.quantile([0.025, 0.5, 0.975], axis=1).T
 

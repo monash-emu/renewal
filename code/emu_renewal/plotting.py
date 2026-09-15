@@ -34,6 +34,7 @@ from emu_renewal.constants import (
     SOURCE_ABBREVS,
     SOURCE_COLOURS,
     FB_ANALYSIS_TYPES,
+    OXCGRT_ANALYSIS_TYPES,
     MOB_LOCATION_SOURCE_MAP,
     DUR_MIN,
     DUR_REL_MAX,
@@ -798,7 +799,10 @@ def compare_proc_versus_weighted(
         scale_ts = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1], analysis_type)
         colour = MOB_SOURCE_COLOURS[analysis_type]
         if flat_average:
-            flat_average_ts = scale_ts.mean(axis=1) * (1.0 - assumed_floor) + assumed_floor
+            mean_ts = scale_ts.mean(axis=1)
+            if analysis_type in OXCGRT_ANALYSIS_TYPES:
+                mean_ts = 1.0 - mean_ts
+            flat_average_ts = mean_ts * (1.0 - assumed_floor) + assumed_floor
             ax.plot(flat_average_ts, color=colour, linewidth=2.0, alpha=0.6)
         else:
             idata = az.from_netcdf(a_path / "idata_filtered.nc")
