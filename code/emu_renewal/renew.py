@@ -621,9 +621,11 @@ class MultiStrainModel:
         # Seropositivity
         out["seropos"] = (self.pop - out["sus_0"]) / self.pop
 
-        # Variant proportions
+        # Variant proportions. 
+        # Floor the denominator to avoid division by zero in likelihood.
+        model_inc = jnp.maximum(full_inc[self.init_length :], 1e-12)
         var_props = {
-            f"prop_{strain}": strain_inc[s, self.init_length :] / full_inc[self.init_length :]
+            f"prop_{strain}": strain_inc[s, self.init_length :] / model_inc
             for s, strain in enumerate(self.strains)
         }
         return out | var_props

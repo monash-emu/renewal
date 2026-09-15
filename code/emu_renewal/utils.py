@@ -10,7 +10,16 @@ import pycountry
 import pycountry_convert as pc
 import arviz as az
 
-from emu_renewal.constants import ANALYSIS_TYPES, ANALYSIS_NAMES, OUTPUTS_PATH, DATA_PATH, UNOFFICIAL_COUNTRIES
+from emu_renewal.constants import (
+    ANALYSIS_TYPES,
+    ANALYSIS_NAMES,
+    OUTPUTS_PATH,
+    DATA_PATH,
+    UNOFFICIAL_COUNTRIES,
+    OXCGRT_ANALYSIS_TYPES,
+    CURRENT_METHOD_SHAS,
+    MIN_IDATA_BYTES,
+)
 
 
 def get_col_increases(
@@ -363,6 +372,31 @@ def copy_analysis_type_to_run(
             shutil.copytree(src, dest)
 
 
+def is_usable_analysis(path: Path, iso3: str, analysis: str) -> bool:
+    """Whether an output folder can be used.
+
+    Finished outputs, a non-tiny idata, and current methods
+    for OxCGRT and Oceania/Singapore analyses.
+    """
+    idata = path / "idata_filtered.nc"
+    gitinfo_path = path / "gitinfo.json"
+    if not (
+        path.is_dir()
+        and (path / "updates.h5").exists()
+        and (path / "spaghetti.h5").exists()
+        and idata.exists()
+        and gitinfo_path.exists()
+        and idata.stat().st_size >= MIN_IDATA_BYTES
+    ):
+        return False
+    needs_current = analysis in OXCGRT_ANALYSIS_TYPES or get_cont_of_country(iso3) == "OC"
+    if needs_current:
+        sha = json.load(open(gitinfo_path))["sha"][:7]
+        if sha not in CURRENT_METHOD_SHAS:
+            return False
+    return True
+
+
 def get_analysis_paths(
     job_ids: List[str],
     countries: List[str],
@@ -370,10 +404,10 @@ def get_analysis_paths(
     """Find analysis output directories for each country.
     Job IDs are searched in the order provided.
     For each (country, analysis type) pair,
-    the first matching analysis directory 
+    the first usable analysis directory
     found in that hierarchy is populated.
-    If an analysis type is not found in any job directory 
-    for a country, that analysis type is 
+    If an analysis type is not usable in any job directory
+    for a country, that analysis type is
     omitted from the country's result dictionary.
 
     Returns:
@@ -387,7 +421,7 @@ def get_analysis_paths(
         for a in ANALYSIS_TYPES:
             for j in job_paths:
                 analysis_path = j / c / a
-                if analysis_path.is_dir():
+                if is_usable_analysis(analysis_path, c, a):
                     analysis_paths[c][a] = analysis_path
                     break
     return analysis_paths

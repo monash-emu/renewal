@@ -160,7 +160,7 @@ DUR_REL_MAX = 2.5
 SOURCE_COLOURS = {
     "no_scaling": "black",
     "oxcgrt_floored": "purple",
-    "oxcgrt_independent": "darkmagenta",
+    "oxcgrt_independent": "brown",
     "g_mob": "darkgreen",
     "fb_visited_mob": "red",
     "fb_singletile_mob": "blue",
@@ -269,7 +269,9 @@ MOB_LOCATION_ABBREVS = {
 SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic": "Domin Rep"}
 
 # Run identifiers
-FULL_RUN = ["59597639"]
+FULL_RUN = ["59824578", "59746206", "59597639"]
+CURRENT_METHOD_SHAS = {"cb8324a", "b934196"}
+MIN_IDATA_BYTES = 10_000_000
 
 # Stringency
 OXCGRT_DTYPES = {

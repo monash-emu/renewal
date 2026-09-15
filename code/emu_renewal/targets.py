@@ -4,15 +4,26 @@ from jax import Array, numpy as jnp
 from numpyro import distributions as dist
 from numpyro.distributions.distribution import DistributionMeta
 
-from emu_renewal.constants import PROP_EXTREME
+from emu_renewal.constants import PROP_EXTREME, ZERO_IND_REPLACEMENT
 
 
 Transform = Callable | None
 ParamValues = dict[str, Array | float]
 
 
+def log_indicator(x):
+    """Log transform for count indicators.
+
+    Observed zeros have already been replaced with ZERO_IND_REPLACEMENT 
+    before reaching this function. Modelled values at or below this floor
+    (including zeros and minute values) are clipped the same way.
+    """
+    return jnp.log(jnp.maximum(x, ZERO_IND_REPLACEMENT))
+
+
 def logit(x):
     """Logit transform, with clipping away from 0 and 1."""
+    x = jnp.nan_to_num(x, nan=PROP_EXTREME)
     x = jnp.clip(x, PROP_EXTREME, 1.0 - PROP_EXTREME)
     return jnp.log(x) - jnp.log1p(-x)
 
@@ -81,7 +92,7 @@ class SharedDispTarget(UnivariateDispersionTarget):
     """
 
     def __init__(self, data: pd.Series, weight: float):
-        super().__init__(data, dist.Normal, "shared_dispersion", jnp.log, weight)
+        super().__init__(data, dist.Normal, "shared_dispersion", log_indicator, weight)
 
 
 class SharedPropTarget(UnivariateDispersionTarget):
