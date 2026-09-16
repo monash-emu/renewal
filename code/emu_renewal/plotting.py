@@ -57,6 +57,7 @@ from emu_renewal.inputs import (
     get_weight_posts,
     get_g_mob_quants,
     get_cgrt_quants,
+    get_indep_cgrt_quants,
     get_smoothed_trunc_scale_ts,
     get_oxcgrt_data,
     find_oxcgrt_country_data,
@@ -760,14 +761,15 @@ def compare_proc_versus_weighted(
     flat_average: bool,
     assumed_floor: float=0.5,
 ) -> plt.Figure:
-    """Plot comparison of composite Google time series to
-    the transmission scaling process.
+    """Plot comparison of reconstructed policy/mobility scaling to
+    the residual transmission scaling process.
 
     Args:
         analysis_paths: Paths for the runs
         countries: Requested countries to plot
-        n_samples: Number of samples from Google weights to create composite series
+        n_samples: Number of samples from posterior weights/effects to create composite series
         n_cols: Number of subplot columns for the figure
+        analysis_type: The analysis identifier, including oxcgrt_independent
         flat_average: Whether to use the actual weights or just assume a flat average across all domains
         assumed_floor: The floor to use if doing a flat average
 
@@ -777,9 +779,12 @@ def compare_proc_versus_weighted(
     fig, axes = get_standard_subplot(len(countries), n_cols)
     flat_axes = axes.ravel()
     analysis_name = ANALYSIS_NAMES[analysis_type]
-    flat_average_txt = f"with flat average applied and assumed floor of {assumed_floor}"
-    weight_txt = "weighted according to policy weights" if flat_average else flat_average_txt
-    title = f"Residual scaling versus {analysis_name} {weight_txt}"
+    if analysis_type == "oxcgrt_independent":
+        title = f"Residual scaling versus {analysis_name} reconstructed from posterior effects"
+    else:
+        flat_average_txt = f"with flat average applied and assumed floor of {assumed_floor}"
+        weight_txt = "weighted according to policy weights" if flat_average else flat_average_txt
+        title = f"Residual scaling versus {analysis_name} {weight_txt}"
     fig.suptitle(title, fontsize=14, y=1.0)
 
     for c, iso3 in enumerate(countries):
@@ -799,7 +804,12 @@ def compare_proc_versus_weighted(
         a_path = c_path[analysis_type]
         scale_ts = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1], analysis_type)
         colour = MOB_SOURCE_COLOURS[analysis_type]
-        if flat_average:
+        if analysis_type == "oxcgrt_independent":
+            weights = get_weight_posts(a_path, analysis_type)
+            mob_quants = get_indep_cgrt_quants(scale_ts, weights, n_samples)
+            ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
+            ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour)
+        elif flat_average:
             mean_ts = scale_ts.mean(axis=1)
             if analysis_type in OXCGRT_ANALYSIS_TYPES:
                 mean_ts = 1.0 - mean_ts

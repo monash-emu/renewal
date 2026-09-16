@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import datetime
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 import arviz as az
@@ -499,6 +500,33 @@ def get_cgrt_quants(
     norm_weights = params.div(params.sum(axis=1), axis=0)
     weighted_restriction = norm_weights @ smoothed_mob.T
     vals = (1.0 - weighted_restriction).mul(1.0 - floors, axis=0).add(floors, axis=0).T
+    sample_vals = vals.sample(n_samples, axis=1)
+    return sample_vals.quantile([0.025, 0.5, 0.975], axis=1).T
+
+
+def get_indep_cgrt_quants(
+    smoothed_restriction: pd.DataFrame,
+    params: pd.DataFrame,
+    n_samples: int,
+) -> pd.DataFrame:
+    """Get the quantiles of the independent OxCGRT
+    multiplicative scaling process.
+
+    Args:
+        smoothed_restriction: Smoothed OxCGRT restriction series
+        params: Posterior effect parameters from get_weight_posts
+        n_samples: Number of posterior samples used to estimate quantiles
+
+    Returns:
+        Quantiles of the reconstructed scaling series
+    """
+    rel_restriction = smoothed_restriction - smoothed_restriction.iloc[0]
+    log_scale = -(rel_restriction @ params.T)
+    vals = pd.DataFrame(
+        np.exp(log_scale.to_numpy()),
+        index=log_scale.index,
+        columns=log_scale.columns,
+    )
     sample_vals = vals.sample(n_samples, axis=1)
     return sample_vals.quantile([0.025, 0.5, 0.975], axis=1).T
 
