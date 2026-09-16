@@ -16,8 +16,6 @@ from emu_renewal.constants import (
     OUTPUTS_PATH,
     DATA_PATH,
     UNOFFICIAL_COUNTRIES,
-    OXCGRT_ANALYSIS_TYPES,
-    CURRENT_METHOD_SHAS,
     MIN_IDATA_BYTES,
 )
 
@@ -372,29 +370,32 @@ def copy_analysis_type_to_run(
             shutil.copytree(src, dest)
 
 
-def is_usable_analysis(path: Path, iso3: str, analysis: str) -> bool:
+def analysis_output_status(path: Path) -> str:
+    """Return ``"usable"`` or a short reason an output folder cannot be used."""
+    if not path.is_dir():
+        return "missing"
+    updates = path / "updates.h5"
+    if not updates.exists():
+        return "no updates.h5"
+    if updates.stat().st_size == 0:
+        return "zero-byte updates.h5"
+    if not (path / "spaghetti.h5").exists():
+        return "no spaghetti.h5"
+    idata = path / "idata_filtered.nc"
+    if not idata.exists():
+        return "no idata_filtered.nc"
+    idata_size = idata.stat().st_size
+    if idata_size < MIN_IDATA_BYTES:
+        return f"tiny idata ({idata_size:,} B)"
+    return "usable"
+
+
+def is_usable_analysis(path: Path, iso3: str = "", analysis: str = "") -> bool:
     """Whether an output folder can be used.
 
-    Finished outputs, a non-tiny idata, and current methods
-    for OxCGRT and Oceania/Singapore analyses.
+    ``iso3`` and ``analysis`` are accepted for call-site compatibility.
     """
-    idata = path / "idata_filtered.nc"
-    gitinfo_path = path / "gitinfo.json"
-    if not (
-        path.is_dir()
-        and (path / "updates.h5").exists()
-        and (path / "spaghetti.h5").exists()
-        and idata.exists()
-        and gitinfo_path.exists()
-        and idata.stat().st_size >= MIN_IDATA_BYTES
-    ):
-        return False
-    needs_current = analysis in OXCGRT_ANALYSIS_TYPES or get_cont_of_country(iso3) == "OC"
-    if needs_current:
-        sha = json.load(open(gitinfo_path))["sha"][:7]
-        if sha not in CURRENT_METHOD_SHAS:
-            return False
-    return True
+    return analysis_output_status(path) == "usable"
 
 
 def get_analysis_paths(

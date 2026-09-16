@@ -1,6 +1,49 @@
-From a Massive login node, at the repo root:
+# Remote calibration runs (M3)
 
-    bash scripts/massive/jtrauer/launch.sh
+## Output layout
 
-This sizes `--array` from `data/config/rerun_pairs.json` and submits `rerun_countries.sh`,
-so each array task runs one country/analysis pair.
+Each SLURM job ID gets a folder under `outputs/<job_id>/<iso3>/<analysis_type>/`
+with the standard files from `store_outputs` (`updates.h5`, `spaghetti.h5`,
+`idata_filtered.nc`, etc.).
+
+## Which copy is used for analysis
+
+`get_analysis_paths(FULL_RUN, countries)` in `emu_renewal.utils` walks
+`FULL_RUN` in order and takes the first usable folder for each
+country–analysis pair. See `FULL_RUN` in `code/emu_renewal/constants.py`.
+
+Usable means `analysis_output_status(path)` returns `"usable"` (finished
+outputs and `idata_filtered.nc` at least `MIN_IDATA_BYTES`).
+
+## Full country run (all analysis types per country)
+
+Runs every analysis type from `get_analyses_for_country` for each country in
+`data/config/oxcgrt_included.json`. Mobility types with no scaler CSV are
+skipped with a log warning.
+
+```bash
+# On M3 login node, from repo root — set array size to number of countries
+sbatch --array=1-126 --export=SCRIPT_DIR=$PWD/scripts/massive/jtrauer \
+  scripts/massive/jtrauer/run_countries.sh
+```
+
+`run_countries.py` takes the job ID (`$SLURM_ARRAY_JOB_ID`) and array task index.
+
+## Targeted rerun (specific country–analysis pairs)
+
+1. Run `notebooks/running/04-identify-reruns.ipynb` locally after syncing
+   `outputs/`. This writes `data/config/rerun_pairs.json`.
+2. Submit from repo root:
+
+```bash
+bash scripts/massive/jtrauer/launch.sh
+```
+
+That sizes the array from `rerun_pairs.json` and runs `rerun_countries.py`,
+one pair per task.
+
+## After a remote run
+
+Sync new `outputs/<job_id>/` folders locally, prepend the job ID to `FULL_RUN`
+if it should take precedence, and re-run `04-identify-reruns.ipynb` to refresh
+`rerun_pairs.json`.
