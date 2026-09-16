@@ -269,7 +269,7 @@ MOB_LOCATION_ABBREVS = {
 SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic": "Domin Rep"}
 
 # Run identifiers
-FULL_RUN = ["59824578", "59746206", "59597639"]
+FULL_RUN = ["60126550", "59824578", "59746206", "59597639"]
 CURRENT_METHOD_SHAS = ["cb8324a", "b934196", "048722d"]
 MIN_IDATA_BYTES = 10_000_000
 
