@@ -1613,7 +1613,8 @@ def plot_best_policy(world, missing, exclude
     avail = world[world["best_policy"].notna()]
     avail.plot(ax=ax, column="best_name", categorical=True, categories=policy_codes, cmap=cmap, edgecolor="none")
     missing.plot(ax=ax, facecolor="white", edgecolor="none", hatch="//")
-    exclude.plot(ax=ax, facecolor="lightgrey")
+    if exclude is not None:
+        exclude.plot(ax=ax, facecolor="lightgrey")
 
     handles = [Patch(facecolor=OXCGRT_LOCATION_CMAP[p], label=OXCGRT_LOCS[p]) for p in policy_codes]
     ax.legend(handles=handles, loc="lower left", fontsize=16)
