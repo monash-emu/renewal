@@ -84,9 +84,12 @@ MOB_SOURCE_ABBREVS = SOURCE_ABBREVS
 
 plt.style.use("ggplot")
 MM = 1.0 / 25.4
-light_palette = sns.husl_palette(len(OXCGRT_COLMAP["custom"]), s=0.55, l=0.72).as_hex()
-line_palette = sns.husl_palette(len(OXCGRT_COLMAP["custom"]), s=1.0, l=0.35).as_hex()
+# light_palette = sns.husl_palette(len(OXCGRT_COLMAP["custom"]), s=0.55, l=0.72).as_hex()
+light_palette = sns.color_palette("colorblind", len(OXCGRT_COLMAP["custom"])).as_hex()
 OXCGRT_LOCATION_CMAP = dict(zip(OXCGRT_COLMAP["custom"], light_palette))
+
+# line_palette = sns.husl_palette(len(OXCGRT_COLMAP["custom"]), s=1.0, l=0.35).as_hex()
+line_palette = sns.color_palette("colorblind", len(OXCGRT_COLMAP["custom"])).as_hex()
 OXCGRT_LOCATION_LINE_CMAP = dict(zip(OXCGRT_COLMAP["custom"], line_palette))
 
 
