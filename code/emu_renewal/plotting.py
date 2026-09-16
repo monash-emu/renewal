@@ -298,6 +298,7 @@ def plot_prior_multipost(
     priors: Dict[str, dist.Distribution],
     idatas: Dict[str, az.InferenceData],
     n_cols: int,
+    priors_analysis: str,
 ):
     """Plot comparison of parameter prior distribution
     to posterior from each mobility analysis type.
@@ -310,7 +311,7 @@ def plot_prior_multipost(
     """
 
     # Preparation
-    idata = idatas["no_scaling"]
+    idata = idatas[priors_analysis]
     prior_info = get_flat_priors()
     params = [p for p in prior_info if "proc" not in p and p in idata.posterior]
     n_axes = sum([get_param_dim(p, idata) for p in params]) + 1
