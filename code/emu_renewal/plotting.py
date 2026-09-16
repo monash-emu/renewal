@@ -550,8 +550,16 @@ def plot_kde_comparison(
         ax.set_title(get_country_name(iso3))
         colours = [MOB_SOURCE_COLOURS[a] for a in data[iso3].columns]
         sns.kdeplot(
-            likes, fill=True, ax=ax, palette=colours, alpha=0.1, linewidth=1.5, common_norm=False
+            likes, 
+            fill=True, 
+            ax=ax, 
+            palette=colours, 
+            alpha=0.1, 
+            linewidth=1.5, 
+            common_norm=False, 
         )
+        ax.vlines(likes.median(), 0, 0.1, colors=colours, transform=ax.get_xaxis_transform())
+        ax.set_xlim(0, likes.quantile(0.999).max())        
         ax.set_yticks([])
         ax.set_ylabel("")
 

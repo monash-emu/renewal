@@ -361,3 +361,7 @@ other:
     short_name: shared target dispersion
   dispersion_proc:
     short_name: residual transmission dispersion
+  scale_floor:
+    short_name: scaling floor
+  scale_exp:
+    short_name: scaling exponent
