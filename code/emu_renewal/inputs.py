@@ -235,6 +235,7 @@ def get_fb_singletile_mobility(
 def get_oxcgrt(
     iso3: str,
     field: str,
+    columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Get a set of fields for a single country
     from the Oxford CGRT database
@@ -243,6 +244,8 @@ def get_oxcgrt(
     Args:
         iso3: The country identifier
         field: The key for the set of fields
+        columns: Explicit indicator list (e.g. for use with 
+            earlier run configurations)
 
     Returns:
         The scaled policy indicator values
@@ -258,7 +261,7 @@ def get_oxcgrt(
     pol = find_oxcgrt_country_data(iso3, data)
     filt_pol = pol[get_rel_oxcgrt_cols("M", pol)]
     scaled_pol = scale_oxcgrt_pols(filt_pol)
-    return scaled_pol[OXCGRT_COLMAP[field]]
+    return scaled_pol[columns or OXCGRT_COLMAP[field]]
 
 
 def get_requested_scaler(
@@ -417,11 +420,25 @@ def get_world_shp():
     return world
 
 
+def get_oxcgrt_weight_cols(n_weights: int) -> list[str]:
+    """Policy indicator names matching a calibrated weight vector.
+
+    Earlier runs used C1-C7 plus H1 and H6; current runs dropped H1.
+    """
+    custom = OXCGRT_COLMAP["custom"]
+    if n_weights == len(custom):
+        return custom
+    if n_weights == 9:
+        return [f"C{i}" for i in range(1, 8)] + ["H1", "H6"]
+    raise ValueError(f"Unexpected OxCGRT weight dimension {n_weights}")
+
+
 def get_smoothed_trunc_scale_ts(
     iso3: str,
     start: datetime,
     finish: datetime,
-    analysis_type: str = "g_mob",
+    analysis_type: str = "oxcgrt_floored",
+    columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Get the smoothed, truncated Google mobility or OxCGRT data.
 
@@ -429,7 +446,8 @@ def get_smoothed_trunc_scale_ts(
         iso3: The country identifier
         start: The start time of the period of interest
         finish: The end time of the period of interest
-        mob_type: g_mob or an OxCGRT analysis type
+        analysis_type: OxCGRT or g_mob analysis type
+        columns: OxCGRT indicator list (e.g. if running from previous versions)
 
     Returns:
         The data
@@ -437,7 +455,7 @@ def get_smoothed_trunc_scale_ts(
     if analysis_type == "g_mob":
         data = get_google_mobility(iso3)
     elif analysis_type in OXCGRT_ANALYSIS_TYPES:
-        data = get_oxcgrt(iso3, "custom")
+        data = get_oxcgrt(iso3, "custom", columns=columns)
     else:
         raise ValueError(f"No smoothed scaler series for analysis type {analysis_type}")
     smoothed_mob = data.rolling(MOBILITY_SMOOTH_PERIOD, center=True).mean().dropna()
@@ -463,7 +481,7 @@ def get_weight_posts(
     if analysis_type == "g_mob":
         params.columns = G_MOB_LOCATION_CMAP
     elif analysis_type in OXCGRT_ANALYSIS_TYPES:
-        params.columns = OXCGRT_COLMAP["custom"]
+        params.columns = get_oxcgrt_weight_cols(params.shape[1])
     else:
         raise ValueError(f"No time series weights for analysis type {analysis_type}")
     return params
@@ -504,6 +522,46 @@ def get_cgrt_quants(
     return sample_vals.quantile([0.025, 0.5, 0.975], axis=1).T
 
 
+def get_floored_log_scale(
+    smoothed_restriction: pd.DataFrame,
+    params: pd.DataFrame,
+    floors: pd.Series,
+    exps: pd.Series,
+) -> pd.DataFrame:
+    """Reconstruct log policy scaling under oxcgrt_floored.
+
+    Args:
+        smoothed_restriction: Smoothed OxCGRT restriction series
+        params: Posterior weights from get_weight_posts
+        floors: Posterior scale_floor samples
+        exps: Posterior scale_exp samples
+
+    Returns:
+        log M_t with times as index and posterior samples as columns
+    """
+    norm_weights = params.div(params.sum(axis=1), axis=0)
+    weighted_restriction = norm_weights @ smoothed_restriction.T
+    base = (1.0 - weighted_restriction).mul(1.0 - floors, axis=0).add(floors, axis=0)
+    return np.log(np.maximum(base, 1e-12)).mul(exps, axis=0).T
+
+
+def get_indep_log_scale(
+    smoothed_restriction: pd.DataFrame,
+    params: pd.DataFrame,
+) -> pd.DataFrame:
+    """Reconstruct log policy scaling under oxcgrt_independent.
+
+    Args:
+        smoothed_restriction: Smoothed OxCGRT restriction series
+        params: Posterior effect parameters from get_weight_posts
+
+    Returns:
+        log M_t with times as index and posterior samples as columns
+    """
+    rel_restriction = smoothed_restriction - smoothed_restriction.iloc[0]
+    return -(rel_restriction @ params.T)
+
+
 def get_indep_cgrt_quants(
     smoothed_restriction: pd.DataFrame,
     params: pd.DataFrame,
@@ -520,13 +578,7 @@ def get_indep_cgrt_quants(
     Returns:
         Quantiles of the reconstructed scaling series
     """
-    rel_restriction = smoothed_restriction - smoothed_restriction.iloc[0]
-    log_scale = -(rel_restriction @ params.T)
-    vals = pd.DataFrame(
-        np.exp(log_scale.to_numpy()),
-        index=log_scale.index,
-        columns=log_scale.columns,
-    )
+    vals = np.exp(get_indep_log_scale(smoothed_restriction, params))
     sample_vals = vals.sample(n_samples, axis=1)
     return sample_vals.quantile([0.025, 0.5, 0.975], axis=1).T
 

@@ -18,12 +18,19 @@ from emu_renewal.constants import (
     ANALYSIS_TYPES,
     IDATA_DRAW_THIN,
     N_SAMPLES,
+    OXCGRT_ANALYSIS_TYPES,
     SOURCE_ABBREVS,
     SOURCE_COLOURS,
 )
 from emu_renewal.calibration import StandardCalib
+from emu_renewal.inputs import (
+    get_floored_log_scale,
+    get_indep_log_scale,
+    get_oxcgrt_weight_cols,
+    get_smoothed_trunc_scale_ts,
+)
 from emu_renewal.renew import MultiStrainModel
-from emu_renewal.utils import get_country_name
+from emu_renewal.utils import get_cont_of_country, get_country_name
 
 TARGET_KEY = "target_"
 
@@ -465,3 +472,66 @@ def convert_quant_df_for_display(quant_df):
     quant_df = quant_df.fillna("no analysis")
     quant_df = quant_df.sort_index()
     return quant_df
+
+
+def get_policy_effect_metrics(
+    iso3: str,
+    a_path: Path,
+    analysis_type: str,
+) -> Dict[str, float]:
+    """Median peak and mean log policy-scaling range.
+
+    Peak is max log M_t minus min log M_t.
+    Mean is max log M_t minus the time-average of log M_t.
+
+    Args:
+        iso3: Country identifier
+        a_path: Analysis output directory
+        analysis_type: oxcgrt_floored or oxcgrt_independent
+
+    Returns:
+        Posterior medians of the two range summaries
+    """
+    idata = az.from_netcdf(a_path / "idata_filtered.nc")
+    weights = idata.posterior["ts_weights"].to_dataframe().unstack(level=-1)
+    cols = get_oxcgrt_weight_cols(weights.shape[1])
+    weights.columns = cols
+    times = pd.read_hdf(a_path / "spaghetti.h5")["process"].index
+    smoothed = get_smoothed_trunc_scale_ts(
+        iso3, times[0], times[-1], analysis_type, columns=cols
+    )
+    if analysis_type == "oxcgrt_floored":
+        floors = idata.posterior["scale_floor"].to_dataframe()["scale_floor"]
+        exps = idata.posterior["scale_exp"].to_dataframe()["scale_exp"]
+        log_scale = get_floored_log_scale(smoothed, weights, floors, exps)
+    elif analysis_type == "oxcgrt_independent":
+        log_scale = get_indep_log_scale(smoothed, weights)
+    else:
+        raise ValueError(f"No policy effect metrics for analysis type {analysis_type}")
+    peak = log_scale.max() - log_scale.min()
+    mean = log_scale.max() - log_scale.mean()
+    return {"peak": float(peak.median()), "mean": float(mean.median())}
+
+
+def get_all_policy_effect_metrics(
+    analysis_paths: Dict[str, Dict[str, Path]],
+) -> pd.DataFrame:
+    """Country-level peak and mean policy-effect metrics
+    for both OxCGRT analyses.
+
+    Args:
+        analysis_paths: Country to analysis-type output paths
+
+    Returns:
+        Metrics with one row per country that has both analyses
+    """
+    records = []
+    for iso3, analyses in analysis_paths.items():
+        row = {"ISO_A3": iso3, "continent": get_cont_of_country(iso3)}
+        for a_type in OXCGRT_ANALYSIS_TYPES:
+            metrics = get_policy_effect_metrics(iso3, analyses[a_type], a_type)
+            prefix = "floored" if a_type == "oxcgrt_floored" else "indep"
+            row[f"{prefix}_peak"] = metrics["peak"]
+            row[f"{prefix}_mean"] = metrics["mean"]
+        records.append(row)
+    return pd.DataFrame.from_records(records)

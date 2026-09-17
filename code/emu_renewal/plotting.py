@@ -6,7 +6,7 @@ import numpy as np
 from random import choice
 import pandas as pd
 import seaborn as sns
-from scipy.stats import gaussian_kde
+from scipy.stats import gaussian_kde, spearmanr
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 import arviz as az
@@ -47,6 +47,7 @@ from emu_renewal.constants import (
     SHORT_COUNTRY_NAMES,
     OXCGRT_COLMAP,
     OXCGRT_LOCS,
+    CONT_CMAP,
 )
 from emu_renewal.inputs import (
     DATA_PATH,
@@ -64,6 +65,7 @@ from emu_renewal.inputs import (
     get_rel_oxcgrt_cols,
     scale_oxcgrt_pols,
     get_oxcgrt,
+    get_oxcgrt_weight_cols,
 )
 from emu_renewal.outputs import (
     get_idatas_for_analysis_type,
@@ -606,10 +608,7 @@ def plot_weights_by_country(
         # Get weights
         idata = az.from_netcdf(job_path[iso3][analysis_type] / "idata_filtered.nc")
         weights = idata.posterior["ts_weights"].to_dataframe().unstack("ts_weights_dim_0")
-        cols = list(get_oxcgrt(iso3, "custom").columns)
-        if weights.shape[1] == 9:  # TODO: remove when calibrations rerun without H1
-            cols = [f"C{i}" for i in range(1, 8)] + ["H1", "H6"]
-        weights.columns = cols
+        weights.columns = get_oxcgrt_weight_cols(weights.shape[1])
 
         # Plot
         ax = flat_axes[c]
@@ -1590,13 +1589,14 @@ def plot_param_map(world, param_name, upper_val, excluded=None, title="",
     world.boundary.plot(ax=ax, color="k", linewidth=0.4)
     ax.set_xticks([])
     ax.set_yticks([])
-    missing = world[world["best_policy"].isna()]
+    missing = world[world[param_name].isna()]
     cax = make_axes_locatable(ax).append_axes("right", size=0.4, pad=0.25)
     world.plot(ax=ax, column=param_name, cmap="Blues", legend=True, vmin=0, vmax=upper_val, legend_kwds={"cax": cax})
     missing.plot(ax=ax, facecolor="white", edgecolor="none", hatch="//")
     ax.set_title(title, fontsize=22.0)
     if excluded is not None:
         excluded.plot(ax=ax, facecolor="lightgrey")
+    plt.close()
 
 
 def plot_best_policy(world, missing, exclude
@@ -1618,3 +1618,44 @@ def plot_best_policy(world, missing, exclude
 
     handles = [Patch(facecolor=OXCGRT_LOCATION_CMAP[p], label=OXCGRT_LOCS[p]) for p in policy_codes]
     ax.legend(handles=handles, loc="lower left", fontsize=16)
+
+
+def plot_effect_scatter(
+    metrics: pd.DataFrame,
+    metric: str,
+) -> plt.figure:
+    """Scatter of a policy-effect metric across OxCGRT analyses.
+
+    Args:
+        metrics: Output of get_all_policy_effect_metrics
+        metric: peak or mean
+
+    Returns:
+        The figure
+    """
+    xcol, ycol = f"floored_{metric}", f"indep_{metric}"
+    fig, ax = plt.subplots(figsize=(6, 6))
+    for cont, colour in CONT_CMAP.items():
+        mask = metrics["continent"] == cont
+        if not mask.any():
+            continue
+        ax.scatter(
+            metrics.loc[mask, xcol],
+            metrics.loc[mask, ycol],
+            color=colour,
+            label=pc.convert_continent_code_to_continent_name(cont),
+            edgecolors="k",
+            linewidths=0.3,
+        )
+    rho, _ = spearmanr(metrics[xcol], metrics[ycol])
+    lim = max(metrics[xcol].max(), metrics[ycol].max()) * 1.05
+    ax.plot([0, lim], [0, lim], "k--", alpha=0.4)
+    ax.set_xlim(0, lim)
+    ax.set_ylim(0, lim)
+    ax.set_xlabel("OxCGRT floored")
+    ax.set_ylabel("OxCGRT independent")
+    ax.set_title(f"{metric.capitalize()} policy effect, Spearman $\\rho$ = {rho:.2f}")
+    ax.legend(frameon=False, fontsize=8)
+    fig.tight_layout()
+    plt.close()
+    return fig
