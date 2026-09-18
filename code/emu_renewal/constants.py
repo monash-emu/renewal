@@ -270,11 +270,11 @@ SHORT_COUNTRY_NAMES = {"Russian Federation": "Russian Fed", "Dominican Republic"
 
 # Job folders under outputs/, searched sequentially with earlier listed runs taken precedence
 FULL_RUN = [
+    "60174311",  # Rerun for Malaysia OxCGRT floored, was drawn from pre-updates run
     "60126550",  # OxCGRT / gap-fill rerun
     "59824578",  # Country batch rerun
     "59746206",  # First partial rerun after original run filled disk
     "59597639",  # Original full run
-    "60174311",  # Rerun for Malaysia OxCGRT floored, was drawn from pre-updates run
 ]
 # Smallest idata_filtered.nc in use (URY/oxcgrt_floored in 60126550)
 MIN_IDATA_BYTES = 6_200_000
