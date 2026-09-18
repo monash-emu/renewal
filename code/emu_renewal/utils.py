@@ -336,11 +336,13 @@ def get_analysis_commits_df(
             c_paths = analysis_paths[iso3]
             if analysis in c_paths:
                 a_path = c_paths[analysis]
-                sha = (
-                    json.load(open(a_path / "gitinfo.json", "r"))["sha"][:7]
-                    if os.path.isdir(a_path)
-                    else "no analysis"
-                )
+                gitinfo_path = a_path / "gitinfo.json"
+                if not os.path.isdir(a_path):
+                    sha = "no analysis"
+                elif not gitinfo_path.is_file():
+                    sha = "missing git information"
+                else:
+                    sha = json.load(open(gitinfo_path, "r"))["sha"][:7]
             else:
                 sha = "no analysis"
             commits.loc[iso3, analysis] = sha
