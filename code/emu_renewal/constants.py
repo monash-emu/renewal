@@ -227,7 +227,11 @@ OXCGRT_LOCS = {
     "C7": "movement restrictions",
     "C8": "international travel",
     "H1": "public information",
+    "H2": "testing policy",
+    "H3": "contact tracing",
     "H6": "face coverings",
+    "H7": "vaccination policy",
+    "H8": "elderly protection",
 }
 LOCATION_NAME_MAP = {
     "retail_and_recreation": "Google retail and recreation",
