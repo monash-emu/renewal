@@ -2,6 +2,7 @@ from typing import List
 from pathlib import Path
 import git
 import json
+import numpy as np
 import pandas as pd
 from jax import jit
 from typing import Dict
@@ -286,30 +287,16 @@ def add_data_avail_to_world(
     world.loc[(world["oxcgrt_avail"] == True) & (world["mob_avail"] == True), "status"] = "both"
 
 
-def get_prop_improve(
-    disp_posts: Dict[str, pd.DataFrame],
-    analysis_type: str,
-) -> Dict[str, float]:
-    """Find the proportion of results from a particular run that
-    have a lower dispersion parameter than
-    the median value of the no scaling analysis.
+def get_prop_better(c_disps, analysis, baseline="no_scaling"):
+    """Proportion of randomly paired runs with lower dispersion than baseline.
 
-    Args:
-        disp_posts: The posteriors of the dispersion parameter by country and analysis
-        analysis_type: The scaled analysis of interest
-
-    Returns:
-        The proportions by country
+    Lower dispersion is treated as better. Only finite posterior values are
+    compared (analyses can differ in chain/draw count after filtering).
     """
-    prop_improve_median = {}
-    for c in disp_posts:
-        c_posts = disp_posts[c]
-        no_scaling_median = c_posts["no_scaling"].median()
-
-        if analysis_type in c_posts:
-            scale_posts = c_posts[analysis_type]
-            prop_improve_median[c] = (scale_posts < no_scaling_median).sum() / len(scale_posts)
-    return prop_improve_median
+    comparator = c_disps[analysis].dropna().to_numpy()
+    referent = c_disps[baseline].dropna().to_numpy()
+    comparisons = comparator < np.random.choice(referent, size=len(comparator), replace=True)
+    return float(comparisons.mean())
 
 
 def get_idatas_for_analysis_type(
