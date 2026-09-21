@@ -1585,8 +1585,16 @@ def plot_param_post_comparison(
     return fig
 
 
-def plot_param_map(world, param_name, upper_val, excluded=None, title="",
-) -> plt.figure:
+def plot_param_map(world, param_name, upper_val, excluded=None, title="") -> plt.figure:
+    """Choropleth of a country-level parameter.
+
+    Args:
+        world: GeoDataFrame with param_name column
+        param_name: Column to map
+        upper_val: Colour-scale upper bound
+        excluded: Optional geometries to cover (solid light grey)
+        title: Axes title
+    """
     plt.style.use("default")
     mpl.rcParams["hatch.color"] = "lightgrey"
     fig, ax = plt.subplots(1, 1, figsize=(20, 10))
@@ -1595,11 +1603,66 @@ def plot_param_map(world, param_name, upper_val, excluded=None, title="",
     ax.set_yticks([])
     missing = world[world[param_name].isna()]
     cax = make_axes_locatable(ax).append_axes("right", size=0.4, pad=0.25)
-    world.plot(ax=ax, column=param_name, cmap="Blues", legend=True, vmin=0, vmax=upper_val, legend_kwds={"cax": cax})
+    world.plot(
+        ax=ax,
+        column=param_name,
+        cmap="Blues",
+        legend=True,
+        vmin=0,
+        vmax=upper_val,
+        legend_kwds={"cax": cax},
+    )
     missing.plot(ax=ax, facecolor="white", edgecolor="none", hatch="//")
     ax.set_title(title, fontsize=22.0)
     if excluded is not None:
         excluded.plot(ax=ax, facecolor="lightgrey")
+    plt.close()
+    return fig
+
+
+def plot_strength_evidence_map(
+    world,
+    param_name,
+    upper_val,
+    evidence,
+    title="",
+    cmap="Greys",
+    evidence_cmap="Reds",
+) -> plt.figure:
+    """Choropleth of scaling strength with a second colour scale
+    for countries with dispersion support.
+
+    Args:
+        world: GeoDataFrame with param_name column
+        param_name: Strength column to map
+        upper_val: Colour-scale upper bound
+        evidence: Subset of world with dispersion support
+        title: Axes title
+        cmap: Colour map for countries without support
+        evidence_cmap: Colour map for the evidence subset
+    """
+    plt.style.use("default")
+    mpl.rcParams["hatch.color"] = "lightgrey"
+    fig, ax = plt.subplots(1, 1, figsize=(20, 10))
+    world.boundary.plot(ax=ax, color="k", linewidth=0.4)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    missing = world[world[param_name].isna()]
+    plot_kw = dict(column=param_name, legend=False, vmin=0, vmax=upper_val)
+    world.plot(ax=ax, cmap=cmap, **plot_kw)
+    if len(evidence):
+        evidence.plot(ax=ax, cmap=evidence_cmap, **plot_kw)
+    missing.plot(ax=ax, facecolor="white", edgecolor="none", hatch="//")
+    ax.set_title(title, fontsize=22.0)
+    divider = make_axes_locatable(ax)
+
+    cax = divider.append_axes("right", size=0.35, pad=0.15)
+    fig.colorbar(ScalarMappable(norm=Normalize(vmin=0, vmax=upper_val), cmap=evidence_cmap), cax=cax)
+    cax.set_yticks([])
+
+    cax_no_improve = divider.append_axes("right", size=0.35, pad=0.15)
+    fig.colorbar(ScalarMappable(norm=Normalize(vmin=0, vmax=upper_val), cmap=cmap), cax=cax_no_improve)
+    
     plt.close()
     return fig
 

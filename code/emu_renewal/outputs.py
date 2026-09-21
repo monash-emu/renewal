@@ -523,3 +523,24 @@ def get_all_policy_effect_metrics(
             row[f"{prefix}_iqr"] = metrics["iqr"]
         records.append(row)
     return pd.DataFrame.from_records(records)
+
+
+def get_median_scale_strength(a_path: Path) -> float:
+    """Compute the posterior median of floored scaling strength, 1 - f^m
+    for the specified analysis (country-analysis type pair).
+
+    Under M_t = [f + (1 - f) S_t]^m this quantity is the fractional reduction
+    in M from unrestricted (S_t = 1) to full restriction (S_t = 0).
+    Requires that scale_floor and scale_exp are present in the 
+    filtered posterior (i.e. oxcgrt_floored or one of the mobility analyses).
+
+    Args:
+        a_path: Analysis path
+
+    Returns:
+        Posterior median of 1 - f^m
+    """
+    idata = az.from_netcdf(a_path / "idata_filtered.nc")
+    floors = idata.posterior["scale_floor"].to_dataframe()["scale_floor"]
+    exps = idata.posterior["scale_exp"].to_dataframe()["scale_exp"]
+    return float((1.0 - floors ** exps).median())
