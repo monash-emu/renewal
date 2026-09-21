@@ -1599,6 +1599,7 @@ def plot_param_map(world, param_name, upper_val, excluded=None, title="",
     if excluded is not None:
         excluded.plot(ax=ax, facecolor="lightgrey")
     plt.close()
+    return fig
 
 
 def plot_best_policy(world, missing, exclude
@@ -1624,40 +1625,53 @@ def plot_best_policy(world, missing, exclude
 
 def plot_effect_scatter(
     metrics: pd.DataFrame,
-    metric: str,
 ) -> plt.figure:
-    """Scatter of a policy-effect metric across OxCGRT analyses.
+    """Side-by-side scatter of range and IQR policy-effect metrics
+    across OxCGRT floored and independent analyses.
 
     Args:
         metrics: Output of get_all_policy_effect_metrics
-        metric: peak or mean
 
     Returns:
         The figure
     """
-    xcol, ycol = f"floored_{metric}", f"indep_{metric}"
-    fig, ax = plt.subplots(figsize=(6, 6))
-    for cont, colour in CONT_CMAP.items():
-        mask = metrics["continent"] == cont
-        if not mask.any():
-            continue
-        ax.scatter(
-            metrics.loc[mask, xcol],
-            metrics.loc[mask, ycol],
-            color=colour,
-            label=pc.convert_continent_code_to_continent_name(cont),
-            edgecolors="k",
-            linewidths=0.3,
+    panel_titles = {"range": "range", "iqr": "interquartile range"}
+    fig, axes = plt.subplots(1, 2, figsize=[12, 6])
+    for ax, metric in zip(axes, ["range", "iqr"]):
+        xcol, ycol = f"floored_{metric}", f"indep_{metric}"
+        for cont, colour in CONT_CMAP.items():
+            mask = metrics["continent"] == cont
+            if not mask.any():
+                continue
+            ax.scatter(
+                metrics.loc[mask, xcol],
+                metrics.loc[mask, ycol],
+                color=colour,
+                label=pc.convert_continent_code_to_continent_name(cont),
+                edgecolors="k",
+                linewidths=0.3,
+                s=18,
+            )
+        rho, _ = spearmanr(metrics[xcol], metrics[ycol])
+        lim = max(metrics[xcol].max(), metrics[ycol].max()) * 1.05
+        ax.plot([0, lim], [0, lim], "k--", alpha=0.4, linewidth=0.8)
+        ax.set_xlim(0, metrics[xcol].max() * 1.05)
+        ax.set_ylim(0, metrics[ycol].max() * 1.05)
+        # ax.set_aspect("equal", adjustable="box")
+        ax.set_xlabel("OxCGRT floored")
+        ax.set_ylabel("OxCGRT independent")
+        ax.set_title(panel_titles[metric])
+        ax.text(
+            0.95,
+            0.05,
+            f"Spearman $\\rho$ = {rho:.2f}",
+            transform=ax.transAxes,
+            ha="right",
+            va="bottom",
         )
-    rho, _ = spearmanr(metrics[xcol], metrics[ycol])
-    lim = max(metrics[xcol].max(), metrics[ycol].max()) * 1.05
-    ax.plot([0, lim], [0, lim], "k--", alpha=0.4)
-    ax.set_xlim(0, lim)
-    ax.set_ylim(0, lim)
-    ax.set_xlabel("OxCGRT floored")
-    ax.set_ylabel("OxCGRT independent")
-    ax.set_title(f"{metric.capitalize()} policy effect, Spearman $\\rho$ = {rho:.2f}")
-    ax.legend(frameon=False, fontsize=8)
-    fig.tight_layout()
-    plt.close()
+        plt.close()
+
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=3, frameon=False)
+    fig.tight_layout(rect=[0, 0.1, 1, 1])
     return fig

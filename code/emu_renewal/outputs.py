@@ -466,10 +466,10 @@ def get_policy_effect_metrics(
     a_path: Path,
     analysis_type: str,
 ) -> Dict[str, float]:
-    """Median peak and mean log policy-scaling range.
+    """Median range and IQR of realised policy scaling.
 
-    Peak is max log M_t minus min log M_t.
-    Mean is max log M_t minus the time-average of log M_t.
+    Range is max M_t minus min M_t.
+    IQR is the 75th minus 25th percentile of M_t over time.
 
     Args:
         iso3: Country identifier
@@ -490,20 +490,21 @@ def get_policy_effect_metrics(
     if analysis_type == "oxcgrt_floored":
         floors = idata.posterior["scale_floor"].to_dataframe()["scale_floor"]
         exps = idata.posterior["scale_exp"].to_dataframe()["scale_exp"]
-        log_scale = get_floored_log_scale(smoothed, weights, floors, exps)
+        log_scaling = get_floored_log_scale(smoothed, weights, floors, exps)
     elif analysis_type == "oxcgrt_independent":
-        log_scale = get_indep_log_scale(smoothed, weights)
+        log_scaling = get_indep_log_scale(smoothed, weights)
     else:
         raise ValueError(f"No policy effect metrics for analysis type {analysis_type}")
-    peak = log_scale.max() - log_scale.min()
-    mean = log_scale.max() - log_scale.mean()
-    return {"peak": float(peak.median()), "mean": float(mean.median())}
+    scaling = np.exp(log_scaling)
+    full_range = scaling.max() - scaling.min()
+    iqr = scaling.quantile(0.75) - scaling.quantile(0.25)
+    return {"range": float(full_range.median()), "iqr": float(iqr.median())}
 
 
 def get_all_policy_effect_metrics(
     analysis_paths: Dict[str, Dict[str, Path]],
 ) -> pd.DataFrame:
-    """Country-level peak and mean policy-effect metrics
+    """Country-level range and IQR policy-effect metrics
     for both OxCGRT analyses.
 
     Args:
@@ -518,7 +519,7 @@ def get_all_policy_effect_metrics(
         for a_type in OXCGRT_ANALYSIS_TYPES:
             metrics = get_policy_effect_metrics(iso3, analyses[a_type], a_type)
             prefix = "floored" if a_type == "oxcgrt_floored" else "indep"
-            row[f"{prefix}_peak"] = metrics["peak"]
-            row[f"{prefix}_mean"] = metrics["mean"]
+            row[f"{prefix}_range"] = metrics["range"]
+            row[f"{prefix}_iqr"] = metrics["iqr"]
         records.append(row)
     return pd.DataFrame.from_records(records)
