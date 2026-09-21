@@ -1545,6 +1545,7 @@ def plot_param_post_comparison(
     countries: List[str],
     analysis_paths: Dict[str, Dict[str, Path]],
     param: str,
+    req_analyses: List[str]=ANALYSIS_TYPES,
 ) -> plt.figure:
     """Plot posterior comparisons by country
     for a requested parameter.
@@ -1570,11 +1571,12 @@ def plot_param_post_comparison(
         a_paths = analysis_paths[iso3]
         ax = flat_axes[c]
         for a, a_path in a_paths.items():
-            idata = az.from_netcdf(a_path / "idata_filtered.nc")
-            if param not in idata.posterior:
-                continue
-            colour = MOB_SOURCE_COLOURS[a]
-            az.plot_density(idata, ax=ax, hdi_prob=0.99, var_names=param, shade=0.2, colors=colour)
+            if a in req_analyses:
+                idata = az.from_netcdf(a_path / "idata_filtered.nc")
+                if param not in idata.posterior:
+                    continue
+                colour = MOB_SOURCE_COLOURS[a]
+                az.plot_density(idata, ax=ax, hdi_prob=0.99, var_names=param, shade=0.2, colors=colour)
         ax.set_title(get_country_name(iso3))
     for c in range(c + 1, len(flat_axes)):
         flat_axes[c].set_axis_off()
