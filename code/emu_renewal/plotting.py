@@ -520,7 +520,8 @@ def plot_proc_comparison(
             label = MOB_SOURCE_ABBREVS[a]
             ax.plot(quants.index, quants[0.5], color=colour, label=label, linewidth=2.0)
             ax.fill_between(quants.index, quants[0.025], quants[0.975], alpha=0.1, color=colour)
-        ax.legend()
+        if c == 0:
+            ax.legend()
         plt.setp(ax.xaxis.get_majorticklabels(), rotation=70)
 
     # Switch off unused axes
@@ -534,6 +535,7 @@ def plot_proc_comparison(
 
 def plot_kde_comparison(
     data: Dict[str, pd.DataFrame],
+    legend_always_on: bool,
 ) -> plt.figure:
     """Plot the comparison of the kernel density of some
     repeatedly sampled quantity (posterior or parameter)
@@ -541,6 +543,7 @@ def plot_kde_comparison(
 
     Args:
         data: The values of interest for each country
+        legend_always_on: Whether to always keep the legend on
 
     Returns:
         The figure
@@ -554,6 +557,7 @@ def plot_kde_comparison(
         ax = flat_axes[c]
         ax.set_title(get_country_name(iso3))
         colours = [MOB_SOURCE_COLOURS[a] for a in data[iso3].columns]
+        legend = True if c == 0 or legend_always_on else False
         sns.kdeplot(
             likes, 
             fill=True, 
@@ -562,6 +566,7 @@ def plot_kde_comparison(
             alpha=0.1, 
             linewidth=1.5, 
             common_norm=False, 
+            legend=legend,
         )
         ax.vlines(likes.median(), 0, 0.1, colors=colours, transform=ax.get_xaxis_transform())
         ax.set_xlim(0, likes.quantile(0.999).max())        
@@ -750,8 +755,9 @@ def compare_proc_pol(
             pol_vals = filtered_pol[cols]
             ax.plot(pol_vals.index, 1.0 - pol_vals.mean(axis=1), linewidth=2.0, label=index)
 
-    # Add legend for last plot
-    ax.legend()
+        # Add legend for first plot
+        if c == 0:
+            ax.legend()
 
     # Switch off unused axes
     for ax in flat_axes[c + 1 :]:
@@ -789,13 +795,6 @@ def compare_proc_versus_weighted(
     fig, axes = get_standard_subplot(len(countries), n_cols)
     flat_axes = axes.ravel()
     analysis_name = ANALYSIS_NAMES[analysis_type]
-    if analysis_type == "oxcgrt_independent":
-        title = f"Residual scaling versus {analysis_name} reconstructed from posterior effects"
-    else:
-        flat_average_txt = f"with flat average applied and assumed floor of {assumed_floor}"
-        weight_txt = "weighted according to policy weights" if flat_average else flat_average_txt
-        title = f"Residual scaling versus {analysis_name} {weight_txt}"
-    fig.suptitle(title, fontsize=14, y=1.0)
 
     for c, iso3 in enumerate(countries):
         c_path = analysis_paths[iso3]
@@ -806,7 +805,7 @@ def compare_proc_versus_weighted(
         # Residual transmission process under no mobility configuration
         proc_samples = pd.read_hdf(c_path["no_scaling"] / "spaghetti.h5")["process"]
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
-        ax.plot(centiles.index, centiles[0.5], label="process", color="navy", linewidth=2.0)
+        ax.plot(centiles.index, centiles[0.5], color="navy", linewidth=2.0, label="baseline residual")
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
         ax.set_xlim([centiles.index[0], centiles.index[-1]])
 
@@ -814,10 +813,11 @@ def compare_proc_versus_weighted(
         a_path = c_path[analysis_type]
         scale_ts = get_smoothed_trunc_scale_ts(iso3, centiles.index[0], centiles.index[-1], analysis_type)
         colour = MOB_SOURCE_COLOURS[analysis_type]
+        label = f"{analysis_name} scaling"
         if analysis_type == "oxcgrt_independent":
             weights = get_weight_posts(a_path, analysis_type)
             mob_quants = get_indep_cgrt_quants(scale_ts, weights, n_samples)
-            ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
+            ax.plot(mob_quants[0.5], color=colour, linewidth=2.0, label=label)
             ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour)
         elif flat_average:
             mean_ts = scale_ts.mean(axis=1)
@@ -830,8 +830,10 @@ def compare_proc_versus_weighted(
             weights = get_weight_posts(a_path, analysis_type)
             floors = idata.posterior["scale_floor"].to_dataframe()["scale_floor"]
             mob_quants = get_cgrt_quants(scale_ts, weights, floors, n_samples)
-            ax.plot(mob_quants[0.5], color=colour, linewidth=2.0)
+            ax.plot(mob_quants[0.5], color=colour, linewidth=2.0, label=label)
             ax.fill_between(mob_quants.index, mob_quants[0.025], mob_quants[0.975], alpha=0.1, color=colour)
+        if c == 0:
+            ax.legend()
 
     for ax in flat_axes[c + 1 :]:
         ax.set_axis_off()
