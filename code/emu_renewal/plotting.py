@@ -1688,6 +1688,64 @@ def plot_best_policy(world, missing, exclude
     ax.legend(handles=handles, loc="lower left", fontsize=16)
 
 
+def plot_policy_weight_heatmap(
+    summary: pd.DataFrame,
+    countries: List[str],
+    prior_median: float = 0.5,
+    max_dev: float = None,
+    row_height: float = 0.19,
+) -> plt.figure:
+    """Country by policy matrix of weight medians minus their prior median,
+    with composite scaling strength in a final column.
+
+    Args:
+        summary: Output of get_policy_weight_summary
+        countries: Country identifiers, in the order to be plotted
+        prior_median: Prior median of each weight (0.5 under Uniform[0, 1])
+        max_dev: Symmetrical colour-scale limit for the weight panel
+        row_height: Vertical space allowed for each country
+
+    Returns:
+        The figure
+    """
+    plt.style.use("default")
+    policies = OXCGRT_COLMAP["custom"]
+    data = summary.loc[countries]
+    deviations = data[policies].to_numpy(dtype=float) - prior_median
+
+    fig, (ax, sax) = plt.subplots(
+        1,
+        2,
+        figsize=(7.5, 2.8 + row_height * len(countries)), 
+        sharey=True,
+        layout="constrained",
+        gridspec_kw={"width_ratios": [len(policies), 1.0]},
+    )
+    weight_img = ax.imshow(deviations, cmap="RdBu_r", vmin=-max_dev, vmax=max_dev, aspect="auto")
+    strength_img = sax.imshow(data[["strength"]].to_numpy(dtype=float), cmap="Reds", vmin=0.0, vmax=1.0, aspect="auto")
+
+    ax.set_yticks(range(len(countries)), [get_country_short_name(i) for i in countries])
+    ax.tick_params(labelsize=7)
+    for panel, labels in ((ax, [OXCGRT_LOCS[p] for p in policies]), (sax, ["strength"])):
+        panel.xaxis.set_ticks_position("top")
+        panel.set_xticks(range(len(labels)), labels, rotation=55.0, ha="left", fontsize=7)
+        panel.set_xticks(np.arange(len(labels) + 1) - 0.5, minor=True)
+        panel.set_yticks(np.arange(len(countries) + 1) - 0.5, minor=True)
+        panel.grid(which="minor", color="white", linewidth=0.5)
+        panel.tick_params(which="minor", length=0)
+
+    for img, panel, label, aspect in (
+        (weight_img, ax, "median weight minus prior median", 45),
+        (strength_img, sax, "$1-f^{m}$", 5),
+    ):
+        bar = fig.colorbar(img, ax=panel, location="bottom", aspect=aspect, pad=0.01)
+        bar.set_label(label, fontsize=8)
+        bar.ax.tick_params(labelsize=7)
+
+    plt.close()
+    return fig
+
+
 def plot_effect_scatter(
     metrics: pd.DataFrame,
 ) -> plt.figure:

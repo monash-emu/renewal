@@ -29,6 +29,7 @@ from emu_renewal.inputs import (
     get_indep_log_scale,
     get_oxcgrt_weight_cols,
     get_smoothed_trunc_scale_ts,
+    get_weight_posts,
 )
 from emu_renewal.renew import MultiStrainModel
 from emu_renewal.utils import get_cont_of_country, get_country_name
@@ -523,6 +524,44 @@ def get_all_policy_effect_metrics(
             row[f"{prefix}_iqr"] = metrics["iqr"]
         records.append(row)
     return pd.DataFrame.from_records(records)
+
+
+def get_policy_weight_summary(
+    analysis_paths: Dict[str, Dict[str, Path]],
+    analysis_type: str = "oxcgrt_floored",
+    baseline: str = "no_scaling",
+) -> pd.DataFrame:
+    """Collate the country-level policy weight medians,
+    composite scaling strength and dispersion comparison
+    needed to display the policy weights as a matrix.
+
+    The weights are the unnormalised calibrated parameters,
+    each of which has a uniform prior over [0, 1],
+    so that the prior median of every entry is 0.5 and
+    departures from 0.5 are interpretable without reference
+    to the values taken by the other policies.
+
+    Args:
+        analysis_paths: Country to analysis-type output paths
+        analysis_type: The weighted policy analysis to summarise
+        baseline: The analysis type against which dispersion is compared
+
+    Returns:
+        One row per country, with a column for each policy weight median,
+        the median composite strength and the dispersion comparison
+    """
+    records = {}
+    for iso3, analyses in analysis_paths.items():
+        if analysis_type not in analyses:
+            continue
+        a_path = analyses[analysis_type]
+        row = get_weight_posts(a_path, analysis_type).median().to_dict()
+        row["strength"] = get_median_scale_strength(a_path)
+        c_paths = {k: v for k, v in analyses.items() if k in (baseline, analysis_type)}
+        disps = get_param_vals_by_analysis("dispersion_proc", c_paths)
+        row["prop_better"] = get_prop_better(disps, analysis_type, baseline)
+        records[iso3] = row
+    return pd.DataFrame.from_dict(records, orient="index")
 
 
 def get_median_scale_strength(a_path: Path) -> float:
