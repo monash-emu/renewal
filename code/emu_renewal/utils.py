@@ -14,7 +14,6 @@ from emu_renewal.constants import (
     ANALYSIS_TYPES,
     ANALYSIS_NAMES,
     OUTPUTS_PATH,
-    DATA_PATH,
     UNOFFICIAL_COUNTRIES,
     MIN_IDATA_BYTES,
 )

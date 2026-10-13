@@ -5,7 +5,7 @@ import pandas as pd
 import geopandas as gpd
 import arviz as az
 import pycountry
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 import re
 
 from emu_renewal.constants import (
@@ -703,3 +703,27 @@ def store_oxcgrt_data():
         sheets.append(pd.read_csv(url, dtype=OXCGRT_DTYPES))
     data = pd.concat(sheets)
     data.to_csv(file_path)
+
+
+
+def get_proc_oxcgrt_aligned(
+    iso3: str, 
+    cols: List[str],
+    analysis_paths: Dict[str, Dict[str, Path]],
+    oxcgrt_data,
+) -> pd.DataFrame:
+    """Get residual process and OxCGRT data with dates aligned.
+
+    Args:
+        iso3: The country identifier
+        cols: The OxCGRT columns of interest
+        analysis_paths: The system paths to the analyses of interest
+    """
+    procs = pd.read_hdf(analysis_paths[iso3]["no_scaling"] / "spaghetti.h5")["process"]
+    proc_median = procs.quantile(0.5, axis=1)
+    pol = find_oxcgrt_country_data(iso3, oxcgrt_data)
+    relevant_cols = get_rel_oxcgrt_cols("M", pol)
+    scaled = scale_oxcgrt_pols(pol[relevant_cols])
+    ox = 1.0 - scaled[cols].mean(axis=1)
+    time_mask = (proc_median.index[0] < ox.index) & (ox.index < proc_median.index[-1])
+    return pd.concat([proc_median.rename("proc"), ox.loc[time_mask].rename("ox")], axis=1).dropna()
