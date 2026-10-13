@@ -1116,110 +1116,139 @@ def plot_continent_grouping(world: GeoDataFrame):
     return fig
 
 
-def plot_dispersion_analysis(
+def plot_dispersion_ratio_figure(
     disp_posts: Dict[str, pd.DataFrame],
     ratios: Dict[str, pd.DataFrame],
+    exemplar_iso3s: List[str],
+    analysis_type: str = "oxcgrt_floored",
+    baseline: str = "no_scaling",
 ) -> plt.figure:
-    """Plot the analysis of strength of evidence
-    that including mobility is an improvement based on
-    the dispersion posterior results.
+    """Choropleth of median dispersion ratios with exemplar posterior KDEs.
+
+    Panel layout is a world map of median (baseline / analysis) dispersion
+    ratios beside stacked kernel density comparisons for a few selected countries,
+    illustrating what the map colours represent. Ratios above one favour scaling.
 
     Args:
-        disp_posts: The results for the dispersion posteriors
-        ratios: The ratios of the dispersion samples
-    Returns:
-        The figure
-    """
-    marker_size = 5
+        disp_posts: dispersion_proc posterior samples by country / analysis
+        ratios: Output of get_ratios_from_disps
+        exemplar_iso3s: Countries for the side KDE panels (top to bottom)
+        analysis_type: Scaled analysis for the map and KDEs
+        baseline: Baseline analysis for the ratio and KDEs
 
+    Returns:
+        The composed figure
+    """
     plt.style.use("default")
-    world = get_world_shp()
-    fig, axes = plt.subplots(2, 2, figsize=[180 * MM, 90 * MM], constrained_layout=True)
-    flat_axes = axes.ravel()
     plt.rcParams["pdf.fonttype"] = 42
     plt.rcParams["font.sans-serif"] = ["Arial"]
 
-    # Strength of evidence for each mobility type panels
-    analysis_types = ["g_mob"] + FB_ANALYSIS_TYPES
-    for a, analysis in enumerate(list(analysis_types)):
-        analysis_name = ANALYSIS_NAMES[analysis]
+    vmin, vmax, cmap = 0.4, 1.6, "RdGy_r"
+    median_ratios = get_median_ratios(ratios, analysis_type)
+    world = get_world_shp()
+    world["disp_ratio"] = world["ISO_A3"].map(median_ratios)
+    avail = world[world["disp_ratio"].notna()]
+    unavail = world[world["disp_ratio"].isna()]
+    n_ex = len(exemplar_iso3s)
 
-        # Find median ratio of the mobility approach to the baseline
-        median_ratios = get_median_ratios(ratios, analysis)
+    # Explicit positions so the colourbar shares the map's vertical span
+    # (equal-aspect geography otherwise leaves tall empty padding).
+    fig_w, fig_h = 210 * MM, 78 * MM
+    fig = plt.figure(figsize=[fig_w, fig_h])
+    map_left, map_bottom, map_height = 0.06, 0.08, 0.86
+    map_width = map_height * (fig_h / fig_w) * 2.05
+    cbar_left = map_left + map_width + 0.01
+    cbar_width = 0.015
+    kde_left = cbar_left + cbar_width + 0.04
+    kde_width = 0.98 - kde_left
+    kde_gap = 0.03
+    title_band = 0.055
 
-        world["disp_ratio"] = world["ISO_A3"].map(median_ratios)
-        mob_avail = world[world["disp_ratio"].notna()]
-        mob_unavail = world[world["disp_ratio"].isna()]
+    map_ax = fig.add_axes([map_left, map_bottom, map_width, map_height])
+    cax = fig.add_axes([cbar_left, map_bottom, cbar_width, map_height])
 
-        # Plot the proportion improvements
-        ax = flat_axes[a]
-        ax.set_title(analysis_name, fontsize=7)
-        mob_avail.plot(
-            column="disp_ratio",
-            ax=ax,
-            cmap="RdGy_r",
-            legend=False,
-            vmin=0.4,
-            vmax=1.6,
-        )
-        cbar = fig.colorbar(
-            ScalarMappable(norm=Normalize(vmin=0.4, vmax=1.6), cmap="RdGy_r"),
-            ax=ax,
-            fraction=0.046,
-            pad=0.04,
-        )
-        cbar.ax.tick_params(labelsize=6)
-        mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke", linewidth=0.0)
-        world["small"] = world.geometry.area < 2.5
-        world["centroid"] = world.geometry.centroid
-        centroids = world[world["small"]].set_geometry("centroid")
-        centroids.plot(
-            ax=ax,
-            markersize=marker_size,
-            column="disp_ratio",
-            cmap="RdGy_r",
-            vmin=0.4,
-            vmax=1.6,
-            edgecolor="black",
-            linewidth=0.3,
-            zorder=3,
-        )
-
-    # Best mobility approach
-    best_mob = {c: disp_posts[c].mean().idxmin() for c in disp_posts}
-    world["best_mob"] = world["ISO_A3"].map(best_mob)
-    world["best_mob_colour"] = world["best_mob"].map(MOB_SOURCE_COLOURS | {"no_scaling": "0.45"})
-    mob_avail = world[world["best_mob_colour"].notna()]
-    mob_unavail = world[world["best_mob_colour"].isna()]
-
-    # Plot the best mobility approach
-    ax = flat_axes[-1]
-    ax.set_title("best analysis approach", fontsize=7)
-
-    # Dummy colour bar to get axis in right position with constrained layout
-    sm = ScalarMappable(norm=Normalize(vmin=0, vmax=1))
-    cb = fig.colorbar(sm, ax=ax)
-    cb.ax.set_visible(False)
-
-    mob_avail.plot(ax=ax, color=mob_avail["best_mob_colour"])
-    mob_unavail.plot(ax=ax, color="w", hatch="///", edgecolor="whitesmoke", linewidth=0.0)
-    centroids.plot(
-        ax=ax,
-        markersize=marker_size,
-        color=mob_avail["best_mob_colour"],
-        vmin=0.4,
-        vmax=1.6,
+    avail.plot(column="disp_ratio", ax=map_ax, cmap=cmap, legend=False, vmin=vmin, vmax=vmax)
+    unavail.plot(ax=map_ax, color="w", hatch="///", edgecolor="whitesmoke", linewidth=0.0)
+    world["small"] = world.geometry.area < 2.5
+    world["centroid"] = world.geometry.centroid
+    world[world["small"]].set_geometry("centroid").plot(
+        ax=map_ax,
+        markersize=5,
+        column="disp_ratio",
+        cmap=cmap,
+        vmin=vmin,
+        vmax=vmax,
         edgecolor="black",
-        linewidth=0.5,
+        linewidth=0.3,
         zorder=3,
     )
+    world.boundary.plot(ax=map_ax, color="black", linewidth=0.2)
+    map_ax.set_aspect("equal", adjustable="box")
+    map_ax.set_xticks([])
+    map_ax.set_yticks([])
 
-    # Cosmetics for all panels
-    for ax in flat_axes:
-        world.boundary.plot(ax=ax, color="black", linewidth=0.2)
-        ax.set_xticks([])
+    # Align colourbar and side panels to the final equal-aspect map box
+    fig.canvas.draw()
+    map_pos = map_ax.get_position()
+    cax.set_position([cbar_left, map_pos.y0, cbar_width, map_pos.height])
+    cbar = fig.colorbar(
+        ScalarMappable(norm=Normalize(vmin=vmin, vmax=vmax), cmap=cmap),
+        cax=cax,
+    )
+    cbar.ax.tick_params(labelsize=7)
+
+    kde_height = (map_pos.height - n_ex * title_band - (n_ex - 1) * kde_gap) / n_ex
+    kde_axes = []
+    for i in range(n_ex):
+        top = map_pos.y1 - i * (title_band + kde_height + kde_gap)
+        ax = fig.add_axes([kde_left, top - title_band - kde_height, kde_width, kde_height])
+        kde_axes.append(ax)
+
+    analyses = [baseline, analysis_type]
+    colours = [MOB_SOURCE_COLOURS[a] for a in analyses]
+    for ax, iso3 in zip(kde_axes, exemplar_iso3s):
+        likes = disp_posts[iso3][analyses].rename(columns=MOB_SOURCE_ABBREVS)
+        sns.kdeplot(
+            likes,
+            fill=True,
+            ax=ax,
+            palette=colours,
+            alpha=0.1,
+            linewidth=1.5,
+            common_norm=False,
+            legend=False,
+        )
+        ax.vlines(likes.median(), 0, 0.1, colors=colours, transform=ax.get_xaxis_transform())
+        ratio = median_ratios[iso3]
+        ax.set_title(f"{get_country_name(iso3)} ({ratio:.2f})", fontsize=8, pad=2)
+        ax.set_xlim(0, likes.quantile(0.999).max())
         ax.set_yticks([])
+        ax.set_ylabel("")
+        ax.set_xlabel("")
 
+    legend_handles = [
+        Patch(facecolor=colours[i], edgecolor=colours[i], alpha=0.35, label=MOB_SOURCE_ABBREVS[a])
+        for i, a in enumerate(analyses)
+    ]
+    kde_axes[-1].legend(
+        handles=legend_handles,
+        fontsize=5.5,
+        frameon=False,
+        loc="upper right",
+        borderaxespad=0.2,
+        handlelength=1.0,
+        handletextpad=0.4,
+        labelspacing=0.25,
+    )
+
+    for ax in kde_axes:
+        ax.xaxis.set_major_locator(mpl.ticker.NullLocator())
+        ax.xaxis.set_minor_locator(mpl.ticker.NullLocator())
+        ax.tick_params(axis="x", which="both", bottom=False, top=False, labelbottom=False, length=0)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+    plt.close()
     return fig
 
 
