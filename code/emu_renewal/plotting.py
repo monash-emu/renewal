@@ -490,7 +490,8 @@ def plot_proc_comparison(
     procs: Dict[str, pd.DataFrame],
     countries: List[str],
     analysis_paths: Dict[str, Dict[str, Path]],
-    req_analyses: List[StandardCalib],
+    req_analyses: List[str],
+    n_cols: int = 3,
 ) -> plt.Figure:
     """Plot the comparison of
     the transmission scaling process
@@ -501,11 +502,12 @@ def plot_proc_comparison(
         countries: Names of the countries
         analysis_paths: Paths for the runs
         req_analyses: User request of the analyses to plot
+        n_cols: Number of subplot columns
 
     Returns:
         The figure
     """
-    fig, axes = plt.subplots(3, 3, figsize=[12, 14])
+    fig, axes = get_standard_subplot(len(countries), n_cols)
     flat_axes = axes.ravel()
 
     # Plot results by country
