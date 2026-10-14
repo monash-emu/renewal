@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 import warnings
 import yaml as yml
@@ -64,8 +64,8 @@ from emu_renewal.inputs import (
     find_oxcgrt_country_data,
     get_rel_oxcgrt_cols,
     scale_oxcgrt_pols,
-    get_oxcgrt,
     get_oxcgrt_weight_cols,
+    get_proc_oxcgrt_aligned,
 )
 from emu_renewal.outputs import (
     get_idatas_for_analysis_type,
@@ -77,6 +77,7 @@ from emu_renewal.utils import (
     get_beta_params_from_mean_var,
     get_country_short_name,
     get_country_name,
+    get_countries_by_continent,
     to_iso3,
     iso3_to_iso2,
 )
@@ -768,6 +769,124 @@ def compare_proc_pol(
     return fig
 
 
+def get_manuscript_proc_panel_countries(
+    analysis_paths: Dict[str, Dict[str, Path]],
+    countries: List[str],
+) -> Tuple[List[str], pd.DataFrame]:
+    """Select manuscript panel countries from residual–OxCGRT agreement.
+
+    For each continent except Oceania, pick three countries where possible:
+    lowest mean relative difference, highest Spearman, and lowest Spearman
+    between the no-scaling residual process and custom OxCGRT indices.
+
+    Args:
+        analysis_paths: Paths for the runs by country / analysis
+        countries: Candidate ISO3 codes
+
+    Returns:
+        Ordered panel ISO3 list (rows = continents, cols = tiers) and
+        a dataframe describing the selection
+    """
+    countries_by_cont = get_countries_by_continent(countries)
+    oxcgrt_data = get_oxcgrt_data()
+    custom_cols = OXCGRT_COLMAP["custom"]
+
+    mean_rel = {}
+    spearman = {}
+    for iso3 in countries:
+        proc_ox = get_proc_oxcgrt_aligned(iso3, custom_cols, analysis_paths, oxcgrt_data)
+        mean_rel[iso3] = float(((proc_ox["proc"] - proc_ox["ox"]).abs() / proc_ox["ox"].abs()).mean())
+        spearman[iso3] = float(spearmanr(proc_ox["proc"], proc_ox["ox"]).statistic)
+
+    continents = [c for c in CONT_CMAP if c != "OC"]
+    selection = []
+    for cont in continents:
+        cont_name = pc.convert_continent_code_to_continent_name(cont)
+        cont_countries = countries_by_cont[cont]
+        best_rel = sorted(cont_countries, key=lambda c: mean_rel[c])[0]
+        by_sp = sorted(cont_countries, key=lambda c: spearman[c], reverse=True)
+        best_sp = next((c for c in by_sp if c != best_rel), by_sp[0])
+        worst_sp = next((c for c in reversed(by_sp) if c not in (best_rel, best_sp)), by_sp[-1])
+        for iso3, tier in [
+            (best_rel, "rel_low"),
+            (best_sp, "spearman_high"),
+            (worst_sp, "spearman_low"),
+        ]:
+            selection.append(
+                {
+                    "continent": cont_name,
+                    "tier": tier,
+                    "iso3": iso3,
+                    "country": get_country_name(iso3),
+                    "mean_rel_diff": mean_rel[iso3],
+                    "spearman": spearman[iso3],
+                }
+            )
+
+    selection_df = pd.DataFrame(selection)
+    return selection_df["iso3"].tolist(), selection_df
+
+
+def style_manuscript_proc_grid(
+    fig: plt.Figure,
+    analysis_paths: Dict[str, Dict[str, Path]],
+    panel_countries: List[str],
+    n_cols: int = 3,
+    col_titles: Optional[List[str]] = None,
+) -> plt.Figure:
+    """Apply shared manuscript styling to a residual-process country grid.
+
+    Caps each panel y-limit from the no-scaling residual median, drops ticks,
+    and adds continent row labels. Optional column footer titles are used by
+    Figure 2 only.
+
+    Args:
+        fig: Figure from compare_proc_pol / compare_proc_versus_weighted
+        analysis_paths: Paths for the runs
+        panel_countries: ISO3 codes in panel order
+        n_cols: Number of subplot columns
+        col_titles: Optional footer labels for the bottom row of panels
+
+    Returns:
+        The styled figure
+    """
+    fig.suptitle("")
+    continents = [c for c in CONT_CMAP if c != "OC"]
+    row_titles = [pc.convert_continent_code_to_continent_name(c) for c in continents]
+
+    for ax, iso3 in zip(fig.axes, panel_countries):
+        proc_median = pd.read_hdf(analysis_paths[iso3]["no_scaling"] / "spaghetti.h5")["process"]
+        proc_max = proc_median.quantile(0.5, axis=1).max()
+        ax.set_ylim(top=min(proc_max * 1.25, ax.get_ylim()[1]))
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    fig.tight_layout()
+    if col_titles:
+        for ax, title in zip(fig.axes[-n_cols:], col_titles):
+            bbox = ax.get_position()
+            fig.text(
+                (bbox.x0 + bbox.x1) / 2,
+                bbox.y0 - 0.03,
+                title,
+                ha="center",
+                va="bottom",
+                fontsize=16,
+            )
+    for ax, title in zip(fig.axes[::n_cols], row_titles):
+        bbox = ax.get_position()
+        fig.text(
+            bbox.x0 - 0.01,
+            (bbox.y0 + bbox.y1) / 2,
+            title,
+            ha="right",
+            va="center",
+            fontsize=16,
+            rotation=90,
+        )
+    return fig
+
+
 def compare_proc_versus_weighted(
     analysis_paths: Path,
     countries: List[str],
@@ -807,7 +926,6 @@ def compare_proc_versus_weighted(
         centiles = proc_samples.quantile([0.025, 0.5, 0.975], axis=1).T
         ax.plot(centiles.index, centiles[0.5], color="navy", linewidth=2.0, label="baseline residual")
         ax.fill_between(centiles.index, centiles[0.025], centiles[0.975], alpha=0.1, color="navy")
-        ax.set_xlim([centiles.index[0], centiles.index[-1]])
 
         # Get the weighted scaling process and plot
         a_path = c_path[analysis_type]
@@ -1130,7 +1248,7 @@ def plot_dispersion_ratio_figure(
     illustrating what the map colours represent. Ratios above one favour scaling.
 
     Args:
-        disp_posts: dispersion_proc posterior samples by country / analysis
+        disp_posts: dispersion_proc posterior samples by country-analysis combination
         ratios: Output of get_ratios_from_disps
         exemplar_iso3s: Countries for the side KDE panels (top to bottom)
         analysis_type: Scaled analysis for the map and KDEs
