@@ -653,6 +653,93 @@ def plot_weights_by_country(
     return fig
 
 
+def plot_manuscript_policy_weight_kdes(
+    analysis_paths: Dict[str, Dict[str, Path]],
+    panel_countries: List[str],
+    analysis_type: str = "oxcgrt_floored",
+    n_cols: int = 3,
+) -> plt.figure:
+    """Manuscript grid of OxCGRT policy-weight posterior KDEs.
+
+    Expects panel_countries ordered as continent rows (CONT_CMAP order,
+    excluding Oceania) with n_cols countries per continent. Policy names
+    appear once in a shared legend below the grid.
+
+    Args:
+        analysis_paths: Paths for the runs by country / analysis
+        panel_countries: ISO3 codes in row-major panel order
+        analysis_type: Weighted policy analysis type
+        n_cols: Number of subplot columns (countries per continent)
+
+    Returns:
+        The figure
+    """
+    plt.style.use("ggplot")
+    plt.rcParams["pdf.fonttype"] = 42
+    plt.rcParams["font.sans-serif"] = ["Arial"]
+
+    n_rows = int(np.ceil(len(panel_countries) / n_cols))
+    fig, axes = plt.subplots(
+        n_rows,
+        n_cols,
+        figsize=[160 * MM, 42 * MM * n_rows],
+        sharex=True,
+        sharey=False,
+    )
+    flat_axes = np.atleast_1d(axes).ravel()
+    x_vals = np.linspace(-0.05, 1.05, 200)
+
+    for c, iso3 in enumerate(panel_countries):
+        ax = flat_axes[c]
+        idata = az.from_netcdf(analysis_paths[iso3][analysis_type] / "idata_filtered.nc")
+        weights = idata.posterior["ts_weights"].to_dataframe().unstack("ts_weights_dim_0")
+        weights.columns = get_oxcgrt_weight_cols(weights.shape[1])
+        for pol in weights.columns:
+            kde = gaussian_kde(weights[pol])
+            colour = OXCGRT_LOCATION_LINE_CMAP.get(pol, "gray")
+            ax.plot(x_vals, kde(x_vals), color=colour, label=LOCATION_NAME_MAP[pol], linewidth=1.0)
+            ax.fill_between(x_vals, kde(x_vals), alpha=0.05, color=colour)
+        ax.set_title(get_country_short_name(iso3), fontsize=8)
+        ax.set_yticks([])
+        ax.tick_params(labelsize=6)
+        if c // n_cols < n_rows - 1:
+            ax.set_xticks([0.0, 0.5, 1.0])
+            ax.tick_params(labelbottom=False)
+
+    for ax in flat_axes[len(panel_countries) :]:
+        ax.axis("off")
+
+    handles, labels = flat_axes[0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="lower center",
+        ncol=4,
+        fontsize=6.5,
+        frameon=False,
+        bbox_to_anchor=(0.5, 0.0),
+    )
+    fig.tight_layout(rect=[0.06, 0.06, 1.0, 1.0])
+    fig.subplots_adjust(wspace=0.3)
+
+    continents = [c for c in CONT_CMAP if c != "OC"]
+    row_titles = [pc.convert_continent_code_to_continent_name(c) for c in continents]
+    for ax, title in zip(flat_axes[::n_cols], row_titles):
+        bbox = ax.get_position()
+        fig.text(
+            bbox.x0 - 0.04,
+            (bbox.y0 + bbox.y1) / 2,
+            title,
+            ha="right",
+            va="center",
+            fontsize=9,
+            rotation=90,
+        )
+
+    plt.close()
+    return fig
+
+
 def compare_proc_mob(
     analysis_paths: Dict[str, Dict[str, Path]],
     countries: List[str],
