@@ -64,6 +64,7 @@ from emu_renewal.inputs import (
     find_oxcgrt_country_data,
     get_rel_oxcgrt_cols,
     scale_oxcgrt_pols,
+    get_oxcgrt,
     get_oxcgrt_weight_cols,
     get_proc_oxcgrt_aligned,
 )
@@ -1232,6 +1233,72 @@ def plot_continent_grouping(world: GeoDataFrame):
     leg = ax.get_legend()
     leg.set_bbox_to_anchor((0.22, 0.55))
 
+    plt.close()
+    return fig
+
+
+def plot_analysis_inclusion_map(
+    included_iso3s: List[str],
+) -> plt.figure:
+    """World map of countries included in the OxCGRT analyses.
+
+    Args:
+        included_iso3s: ISO3 codes for included countries
+
+    Returns:
+        The figure
+    """
+    plt.style.use("default")
+    world = get_world_shp()
+    world["geometry"] = world.simplify(tolerance=0.1, preserve_topology=True)
+    world["included"] = world["ISO_A3"].isin(included_iso3s)
+
+    fig, ax = plt.subplots(1, 1, figsize=[180 * MM, 90 * MM])
+    world[~world["included"]].plot(ax=ax, color="lightgrey", edgecolor="white", linewidth=0.2)
+    world[world["included"]].plot(ax=ax, color="#2c7fb8", edgecolor="white", linewidth=0.2)
+    missing = world[world["ISO_A3"].isna() | (world["ISO_A3"] == "-99")]
+    missing.plot(ax=ax, facecolor="white", edgecolor="none", hatch="//")
+    world.boundary.plot(ax=ax, color="black", linewidth=0.15)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_aspect("equal")
+    plt.close()
+    return fig
+
+
+def plot_custom_oxcgrt_domains(
+    iso3: str,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+) -> plt.figure:
+    """Vertical stack of custom OxCGRT policy domains for a single country.
+
+    Args:
+        iso3: Country identifier
+        start: Analysis period start date
+        end: Analysis period end date
+
+    Returns:
+        The figure
+    """
+    plt.style.use("default")
+    policies = OXCGRT_COLMAP["custom"]
+    pol = get_oxcgrt(iso3, "custom").loc[start:end]
+    n = len(policies)
+    figsize = [120 * MM, 12 * MM * n]
+    fig, axes = plt.subplots(n, 1, figsize=figsize, sharex=True, gridspec_kw={"hspace": 0.15})
+    for ax, code in zip(axes, policies):
+        colour = OXCGRT_LOCATION_CMAP[code]
+        ax.fill_between(pol.index, 0.0, pol[code], color=colour, alpha=0.35, linewidth=0.0)
+        ax.plot(pol.index, pol[code], color=colour, linewidth=1.2)
+        ax.set_xticks([])
+        ax.set_ylim(-0.05, 1.05)
+        ax.set_yticks([])
+        ax.set_ylabel(OXCGRT_LOCS[code], fontsize=7, rotation=0, ha="right", va="center")
+        ax.yaxis.set_label_coords(-0.02, 0.5)
+        ax.tick_params(axis="y", labelsize=6)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
     plt.close()
     return fig
 
