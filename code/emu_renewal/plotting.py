@@ -926,9 +926,9 @@ def style_manuscript_proc_grid(
 ) -> plt.Figure:
     """Apply shared manuscript styling to a residual-process country grid.
 
-    Caps each panel y-limit from the no-scaling residual median, drops ticks,
-    and adds continent row labels. Optional column footer titles are used by
-    Figure 2 only.
+    Caps each panel y-limit from the taller of the no_scaling /
+    oxcgrt_floored residual medians, drops ticks, and adds continent row
+    labels. Optional column footer titles are used by Figure 2 only.
 
     Args:
         fig: Figure from compare_proc_pol / compare_proc_versus_weighted
@@ -945,9 +945,11 @@ def style_manuscript_proc_grid(
     row_titles = [pc.convert_continent_code_to_continent_name(c) for c in continents]
 
     for ax, iso3 in zip(fig.axes, panel_countries):
-        proc_median = pd.read_hdf(analysis_paths[iso3]["no_scaling"] / "spaghetti.h5")["process"]
-        proc_max = proc_median.quantile(0.5, axis=1).max()
-        ax.set_ylim(top=min(proc_max * 1.25, ax.get_ylim()[1]))
+        proc_maxes = []
+        for analysis in ("no_scaling", "oxcgrt_floored"):
+            proc = pd.read_hdf(analysis_paths[iso3][analysis] / "spaghetti.h5")["process"]
+            proc_maxes.append(proc.quantile(0.5, axis=1).max())
+        ax.set_ylim(top=min(max(proc_maxes) * 1.25, ax.get_ylim()[1]))
         ax.set_xticks([])
         ax.set_yticks([])
 
