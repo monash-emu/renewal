@@ -631,12 +631,11 @@ def plot_weights_by_country(
         # Extra cosmetics
         country_name = get_country_name(iso3)
         ax.set_title(country_name)
-        if c // n_cols == last_country_row:
-            ax.set_xticks(np.linspace(0.0, 1.0, 3))
-        else:
-            ax.set_xticks([])
+        ax.set_xticks(np.linspace(0.0, 1.0, 3))
         ax.set_yticks([])
-        ax.tick_params(labelsize=5)
+        ax.tick_params(labelsize=10)
+        if c // n_cols != last_country_row:
+            ax.tick_params(axis="x", labelbottom=False)
         legend = ax.legend()
         legend.set_visible(False)
 
@@ -1374,7 +1373,7 @@ def plot_custom_oxcgrt_domains(
     policies = OXCGRT_COLMAP["custom"]
     pol = get_oxcgrt(iso3, "custom").loc[start:end]
     n = len(policies)
-    figsize = [120 * MM, 12 * MM * n]
+    figsize = [60 * MM, 12 * MM * n]
     fig, axes = plt.subplots(n, 1, figsize=figsize, sharex=True, gridspec_kw={"hspace": 0.15})
     for ax, code in zip(axes, policies):
         colour = OXCGRT_LOCATION_CMAP[code]
