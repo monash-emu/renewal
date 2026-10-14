@@ -1907,18 +1907,20 @@ def plot_best_policy(world, missing, exclude
 def plot_policy_weight_heatmap(
     summary: pd.DataFrame,
     countries: List[str],
-    prior_median: float = 0.5,
-    max_dev: float = None,
+    max_dev: float = 2.5,
     row_height: float = 0.19,
 ) -> plt.figure:
-    """Country by policy matrix of weight medians minus their prior median,
+    """Country by policy matrix of boundary-mass log-odds B,
     with composite scaling strength in a final column.
+
+    Colour is centred at zero (the Uniform[0, 1] prior value of B)
+    on a fixed symmetric scale of +/- max_dev, so continent panels
+    remain comparable as countries are added or removed.
 
     Args:
         summary: Output of get_policy_weight_summary
         countries: Country identifiers, in the order to be plotted
-        prior_median: Prior median of each weight (0.5 under Uniform[0, 1])
-        max_dev: Symmetrical colour-scale limit for the weight panel
+        max_dev: Symmetrical colour-scale limit for the B panel
         row_height: Vertical space allowed for each country
 
     Returns:
@@ -1927,17 +1929,17 @@ def plot_policy_weight_heatmap(
     plt.style.use("default")
     policies = OXCGRT_COLMAP["custom"]
     data = summary.loc[countries]
-    deviations = data[policies].to_numpy(dtype=float) - prior_median
+    tilts = data[policies].to_numpy(dtype=float)
 
     fig, (ax, sax) = plt.subplots(
         1,
         2,
-        figsize=(7.5, 2.8 + row_height * len(countries)), 
+        figsize=(7.5, 2.8 + row_height * len(countries)),
         sharey=True,
         layout="constrained",
         gridspec_kw={"width_ratios": [len(policies), 1.0]},
     )
-    weight_img = ax.imshow(deviations, cmap="RdBu_r", vmin=-max_dev, vmax=max_dev, aspect="auto")
+    weight_img = ax.imshow(tilts, cmap="RdBu_r", vmin=-max_dev, vmax=max_dev, aspect="auto")
     strength_img = sax.imshow(data[["strength"]].to_numpy(dtype=float), cmap="Reds", vmin=0.0, vmax=1.0, aspect="auto")
 
     ax.set_yticks(range(len(countries)), [get_country_short_name(i) for i in countries])
@@ -1951,12 +1953,96 @@ def plot_policy_weight_heatmap(
         panel.tick_params(which="minor", length=0)
 
     for img, panel, label, aspect in (
-        (weight_img, ax, "median weight minus prior median", 45),
+        (weight_img, ax, r"$B=\log\!\left[P(\omega>0.9)/P(\omega<0.1)\right]$", 45),
         (strength_img, sax, "$1-f^{m}$", 5),
     ):
         bar = fig.colorbar(img, ax=panel, location="bottom", aspect=aspect, pad=0.01)
         bar.set_label(label, fontsize=8)
         bar.ax.tick_params(labelsize=7)
+
+    plt.close()
+    return fig
+
+
+def plot_manuscript_policy_weights(
+    summary: pd.DataFrame,
+    countries_by_cont: Dict[str, List[str]],
+    max_dev: float = 2.5,
+    row_mm: float = 3.4,
+) -> plt.figure:
+    """Single-page manuscript matrix of boundary-mass log-odds B.
+
+    Args:
+        summary: Output of get_policy_weight_summary
+        countries_by_cont: Continent code to ordered ISO3 lists (empty ok)
+        max_dev: Symmetrical colour-scale limit
+        row_mm: Vertical space per country row in millimetres
+        cont_label_x: Axes-fraction x position of each continent label
+            (negative = left of the matrix). Defaults keep AF/AS/EU aligned
+            and offset NA/SA so the short blocks do not clash.
+
+    Returns:
+        The figure
+    """
+    plt.style.use("default")
+    plt.rcParams["pdf.fonttype"] = 42
+    plt.rcParams["font.sans-serif"] = ["Arial"]
+
+    policies = OXCGRT_COLMAP["custom"]
+    blocks = [(c, countries_by_cont[c]) for c in CONT_CMAP if countries_by_cont.get(c)]
+    n_countries = sum(len(group) for _, group in blocks)
+    n_blocks = len(blocks)
+
+    fig_w = 140 * MM
+    fig_h = (20.0 + row_mm * n_countries + 2.5 * (n_blocks - 1)) * MM
+    gridspec = {
+        "height_ratios": [len(group) for _, group in blocks],
+        "hspace": 0.12,
+    }
+    fig, axes = plt.subplots(n_blocks, 1, sharex=True, figsize=(fig_w, fig_h), gridspec_kw=gridspec)
+
+    # Grid plotting
+    label_x={
+        "AF": -0.17,
+        "AS": -0.17,
+        "EU": -0.17,
+        "NA": -0.19,
+        "SA": -0.15,
+    }
+    for ax, (cont, group) in zip(axes, blocks):
+        tilts = summary.loc[group, policies].to_numpy(dtype=float)
+        img = ax.imshow(tilts, cmap="RdBu_r", vmin=-max_dev, vmax=max_dev, aspect="auto")
+        ax.set_yticks(range(len(group)), [get_country_short_name(i) for i in group])
+        ax.set_xticks(np.arange(len(policies) + 1) - 0.5, minor=True)
+        ax.set_yticks(np.arange(len(group) + 1) - 0.5, minor=True)
+        ax.grid(which="minor", color="white", linewidth=0.5)
+        ax.tick_params(which="minor", length=0)
+        ax.tick_params(labelsize=6.5)
+        ax.text(
+            label_x[cont],
+            0.5,
+            pc.convert_continent_code_to_continent_name(cont),
+            transform=ax.transAxes,
+            rotation=90,
+            ha="center",
+            va="center",
+            fontsize=7,
+            clip_on=False,
+        )
+
+    # Ticks
+    axes[0].xaxis.set_ticks_position("top")
+    i_pols = range(len(policies))
+    pol_names = [OXCGRT_LOCS[p] for p in policies]
+    axes[0].set_xticks(i_pols, pol_names, rotation=55.0, ha="left", fontsize=6.5)
+    for ax in axes[1:]:
+        ax.tick_params(labeltop=False, labelbottom=False, top=False, bottom=False)
+
+    # Coloru bar
+    fig.subplots_adjust(left=0.26, right=0.98, top=0.88, bottom=0.10)
+    bar = fig.colorbar(img, ax=axes, location="bottom", aspect=40, pad=0.04, shrink=0.85)
+    bar.set_label(r"$B=\log\!\left[P(\omega>0.9)/P(\omega<0.1)\right]$", fontsize=7)
+    bar.ax.tick_params(labelsize=6.5)
 
     plt.close()
     return fig

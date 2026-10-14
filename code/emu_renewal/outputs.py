@@ -526,28 +526,55 @@ def get_all_policy_effect_metrics(
     return pd.DataFrame.from_records(records)
 
 
+def get_weight_boundary_logodds(
+    a_path: Path,
+    analysis_type: str,
+    tau: float = 0.1,
+) -> pd.Series:
+    """Boundary-mass log-odds of each policy weight posterior.
+
+    With Uniform[0, 1] priors, both tails carry prior mass tau, so
+    B = log[P(omega > 1 - tau) / P(omega < tau)] is zero under the prior.
+    Positive values indicate mass piled toward the upper boundary
+    (domain up-weighted relative to the country's other policies);
+    negative values indicate down-weighting. The shared non-identified
+    scale of the weight vector cancels in this within-parameter contrast.
+
+    Args:
+        a_path: Analysis path containing idata_filtered.nc
+        analysis_type: The weighted policy analysis type
+        tau: Boundary width used for the two tail masses
+
+    Returns:
+        One value of B per policy domain
+    """
+    weights = get_weight_posts(a_path, analysis_type)
+    return np.log((weights > 1.0 - tau).mean() / (weights < tau).mean())
+
+
 def get_policy_weight_summary(
     analysis_paths: Dict[str, Dict[str, Path]],
     analysis_type: str = "oxcgrt_floored",
     baseline: str = "no_scaling",
+    tau: float = 0.1,
 ) -> pd.DataFrame:
-    """Collate the country-level policy weight medians,
-    composite scaling strength and dispersion comparison
-    needed to display the policy weights as a matrix.
+    """Collate per-policy boundary-mass log-odds, composite scaling
+    strength and dispersion comparison for the policy-weight matrix.
 
-    The weights are the unnormalised calibrated parameters,
-    each of which has a uniform prior over [0, 1],
-    so that the prior median of every entry is 0.5 and
-    departures from 0.5 are interpretable without reference
-    to the values taken by the other policies.
+    Only normalised weights enter the likelihood, so the overall scale
+    of the weight vector is non-identified and posterior medians of the
+    unnormalised weights are uninformative. The boundary-mass log-odds
+    B = log[P(omega > 1 - tau) / P(omega < tau)] captures the within-
+    country tilt that the data do identify (see get_weight_boundary_logodds).
 
     Args:
         analysis_paths: Country to analysis-type output paths
         analysis_type: The weighted policy analysis to summarise
         baseline: The analysis type against which dispersion is compared
+        tau: Boundary width used for the two tail masses
 
     Returns:
-        One row per country, with a column for each policy weight median,
+        One row per country, with a column for each policy's B value,
         the median composite strength and the dispersion comparison
     """
     records = {}
@@ -555,7 +582,7 @@ def get_policy_weight_summary(
         if analysis_type not in analyses:
             continue
         a_path = analyses[analysis_type]
-        row = get_weight_posts(a_path, analysis_type).median().to_dict()
+        row = get_weight_boundary_logodds(a_path, analysis_type, tau=tau).to_dict()
         row["strength"] = get_median_scale_strength(a_path)
         c_paths = {k: v for k, v in analyses.items() if k in (baseline, analysis_type)}
         disps = get_param_vals_by_analysis("dispersion_proc", c_paths)
