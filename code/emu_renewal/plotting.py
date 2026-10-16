@@ -1933,12 +1933,12 @@ def plot_scale_exp_map(
     cmap="Greys",
     evidence_cmap="Reds",
 ) -> plt.figure:
-    """Choropleth of scaling strength with a second colour scale
+    """Choropleth of a country-level quantity with a second colour scale
     for countries with dispersion support.
 
     Args:
         world: GeoDataFrame with param_name column
-        param_name: Strength column to map
+        param_name: Column to map
         upper_val: Colour-scale upper bound
         evidence: Subset of world with dispersion support
         title: Axes title

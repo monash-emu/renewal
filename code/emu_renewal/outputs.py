@@ -610,3 +610,17 @@ def get_median_scale_strength(a_path: Path) -> float:
     floors = idata.posterior["scale_floor"].to_dataframe()["scale_floor"]
     exps = idata.posterior["scale_exp"].to_dataframe()["scale_exp"]
     return float((1.0 - floors ** exps).median())
+
+
+def get_median_posterior(a_path: Path, param: str) -> float:
+    """Posterior median of one scalar parameter.
+
+    Args:
+        a_path: Analysis path containing idata_filtered.nc
+        param: Posterior variable name
+
+    Returns:
+        The median
+    """
+    idata = az.from_netcdf(a_path / "idata_filtered.nc")
+    return float(idata.posterior[param].to_dataframe()[param].median())
