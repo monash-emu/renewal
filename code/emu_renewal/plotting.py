@@ -2187,3 +2187,237 @@ def plot_effect_scatter(
     fig.legend(handles, labels, loc="lower center", ncol=3, frameon=False)
     fig.tight_layout(rect=[0, 0.1, 1, 1])
     return fig
+
+
+def plot_policy_mobility_strength_scatter(
+    summary: pd.DataFrame,
+    mob_analyses: List[str] = ("g_mob", "fb_visited_mob"),
+) -> plt.figure:
+    """Scatter policy vs mobility composite scaling strength.
+
+    One panel per mobility analysis. Points are coloured by continent
+    (CONT_CMAP). All dual-coverage countries are shown.
+
+    Args:
+        summary: Country-indexed frame with columns strength_policy,
+            prop_better_policy, continent, and strength_<mob> per panel
+        mob_analyses: Mobility analysis types to plot as panels
+
+    Returns:
+        The figure
+    """
+    n_panels = len(mob_analyses)
+    fig, axes = plt.subplots(
+        1,
+        n_panels,
+        figsize=[88 * MM * n_panels, 88 * MM],
+        sharex=True,
+        sharey=True,
+    )
+    axes = np.atleast_1d(axes)
+
+    for ax, mob in zip(axes, mob_analyses):
+        ycol = f"strength_{mob}"
+        panel = summary.dropna(subset=["strength_policy", ycol]).copy()
+        for cont, colour in CONT_CMAP.items():
+            cont_mask = panel["continent"] == cont
+            supported_mask = panel["prop_better_policy"] > 0.5
+            cont_label = pc.convert_continent_code_to_continent_name(cont)
+            
+            supported = panel.loc[cont_mask & supported_mask]
+            ax.scatter(
+                supported["strength_policy"],
+                supported[ycol],
+                color=colour,
+                edgecolors="k",
+                s=45,
+                label=cont_label,
+                alpha=0.6,
+            )
+            
+            unsupported = panel.loc[cont_mask & ~supported_mask]
+            ax.scatter(
+                unsupported["strength_policy"],
+                unsupported[ycol],
+                color=colour,
+                edgecolors="k",
+                s=8,
+                marker="s",
+                alpha=0.6,
+            )
+        
+        ax.plot([0.0, 1.0], [0, 1.0], color="0.5", linestyle="--")
+        ax.set_xlim(0.0, 1.0)
+        ax.set_ylim(0.0, 1.0)
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_xlabel(r"OxCGRT floored strength ($1-f^{m}$)", fontsize=7)
+        ax.set_ylabel(rf"{SOURCE_ABBREVS[mob]} strength ($1-f^{{m}}$)", fontsize=7)
+        ax.set_title(ANALYSIS_NAMES[mob], fontsize=8)
+        ax.tick_params(labelsize=6)
+        rho, _ = spearmanr(panel["strength_policy"], panel[ycol])
+        txt = f"Spearman $\\rho$ = {rho:.2f}"
+        ax.text(0.95, 0.05, txt, transform=ax.transAxes, ha="right", va="bottom", fontsize=6.5)
+
+    cont_handles = []
+    for cont, colour in CONT_CMAP.items():
+        cont_name = pc.convert_continent_code_to_continent_name(cont)
+        patch = Patch(facecolor=colour, edgecolor="k", label=cont_name)
+        cont_handles.append(patch)
+
+    fig.legend(handles=cont_handles, loc="lower center", ncol=3, frameon=False, fontsize=6)
+    fig.tight_layout(rect=[0, 0.12, 1, 1])
+    plt.close()
+    return fig
+
+
+def plot_policy_mobility_floor_pairs(
+    summary: pd.DataFrame,
+    mob_analyses: List[str] = ("g_mob", "fb_visited_mob"),
+) -> plt.figure:
+    """Paired floor comparison of OxCGRT floored versus mobility.
+
+    Countries sit on the horizontal axis (continent blocks, then sorted
+    by policy floor). Vertical connectors join each country's policy and
+    mobility floor; marker colour is continent, marker shape distinguishes
+    policy (square) from mobility (circle). Open markers mark countries
+    without dispersion improvement under OxCGRT floored.
+
+    Args:
+        summary: Country-indexed frame with floor_policy, continent,
+            prop_better_policy, and floor_<mob> columns
+        mob_analyses: Mobility analysis types to plot as rows
+
+    Returns:
+        The figure
+    """
+    plt.style.use("default")
+    plt.rcParams["pdf.fonttype"] = 42
+    plt.rcParams["font.sans-serif"] = ["Arial"]
+
+    n_panels = len(mob_analyses)
+    fig, axes = plt.subplots(
+        n_panels,
+        1,
+        figsize=[180 * MM, 55 * MM * n_panels],
+        sharex=False,
+    )
+    axes = np.atleast_1d(axes)
+
+    for ax, mob in zip(axes, mob_analyses):
+        ycol = f"floor_{mob}"
+        panel = summary.dropna(subset=["floor_policy", ycol]).copy()
+        cont_rank = {c: i for i, c in enumerate(CONT_CMAP)}
+        panel = panel.assign(_cont_rank=panel["continent"].map(cont_rank))
+        panel = panel.sort_values(["_cont_rank", "floor_policy"])
+        xs = np.arange(len(panel))
+        for x, (iso3, row) in zip(xs, panel.iterrows()):
+            colour = CONT_CMAP.get(row["continent"], "0.4")
+            supported = row["prop_better_policy"] > 0.5
+            face = colour if supported else "none"
+            edge = "k" if supported else colour
+            ax.plot(
+                [x, x],
+                [row["floor_policy"], row[ycol]],
+                color="0.75",
+                linewidth=0.6,
+                zorder=1,
+            )
+            ax.scatter(
+                x,
+                row["floor_policy"],
+                marker="s",
+                s=16,
+                facecolors=face,
+                edgecolors=edge,
+                linewidths=0.7,
+                zorder=3,
+            )
+            ax.scatter(
+                x,
+                row[ycol],
+                marker="o",
+                s=16,
+                facecolors=face,
+                edgecolors=edge,
+                linewidths=0.7,
+                zorder=3,
+            )
+
+        # Continent separators and labels
+        boundaries = []
+        for cont in CONT_CMAP:
+            idx = np.where(panel["continent"].to_numpy() == cont)[0]
+            if len(idx) == 0:
+                continue
+            boundaries.append((cont, idx[0], idx[-1]))
+            if idx[0] > 0:
+                ax.axvline(idx[0] - 0.5, color="0.85", linewidth=0.7, zorder=0)
+        for cont, left, right in boundaries:
+            ax.text(
+                (left + right) / 2,
+                1.02,
+                pc.convert_continent_code_to_continent_name(cont),
+                transform=ax.get_xaxis_transform(),
+                ha="center",
+                va="bottom",
+                fontsize=6,
+                clip_on=False,
+            )
+
+        ax.set_xlim(-0.5, len(panel) - 0.5)
+        ax.set_ylim(0.0, 1.0)
+        ax.set_ylabel("floor $f$", fontsize=7)
+        ax.set_title(
+            f"OxCGRT floored vs {ANALYSIS_NAMES[mob]}",
+            fontsize=8,
+            pad=12,
+        )
+        ax.set_xticks(xs)
+        ax.set_xticklabels(
+            [get_country_short_name(i) for i in panel.index],
+            rotation=90,
+            fontsize=4.5,
+        )
+        ax.tick_params(axis="y", labelsize=6)
+        # Series legend on first panel only (shape)
+        if ax is axes[0]:
+            shape_handles = [
+                plt.Line2D(
+                    [0],
+                    [0],
+                    marker="s",
+                    color="k",
+                    linestyle="None",
+                    markersize=5,
+                    label="OxCGRT floored",
+                ),
+                plt.Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color="k",
+                    linestyle="None",
+                    markersize=5,
+                    label="mobility",
+                ),
+                plt.Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    markerfacecolor="none",
+                    markeredgecolor="k",
+                    linestyle="None",
+                    markersize=5,
+                    label="no dispersion improvement",
+                ),
+            ]
+            ax.legend(
+                handles=shape_handles,
+                loc="upper right",
+                fontsize=5.5,
+                frameon=False,
+            )
+
+    fig.tight_layout()
+    plt.close()
+    return fig
