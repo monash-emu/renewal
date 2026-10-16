@@ -1924,7 +1924,7 @@ def plot_param_map(world, param_name, upper_val, excluded=None, title="") -> plt
     return fig
 
 
-def plot_strength_evidence_map(
+def plot_scale_exp_map(
     world,
     param_name,
     upper_val,
@@ -1954,8 +1954,7 @@ def plot_strength_evidence_map(
     missing = world[world[param_name].isna()]
     plot_kw = dict(column=param_name, legend=False, vmin=0, vmax=upper_val)
     world.plot(ax=ax, cmap=cmap, **plot_kw)
-    if len(evidence):
-        evidence.plot(ax=ax, cmap=evidence_cmap, **plot_kw)
+    evidence.plot(ax=ax, cmap=evidence_cmap, **plot_kw)
     missing.plot(ax=ax, facecolor="white", edgecolor="none", hatch="//")
     ax.set_title(title, fontsize=22.0)
     divider = make_axes_locatable(ax)
