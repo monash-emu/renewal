@@ -2210,13 +2210,13 @@ def plot_policy_mobility_strength_scatter(
     fig, axes = plt.subplots(
         1,
         n_panels,
-        figsize=[88 * MM * n_panels, 88 * MM],
+        figsize=[75 * MM * n_panels, 95 * MM],
         sharex=True,
         sharey=True,
     )
     axes = np.atleast_1d(axes)
 
-    for ax, mob in zip(axes, mob_analyses):
+    for i, (ax, mob) in enumerate(zip(axes, mob_analyses)):
         ycol = f"strength_{mob}"
         panel = summary.dropna(subset=["strength_policy", ycol]).copy()
         for cont, colour in CONT_CMAP.items():
@@ -2251,7 +2251,8 @@ def plot_policy_mobility_strength_scatter(
         ax.set_ylim(0.0, 1.0)
         ax.set_aspect("equal", adjustable="box")
         ax.set_xlabel(r"OxCGRT floored strength ($1-f^{m}$)", fontsize=7)
-        ax.set_ylabel(rf"{SOURCE_ABBREVS[mob]} strength ($1-f^{{m}}$)", fontsize=7)
+        if i == 0:
+            ax.set_ylabel(r"Mobility strength ($1-f^{m}$)", fontsize=7)
         ax.set_title(ANALYSIS_NAMES[mob], fontsize=8)
         ax.tick_params(labelsize=6)
         rho, _ = spearmanr(panel["strength_policy"], panel[ycol])
@@ -2265,7 +2266,8 @@ def plot_policy_mobility_strength_scatter(
         cont_handles.append(patch)
 
     fig.legend(handles=cont_handles, loc="lower center", ncol=3, frameon=False, fontsize=6)
-    fig.tight_layout(rect=[0, 0.12, 1, 1])
+    fig.tight_layout(rect=[0, 0.10, 1, 1])
+    fig.subplots_adjust(wspace=0.08)
     plt.close()
     return fig
 
