@@ -2281,12 +2281,13 @@ def plot_policy_mobility_floor_pairs(
     Countries sit on the horizontal axis (continent blocks, then sorted
     by policy floor). Vertical connectors join each country's policy and
     mobility floor; marker colour is continent, marker shape distinguishes
-    policy (square) from mobility (circle). Open markers mark countries
-    without dispersion improvement under OxCGRT floored.
+    policy (square) from mobility (circle). Each panel keeps only countries
+    with dispersion improvement under both OxCGRT floored and that mobility
+    analysis (``prop_better`` of at least 0.5 on each).
 
     Args:
         summary: Country-indexed frame with floor_policy, continent,
-            prop_better_policy, and floor_<mob> columns
+            prop_better_policy, floor_<mob>, and prop_better_<mob> columns
         mob_analyses: Mobility analysis types to plot as rows
 
     Returns:
@@ -2307,16 +2308,17 @@ def plot_policy_mobility_floor_pairs(
 
     for ax, mob in zip(axes, mob_analyses):
         ycol = f"floor_{mob}"
-        panel = summary.dropna(subset=["floor_policy", ycol]).copy()
+        pb_col = f"prop_better_{mob}"
+        panel = summary.dropna(subset=["floor_policy", ycol, pb_col]).copy()
+        panel = panel.loc[
+            (panel["prop_better_policy"] >= 0.5) & (panel[pb_col] >= 0.5)
+        ]
         cont_rank = {c: i for i, c in enumerate(CONT_CMAP)}
         panel = panel.assign(_cont_rank=panel["continent"].map(cont_rank))
         panel = panel.sort_values(["_cont_rank", "floor_policy"])
         xs = np.arange(len(panel))
         for x, (iso3, row) in zip(xs, panel.iterrows()):
             colour = CONT_CMAP.get(row["continent"], "0.4")
-            supported = row["prop_better_policy"] > 0.5
-            face = colour if supported else "none"
-            edge = "k" if supported else colour
             ax.plot(
                 [x, x],
                 [row["floor_policy"], row[ycol]],
@@ -2329,8 +2331,8 @@ def plot_policy_mobility_floor_pairs(
                 row["floor_policy"],
                 marker="s",
                 s=16,
-                facecolors=face,
-                edgecolors=edge,
+                facecolors=colour,
+                edgecolors="k",
                 linewidths=0.7,
                 zorder=3,
             )
@@ -2339,8 +2341,8 @@ def plot_policy_mobility_floor_pairs(
                 row[ycol],
                 marker="o",
                 s=16,
-                facecolors=face,
-                edgecolors=edge,
+                facecolors=colour,
+                edgecolors="k",
                 linewidths=0.7,
                 zorder=3,
             )
@@ -2401,16 +2403,6 @@ def plot_policy_mobility_floor_pairs(
                     linestyle="None",
                     markersize=5,
                     label="mobility",
-                ),
-                plt.Line2D(
-                    [0],
-                    [0],
-                    marker="o",
-                    markerfacecolor="none",
-                    markeredgecolor="k",
-                    linestyle="None",
-                    markersize=5,
-                    label="no dispersion improvement",
                 ),
             ]
             ax.legend(
