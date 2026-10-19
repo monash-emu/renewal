@@ -2278,12 +2278,12 @@ def plot_policy_mobility_floor_pairs(
 ) -> plt.figure:
     """Paired floor comparison of OxCGRT floored versus mobility.
 
-    Countries sit on the horizontal axis (continent blocks, then sorted
-    by policy floor). Vertical connectors join each country's policy and
-    mobility floor; marker colour is continent, marker shape distinguishes
-    policy (square) from mobility (circle). Each panel keeps only countries
-    with dispersion improvement under both OxCGRT floored and that mobility
-    analysis (``prop_better`` of at least 0.5 on each).
+    Countries sit on the horizontal axis in continent blocks, then sorted
+    by policy floor) Vertical connectors join each country's policy and
+    mobility floor parameter marker. Each panel keeps only countries for which
+    there is evidence of an effect for both OxCGRT floored and the respective
+    mobility analysis (as determined by whether the proportion of 
+    dispersion parameter estimates is greater than 0.5).
 
     Args:
         summary: Country-indexed frame with floor_policy, continent,
@@ -2294,58 +2294,28 @@ def plot_policy_mobility_floor_pairs(
         The figure
     """
     plt.style.use("default")
-    plt.rcParams["pdf.fonttype"] = 42
-    plt.rcParams["font.sans-serif"] = ["Arial"]
 
     n_panels = len(mob_analyses)
-    fig, axes = plt.subplots(
-        n_panels,
-        1,
-        figsize=[180 * MM, 55 * MM * n_panels],
-        sharex=False,
-    )
+    fig, axes = plt.subplots(n_panels, 1, figsize=[180 * MM, 55 * MM * n_panels], sharex=False)
     axes = np.atleast_1d(axes)
 
     for ax, mob in zip(axes, mob_analyses):
+
+        # Data plotting
         ycol = f"floor_{mob}"
         pb_col = f"prop_better_{mob}"
         panel = summary.dropna(subset=["floor_policy", ycol, pb_col]).copy()
-        panel = panel.loc[
-            (panel["prop_better_policy"] >= 0.5) & (panel[pb_col] >= 0.5)
-        ]
+        prop_better_mask = (panel["prop_better_policy"] >= 0.5) & (panel[pb_col] >= 0.5)
+        panel = panel.loc[prop_better_mask]
         cont_rank = {c: i for i, c in enumerate(CONT_CMAP)}
         panel = panel.assign(_cont_rank=panel["continent"].map(cont_rank))
         panel = panel.sort_values(["_cont_rank", "floor_policy"])
         xs = np.arange(len(panel))
         for x, (iso3, row) in zip(xs, panel.iterrows()):
             colour = CONT_CMAP.get(row["continent"], "0.4")
-            ax.plot(
-                [x, x],
-                [row["floor_policy"], row[ycol]],
-                color="0.75",
-                linewidth=0.6,
-                zorder=1,
-            )
-            ax.scatter(
-                x,
-                row["floor_policy"],
-                marker="s",
-                s=16,
-                facecolors=colour,
-                edgecolors="k",
-                linewidths=0.7,
-                zorder=3,
-            )
-            ax.scatter(
-                x,
-                row[ycol],
-                marker="o",
-                s=16,
-                facecolors=colour,
-                edgecolors="k",
-                linewidths=0.7,
-                zorder=3,
-            )
+            ax.plot([x, x], [row["floor_policy"], row[ycol]], color="0.75", linewidth=0.6, zorder=1)
+            ax.scatter(x, row["floor_policy"], marker="s", s=15, facecolors=colour, edgecolors="k", linewidths=0.7, zorder=2)
+            ax.scatter(x, row[ycol], marker="o", s=16, facecolors=colour, edgecolors="k", linewidths=0.7, zorder=2)
 
         # Continent separators and labels
         boundaries = []
@@ -2357,60 +2327,24 @@ def plot_policy_mobility_floor_pairs(
             if idx[0] > 0:
                 ax.axvline(idx[0] - 0.5, color="0.85", linewidth=0.7, zorder=0)
         for cont, left, right in boundaries:
-            ax.text(
-                (left + right) / 2,
-                1.02,
-                pc.convert_continent_code_to_continent_name(cont),
-                transform=ax.get_xaxis_transform(),
-                ha="center",
-                va="bottom",
-                fontsize=6,
-                clip_on=False,
-            )
+            cont_name = pc.convert_continent_code_to_continent_name(cont)
+            trans = ax.get_xaxis_transform()
+            ax.text((left + right) / 2, 1.02, cont_name, transform=trans, ha="center", va="bottom", fontsize=6, clip_on=False)
 
+        # Cosmetics
         ax.set_xlim(-0.5, len(panel) - 0.5)
         ax.set_ylim(0.0, 1.0)
-        ax.set_ylabel("floor $f$", fontsize=7)
-        ax.set_title(
-            f"OxCGRT floored vs {ANALYSIS_NAMES[mob]}",
-            fontsize=8,
-            pad=12,
-        )
+        ax.set_ylabel("floor", fontsize=7)
+        ax.set_title(f"OxCGRT floored vs {ANALYSIS_NAMES[mob]}", fontsize=8, pad=12)
         ax.set_xticks(xs)
-        ax.set_xticklabels(
-            [get_country_short_name(i) for i in panel.index],
-            rotation=90,
-            fontsize=4.5,
-        )
+        ax.set_xticklabels([get_country_short_name(i) for i in panel.index], rotation=90, fontsize=4.5)
         ax.tick_params(axis="y", labelsize=6)
-        # Series legend on first panel only (shape)
-        if ax is axes[0]:
-            shape_handles = [
-                plt.Line2D(
-                    [0],
-                    [0],
-                    marker="s",
-                    color="k",
-                    linestyle="None",
-                    markersize=5,
-                    label="OxCGRT floored",
-                ),
-                plt.Line2D(
-                    [0],
-                    [0],
-                    marker="o",
-                    color="k",
-                    linestyle="None",
-                    markersize=5,
-                    label="mobility",
-                ),
-            ]
-            ax.legend(
-                handles=shape_handles,
-                loc="upper right",
-                fontsize=5.5,
-                frameon=False,
-            )
+
+    # Legend on first panel only
+    pol_handle = plt.Line2D([0], [0], marker="s", color="k", linestyle="None", markersize=5, label="OxCGRT floored")
+    mob_handle = plt.Line2D([0], [0], marker="o", color="k", linestyle="None", markersize=5, label="mobility")
+    shape_handles = [pol_handle, mob_handle]
+    axes[0].legend(handles=shape_handles, loc="upper right", fontsize=5.5, frameon=False)
 
     fig.tight_layout()
     plt.close()
