@@ -2232,7 +2232,7 @@ def plot_policy_mobility_strength_scatter(
                 edgecolors="k",
                 s=45,
                 label=cont_label,
-                alpha=0.6,
+                alpha=0.8,
             )
             
             unsupported = panel.loc[cont_mask & ~supported_mask]
@@ -2243,7 +2243,7 @@ def plot_policy_mobility_strength_scatter(
                 edgecolors="k",
                 s=8,
                 marker="s",
-                alpha=0.6,
+                alpha=0.8,
             )
         
         ax.plot([0.0, 1.0], [0, 1.0], color="0.5", linestyle="--")
