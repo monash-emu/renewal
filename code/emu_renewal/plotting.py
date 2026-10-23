@@ -79,8 +79,10 @@ from emu_renewal.utils import (
     get_country_short_name,
     get_country_name,
     get_countries_by_continent,
+    get_cont_of_country,
     to_iso3,
     iso3_to_iso2,
+    wb_iso3,
 )
 
 MOB_SOURCE_COLOURS = SOURCE_COLOURS
@@ -1966,6 +1968,190 @@ def plot_scale_exp_map(
     cax_no_improve = divider.append_axes("right", size=0.35, pad=0.15)
     fig.colorbar(ScalarMappable(norm=Normalize(vmin=0, vmax=upper_val), cmap=cmap), cax=cax_no_improve)
     
+    plt.close()
+    return fig
+
+
+def plot_scale_strength_figure(
+    world,
+    strengths: Dict[str, float],
+    prop_better: Dict[str, float],
+    upper_val: float = 1.0,
+    support_threshold: float = 0.5,
+    gdp_year: int = 2020,
+    cmap: str = "Greys",
+    evidence_cmap: str = "Reds",
+) -> plt.figure:
+    """Choropleth of composite scaling strength with GDP scatter panel.
+
+    Layout mirrors ``plot_dispersion_ratio_figure``: world map on the left
+    (red where dispersion improved relative to no scaling, grey otherwise)
+    and a right-hand scatter of posterior-median strength ($1-f^{m}$) against
+    GDP per capita, styled like ``plot_policy_mobility_strength_scatter``.
+
+    Args:
+        world: GeoDataFrame used for country boundaries (strength column optional)
+        strengths: ISO3 to posterior-median composite scaling strength
+        prop_better: ISO3 to P(dispersion improved vs baseline)
+        upper_val: Colour-scale upper bound for the map and scatter y-axis
+        support_threshold: ``prop_better`` cutoff for red vs grey / marker size
+        gdp_year: World Bank GDP-per-capita year for the scatter x-axis
+        cmap: Colour map for countries without dispersion support
+        evidence_cmap: Colour map for countries with dispersion support
+
+    Returns:
+        The composed figure
+    """
+    plt.style.use("default")
+    plt.rcParams["pdf.fonttype"] = 42
+    plt.rcParams["font.sans-serif"] = ["Arial"]
+    mpl.rcParams["hatch.color"] = "lightgrey"
+
+    map_df = world.copy()
+    map_df["strength"] = map_df["ISO_A3"].map(strengths)
+    supported_iso3 = {i for i, p in prop_better.items() if p > support_threshold}
+    evidence = map_df[map_df["ISO_A3"].isin(supported_iso3)]
+    missing = map_df[map_df["strength"].isna()]
+    plot_kw = dict(column="strength", legend=False, vmin=0, vmax=upper_val)
+
+    gdps = get_gdps(gdp_year)
+    panel = pd.DataFrame(
+        {
+            "strength": strengths,
+            "prop_better": prop_better,
+            "continent": {iso3: get_cont_of_country(iso3) for iso3 in strengths},
+            "gdp": {iso3: gdps.get(wb_iso3(iso3), np.nan) for iso3 in strengths},
+        }
+    ).dropna(subset=["strength", "gdp"])
+    panel = panel.loc[panel["gdp"] > 0]
+
+    fig_w, fig_h = 270 * MM, 100 * MM
+    fig = plt.figure(figsize=[fig_w, fig_h])
+    map_left, map_bottom, map_height = 0.04, 0.2, 0.78
+    map_width = map_height * (fig_h / fig_w) * 2.05
+    cbar_left = map_left + map_width + 0.008
+    cbar_width = 0.012
+    cbar_gap = 0.006
+    panel_left = cbar_left + 2 * cbar_width + cbar_gap + 0.05
+    panel_width = 0.97 - panel_left
+
+    map_ax = fig.add_axes([map_left, map_bottom, map_width, map_height])
+    cax_yes = fig.add_axes([cbar_left, map_bottom, cbar_width, map_height])
+    cax_no = fig.add_axes(
+        [cbar_left + cbar_width + cbar_gap, map_bottom, cbar_width, map_height]
+    )
+    panel_ax = fig.add_axes([panel_left, map_bottom, panel_width, map_height])
+
+    map_df.plot(ax=map_ax, cmap=cmap, **plot_kw)
+    evidence.plot(ax=map_ax, cmap=evidence_cmap, **plot_kw)
+    missing.plot(ax=map_ax, facecolor="white", edgecolor="none", hatch="//")
+    map_df.boundary.plot(ax=map_ax, color="k", linewidth=0.25)
+    map_ax.set_aspect("equal", adjustable="box")
+    map_ax.set_xticks([])
+    map_ax.set_yticks([])
+    for spine in map_ax.spines.values():
+        spine.set_visible(False)
+
+    fig.canvas.draw()
+    map_pos = map_ax.get_position()
+    cax_yes.set_position([cbar_left, map_pos.y0, cbar_width, map_pos.height])
+    cax_no.set_position(
+        [cbar_left + cbar_width + cbar_gap, map_pos.y0, cbar_width, map_pos.height]
+    )
+    panel_ax.set_position([panel_left, map_pos.y0, panel_width, map_pos.height])
+
+    yes_bar = fig.colorbar(
+        ScalarMappable(norm=Normalize(vmin=0, vmax=upper_val), cmap=evidence_cmap),
+        cax=cax_yes,
+    )
+    no_bar = fig.colorbar(
+        ScalarMappable(norm=Normalize(vmin=0, vmax=upper_val), cmap=cmap),
+        cax=cax_no,
+    )
+    yes_bar.ax.tick_params(labelsize=6, length=0, labelleft=False, labelright=False)
+    no_bar.ax.tick_params(labelsize=6)
+    cax_yes.set_ylabel("")
+    cax_no.set_ylabel(r"$1-f^{m}$", fontsize=7)
+
+    supported_mask = panel["prop_better"] > support_threshold
+    for cont, colour in CONT_CMAP.items():
+        cont_mask = panel["continent"] == cont
+        if not cont_mask.any():
+            continue
+        cont_label = pc.convert_continent_code_to_continent_name(cont)
+        supported = panel.loc[cont_mask & supported_mask]
+        panel_ax.scatter(
+            supported["gdp"],
+            supported["strength"],
+            color=colour,
+            edgecolors="k",
+            s=45,
+            label=cont_label,
+            alpha=0.8,
+            zorder=3,
+        )
+        unsupported = panel.loc[cont_mask & ~supported_mask]
+        panel_ax.scatter(
+            unsupported["gdp"],
+            unsupported["strength"],
+            color=colour,
+            edgecolors="k",
+            s=8,
+            marker="s",
+            alpha=0.8,
+            zorder=2,
+        )
+
+    # Regression line
+    log_gdp = np.log10(panel["gdp"].to_numpy(dtype=float))
+    strength = panel["strength"].to_numpy(dtype=float)
+    slope, intercept = np.polyfit(log_gdp, strength, 1)
+    x_line = np.linspace(log_gdp.min(), log_gdp.max(), 80)
+    panel_ax.plot(
+        10**x_line,
+        slope * x_line + intercept,
+        color="0.35",
+        linestyle=":",
+        linewidth=0.9,
+        zorder=1,
+    )
+
+    # Spearman statistic
+    rho, _ = spearmanr(panel["gdp"], panel["strength"])
+    panel_ax.text(
+        0.95,
+        0.05,
+        f"Spearman $\\rho$ = {rho:.2f}",
+        transform=panel_ax.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=6.5,
+    )
+
+    panel_ax.set_xscale("log")
+    panel_ax.set_xlim(panel["gdp"].min() / 1.3, panel["gdp"].max() * 1.3)
+    panel_ax.set_ylim(0.0, 1.0)
+    panel_ax.set_yticklabels([])
+    print(f"GDP per capita ({gdp_year}, US$)")
+    panel_ax.set_xlabel("GDP", fontsize=7)
+    panel_ax.tick_params(labelsize=6)
+    panel_ax.spines["top"].set_visible(False)
+    panel_ax.spines["right"].set_visible(False)
+
+    cont_handles = [
+        Patch(facecolor=colour, edgecolor="k", label=pc.convert_continent_code_to_continent_name(cont))
+        for cont, colour in CONT_CMAP.items()
+        if (panel["continent"] == cont).any()
+    ]
+    fig.legend(
+        handles=cont_handles,
+        loc="lower center",
+        ncol=min(3, len(cont_handles)),
+        frameon=False,
+        fontsize=6,
+        bbox_to_anchor=(panel_left + panel_width / 2.0, 0.01),
+    )
+
     plt.close()
     return fig
 
