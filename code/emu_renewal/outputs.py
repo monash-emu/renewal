@@ -293,6 +293,19 @@ def get_prop_better(c_disps, analysis, baseline="no_scaling"):
 
     Lower dispersion is treated as better. Only finite posterior values are
     compared (analyses can differ in chain/draw count after filtering).
+
+    Notes
+    -----
+    We compared each scaled analysis to no scaling
+    over the same country-specific window,
+    using the proportion of randomly paired posterior draws
+    in which residual-process dispersion (`dispersion_proc`)
+    was lower under the scaled analysis than under baseline.
+    A value greater than one half indicates that scaling reduced
+    unexplained transmission variation more often than not.
+    Because mobility analyses were not run for Oceania and Singapore,
+    comparison of policy versus mobility scaling was restricted
+    to pre-Omicron countries.
     """
     comparator = c_disps[analysis].dropna().to_numpy()
     referent = c_disps[baseline].dropna().to_numpy()

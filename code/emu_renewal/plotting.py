@@ -1393,25 +1393,26 @@ def plot_custom_oxcgrt_domains(
     return fig
 
 
-def plot_dispersion_ratio_figure(
+def plot_dispersion_evidence_figure(
     disp_posts: Dict[str, pd.DataFrame],
-    ratios: Dict[str, pd.DataFrame],
+    prop_better: Dict[str, float],
     exemplar_iso3s: List[str],
     analysis_type: str = "oxcgrt_floored",
     baseline: str = "no_scaling",
 ) -> plt.figure:
-    """Choropleth of median dispersion ratios with exemplar posterior KDEs.
+    """Choropleth of P(dispersion improved) with exemplar posterior KDEs.
 
-    Panel layout is a world map of median (baseline / analysis) dispersion
-    ratios beside stacked kernel density comparisons for a few selected countries,
-    illustrating what the map colours represent. Ratios above one favour scaling.
+    Panel layout is a world map of the probability that residual-process
+    dispersion is lower under the scaled analysis than under baseline,
+    beside stacked kernel density comparisons for a few selected countries.
+    Values above 0.5 favour scaling.
 
     Args:
         disp_posts: dispersion_proc posterior samples by country-analysis combination
-        ratios: Output of get_ratios_from_disps
+        prop_better: ISO3 to P(dispersion improved vs baseline)
         exemplar_iso3s: Countries for the side KDE panels (top to bottom)
         analysis_type: Scaled analysis for the map and KDEs
-        baseline: Baseline analysis for the ratio and KDEs
+        baseline: Baseline analysis for the KDEs
 
     Returns:
         The composed figure
@@ -1420,12 +1421,11 @@ def plot_dispersion_ratio_figure(
     plt.rcParams["pdf.fonttype"] = 42
     plt.rcParams["font.sans-serif"] = ["Arial"]
 
-    vmin, vmax, cmap = 0.4, 1.6, "RdGy_r"
-    median_ratios = get_median_ratios(ratios, analysis_type)
+    vmin, vmax, cmap = 0.0, 1.0, "RdGy_r"
     world = get_world_shp()
-    world["disp_ratio"] = world["ISO_A3"].map(median_ratios)
-    avail = world[world["disp_ratio"].notna()]
-    unavail = world[world["disp_ratio"].isna()]
+    world["prop_better"] = world["ISO_A3"].map(prop_better)
+    avail = world[world["prop_better"].notna()]
+    unavail = world[world["prop_better"].isna()]
     n_ex = len(exemplar_iso3s)
 
     # Explicit positions so the colourbar shares the map's vertical span
@@ -1444,14 +1444,14 @@ def plot_dispersion_ratio_figure(
     map_ax = fig.add_axes([map_left, map_bottom, map_width, map_height])
     cax = fig.add_axes([cbar_left, map_bottom, cbar_width, map_height])
 
-    avail.plot(column="disp_ratio", ax=map_ax, cmap=cmap, legend=False, vmin=vmin, vmax=vmax)
+    avail.plot(column="prop_better", ax=map_ax, cmap=cmap, legend=False, vmin=vmin, vmax=vmax)
     unavail.plot(ax=map_ax, color="w", hatch="///", edgecolor="whitesmoke", linewidth=0.0)
     world["small"] = world.geometry.area < 2.5
     world["centroid"] = world.geometry.centroid
     world[world["small"]].set_geometry("centroid").plot(
         ax=map_ax,
         markersize=5,
-        column="disp_ratio",
+        column="prop_better",
         cmap=cmap,
         vmin=vmin,
         vmax=vmax,
@@ -1496,8 +1496,8 @@ def plot_dispersion_ratio_figure(
             legend=False,
         )
         ax.vlines(likes.median(), 0, 0.1, colors=colours, transform=ax.get_xaxis_transform())
-        ratio = median_ratios[iso3]
-        ax.set_title(f"{get_country_name(iso3)} ({ratio:.2f})", fontsize=8, pad=2)
+        p_better = prop_better[iso3]
+        ax.set_title(f"{get_country_name(iso3)} ({p_better:.2f})", fontsize=8, pad=2)
         ax.set_xlim(0, likes.quantile(0.999).max())
         ax.set_yticks([])
         ax.set_ylabel("")
@@ -1984,7 +1984,7 @@ def plot_scale_strength_figure(
 ) -> plt.figure:
     """Choropleth of composite scaling strength with GDP scatter panel.
 
-    Layout mirrors ``plot_dispersion_ratio_figure``: world map on the left
+    Layout mirrors ``plot_dispersion_evidence_figure``: world map on the left
     (red where dispersion improved relative to no scaling, grey otherwise)
     and a right-hand scatter of posterior-median strength ($1-f^{m}$) against
     GDP per capita, styled like ``plot_policy_mobility_strength_scatter``.
