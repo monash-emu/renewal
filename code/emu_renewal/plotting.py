@@ -2401,11 +2401,14 @@ def plot_policy_mobility_strength_scatter(
         sharey=True,
     )
     axes = np.atleast_1d(axes)
+    
+    # No mobility analyses for Oceania
+    cont_cmap = {k: v for k, v in CONT_CMAP.items() if k != "OC"}
 
     for i, (ax, mob) in enumerate(zip(axes, mob_analyses)):
         ycol = f"strength_{mob}"
         panel = summary.dropna(subset=["strength_policy", ycol]).copy()
-        for cont, colour in CONT_CMAP.items():
+        for cont, colour in cont_cmap.items():
             cont_mask = panel["continent"] == cont
             supported_mask = panel["prop_better_policy"] > 0.5
             cont_label = pc.convert_continent_code_to_continent_name(cont)
@@ -2446,7 +2449,7 @@ def plot_policy_mobility_strength_scatter(
         ax.text(0.95, 0.05, txt, transform=ax.transAxes, ha="right", va="bottom", fontsize=6.5)
 
     cont_handles = []
-    for cont, colour in CONT_CMAP.items():
+    for cont, colour in cont_cmap.items():
         cont_name = pc.convert_continent_code_to_continent_name(cont)
         patch = Patch(facecolor=colour, edgecolor="k", label=cont_name)
         cont_handles.append(patch)
