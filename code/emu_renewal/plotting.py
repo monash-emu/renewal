@@ -954,6 +954,27 @@ def style_manuscript_proc_grid(
         ax.set_xticks([])
         ax.set_yticks([])
 
+    _, height = fig.get_size_inches()
+    fig.set_size_inches(180 * MM, height * 180 * MM / 12.0)
+    for ax in fig.axes:
+        ax.title.set_fontsize(7)
+        for line in ax.lines:
+            line.set_linewidth(1.2)
+        legend = ax.get_legend()
+        if legend is not None:
+            handles = legend.legend_handles
+            labels = [t.get_text() for t in legend.get_texts()]
+            ax.legend(
+                handles,
+                labels,
+                fontsize=6,
+                labelspacing=0.15,
+                handlelength=1.2,
+                handletextpad=0.4,
+                borderpad=0.25,
+                borderaxespad=0.25,
+            )
+
     fig.tight_layout()
     if col_titles:
         for ax, title in zip(fig.axes[-n_cols:], col_titles):
@@ -964,7 +985,7 @@ def style_manuscript_proc_grid(
                 title,
                 ha="center",
                 va="bottom",
-                fontsize=16,
+                fontsize=9,
             )
     for ax, title in zip(fig.axes[::n_cols], row_titles):
         bbox = ax.get_position()
@@ -974,7 +995,7 @@ def style_manuscript_proc_grid(
             title,
             ha="right",
             va="center",
-            fontsize=16,
+            fontsize=9,
             rotation=90,
         )
     return fig
@@ -1515,7 +1536,7 @@ def plot_dispersion_evidence_figure(
         borderaxespad=0.2,
         handlelength=1.0,
         handletextpad=0.4,
-        labelspacing=0.25,
+        labelspacing=0.12,
     )
 
     for ax in kde_axes:
